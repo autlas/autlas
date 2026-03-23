@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { getScripts, Script, runScript, killScript } from "../api";
 import { invoke } from "@tauri-apps/api/core";
 
@@ -28,6 +28,10 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
     // Local Filters
     const [treeFilter, setTreeFilter] = useState<"all" | "tagged" | "untagged">("all");
     const [showHidden, setShowHidden] = useState(false);
+
+    // DnD Threshold Refs
+    const pendingDragRef = useRef<{ script: Script, x: number, y: number } | null>(null);
+    const dragTimerRef = useRef<number | null>(null);
 
     const fetchData = async () => {
         try {
@@ -85,13 +89,59 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
         }
     };
 
-    const handleCustomMouseDown = (e: React.MouseEvent, s: Script) => {
-        if (e.button !== 0) return;
+    const handleCustomMouseDown = (e: React.MouseEvent, script: Script) => {
+        if (e.button !== 0) return; // Only left click
         const target = e.target as HTMLElement;
         if (target.closest('button') || target.closest('input')) return;
 
         e.preventDefault();
-        onCustomDragStart({ path: s.path, filename: s.filename, x: e.clientX, y: e.clientY });
+
+        const startX = e.clientX;
+        const startY = e.clientY;
+        pendingDragRef.current = { script, x: startX, y: startY };
+
+        // 1. Time Threshold: Start dragging after 300ms hold
+        dragTimerRef.current = window.setTimeout(() => {
+            initiateDrag(startX, startY);
+        }, 300);
+
+        // 2. Distance Threshold: Start dragging after 8px movement
+        const handleInitialMouseMove = (mv: MouseEvent) => {
+            if (!pendingDragRef.current) return;
+            const dist = Math.sqrt(Math.pow(mv.clientX - startX, 2) + Math.pow(mv.clientY - startY, 2));
+            if (dist > 8) {
+                initiateDrag(mv.clientX, mv.clientY);
+            }
+        };
+
+        const handleInitialMouseUp = () => {
+            cleanupPendingDrag();
+        };
+
+        const initiateDrag = (x: number, y: number) => {
+            if (pendingDragRef.current) {
+                onCustomDragStart({
+                    path: pendingDragRef.current.script.path,
+                    filename: pendingDragRef.current.script.filename,
+                    x,
+                    y
+                });
+                cleanupPendingDrag();
+            }
+        };
+
+        const cleanupPendingDrag = () => {
+            if (dragTimerRef.current) {
+                clearTimeout(dragTimerRef.current);
+                dragTimerRef.current = null;
+            }
+            pendingDragRef.current = null;
+            window.removeEventListener('mousemove', handleInitialMouseMove);
+            window.removeEventListener('mouseup', handleInitialMouseUp);
+        };
+
+        window.addEventListener('mousemove', handleInitialMouseMove);
+        window.addEventListener('mouseup', handleInitialMouseUp);
     };
 
     const filtered = useMemo(() => {
