@@ -1,0 +1,22 @@
+@import "tailwindcss";
+
+/* Resets for cleaner UI */
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background-color: #1a1a1a;
+    color: #fff;
+    font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+    user-select: none;
+}
+
+ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
