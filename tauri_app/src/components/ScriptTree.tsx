@@ -1,27 +1,32 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { getScripts, Script, runScript, killScript } from "../api";
 
 interface ScriptTreeProps {
     filterTag: string;
     onTagsLoaded: (tags: string[]) => void;
+    viewMode: "tree" | "hub";
 }
 
-export default function ScriptTree({ filterTag, onTagsLoaded }: ScriptTreeProps) {
+interface TreeNode {
+    name: string;
+    scripts: Script[];
+    children: Record<string, TreeNode>;
+}
+
+export default function ScriptTree({ filterTag, onTagsLoaded, viewMode }: ScriptTreeProps) {
     const [allScripts, setAllScripts] = useState<Script[]>([]);
     const [loading, setLoading] = useState(true);
+    const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({ "Root": true });
 
     const fetchData = async () => {
         try {
             const data = await getScripts();
             setAllScripts(data);
-
-            // Extract unique tags and notify App.tsx
             const tags = new Set<string>();
             data.forEach(s => s.tags.forEach(t => tags.add(t)));
             onTagsLoaded(Array.from(tags).sort());
-
         } catch (e) {
-            console.error("Error fetching scripts:", e);
+            console.error("Error:", e);
         } finally {
             setLoading(false);
         }
@@ -33,6 +38,10 @@ export default function ScriptTree({ filterTag, onTagsLoaded }: ScriptTreeProps)
         return () => clearInterval(interval);
     }, []);
 
+    const toggleFolder = (path: string) => {
+        setExpandedFolders(prev => ({ ...prev, [path]: !prev[path] }));
+    };
+
     const handleToggle = async (script: Script) => {
         try {
             if (script.is_running) {
@@ -40,94 +49,117 @@ export default function ScriptTree({ filterTag, onTagsLoaded }: ScriptTreeProps)
             } else {
                 await runScript(script.path);
             }
-            fetchData(); // Immediate refresh attempt
+            fetchData();
         } catch (e) {
-            console.error("Error toggling script:", e);
+            console.error(e);
         }
     };
 
-    // Filter logic
-    let filtered = allScripts;
-    if (filterTag === "Запущенные") {
-        filtered = allScripts.filter(s => s.is_running);
-    } else if (filterTag === "Без тегов") {
-        filtered = allScripts.filter(s => s.tags.length === 0 && !s.is_hidden);
-    } else if (filterTag === "Скрытые") {
-        filtered = allScripts.filter(s => s.is_hidden);
-    } else if (filterTag === "С тегами") {
-        filtered = allScripts.filter(s => s.tags.length > 0 && !s.is_hidden);
-    } else if (filterTag !== "Все скрипты" && filterTag !== "") {
-        // Treat as individual tag
-        filtered = allScripts.filter(s => s.tags.includes(filterTag));
-    } else {
-        // "Все скрипты" - show everything except hidden
-        filtered = allScripts.filter(s => !s.is_hidden);
-    }
+    // 1. Filter scripts
+    const filtered = useMemo(() => {
+        if (viewMode === "hub") {
+            // Hub logic: All running OR Favorite (has #fav or #hub tag)
+            return allScripts.filter(s => s.is_running || s.tags.some(t => t.toLowerCase() === "hub" || t.toLowerCase() === "fav"));
+        }
+
+        if (filterTag === "Запущенные") return allScripts.filter(s => s.is_running);
+        if (filterTag === "Без тегов") return allScripts.filter(s => s.tags.length === 0 && !s.is_hidden);
+        if (filterTag === "Скрытые") return allScripts.filter(s => s.is_hidden);
+        if (filterTag === "С тегами") return allScripts.filter(s => s.tags.length > 0 && !s.is_hidden);
+        if (filterTag !== "Все скрипты" && filterTag !== "") {
+            return allScripts.filter(s => s.tags.includes(filterTag));
+        }
+        return allScripts.filter(s => !s.is_hidden);
+    }, [allScripts, filterTag, viewMode]);
+
+    // 2. Build Tree Structure
+    const tree = useMemo(() => {
+        const root: TreeNode = { name: "Root", scripts: [], children: {} };
+
+        filtered.forEach(script => {
+            // Very simple parent-based grouping for MVP, but can be expanded to full path splitted tree
+            const folderName = script.parent || "Common";
+            if (!root.children[folderName]) {
+                root.children[folderName] = { name: folderName, scripts: [], children: {} };
+            }
+            root.children[folderName].scripts.push(script);
+        });
+        return root;
+    }, [filtered]);
 
     if (loading) {
-        return <div className="p-8 text-center text-gray-500 animate-pulse">Инициализация бэкенда...</div>;
+        return <div className="p-8 text-center text-gray-500 animate-pulse">Загрузка древа...</div>;
     }
 
-    // Simple folder grouping for now (not full recursive tree yet, but organized)
-    const grouped: Record<string, Script[]> = {};
-    filtered.forEach(s => {
-        if (!grouped[s.parent]) grouped[s.parent] = [];
-        grouped[s.parent].push(s);
-    });
+    if (viewMode === "hub") {
+        return (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filtered.length === 0 && <div className="text-gray-600 col-span-3 text-center py-20 italic">Хаб пуст. Запустите скрипт или добавьте тег #hub.</div>}
+                {filtered.map(s => (
+                    <div key={s.path} className={`p-5 rounded-2xl border transition-all flex flex-col justify-between h-40 ${s.is_running ? 'bg-green-500/10 border-green-500/30' : 'bg-white/5 border-white/10'}`}>
+                        <div className="flex justify-between items-start">
+                            <div className="flex flex-col">
+                                <span className="text-lg font-bold truncate pr-4">{s.filename}</span>
+                                <span className="text-[10px] text-gray-500 uppercase tracking-widest">{s.parent}</span>
+                            </div>
+                            <div className={`w-3 h-3 rounded-full ${s.is_running ? 'bg-green-500 animate-pulse' : 'bg-gray-700'}`}></div>
+                        </div>
+                        <button
+                            onClick={() => handleToggle(s)}
+                            className={`w-full py-2.5 rounded-xl text-xs font-black tracking-widest transition-all ${s.is_running ? "bg-red-500 text-white hover:bg-red-600 shadow-lg shadow-red-900/20" : "bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-900/20"
+                                }`}
+                        >
+                            {s.is_running ? "STOP" : "RUN"}
+                        </button>
+                    </div>
+                ))}
+            </div>
+        );
+    }
 
     return (
-        <div className="flex flex-col space-y-6">
-            {Object.entries(grouped).map(([folder, scripts]) => (
-                <div key={folder} className="flex flex-col">
-                    <div className="flex items-center space-x-2 text-gray-400 mb-2 px-1">
-                        <span className="text-xs font-bold uppercase tracking-widest">{folder || "Root / Desktop"}</span>
-                        <div className="h-[1px] flex-1 bg-[#333]"></div>
+        <div className="flex flex-col space-y-2 select-none">
+            {Object.values(tree.children).map(node => (
+                <div key={node.name} className="flex flex-col">
+                    <div
+                        onClick={() => toggleFolder(node.name)}
+                        className="flex items-center space-x-2 p-2 hover:bg-white/5 rounded-md cursor-pointer group"
+                    >
+                        <span className={`transition-transform duration-200 ${expandedFolders[node.name] ? 'rotate-90' : ''}`}>
+                            ▶
+                        </span>
+                        <span className="text-xs font-bold text-gray-400 uppercase tracking-widest group-hover:text-blue-400">
+                            {node.name}
+                        </span>
+                        <span className="text-[10px] text-gray-600 font-mono">({node.scripts.length})</span>
                     </div>
-                    <div className="grid grid-cols-1 gap-2">
-                        {scripts.map((s) => (
-                            <div
-                                key={s.path}
-                                className={`flex items-center justify-between p-3 rounded-lg border transition-all group ${s.is_running
-                                        ? "bg-green-500/5 border-green-500/10 hover:border-green-500/30"
-                                        : "bg-[#252525] border-[#333] hover:border-[#444]"
-                                    }`}
-                            >
-                                <div className="flex items-center space-x-4">
-                                    <div className="flex-shrink-0">
-                                        {s.is_running ? (
-                                            <div className="w-3 h-3 bg-green-500 rounded-full shadow-[0_0_10px_rgba(34,197,94,0.5)]"></div>
-                                        ) : (
-                                            <div className="w-3 h-3 bg-[#444] rounded-full"></div>
-                                        )}
-                                    </div>
-                                    <div className="flex flex-col overflow-hidden">
-                                        <span className={`text-base font-semibold truncate ${s.is_running ? "text-green-400" : "text-gray-200"}`}>
+
+                    {expandedFolders[node.name] && (
+                        <div className="pl-6 border-l border-white/5 ml-3 mt-1 space-y-1">
+                            {node.scripts.map(s => (
+                                <div
+                                    key={s.path}
+                                    className="flex items-center justify-between p-2 hover:bg-white/5 rounded-md group transition-colors"
+                                >
+                                    <div className="flex items-center space-x-3 overflow-hidden">
+                                        <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${s.is_running ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]' : 'bg-gray-700'}`}></div>
+                                        <span className={`text-sm truncate ${s.is_running ? 'text-green-400 font-medium' : 'text-gray-300'}`}>
                                             {s.filename}
                                         </span>
-                                        <div className="flex flex-wrap gap-1 mt-1">
-                                            {s.tags.map(t => (
-                                                <span key={t} className="text-[10px] px-1.5 py-0.5 bg-[#333] text-gray-400 rounded-sm">
-                                                    #{t}
-                                                </span>
-                                            ))}
-                                        </div>
+                                    </div>
+                                    <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button
+                                            onClick={() => handleToggle(s)}
+                                            className={`text-[10px] font-bold px-3 py-1 rounded border transition-all ${s.is_running ? 'border-red-500/30 text-red-500 hover:bg-red-500 hover:text-white' : 'border-blue-500/30 text-blue-500 hover:bg-blue-500 hover:text-white'
+                                                }`}
+                                        >
+                                            {s.is_running ? "OFF" : "ON"}
+                                        </button>
                                     </div>
                                 </div>
-
-                                <div className="flex-shrink-0 ml-4">
-                                    <button
-                                        onClick={() => handleToggle(s)}
-                                        className={`px-4 py-1.5 rounded-md text-xs font-bold tracking-tighter transition-all ${s.is_running
-                                                ? "bg-red-600/10 text-red-500 border border-red-600/20 hover:bg-red-600 hover:text-white"
-                                                : "bg-blue-600/10 text-blue-400 border border-blue-600/20 hover:bg-blue-600 hover:text-white"
-                                            }`}
-                                    >
-                                        {s.is_running ? "ОСТАНОВИТЬ" : "ЗАПУСТИТЬ"}
-                                    </button>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
             ))}
         </div>
