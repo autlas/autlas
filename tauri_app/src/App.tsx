@@ -178,9 +178,9 @@ function App() {
           {viewMode !== "settings" && (
             <>
               <div>
-                <h2 className="text-[12px] font-bold text-white/10 tracking-widest mb-6 pl-4 uppercase">Filters</h2>
+                <h2 className="text-[12px] font-bold text-white/10 tracking-widest mb-6 pl-4 uppercase">Status</h2>
                 <ul className="space-y-1.5">
-                  {["С тегами", "Без тегов", "Скрытые", "Запущенные"].map((item) => (
+                  {["Запущенные"].map((item) => (
                     <li
                       key={item}
                       className={navItemClass(item, false)}

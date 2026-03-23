@@ -25,6 +25,10 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
     const [editingScript, setEditingScript] = useState<string | null>(null);
     const [tempTags, setTempTags] = useState("");
 
+    // Local Filters
+    const [treeFilter, setTreeFilter] = useState<"all" | "tagged" | "untagged">("all");
+    const [showHidden, setShowHidden] = useState(false);
+
     const fetchData = async () => {
         try {
             const data = await getScripts();
@@ -96,19 +100,43 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
         }
 
         let list = [...allScripts];
-        const tag = filterTag.toLowerCase();
 
-        if (tag === "запущенные") list = list.filter(s => s.is_running);
-        else if (tag === "без тегов") list = list.filter(s => s.tags.length === 0 && !s.is_hidden);
-        else if (tag === "скрытые") list = list.filter(s => s.is_hidden);
-        else if (tag === "с тегами") list = list.filter(s => s.tags.length > 0 && !s.is_hidden);
-        else if (tag !== "все скрипты" && tag !== "дерево" && tag !== "хаб" && tag !== "") {
-            list = list.filter(s => s.tags.includes(filterTag));
-        } else {
-            list = list.filter(s => !s.is_hidden);
-        }
+        // New filtering logic combining sidebar tags and local tree filters
+        list = list.filter(s => {
+            // 1. Sidebar Category/Tag Filter
+            if (filterTag === "Запущенные") {
+                if (!s.is_running) return false;
+            } else if (filterTag === "Без тегов") {
+                if (s.tags.length > 0) return false;
+            } else if (filterTag === "Скрытые") {
+                if (!s.is_hidden) return false;
+            } else if (filterTag === "С тегами") {
+                if (s.tags.length === 0) return false;
+            } else if (filterTag !== "Все скрипты" && filterTag !== "Дерево" && filterTag !== "Хаб" && filterTag !== "") {
+                // If it's a specific tag from sidebar
+                if (!s.tags.includes(filterTag)) return false;
+            } else {
+                // Default for "Все скрипты" or empty filterTag, exclude hidden unless explicitly shown
+                if (s.is_hidden && !showHidden) return false;
+            }
+
+            // 2. Tree Local Filter (Segmented Control) - Only in Tree Mode
+            if (viewMode === "tree") {
+                if (treeFilter === "tagged" && s.tags.length === 0) return false;
+                if (treeFilter === "untagged" && s.tags.length > 0) return false;
+
+                // 3. Hidden Logic (Eye Toggle)
+                if (s.is_hidden && !showHidden) return false;
+            } else {
+                // In Hub mode, hide hidden scripts by default
+                if (s.is_hidden) return false;
+            }
+
+            return true;
+        });
+
         return list;
-    }, [allScripts, filterTag, viewMode]);
+    }, [allScripts, filterTag, viewMode, treeFilter, showHidden]);
 
     const tree = useMemo(() => {
         const root: TreeNode = { name: "Root", fullName: "Root", scripts: [], children: {} };
@@ -182,14 +210,15 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
                             </div>
                         )}
 
-                        <div className={`${node.name !== "Root" ? 'pl-5 ml-2.5 mb-0.5 mt-0.5' : ''} space-y-0.5 relative`}>
+                        <div className={`${node.name !== "Root" ? 'pl-5 ml-2.5 mb-0.5 mt-0.5' : ''} space-y-1.5 relative`}>
                             {Object.values(node.children).sort((a, b) => a.name.localeCompare(b.name)).map(child => renderNode(child, depth + 1))}
                             {node.scripts.sort((a, b) => a.filename.localeCompare(b.filename)).map(s => (
                                 <div
                                     key={s.path}
                                     onMouseDown={(e) => handleCustomMouseDown(e, s)}
-                                    className={`flex items-center justify-between h-[32px] px-3 rounded-lg transition-all border border-transparent select-none
+                                    className={`flex items-center justify-between h-[36px] px-3 rounded-lg transition-all border border-transparent select-none
                     ${!isDragging ? 'hover:bg-white/5 group cursor-grab active:cursor-grabbing active:scale-[0.99]' : 'bg-transparent cursor-default opacity-40'}
+                    ${s.is_hidden ? 'opacity-40 grayscale-[0.5]' : ''}
                   `}
                                 >
                                     <div className="flex items-center space-x-4 overflow-hidden flex-1 mr-4 pointer-events-none">
@@ -242,27 +271,77 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
     if (loading) return <div className="p-10 text-center text-white/10 font-bold text-xs tracking-[0.5em] animate-pulse uppercase">Syncing Uplink...</div>;
 
     const hasContent = Object.keys(tree.children).length > 0 || tree.scripts.length > 0;
+    const anyExpanded = Object.values(expandedFolders).some(val => val);
 
     return (
-        <div className="flex flex-col space-y-1">
+        <div className="flex flex-col space-y-1.5">
             {viewMode === "tree" && (
-                <div className="flex justify-start pl-1 mb-2 pb-2 border-b" style={{ borderColor: 'var(--border-color)' }}>
-                    <button
-                        onClick={toggleAll}
-                        className={`p-2 transition-all h-12 w-12 flex flex-col items-center justify-center border-none shadow-none bg-transparent focus:outline-none relative cursor-pointer ${!isDragging ? 'group/toggle' : 'opacity-10 cursor-default'}`}
-                    >
-                        <div className="flex flex-col items-center space-y-[5px]">
-                            <svg width="22" height="10" viewBox="0 0 24 10" fill="none"
-                                className={`transition-all duration-500 ease-in-out stroke-white/20 ${!isDragging && 'group-hover/toggle:stroke-indigo-400'} ${isAllExpanded ? 'rotate-180' : ''}`}
-                                strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M5 8l7-7 7 7" />
-                            </svg>
-                            <svg width="22" height="10" viewBox="0 0 24 10" fill="none"
-                                className={`transition-all duration-500 ease-in-out stroke-white/20 ${!isDragging && 'group-hover/toggle:stroke-indigo-400'} ${isAllExpanded ? 'rotate-180' : ''}`}
-                                strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M5 2l7 7 7-7" />
-                            </svg>
+                <div className="flex items-center justify-between pl-1 mb-4 pb-2 border-b" style={{ borderColor: 'var(--border-color)' }}>
+                    <div className="flex items-center space-x-1">
+                        <button
+                            onClick={toggleAll}
+                            className={`p-2 transition-all h-10 w-10 flex flex-col items-center justify-center border-none shadow-none bg-transparent focus:outline-none relative cursor-pointer ${!isDragging ? 'group/toggle' : 'opacity-10 cursor-default'}`}
+                            title="Свернуть/Развернуть все"
+                        >
+                            <div className="flex flex-col items-center space-y-[3px]">
+                                <svg width="14" height="6" viewBox="0 0 24 10" fill="none"
+                                    className={`transition-all duration-300 ease-in-out stroke-white/20 ${!isDragging && 'group-hover/toggle:stroke-indigo-400'} ${anyExpanded ? 'rotate-180' : ''}`}
+                                    strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M5 8l7-7 7 7" />
+                                </svg>
+                                <svg width="14" height="6" viewBox="0 0 24 10" fill="none"
+                                    className={`transition-all duration-300 ease-in-out stroke-white/20 ${!isDragging && 'group-hover/toggle:stroke-indigo-400'} ${anyExpanded ? 'rotate-180' : ''}`}
+                                    strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M5 2l7 7 7-7" />
+                                </svg>
+                            </div>
+                        </button>
+
+                        <div className="h-4 w-[1px] bg-white/5 mx-2"></div>
+
+                        {/* Segmented Filter Control */}
+                        <div className="flex bg-white/[0.03] p-1 rounded-xl border border-white/5">
+                            {[
+                                { id: "all", label: "Все" },
+                                { id: "tagged", label: "С тегами" },
+                                { id: "untagged", label: "Без" }
+                            ].map((f) => (
+                                <button
+                                    key={f.id}
+                                    onClick={() => !isDragging && setTreeFilter(f.id as any)}
+                                    className={`px-4 py-1.5 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${treeFilter === f.id
+                                        ? "bg-indigo-600 text-white shadow-lg shadow-indigo-900/20"
+                                        : "text-white/20 hover:text-white/40"
+                                        } ${isDragging ? 'opacity-20 pointer-events-none' : ''}`}
+                                >
+                                    {f.label}
+                                </button>
+                            ))}
                         </div>
+                    </div>
+
+                    {/* Hidden Toggle (Eye) */}
+                    <button
+                        onClick={() => !isDragging && setShowHidden(!showHidden)}
+                        className={`p-2.5 rounded-xl transition-all cursor-pointer border ${showHidden
+                            ? "bg-indigo-500/10 border-indigo-500/30 text-indigo-400 shadow-[0_0_15px_rgba(79,70,229,0.2)]"
+                            : "bg-white/[0.03] border-white/5 text-white/10 hover:text-white/30 hover:bg-white/[0.05]"
+                            } ${isDragging ? 'opacity-10 pointer-events-none' : ''}`}
+                        title={showHidden ? "Скрыть 'Скрытые'" : "Показать 'Скрытые'"}
+                    >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            {showHidden ? (
+                                <>
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                                    <circle cx="12" cy="12" r="3" />
+                                </>
+                            ) : (
+                                <>
+                                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                                    <line x1="1" y1="1" x2="23" y2="23" />
+                                </>
+                            )}
+                        </svg>
                     </button>
                 </div>
             )}
