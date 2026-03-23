@@ -1,18 +1,18 @@
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import ScriptTree from "./components/ScriptTree";
 import { invoke } from "@tauri-apps/api/core";
 import "./App.css";
+
+const MemoizedScriptTree = React.memo(ScriptTree);
 
 function App() {
   const [activeTab, setActiveTab] = useState("Хаб");
   const [userTags, setUserTags] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<"tree" | "hub" | "settings">("hub");
 
-  // Custom Drag and Drop State - NO COORDINATES HERE TO PREVENT RE-RENDERS
   const [draggedScript, setDraggedScript] = useState<{ path: string, filename: string } | null>(null);
   const [dragOverTag, setDragOverTag] = useState<string | null>(null);
 
-  // High-performance direct DOM reference for 144hz tracking
   const ghostRef = useRef<HTMLDivElement>(null);
 
   const [brightness, setBrightness] = useState(() => {
@@ -38,6 +38,43 @@ function App() {
     localStorage.setItem("app-brightness", brightness.toString());
   }, [brightness]);
 
+  useEffect(() => {
+    let animationFrameId: number;
+    let latestX = 0;
+    let latestY = 0;
+    let isDragging = false;
+
+    const updatePosition = () => {
+      if (ghostRef.current && isDragging) {
+        ghostRef.current.style.transform = `translate3d(${latestX}px, ${latestY}px, 0) translate(-50%, -50%)`;
+      }
+      animationFrameId = 0;
+    };
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!ghostRef.current) return;
+      if (ghostRef.current.getAttribute("data-dragging") !== "true") {
+        isDragging = false;
+        return;
+      }
+
+      isDragging = true;
+      latestX = e.clientX;
+      latestY = e.clientY;
+
+      if (!animationFrameId) {
+        animationFrameId = requestAnimationFrame(updatePosition);
+      }
+    };
+
+    window.addEventListener("mousemove", handleMouseMove, { passive: true });
+
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      if (animationFrameId) cancelAnimationFrame(animationFrameId);
+    };
+  }, []);
+
   const handleTabClick = (tab: string) => {
     setActiveTab(tab);
     if (tab === "Хаб") setViewMode("hub");
@@ -46,80 +83,89 @@ function App() {
   };
 
   const handleCustomDrop = async (path: string, tag: string) => {
-    console.log(`[App] CUSTOM DROPPED on tag: ${tag}`);
     setDragOverTag(null);
     if (path && tag) {
       try {
         await invoke("add_script_tag", { path, tag });
-        console.log("[App] OK: Backend updated via custom engine.");
       } catch (err) {
         console.warn("[App] FAIL: Backend refused custom engine update", err);
       }
     }
   };
 
-  const startCustomDrag = (script: { path: string, filename: string, x: number, y: number }) => {
+  const startCustomDrag = useCallback((script: { path: string, filename: string, x: number, y: number }) => {
     setDraggedScript({ path: script.path, filename: script.filename });
     if (ghostRef.current) {
-      ghostRef.current.style.transform = `translate(${script.x}px, ${script.y}px) translate(-50%, -50%)`;
+      ghostRef.current.setAttribute("data-dragging", "true");
+      ghostRef.current.style.transform = `translate3d(${script.x}px, ${script.y}px, 0) translate(-50%, -50%)`;
     }
-  };
+  }, []);
 
-  const handleGlobalMouseMove = (e: React.MouseEvent) => {
-    // Direct DOM manipulation guarantees perfect tracking FPS without triggering React's VDOM diffs
-    if (draggedScript && ghostRef.current) {
-      ghostRef.current.style.transform = `translate(${e.clientX}px, ${e.clientY}px) translate(-50%, -50%)`;
-    }
-  };
+  const handleTagsLoaded = useCallback((tags: string[]) => {
+    setUserTags(tags);
+  }, []);
 
-  const handleGlobalMouseUp = async (e: React.MouseEvent) => {
+  const handleGlobalMouseUp = async () => {
     if (draggedScript) {
       if (dragOverTag) {
         await handleCustomDrop(draggedScript.path, dragOverTag);
+      }
+      if (ghostRef.current) {
+        ghostRef.current.setAttribute("data-dragging", "false");
       }
       setDraggedScript(null);
       setDragOverTag(null);
     }
   };
 
-  const navItemClass = (tab: string) => `
+  const navItemClass = (tab: string, isTag: boolean = false) => `
     px-6 py-3 rounded-xl cursor-pointer text-[14px] font-bold transition-all border flex items-center justify-between relative z-50
+    will-change-transform
     ${activeTab === tab
       ? "bg-white/10 text-white border-white/10 shadow-lg"
       : dragOverTag === tab
-        ? "bg-indigo-600 text-white border-white/40 shadow-2xl scale-[1.01]"
-        : "text-white/20 border-transparent hover:bg-white/5 hover:text-white/50"}
+        ? "bg-indigo-600 text-white border-white/40 shadow-[0_0_20px_rgba(79,70,229,0.5)] scale-[1.02]"
+        : (draggedScript && isTag)
+          ? "text-indigo-400 border-indigo-500/30 bg-indigo-500/5 animate-pulse"
+          : draggedScript // IF DRAGGING BUT NOT ACTIVE
+            ? "text-white/10 border-transparent opacity-30 shadow-none scale-[0.98] blur-[1px]" // GHOSTY STATE FOR NON-TARGETS
+            : "text-white/20 border-transparent hover:bg-white/5 hover:text-white/50"}
   `;
 
   return (
     <div
-      className={`flex h-screen w-full transition-colors duration-300 font-inter overflow-hidden ${draggedScript ? 'select-none cursor-grabbing' : ''}`}
+      className={`flex h-screen w-full transition-colors duration-300 font-inter overflow-hidden ${draggedScript ? 'select-none cursor-grabbing drag-active' : ''}`}
       style={{ backgroundColor: 'var(--bg-primary)' }}
-      onMouseMove={handleGlobalMouseMove}
       onMouseUp={handleGlobalMouseUp}
-      onMouseLeave={() => draggedScript && setDraggedScript(null)}
+      onMouseLeave={() => {
+        if (draggedScript) {
+          if (ghostRef.current) ghostRef.current.setAttribute("data-dragging", "false");
+          setDraggedScript(null);
+        }
+      }}
     >
-      {/* Sidebar */}
+      {/* Sidebar - Balanced padding for Symmetric Gutter */}
       <div
-        className="w-72 flex flex-col p-8 space-y-10 border-r overflow-y-auto scrollbar-hide transition-colors duration-300 relative z-[100]"
+        className="w-72 flex flex-col px-4 py-10 space-y-10 border-r overflow-y-auto custom-scrollbar transition-colors duration-300 relative z-[100]"
         style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-color)' }}
       >
         <div className="flex flex-col space-y-10 flex-1">
           <div>
-            <h2 className="text-[12px] font-bold text-white/10 tracking-widest mb-6 pl-2">Главное</h2>
+            <h2 className="text-[12px] font-bold text-white/10 tracking-widest mb-6 pl-4 uppercase">Core</h2>
             <ul className="space-y-1.5">
               {[{ id: "Хаб", label: "Хаб", icon: "🚀" }, { id: "Все скрипты", label: "Дерево", icon: "📁" }].map((tab) => (
                 <li
                   key={tab.id}
-                  className={`px-6 py-4 rounded-xl cursor-pointer text-base font-bold transition-all border flex items-center justify-between ${activeTab === tab.id && viewMode !== "settings"
+                  className={`px-6 py-4 rounded-xl cursor-pointer text-base font-bold transition-all border flex items-center justify-between ${draggedScript && tab.id !== dragOverTag ? 'opacity-20 blur-[1px] scale-95' : ''
+                    } ${activeTab === tab.id && viewMode !== "settings"
                       ? tab.id === "Хаб"
                         ? "bg-gradient-to-r from-indigo-500 to-purple-500 border-indigo-400 shadow-xl shadow-indigo-900/30 text-white"
                         : "bg-white/10 text-white border-white/10 shadow-lg"
                       : "text-white/40 border-transparent hover:bg-white/5 hover:text-white"
                     }`}
-                  onClick={() => handleTabClick(tab.id)}
+                  onClick={() => !draggedScript && handleTabClick(tab.id)}
                 >
-                  <span className="flex items-center space-x-4">
+                  <span className="flex items-center space-x-4 pointer-events-none">
                     {tab.icon}
                     <span>{tab.label}</span>
                   </span>
@@ -132,15 +178,13 @@ function App() {
           {viewMode !== "settings" && (
             <>
               <div>
-                <h2 className="text-[12px] font-bold text-white/10 tracking-widest mb-6 pl-2">Фильтры</h2>
+                <h2 className="text-[12px] font-bold text-white/10 tracking-widest mb-6 pl-4 uppercase">Filters</h2>
                 <ul className="space-y-1.5">
                   {["С тегами", "Без тегов", "Скрытые", "Запущенные"].map((item) => (
                     <li
                       key={item}
-                      className={navItemClass(item)}
-                      onClick={() => handleTabClick(item)}
-                      onMouseEnter={() => draggedScript && setDragOverTag(item)}
-                      onMouseLeave={() => draggedScript && dragOverTag === item && setDragOverTag(null)}
+                      className={navItemClass(item, false)}
+                      onClick={() => !draggedScript && handleTabClick(item)}
                     >
                       <span className="relative z-50 pointer-events-none">{item}</span>
                     </li>
@@ -149,13 +193,13 @@ function App() {
               </div>
 
               <div className="flex-1">
-                <h2 className="text-[12px] font-bold text-white/10 tracking-widest mb-6 pl-2">Категории</h2>
+                <h2 className="text-[12px] font-bold text-white/10 tracking-widest mb-6 pl-4 uppercase">Tags</h2>
                 <ul className="space-y-1.5">
                   {userTags.map((tag) => (
                     <li
                       key={tag}
-                      className={navItemClass(tag)}
-                      onClick={() => handleTabClick(tag)}
+                      className={navItemClass(tag, true)}
+                      onClick={() => !draggedScript && handleTabClick(tag)}
                       onMouseEnter={() => draggedScript && setDragOverTag(tag)}
                       onMouseLeave={() => draggedScript && dragOverTag === tag && setDragOverTag(null)}
                     >
@@ -171,7 +215,8 @@ function App() {
         <div className="pt-8 border-t border-white/5">
           <button
             onClick={() => handleTabClick("Настройки")}
-            className={`w-full px-6 py-4 rounded-xl flex items-center space-x-4 transition-all border group ${viewMode === "settings"
+            className={`w-full px-6 py-4 rounded-xl flex items-center space-x-4 transition-all border group ${draggedScript ? 'opacity-20 blur-[1px]' : ''
+              } ${viewMode === "settings"
                 ? "bg-indigo-600/10 text-indigo-400 border-indigo-400/20 shadow-lg"
                 : "text-white/20 border-transparent hover:text-white/60 hover:bg-white/5"
               }`}
@@ -189,10 +234,10 @@ function App() {
 
       {/* Main Content */}
       <div
-        className="flex-1 p-12 flex flex-col overflow-hidden transition-all duration-300 relative z-10"
+        className="flex-1 px-8 py-6 flex flex-col overflow-hidden transition-all duration-300 relative z-10"
         style={{ background: viewMode === "settings" ? 'var(--bg-primary)' : 'linear-gradient(to bottom right, var(--bg-primary), var(--bg-secondary))' }}
       >
-        <div className="flex justify-between items-end mb-12">
+        <div className="flex justify-between items-end mb-8">
           <div className="flex flex-col">
             <h1 className="text-4xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-white to-white/40 pb-1">
               {activeTab}
@@ -205,14 +250,14 @@ function App() {
             </div>
           </div>
           <button
-            className="px-10 py-4 bg-white/5 hover:bg-white/10 rounded-xl border border-white/5 transition-all text-[12px] font-bold tracking-widest active:scale-95 shadow-lg"
-            onClick={() => window.location.reload()}
+            className="px-10 py-4 bg-white/5 hover:bg-white/10 rounded-xl border border-white/5 transition-all text-[12px] font-bold tracking-widest cursor-pointer active:scale-95 shadow-lg"
+            onClick={() => !draggedScript && window.location.reload()}
           >
             Обновить
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto pr-8 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto px-4 custom-scrollbar">
           {viewMode === "settings" ? (
             <div className="max-w-3xl space-y-12">
               <section className="space-y-8 bg-white/[0.02] p-10 rounded-[2.5rem] border border-white/5 shadow-2xl">
@@ -254,26 +299,32 @@ function App() {
               </section>
             </div>
           ) : (
-            <ScriptTree
+            <MemoizedScriptTree
               filterTag={activeTab}
               viewMode={viewMode === "hub" ? "hub" : "tree"}
-              onTagsLoaded={(tags) => setUserTags(tags)}
+              onTagsLoaded={handleTagsLoaded}
               onCustomDragStart={startCustomDrag}
+              isDragging={!!draggedScript}
             />
           )}
         </div>
       </div>
 
-      {/* High-Performance Ghost Element - Always rendered but only visible when dragging */}
       <div
         ref={ghostRef}
-        className={`fixed z-[99999] pointer-events-none px-5 py-3 rounded-2xl border border-indigo-500/50 bg-indigo-500/20 shadow-[0_10px_40px_rgba(79,70,229,0.3)] backdrop-blur-md flex items-center space-x-3 transition-opacity duration-200 ${draggedScript ? 'opacity-100' : 'opacity-0 hidden'}`}
-        style={{ left: 0, top: 0, transform: 'translate(-50%, -50%)', willChange: 'transform' }}
+        data-dragging="false"
+        className={`fixed z-[99999] pointer-events-none px-4 py-2.5 rounded-xl border border-indigo-400/40 bg-indigo-500/20 backdrop-blur-md shadow-2xl flex items-center space-x-3 transition-opacity duration-150 ${draggedScript ? 'opacity-100' : 'opacity-0 hidden'}`}
+        style={{
+          left: 0,
+          top: 0,
+          transform: 'translate3d(-50%, -50%, 0)',
+          willChange: 'transform, opacity'
+        }}
       >
         {draggedScript && (
           <>
-            <div className="w-2 h-2 rounded-full bg-white shadow-[0_0_10px_rgba(255,255,255,0.8)]"></div>
-            <span className="text-[14px] font-bold text-white tracking-wide">{draggedScript.filename}</span>
+            <div className="w-2 h-2 rounded-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.8)]"></div>
+            <span className="text-[13px] font-semibold text-white tracking-wide">{draggedScript.filename}</span>
           </>
         )}
       </div>

@@ -18,6 +18,12 @@ body {
     -moz-osx-font-smoothing: grayscale;
 }
 
+.custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-color) transparent;
+    scrollbar-gutter: stable both-edges;
+}
+
 .custom-scrollbar::-webkit-scrollbar {
     width: 6px;
 }
