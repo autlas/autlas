@@ -1,11 +1,16 @@
 import { invoke } from "@tauri-apps/api/core";
 
-export async function scanScripts(directories: string[]): Promise<string[]> {
-    return await invoke("scan_scripts", { directories });
+export interface Script {
+    path: string;
+    filename: string;
+    parent: string;
+    tags: string[];
+    is_hidden: boolean;
+    is_running: boolean;
 }
 
-export async function getRunningScripts(): Promise<string[]> {
-    return await invoke("get_running_scripts");
+export async function getScripts(): Promise<Script[]> {
+    return await invoke("get_scripts");
 }
 
 export async function runScript(path: string): Promise<void> {

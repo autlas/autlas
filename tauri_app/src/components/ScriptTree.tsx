@@ -1,114 +1,135 @@
 import { useState, useEffect } from "react";
-import { scanScripts, getRunningScripts, runScript, killScript } from "../api";
+import { getScripts, Script, runScript, killScript } from "../api";
 
 interface ScriptTreeProps {
     filterTag: string;
+    onTagsLoaded: (tags: string[]) => void;
 }
 
-export default function ScriptTree({ filterTag }: ScriptTreeProps) {
-    const [scripts, setScripts] = useState<string[]>([]);
-    const [runningCmds, setRunningCmds] = useState<string[]>([]);
+export default function ScriptTree({ filterTag, onTagsLoaded }: ScriptTreeProps) {
+    const [allScripts, setAllScripts] = useState<Script[]>([]);
     const [loading, setLoading] = useState(true);
 
-    const fetchScripts = async () => {
+    const fetchData = async () => {
         try {
-            // Hardcoded path for prototype
-            const found = await scanScripts(["C:\\Users\\Heavym\\Desktop\\AutoHotkeys"]);
-            setScripts(found.sort());
+            const data = await getScripts();
+            setAllScripts(data);
+
+            // Extract unique tags and notify App.tsx
+            const tags = new Set<string>();
+            data.forEach(s => s.tags.forEach(t => tags.add(t)));
+            onTagsLoaded(Array.from(tags).sort());
+
         } catch (e) {
-            console.error(e);
+            console.error("Error fetching scripts:", e);
         } finally {
             setLoading(false);
         }
     };
 
-    const fetchRunning = async () => {
-        try {
-            const running = await getRunningScripts();
-            setRunningCmds(running);
-        } catch (e) {
-            console.error(e);
-        }
-    };
-
     useEffect(() => {
-        fetchScripts();
-        fetchRunning();
-        const interval = setInterval(fetchRunning, 2000);
+        fetchData();
+        const interval = setInterval(fetchData, 3000);
         return () => clearInterval(interval);
     }, []);
 
-    const isRunning = (path: string) => {
-        return runningCmds.some((cmd) => cmd.includes(path));
-    };
-
-    const handleToggle = async (path: string, running: boolean) => {
+    const handleToggle = async (script: Script) => {
         try {
-            if (running) {
-                await killScript(path);
+            if (script.is_running) {
+                await killScript(script.path);
             } else {
-                await runScript(path);
+                await runScript(script.path);
             }
-            setTimeout(fetchRunning, 500); // Check again shortly after
+            fetchData(); // Immediate refresh attempt
         } catch (e) {
-            console.error(e);
+            console.error("Error toggling script:", e);
         }
     };
 
-    let displayedScripts = scripts;
+    // Filter logic
+    let filtered = allScripts;
     if (filterTag === "Запущенные") {
-        displayedScripts = scripts.filter((s) => isRunning(s));
+        filtered = allScripts.filter(s => s.is_running);
+    } else if (filterTag === "Без тегов") {
+        filtered = allScripts.filter(s => s.tags.length === 0 && !s.is_hidden);
+    } else if (filterTag === "Скрытые") {
+        filtered = allScripts.filter(s => s.is_hidden);
+    } else if (filterTag === "С тегами") {
+        filtered = allScripts.filter(s => s.tags.length > 0 && !s.is_hidden);
+    } else if (filterTag !== "Все скрипты" && filterTag !== "") {
+        // Treat as individual tag
+        filtered = allScripts.filter(s => s.tags.includes(filterTag));
+    } else {
+        // "Все скрипты" - show everything except hidden
+        filtered = allScripts.filter(s => !s.is_hidden);
     }
 
     if (loading) {
-        return <div className="text-gray-400 p-4">Сканирование...</div>;
+        return <div className="p-8 text-center text-gray-500 animate-pulse">Инициализация бэкенда...</div>;
     }
 
-    return (
-        <div className="w-full flex flex-col space-y-2">
-            {displayedScripts.length === 0 && (
-                <div className="text-gray-500 italic p-4">Нет скриптов для отображения.</div>
-            )}
-            {displayedScripts.map((path) => {
-                const parts = path.split("\\");
-                const filename = parts.pop() || path;
-                const dir = parts.pop() || "";
-                const running = isRunning(path);
+    // Simple folder grouping for now (not full recursive tree yet, but organized)
+    const grouped: Record<string, Script[]> = {};
+    filtered.forEach(s => {
+        if (!grouped[s.parent]) grouped[s.parent] = [];
+        grouped[s.parent].push(s);
+    });
 
-                return (
-                    <div
-                        key={path}
-                        className="flex items-center justify-between p-3 bg-[#2A2A2A] hover:bg-[#333] rounded-lg border border-[#3A3A3A] transition-all group"
-                    >
-                        <div className="flex items-center space-x-3">
-                            <div className="w-4 flex justify-center">
-                                {running ? (
-                                    <div className="w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]"></div>
-                                ) : (
-                                    <div className="w-2 h-2 bg-gray-600 rounded-full"></div>
-                                )}
-                            </div>
-                            <div className="flex flex-col">
-                                <span className={`text-base font-medium ${running ? 'text-white' : 'text-gray-300'}`}>
-                                    {filename}
-                                </span>
-                                <span className="text-xs text-gray-500">{dir}</span>
-                            </div>
-                        </div>
-                        <div className="flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button
-                                onClick={() => handleToggle(path, running)}
-                                className={`px-3 py-1.5 rounded text-xs font-semibold ${running
-                                    ? "bg-red-500/10 text-red-500 hover:bg-red-500/20 border border-red-500/20"
-                                    : "bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 border border-blue-500/20"
+    return (
+        <div className="flex flex-col space-y-6">
+            {Object.entries(grouped).map(([folder, scripts]) => (
+                <div key={folder} className="flex flex-col">
+                    <div className="flex items-center space-x-2 text-gray-400 mb-2 px-1">
+                        <span className="text-xs font-bold uppercase tracking-widest">{folder || "Root / Desktop"}</span>
+                        <div className="h-[1px] flex-1 bg-[#333]"></div>
+                    </div>
+                    <div className="grid grid-cols-1 gap-2">
+                        {scripts.map((s) => (
+                            <div
+                                key={s.path}
+                                className={`flex items-center justify-between p-3 rounded-lg border transition-all group ${s.is_running
+                                        ? "bg-green-500/5 border-green-500/10 hover:border-green-500/30"
+                                        : "bg-[#252525] border-[#333] hover:border-[#444]"
                                     }`}
                             >
-                                {running ? "ОСТАНОВИТЬ" : "ЗАПУСТИТЬ"}
-                            </button>
-                        </div>
+                                <div className="flex items-center space-x-4">
+                                    <div className="flex-shrink-0">
+                                        {s.is_running ? (
+                                            <div className="w-3 h-3 bg-green-500 rounded-full shadow-[0_0_10px_rgba(34,197,94,0.5)]"></div>
+                                        ) : (
+                                            <div className="w-3 h-3 bg-[#444] rounded-full"></div>
+                                        )}
+                                    </div>
+                                    <div className="flex flex-col overflow-hidden">
+                                        <span className={`text-base font-semibold truncate ${s.is_running ? "text-green-400" : "text-gray-200"}`}>
+                                            {s.filename}
+                                        </span>
+                                        <div className="flex flex-wrap gap-1 mt-1">
+                                            {s.tags.map(t => (
+                                                <span key={t} className="text-[10px] px-1.5 py-0.5 bg-[#333] text-gray-400 rounded-sm">
+                                                    #{t}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="flex-shrink-0 ml-4">
+                                    <button
+                                        onClick={() => handleToggle(s)}
+                                        className={`px-4 py-1.5 rounded-md text-xs font-bold tracking-tighter transition-all ${s.is_running
+                                                ? "bg-red-600/10 text-red-500 border border-red-600/20 hover:bg-red-600 hover:text-white"
+                                                : "bg-blue-600/10 text-blue-400 border border-blue-600/20 hover:bg-blue-600 hover:text-white"
+                                            }`}
+                                    >
+                                        {s.is_running ? "ОСТАНОВИТЬ" : "ЗАПУСТИТЬ"}
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
                     </div>
-                );
-            })}
+                </div>
+            ))}
         </div>
     );
 }
