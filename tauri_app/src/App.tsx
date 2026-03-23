@@ -1,31 +1,36 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import ScriptTree from "./components/ScriptTree";
+import { invoke } from "@tauri-apps/api/core";
 import "./App.css";
 
 function App() {
-  const [activeTab, setActiveTab] = useState("ХАБ");
+  const [activeTab, setActiveTab] = useState("Хаб");
   const [userTags, setUserTags] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<"tree" | "hub" | "settings">("hub");
 
-  // Brightness: 0 (AMOLED) to 100 (Grey #1F1F1F)
+  // Custom Drag and Drop State - NO COORDINATES HERE TO PREVENT RE-RENDERS
+  const [draggedScript, setDraggedScript] = useState<{ path: string, filename: string } | null>(null);
+  const [dragOverTag, setDragOverTag] = useState<string | null>(null);
+
+  // High-performance direct DOM reference for 144hz tracking
+  const ghostRef = useRef<HTMLDivElement>(null);
+
   const [brightness, setBrightness] = useState(() => {
     return parseInt(localStorage.getItem("app-brightness") || "20");
   });
 
-  const [rootPath, setRootPath] = useState(() => {
+  const [rootPath] = useState(() => {
     return localStorage.getItem("root-path") || "Desktop / Parent folder";
   });
 
   const updatePalette = (val: number) => {
-    // Primary BG: from (0,0,0) to (31,31,31)
     const base = Math.floor((31 * val) / 100);
-    // Secondary BG: slightly lighter (offset by ~4-6)
     const side = Math.floor((37 * val) / 100);
-
     document.documentElement.style.setProperty("--bg-primary", `rgb(${base}, ${base}, ${base})`);
     document.documentElement.style.setProperty("--bg-secondary", `rgb(${side}, ${side}, ${side})`);
     document.documentElement.style.setProperty("--bg-tertiary", val < 10 ? "rgba(255, 255, 255, 0.05)" : "rgba(255, 255, 255, 0.03)");
     document.documentElement.style.setProperty("--border-color", val < 10 ? "rgba(255, 255, 255, 0.1)" : "rgba(255, 255, 255, 0.05)");
+    document.documentElement.style.setProperty("--accent-indigo", "#6366f1");
   };
 
   useEffect(() => {
@@ -35,158 +40,217 @@ function App() {
 
   const handleTabClick = (tab: string) => {
     setActiveTab(tab);
-    if (tab === "ХАБ") {
-      setViewMode("hub");
-    } else if (tab === "НАСТРОЙКИ") {
-      setViewMode("settings");
-    } else {
-      setViewMode("tree");
+    if (tab === "Хаб") setViewMode("hub");
+    else if (tab === "Настройки") setViewMode("settings");
+    else setViewMode("tree");
+  };
+
+  const handleCustomDrop = async (path: string, tag: string) => {
+    console.log(`[App] CUSTOM DROPPED on tag: ${tag}`);
+    setDragOverTag(null);
+    if (path && tag) {
+      try {
+        await invoke("add_script_tag", { path, tag });
+        console.log("[App] OK: Backend updated via custom engine.");
+      } catch (err) {
+        console.warn("[App] FAIL: Backend refused custom engine update", err);
+      }
     }
   };
 
+  const startCustomDrag = (script: { path: string, filename: string, x: number, y: number }) => {
+    setDraggedScript({ path: script.path, filename: script.filename });
+    if (ghostRef.current) {
+      ghostRef.current.style.transform = `translate(${script.x}px, ${script.y}px) translate(-50%, -50%)`;
+    }
+  };
+
+  const handleGlobalMouseMove = (e: React.MouseEvent) => {
+    // Direct DOM manipulation guarantees perfect tracking FPS without triggering React's VDOM diffs
+    if (draggedScript && ghostRef.current) {
+      ghostRef.current.style.transform = `translate(${e.clientX}px, ${e.clientY}px) translate(-50%, -50%)`;
+    }
+  };
+
+  const handleGlobalMouseUp = async (e: React.MouseEvent) => {
+    if (draggedScript) {
+      if (dragOverTag) {
+        await handleCustomDrop(draggedScript.path, dragOverTag);
+      }
+      setDraggedScript(null);
+      setDragOverTag(null);
+    }
+  };
+
+  const navItemClass = (tab: string) => `
+    px-6 py-3 rounded-xl cursor-pointer text-[14px] font-bold transition-all border flex items-center justify-between relative z-50
+    ${activeTab === tab
+      ? "bg-white/10 text-white border-white/10 shadow-lg"
+      : dragOverTag === tab
+        ? "bg-indigo-600 text-white border-white/40 shadow-2xl scale-[1.01]"
+        : "text-white/20 border-transparent hover:bg-white/5 hover:text-white/50"}
+  `;
+
   return (
-    <div className="flex h-screen w-full transition-colors duration-300" style={{ backgroundColor: 'var(--bg-primary)' }}>
+    <div
+      className={`flex h-screen w-full transition-colors duration-300 font-inter overflow-hidden ${draggedScript ? 'select-none cursor-grabbing' : ''}`}
+      style={{ backgroundColor: 'var(--bg-primary)' }}
+      onMouseMove={handleGlobalMouseMove}
+      onMouseUp={handleGlobalMouseUp}
+      onMouseLeave={() => draggedScript && setDraggedScript(null)}
+    >
       {/* Sidebar */}
       <div
-        className="w-64 flex flex-col p-6 space-y-8 border-r overflow-y-auto scrollbar-hide transition-colors duration-300"
+        className="w-72 flex flex-col p-8 space-y-10 border-r overflow-y-auto scrollbar-hide transition-colors duration-300 relative z-[100]"
         style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-color)' }}
       >
-        <div>
-          <h2 className="text-[12px] font-black text-white/20 uppercase tracking-[0.3em] mb-4 pl-2">Главное</h2>
-          <ul className="space-y-1">
-            {["ХАБ", "Все скрипты", "НАСТРОЙКИ"].map((tab) => (
-              <li
-                key={tab}
-                className={`px-5 py-3 rounded-xl cursor-pointer text-sm font-black transition-all flex items-center justify-between ${activeTab === tab
-                    ? tab === "ХАБ" ? "bg-gradient-to-r from-indigo-500 to-purple-500 shadow-xl shadow-indigo-900/30 text-white" : "bg-white/10 text-white border border-white/10"
-                    : "text-white/40 hover:bg-white/5 hover:text-white"
-                  }`}
-                onClick={() => handleTabClick(tab)}
-              >
-                {tab === "ХАБ" ? "🚀 ХАБ" : tab === "Все скрипты" ? "📁 ДЕРЕВО" : "⚙️ ТТИНГИ"}
-                {tab === "ХАБ" && activeTab !== "ХАБ" && <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(79,70,229,0.5)]"></div>}
-              </li>
-            ))}
-          </ul>
+        <div className="flex flex-col space-y-10 flex-1">
+          <div>
+            <h2 className="text-[12px] font-bold text-white/10 tracking-widest mb-6 pl-2">Главное</h2>
+            <ul className="space-y-1.5">
+              {[{ id: "Хаб", label: "Хаб", icon: "🚀" }, { id: "Все скрипты", label: "Дерево", icon: "📁" }].map((tab) => (
+                <li
+                  key={tab.id}
+                  className={`px-6 py-4 rounded-xl cursor-pointer text-base font-bold transition-all border flex items-center justify-between ${activeTab === tab.id && viewMode !== "settings"
+                      ? tab.id === "Хаб"
+                        ? "bg-gradient-to-r from-indigo-500 to-purple-500 border-indigo-400 shadow-xl shadow-indigo-900/30 text-white"
+                        : "bg-white/10 text-white border-white/10 shadow-lg"
+                      : "text-white/40 border-transparent hover:bg-white/5 hover:text-white"
+                    }`}
+                  onClick={() => handleTabClick(tab.id)}
+                >
+                  <span className="flex items-center space-x-4">
+                    {tab.icon}
+                    <span>{tab.label}</span>
+                  </span>
+                  {tab.id === "Хаб" && activeTab !== "Хаб" && <div className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(79,70,229,0.5)]"></div>}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {viewMode !== "settings" && (
+            <>
+              <div>
+                <h2 className="text-[12px] font-bold text-white/10 tracking-widest mb-6 pl-2">Фильтры</h2>
+                <ul className="space-y-1.5">
+                  {["С тегами", "Без тегов", "Скрытые", "Запущенные"].map((item) => (
+                    <li
+                      key={item}
+                      className={navItemClass(item)}
+                      onClick={() => handleTabClick(item)}
+                      onMouseEnter={() => draggedScript && setDragOverTag(item)}
+                      onMouseLeave={() => draggedScript && dragOverTag === item && setDragOverTag(null)}
+                    >
+                      <span className="relative z-50 pointer-events-none">{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="flex-1">
+                <h2 className="text-[12px] font-bold text-white/10 tracking-widest mb-6 pl-2">Категории</h2>
+                <ul className="space-y-1.5">
+                  {userTags.map((tag) => (
+                    <li
+                      key={tag}
+                      className={navItemClass(tag)}
+                      onClick={() => handleTabClick(tag)}
+                      onMouseEnter={() => draggedScript && setDragOverTag(tag)}
+                      onMouseLeave={() => draggedScript && dragOverTag === tag && setDragOverTag(null)}
+                    >
+                      <span className="relative z-50 pointer-events-none">{tag}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </>
+          )}
         </div>
 
-        {viewMode !== "settings" && (
-          <>
-            <div>
-              <h2 className="text-[12px] font-black text-white/20 uppercase tracking-[0.3em] mb-4 pl-2">Фильтры</h2>
-              <ul className="space-y-1">
-                {["С тегами", "Без тегов", "Скрытые", "Запущенные"].map((item) => (
-                  <li
-                    key={item}
-                    className={`px-5 py-2.5 rounded-lg cursor-pointer text-xs font-bold transition-all ${activeTab === item
-                        ? "bg-white/10 text-white border border-white/10"
-                        : "text-white/30 hover:bg-white/5 hover:text-white/60"
-                      }`}
-                    onClick={() => handleTabClick(item)}
-                  >
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <div className="flex-1">
-              <h2 className="text-[12px] font-black text-white/20 uppercase tracking-[0.3em] mb-4 pl-2">Теги из INI</h2>
-              <ul className="space-y-0.5">
-                {userTags.map((tag) => (
-                  <li
-                    key={tag}
-                    className={`px-5 py-2 rounded-lg cursor-pointer text-sm transition-all flex items-center space-x-3 group ${activeTab === tag
-                        ? "text-indigo-400 font-black"
-                        : "text-white/30 hover:text-white/60"
-                      }`}
-                    onClick={() => handleTabClick(tag)}
-                  >
-                    <div className={`w-1 h-1 rounded-full transition-all ${activeTab === tag ? 'bg-indigo-400' : 'bg-current opacity-30'}`}></div>
-                    <span>#{tag}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </>
-        )}
-
-        <div className="pt-6 border-t border-white/5 opacity-20">
-          <div className="text-[9px] text-white font-mono uppercase tracking-[0.3em] text-center">
-            V-CON v2.0
-          </div>
+        <div className="pt-8 border-t border-white/5">
+          <button
+            onClick={() => handleTabClick("Настройки")}
+            className={`w-full px-6 py-4 rounded-xl flex items-center space-x-4 transition-all border group ${viewMode === "settings"
+                ? "bg-indigo-600/10 text-indigo-400 border-indigo-400/20 shadow-lg"
+                : "text-white/20 border-transparent hover:text-white/60 hover:bg-white/5"
+              }`}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+              className={`transition-transform duration-500 group-hover:rotate-90 ${viewMode === "settings" ? 'stroke-indigo-400' : 'stroke-current'}`}
+              strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 15a3 3 0 100-6 3 3 0 000 6z" />
+              <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" />
+            </svg>
+            <span className="text-[14px] font-bold">Настройки</span>
+          </button>
         </div>
       </div>
 
       {/* Main Content */}
       <div
-        className="flex-1 p-10 flex flex-col overflow-hidden transition-all duration-300"
+        className="flex-1 p-12 flex flex-col overflow-hidden transition-all duration-300 relative z-10"
         style={{ background: viewMode === "settings" ? 'var(--bg-primary)' : 'linear-gradient(to bottom right, var(--bg-primary), var(--bg-secondary))' }}
       >
-        <div className="flex justify-between items-end mb-10">
+        <div className="flex justify-between items-end mb-12">
           <div className="flex flex-col">
             <h1 className="text-4xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-white to-white/40 pb-1">
               {activeTab}
             </h1>
-            <div className="flex items-center space-x-2.5 mt-2">
-              <div className="h-1 w-10 bg-white/5 rounded-full overflow-hidden">
+            <div className="flex items-center space-x-3 mt-3">
+              <div className="h-1.5 w-12 bg-white/5 rounded-full overflow-hidden">
                 <div className="h-full w-1/2 bg-indigo-500"></div>
               </div>
-              <span className="text-[10px] text-white/10 uppercase tracking-[0.4em] font-mono">Operations Unit Ready</span>
+              <span className="text-[12px] text-white/10 uppercase tracking-[0.5em] font-mono">Operations Unit Ready</span>
             </div>
           </div>
-
           <button
-            className="px-8 py-3 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 transition-all text-[10px] font-black tracking-[0.3em] uppercase active:scale-95 shadow-lg"
+            className="px-10 py-4 bg-white/5 hover:bg-white/10 rounded-xl border border-white/5 transition-all text-[12px] font-bold tracking-widest active:scale-95 shadow-lg"
             onClick={() => window.location.reload()}
           >
-            REFRESH
+            Обновить
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto pr-6 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto pr-8 custom-scrollbar">
           {viewMode === "settings" ? (
-            <div className="max-w-2xl space-y-12">
-              <section className="space-y-6 bg-white/[0.02] p-8 rounded-3xl border border-white/5 shadow-2xl">
-                <h3 className="text-lg font-black tracking-widest text-white/40 uppercase">Theme Controls</h3>
-                <div className="space-y-4">
+            <div className="max-w-3xl space-y-12">
+              <section className="space-y-8 bg-white/[0.02] p-10 rounded-[2.5rem] border border-white/5 shadow-2xl">
+                <h3 className="text-sm font-bold tracking-widest text-white/20 uppercase">Настройки темы</h3>
+                <div className="space-y-6">
                   <div className="flex justify-between items-center px-2">
-                    <span className="text-sm font-bold text-white/60">Interface Brightness</span>
-                    <span className="text-xs font-mono text-indigo-400 font-bold bg-indigo-400/10 px-3 py-1 rounded-full uppercase tracking-tighter">{brightness}%</span>
+                    <span className="text-base font-bold text-white/60">Яркость интерфейса</span>
+                    <span className="text-xs font-mono text-indigo-400 font-bold bg-indigo-400/10 px-4 py-1.5 rounded-full tracking-widest uppercase">{brightness}%</span>
                   </div>
                   <input
                     type="range"
                     min="0" max="100"
                     value={brightness}
                     onChange={(e) => setBrightness(parseInt(e.target.value))}
-                    className="w-full h-1.5 bg-white/5 rounded-lg appearance-none cursor-pointer accent-indigo-500 hover:accent-indigo-400 transition-all"
+                    className="w-full h-2 bg-white/5 rounded-lg appearance-none cursor-pointer accent-indigo-500 hover:accent-indigo-400 transition-all opacity-80 hover:opacity-100"
                   />
-                  <div className="flex justify-between text-[10px] text-white/10 font-bold uppercase tracking-widest pt-2 px-1">
-                    <span>OLED black</span>
-                    <span>Soft Grey</span>
+                  <div className="flex justify-between text-[12px] text-white/10 font-bold uppercase tracking-[0.3em] pt-2 px-1">
+                    <span>OLED черный</span>
+                    <span>Светло-серый</span>
                   </div>
                 </div>
               </section>
 
-              <section className="space-y-6 bg-white/[0.02] p-8 rounded-3xl border border-white/5 shadow-2xl">
-                <h3 className="text-lg font-black tracking-widest text-white/40 uppercase">Directories</h3>
-                <div className="flex flex-col space-y-4">
-                  <span className="text-sm font-bold text-white/60 pl-2">Scripts Root Path</span>
-                  <div className="flex items-center space-x-3 p-4 bg-white/[0.03] border border-white/5 rounded-2xl">
-                    <span className="flex-1 text-xs font-bold text-white/30 truncate font-mono italic">{rootPath}</span>
+              <section className="space-y-8 bg-white/[0.02] p-10 rounded-[2.5rem] border border-white/5 shadow-2xl">
+                <h3 className="text-sm font-bold tracking-widest text-white/20 uppercase">Пути к скриптам</h3>
+                <div className="flex flex-col space-y-6">
+                  <span className="text-base font-bold text-white/60 pl-2">Корневая папка</span>
+                  <div className="flex items-center space-x-4 p-5 bg-white/[0.03] border border-white/5 rounded-2xl">
+                    <span className="flex-1 text-[12px] font-bold text-white/20 truncate font-mono italic tracking-tight">{rootPath}</span>
                     <button
-                      onClick={() => alert("Select folder interface - WIP")}
-                      className="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all shadow-xl shadow-indigo-900/20 active:scale-95"
+                      onClick={() => alert("Интерфейс выбора папки - в разработке")}
+                      className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-[12px] font-bold tracking-widest transition-all shadow-xl shadow-indigo-900/20 active:scale-95 border border-transparent"
                     >
-                      Browse
+                      Обзор
                     </button>
                   </div>
-                  <p className="text-[10px] text-white/10 pl-2 max-w-sm italic">Application scans Desktop and Parent folder by default. Use Browse to define a custom module sector.</p>
+                  <p className="text-[12px] text-white/10 pl-2 max-w-sm italic leading-relaxed">Обычно скрипты подгружаются с Рабочего стола или из папки приложения.</p>
                 </div>
-              </section>
-
-              <section className="pt-10 border-t border-white/5">
-                <button className="text-[10px] text-indigo-500 font-black uppercase tracking-[0.5em] hover:text-indigo-400 transition-colors"> Reset All Modules </button>
               </section>
             </div>
           ) : (
@@ -194,9 +258,24 @@ function App() {
               filterTag={activeTab}
               viewMode={viewMode === "hub" ? "hub" : "tree"}
               onTagsLoaded={(tags) => setUserTags(tags)}
+              onCustomDragStart={startCustomDrag}
             />
           )}
         </div>
+      </div>
+
+      {/* High-Performance Ghost Element - Always rendered but only visible when dragging */}
+      <div
+        ref={ghostRef}
+        className={`fixed z-[99999] pointer-events-none px-5 py-3 rounded-2xl border border-indigo-500/50 bg-indigo-500/20 shadow-[0_10px_40px_rgba(79,70,229,0.3)] backdrop-blur-md flex items-center space-x-3 transition-opacity duration-200 ${draggedScript ? 'opacity-100' : 'opacity-0 hidden'}`}
+        style={{ left: 0, top: 0, transform: 'translate(-50%, -50%)', willChange: 'transform' }}
+      >
+        {draggedScript && (
+          <>
+            <div className="w-2 h-2 rounded-full bg-white shadow-[0_0_10px_rgba(255,255,255,0.8)]"></div>
+            <span className="text-[14px] font-bold text-white tracking-wide">{draggedScript.filename}</span>
+          </>
+        )}
       </div>
     </div>
   );

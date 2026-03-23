@@ -5,7 +5,6 @@ use std::fs;
 use std::process::Command;
 use sysinfo::System;
 use walkdir::WalkDir;
-use configparser::ini::Ini;
 
 #[derive(Serialize, Deserialize, Clone)]
 struct Script {
@@ -24,7 +23,19 @@ struct ManagerMetadata {
 }
 
 fn get_ini_path() -> String {
-    "../manager_data.ini".to_string()
+    let target = "manager_data.ini";
+    if std::path::Path::new(target).exists() {
+        return target.to_string();
+    }
+    let p1 = format!("../{}", target);
+    if std::path::Path::new(&p1).exists() {
+        return p1;
+    }
+    let p2 = format!("../../{}", target);
+    if std::path::Path::new(&p2).exists() {
+        return p2;
+    }
+    p2
 }
 
 fn load_metadata() -> ManagerMetadata {
@@ -34,29 +45,103 @@ fn load_metadata() -> ManagerMetadata {
     };
 
     let ini_path = get_ini_path();
-    let mut config = Ini::new();
-    
-    if let Ok(sections) = config.load(ini_path) {
-        // Parse tags
-        if let Some(tags_section) = sections.get("scripttags") {
-            for (path, tags_option) in tags_section {
-                if let Some(tags_str) = tags_option {
-                    let tags: Vec<String> = tags_str.split(',')
-                        .map(|s| s.trim().to_string())
-                        .filter(|s| !s.is_empty())
-                        .collect();
-                    metadata.tags.insert(path.to_string(), tags);
-                }
-            }
+    let bytes = match fs::read(&ini_path) {
+        Ok(b) => b,
+        Err(_) => return metadata,
+    };
+
+    let content = if bytes.len() >= 2 && bytes[0] == 0xFF && bytes[1] == 0xFE {
+        let utf16: Vec<u16> = bytes[2..].chunks_exact(2).map(|a| u16::from_le_bytes([a[0], a[1]])).collect();
+        String::from_utf16_lossy(&utf16)
+    } else {
+        String::from_utf8_lossy(&bytes).to_string()
+    };
+
+    let mut current_section = String::new();
+    for line in content.lines() {
+        let line = line.trim();
+        if line.is_empty() || line.starts_with(';') { continue; }
+        
+        if line.starts_with('[') && line.ends_with(']') {
+            current_section = line[1..line.len()-1].to_lowercase();
+            continue;
         }
-        // Parse hidden folders
-        if let Some(hidden_section) = sections.get("hiddenfolders") {
-            for (path, _) in hidden_section {
-                metadata.hidden_folders.push(path.to_string());
+
+        if let Some(pos) = line.find('=') {
+            let key = line[..pos].trim();
+            let val = line[pos+1..].trim();
+            
+            if current_section == "scripts" {
+                let tags: Vec<String> = val.split(',')
+                    .map(|s| s.trim().to_string())
+                    .filter(|s| !s.is_empty())
+                    .collect();
+                metadata.tags.insert(key.to_lowercase(), tags);
+            } else if current_section == "hiddenfolders" {
+                if !key.is_empty() {
+                    metadata.hidden_folders.push(key.to_lowercase());
+                }
             }
         }
     }
     metadata
+}
+
+#[tauri::command]
+fn save_script_tags(path: String, tags: Vec<String>) -> Result<(), String> {
+    save_script_tags_internal(path, tags)
+}
+
+fn save_script_tags_internal(path: String, tags: Vec<String>) -> Result<(), String> {
+    let ini_path = get_ini_path();
+    let bytes = fs::read(&ini_path).unwrap_or_default();
+    let content = if bytes.len() >= 2 && bytes[0] == 0xFF && bytes[1] == 0xFE {
+        let utf16: Vec<u16> = bytes[2..].chunks_exact(2).map(|a| u16::from_le_bytes([a[0], a[1]])).collect();
+        String::from_utf16_lossy(&utf16)
+    } else {
+        String::from_utf8_lossy(&bytes).to_string()
+    };
+
+    let mut lines: Vec<String> = content.lines().map(|s| s.to_string()).collect();
+    let mut in_scripts = false;
+    let mut found_key = false;
+    let path_lower = path.to_lowercase();
+    let new_entry = format!("{}={}", path, tags.join(","));
+
+    for line in lines.iter_mut() {
+        let trimmed = line.trim();
+        if trimmed.to_lowercase() == "[scripts]" {
+            in_scripts = true;
+            continue;
+        }
+        if trimmed.starts_with('[') {
+            in_scripts = false;
+            continue;
+        }
+        
+        if in_scripts {
+            if let Some(pos) = trimmed.find('=') {
+                if trimmed[..pos].trim().to_lowercase() == path_lower {
+                    *line = new_entry.clone();
+                    found_key = true;
+                    break;
+                }
+            }
+        }
+    }
+
+    if !found_key {
+        let scripts_idx = lines.iter().position(|l| l.trim().to_lowercase() == "[scripts]");
+        if let Some(idx) = scripts_idx {
+            lines.insert(idx + 1, new_entry);
+        } else {
+            lines.push("[Scripts]".to_string());
+            lines.push(new_entry);
+        }
+    }
+
+    fs::write(&ini_path, lines.join("\r\n")).map_err(|e| e.to_string())?;
+    Ok(())
 }
 
 #[tauri::command]
@@ -77,14 +162,11 @@ fn get_scripts() -> Vec<Script> {
     let mut scripts = Vec::new();
     let mut scan_dirs = Vec::new();
     
-    // Add Desktop
     if let Some(user_dirs) = UserDirs::new() {
         if let Some(desktop) = user_dirs.desktop_dir() {
             scan_dirs.push(desktop.to_path_buf());
         }
     }
-    
-    // Add parent folder of the app
     scan_dirs.push(std::path::PathBuf::from(".."));
 
     for dir in scan_dirs {
@@ -97,9 +179,7 @@ fn get_scripts() -> Vec<Script> {
                 let filename = entry.file_name().to_string_lossy().to_string();
                 let parent = entry.path().parent().map_or("".to_string(), |p| p.file_name().map_or("".to_string(), |f| f.to_string_lossy().to_string()));
                 
-                // Try to find tags (configparser lowers keys by default)
                 let tags = metadata.tags.get(&path_lower).cloned().unwrap_or_default();
-                
                 let is_hidden = metadata.hidden_folders.iter().any(|h| path_lower.contains(&h.to_lowercase()));
                 let is_running = running_cmds.iter().any(|cmd| cmd.contains(&path_lower));
 
@@ -114,20 +194,14 @@ fn get_scripts() -> Vec<Script> {
             }
         }
     }
-    
-    // De-duplicate scripts by path
     scripts.sort_by(|a, b| a.path.cmp(&b.path));
     scripts.dedup_by(|a, b| a.path == b.path);
-    
     scripts
 }
 
 #[tauri::command]
 fn run_script(path: String) -> Result<(), String> {
-    Command::new("explorer")
-        .arg(&path)
-        .spawn()
-        .map_err(|e| e.to_string())?;
+    Command::new("explorer").arg(&path).spawn().map_err(|e| e.to_string())?;
     Ok(())
 }
 
@@ -149,6 +223,19 @@ fn kill_script(path: String) -> Result<(), String> {
     Ok(())
 }
 
+#[tauri::command]
+fn add_script_tag(path: String, tag: String) -> Result<(), String> {
+    let mut metadata = load_metadata();
+    let key = path.to_lowercase();
+    let mut tags = metadata.tags.get(&key).cloned().unwrap_or_default();
+    
+    if !tags.iter().any(|t| t.to_lowercase() == tag.to_lowercase()) {
+        tags.push(tag);
+        return save_script_tags_internal(path, tags);
+    }
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -156,7 +243,9 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             get_scripts,
             run_script,
-            kill_script
+            kill_script,
+            save_script_tags,
+            add_script_tag
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
