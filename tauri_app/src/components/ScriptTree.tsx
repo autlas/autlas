@@ -163,6 +163,7 @@ const ScriptRow = memo(function ScriptRow({
     onMouseDown, onDoubleClick, onToggle, onStartEditing, onAddTag, onRemoveTag, onCloseEditing,
     onScriptContextMenu
 }: ScriptRowProps) {
+    // console.log(`[Render] ScriptRow: ${s.filename}`);
     const [isLeftPressed, setIsLeftPressed] = useState(false);
 
     const handleMouseDown = (e: React.MouseEvent) => {
@@ -185,11 +186,10 @@ const ScriptRow = memo(function ScriptRow({
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseLeave}
             onDoubleClick={() => !isDragging && onDoubleClick(s)}
-            className={`flex items-center justify-between h-[42px] px-3 rounded-lg transition-all duration-300 border border-transparent select-none relative z-10 hover:z-[100]
-                group hover:bg-white/5 cursor-grab active:cursor-grabbing long-press-shrink has-[button:active]:scale-100
-                will-change-transform
-                ${s.path === draggedScriptPath ? 'opacity-0 pointer-events-none' :
-                    (draggedScriptPath ? 'opacity-20 blur-[1px] pointer-events-none' : '')}
+            className={`flex items-center justify-between h-[42px] px-3 rounded-lg transition-all duration-300 border border-transparent select-none relative z-10
+                ${!draggedScriptPath ? 'hover:z-[100] group hover:bg-white/5 cursor-grab active:cursor-grabbing' : ''}
+                long-press-shrink has-[button:active]:scale-100 will-change-transform
+                ${s.path === draggedScriptPath ? 'opacity-0 pointer-events-none' : ''}
                 ${s.is_hidden ? 'opacity-40 grayscale-[0.5]' : ''}
                 ${s.is_running ? 'border-green-500/10' : ''}
                 ${isLeftPressed ? 'active-left' : ''}
@@ -308,6 +308,7 @@ const HubScriptCard = memo(function HubScriptCard({
     allUniqueTags, popoverRef, onMouseDown, onToggle, onStartEditing, onAddTag, onRemoveTag, onCloseEditing,
     onScriptContextMenu
 }: HubScriptCardProps) {
+    // console.log(`[Render] HubCard: ${s.filename}`);
     const [isLeftPressed, setIsLeftPressed] = useState(false);
 
     const handleMouseDown = (e: React.MouseEvent) => {
@@ -334,10 +335,10 @@ const HubScriptCard = memo(function HubScriptCard({
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseLeave}
             onDoubleClick={() => !isDragging && onToggle(s, true)}
-            className={`p-6 rounded-[2.5rem] border transition-all duration-300 flex flex-col justify-between h-64 select-none relative ${isEditing ? 'z-[200]' : 'z-10 hover:z-[100]'}
-                ${!isDragging
-                    ? `group ${isEditing ? 'shadow-2xl' : 'hover:shadow-2xl cursor-grab active:cursor-grabbing long-press-shrink will-change-transform'}`
-                    : (s.path === draggedScriptPath ? 'opacity-0 pointer-events-none' : 'opacity-20 blur-[1px] pointer-events-none')}
+            className={`p-6 rounded-[2.5rem] border transition-all duration-300 flex flex-col justify-between h-64 select-none relative ${isEditing ? 'z-[200]' : 'z-10'}
+                ${!draggedScriptPath
+                    ? `group hover:z-[100] ${isEditing ? 'shadow-2xl' : 'hover:shadow-2xl cursor-grab active:cursor-grabbing long-press-shrink will-change-transform'}`
+                    : (s.path === draggedScriptPath ? 'opacity-0 pointer-events-none' : 'z-10')}
                 ${s.is_running && !isDragging ? 'border-indigo-500/30' : ''}
                 ${isLeftPressed && !isEditing ? 'active-left' : ''}
             `}
@@ -413,7 +414,8 @@ const HubScriptCard = memo(function HubScriptCard({
                     className={`w-full py-3.5 rounded-2xl text-xs font-bold tracking-[0.1em] transition-all transform cursor-pointer active:scale-95 pointer-events-auto shadow-xl 
                         ${isPending ? 'bg-white/5 text-tertiary animate-pulse cursor-wait border border-white/5' :
                             s.is_running ? "bg-red-600/10 text-red-500 border border-red-500/20" :
-                                "bg-white text-black hover:bg-gray-100 group-hover:shadow-[0_0_20px_rgba(255,255,255,0.2)]"}
+                                "bg-white text-black hover:bg-gray-100 group-hover:shadow-[0_0_20px_rgba(255,255,255,0.2)]"
+                        }
                     `}
                 >
                     {isPending ? (s.is_running ? "KILLING..." : "IGNITING...") : (s.is_running ? "Kill" : "Run")}
@@ -611,7 +613,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
     }, []);
 
     const removeTag = useCallback(async (script: Script, tagToRemove: string) => {
-        const tagId = `${script.path}-${tagToRemove}`;
+        const tagId = `${script.path} -${tagToRemove} `;
         if (removingTags.has(tagId)) return;
 
         setRemovingTags(prev => new Set(prev).add(tagId));
@@ -788,7 +790,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
                         ref={el => { if (el) folderRefs.current.set(node.fullName, el); }}
                         onClick={() => !isDragging && toggleFolder(node.fullName)}
                         className={`flex items-center space-x-2 h-[38px] rounded-lg z-10 relative transition-all duration-300 mb-0.5 border border-transparent hover:z-[50]
-                            ${!draggedScriptPath ? 'bg-white/[0.015] hover:bg-white/[0.05] cursor-pointer group' : 'bg-transparent text-tertiary cursor-default opacity-20 blur-[1px] pointer-events-none'}
+                            ${!draggedScriptPath ? 'bg-white/[0.015] hover:bg-white/[0.05] cursor-pointer group' : 'bg-transparent text-tertiary cursor-default pointer-events-none'}
                         `}
                     >
                         <div className={`w-4 h-4 flex items-center justify-center transition-transform duration-300 ${isExpanded ? 'rotate-90' : ''}`}>
@@ -798,12 +800,12 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
                     </div>
                 )}
 
-                <div className={`grid ${animationsEnabled ? 'transition-all duration-150 ease-in-out' : ''} relative ${isExpanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`} style={{ overflow: isExpanded ? 'visible' : 'hidden' }}>
+                <div className={`grid ${animationsEnabled ? 'transition-all duration-150 ease-in-out' : ''} relative ${isExpanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'} `} style={{ overflow: isExpanded ? 'visible' : 'hidden' }}>
                     <div className="min-h-0 overflow-hidden">
                         {node.name !== "Root" && (
                             <div
                                 onClick={() => !isDragging && toggleFolder(node.fullName)}
-                                className={`absolute left-[13px] top-0 bottom-4 w-5 -ml-2.5 z-20 ${animationsEnabled ? 'transition-all duration-150' : ''} rounded-full ${!isDragging ? 'cursor-pointer group/line hover:bg-white/[0.05]' : ''} ${isExpanded ? 'opacity-100' : 'opacity-0 pointer-events-auto'}`}
+                                className={`absolute left-[13px] top-0 bottom-4 w-5 -ml-2.5 z-20 ${animationsEnabled ? 'transition-all duration-150' : ''} rounded-full ${!draggedScriptPath ? 'cursor-pointer group/line hover:bg-white/[0.05]' : ''} ${isExpanded ? 'opacity-100' : 'opacity-0 pointer-events-auto'}`}
                             >
                                 <div className={`absolute left-[9px] top-0 bottom-0 w-[1px] transition-colors shadow-2xl ${isDragging ? 'bg-white/5' : 'bg-white/10'}`}></div>
                             </div>
@@ -866,7 +868,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
                                 <svg width="14" height="6" viewBox="0 0 24 10" fill="none"
                                     className={`transition-all duration-300 ease-in-out stroke-white/20 ${!isDragging && 'group-hover/toggle:stroke-indigo-400'} ${anyExpanded ? 'rotate-180' : ''}`}
                                     strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M5 2l7 7 7-7" />
+                                    <path d="M5 2l7 7 7 -7" />
                                 </svg>
                             </div>
                         </button>
@@ -920,7 +922,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
                 </div>
             )}
 
-            <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 mt-2">
+            <div className={`flex-1 overflow-y-auto custom-scrollbar pr-2 mt-2 transition-all duration-300 ${draggedScriptPath ? 'opacity-30 blur-[1px]' : ''}`}>
                 {viewMode === "hub" ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                         {filtered.length === 0 && <div className="text-tertiary col-span-3 text-center py-40 italic tracking-[0.3em] text-sm font-bold">Пустой канал...</div>}
@@ -953,6 +955,6 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
                     </div>
                 )}
             </div>
-        </div >
+        </div>
     );
 }
