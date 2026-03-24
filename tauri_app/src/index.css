@@ -80,13 +80,13 @@ body {
 }
 
 .animate-tag-in {
-    animation: tag-in 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    animation: tag-in 0.12s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
     overflow: hidden;
     white-space: nowrap;
 }
 
 .animate-tag-out {
-    animation: tag-out 0.2s cubic-bezier(0.34, 1.56, 1, 1) forwards;
+    animation: tag-out 0.1s cubic-bezier(0.34, 1.56, 1, 1) forwards;
     overflow: hidden;
     white-space: nowrap;
 }

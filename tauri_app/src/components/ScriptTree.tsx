@@ -162,6 +162,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
     // DnD Threshold Refs
     const pendingDragRef = useRef<{ script: Script, x: number, y: number } | null>(null);
     const dragTimerRef = useRef<number | null>(null);
+    const folderRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
     const fetchData = async () => {
         try {
@@ -185,8 +186,25 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
 
     const toggleFolder = (path: string) => {
         setExpandedFolders(prev => {
-            const current = prev[path] !== false;
-            return { ...prev, [path]: !current };
+            const isCurrentlyExpanded = prev[path] !== false;
+
+            // Auto-scroll logic ONLY when COLLAPSING
+            if (isCurrentlyExpanded) {
+                const header = folderRefs.current.get(path);
+                if (header) {
+                    const rect = header.getBoundingClientRect();
+                    const container = header.closest('.overflow-y-auto');
+
+                    // If header is above the viewport top
+                    if (rect.top < 60 && container) {
+                        const scrollContainer = container as HTMLElement;
+                        const scrollOffset = rect.top - 40; // Aim for header to be 40px from top
+                        scrollContainer.scrollBy({ top: scrollOffset, behavior: 'smooth' });
+                    }
+                }
+            }
+
+            return { ...prev, [path]: !isCurrentlyExpanded };
         });
     };
 
@@ -445,6 +463,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
             <div key={node.fullName} className={`flex flex-col ${isExpanded ? 'overflow-visible' : 'overflow-hidden'}`}>
                 {node.name !== "Root" && (
                     <div
+                        ref={el => { if (el) folderRefs.current.set(node.fullName, el); }}
                         onClick={() => !isDragging && toggleFolder(node.fullName)}
                         className={`flex items-center space-x-2 h-[32px] rounded-lg z-10 relative transition-all mb-0.5 border border-transparent hover:z-[50]
               ${!isDragging ? 'bg-white/[0.015] hover:bg-white/[0.05] cursor-pointer group' : 'bg-transparent text-white/30 cursor-default'}
@@ -457,12 +476,12 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
                     </div>
                 )}
 
-                <div className={`grid transition-all duration-300 ease-in-out relative ${isExpanded ? 'grid-rows-[1fr] opacity-100 overflow-visible' : 'grid-rows-[0fr] opacity-0 overflow-hidden'}`}>
-                    <div className={isExpanded ? 'overflow-visible' : 'overflow-hidden'}>
-                        {node.name !== "Root" && isExpanded && (
+                <div className={`grid transition-all duration-150 ease-in-out relative ${isExpanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`} style={{ overflow: isExpanded ? 'visible' : 'hidden' }}>
+                    <div className="min-h-0 overflow-hidden">
+                        {node.name !== "Root" && (
                             <div
                                 onClick={() => !isDragging && toggleFolder(node.fullName)}
-                                className={`absolute left-[13px] top-0 bottom-4 w-5 -ml-2.5 z-20 transition-colors rounded-full ${!isDragging ? 'cursor-pointer group/line hover:bg-white/[0.05]' : ''}`}
+                                className={`absolute left-[13px] top-0 bottom-4 w-5 -ml-2.5 z-20 transition-all duration-150 rounded-full ${!isDragging ? 'cursor-pointer group/line hover:bg-white/[0.05]' : ''} ${isExpanded ? 'opacity-100' : 'opacity-0 pointer-events-auto'}`}
                             >
                                 <div className={`absolute left-[9px] top-0 bottom-0 w-[1px] transition-colors shadow-2xl ${isDragging ? 'bg-white/5' : 'bg-white/10'}`}></div>
                             </div>
