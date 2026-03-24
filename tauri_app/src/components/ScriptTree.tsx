@@ -156,6 +156,8 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
     const [treeFilter, setTreeFilter] = useState<"all" | "tagged" | "untagged">("all");
     const [showHidden, setShowHidden] = useState(false);
     const [pendingScripts, setPendingScripts] = useState<Set<string>>(new Set());
+    const [removingTags, setRemovingTags] = useState<Set<string>>(new Set());
+
 
     // DnD Threshold Refs
     const pendingDragRef = useRef<{ script: Script, x: number, y: number } | null>(null);
@@ -188,10 +190,12 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
         });
     };
 
-    const handleToggle = async (script: Script) => {
+    const handleToggle = async (script: Script, forceStart = false) => {
         if (pendingScripts.has(script.path)) return;
 
         const wasRunning = script.is_running;
+        if (forceStart && wasRunning) return; // Don't stop on double-click
+
         setPendingScripts(prev => new Set(prev).add(script.path));
 
         try {
@@ -254,22 +258,42 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
             return;
         }
         const updatedTags = [...script.tags, trimmed];
+        // Optimistic update — instant UI feedback
+        setAllScripts(prev => prev.map(s => s.path === script.path ? { ...s, tags: updatedTags } : s));
+        setEditingScript(null);
         try {
             await invoke("save_script_tags", { path: script.path, tags: updatedTags });
-            setEditingScript(null);
-            fetchData();
         } catch (e) {
             console.error(e);
+            // Revert on failure
+            setAllScripts(prev => prev.map(s => s.path === script.path ? { ...s, tags: script.tags } : s));
         }
     };
 
     const removeTag = async (script: Script, tagToRemove: string) => {
+        const tagId = `${script.path}-${tagToRemove}`;
+        if (removingTags.has(tagId)) return;
+
+        setRemovingTags(prev => new Set(prev).add(tagId));
+
+        // Wait for animation (css is 200ms, we wait slightly less to feel snappy)
+        await new Promise(r => setTimeout(r, 180));
+
         const newTags = script.tags.filter(t => t !== tagToRemove);
+        // Optimistic update — instant UI feedback after animation
+        setAllScripts(prev => prev.map(s => s.path === script.path ? { ...s, tags: newTags } : s));
+        setRemovingTags(prev => {
+            const next = new Set(prev);
+            next.delete(tagId);
+            return next;
+        });
+
         try {
             await invoke("save_script_tags", { path: script.path, tags: newTags });
-            fetchData();
         } catch (e) {
             console.error(e);
+            // Revert on failure
+            setAllScripts(prev => prev.map(s => s.path === script.path ? { ...s, tags: script.tags } : s));
         }
     };
 
@@ -450,7 +474,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
                                 <div
                                     key={s.path}
                                     onMouseDown={(e) => handleCustomMouseDown(e, s)}
-                                    onDoubleClick={() => !isDragging && handleToggle(s)}
+                                    onDoubleClick={() => !isDragging && handleToggle(s, true)}
                                     className={`flex items-center justify-between h-[36px] px-3 rounded-lg transition-all border border-transparent select-none relative ${editingScript === s.path ? 'z-[200]' : 'z-10 hover:z-[100]'}
                     ${!isDragging ? `group ${editingScript === s.path ? 'bg-white/5' : 'hover:bg-white/5 cursor-grab active:cursor-grabbing active:scale-[0.99] has-[button:active]:scale-100'}` : 'bg-transparent cursor-default opacity-40'}
                     ${s.is_hidden ? 'opacity-40 grayscale-[0.5]' : ''}
@@ -469,28 +493,39 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
 
                                         {!isDragging && (
                                             <div className="flex items-center space-x-2 flex-shrink-0 pr-2 overflow-visible relative">
-                                                {s.tags.map(t => (
-                                                    <div key={t} className="relative group/tag flex items-center h-7">
-                                                        <span className="text-[11px] font-bold px-3 h-7 rounded-lg bg-white/[0.03] text-white/35 border border-white/10 cursor-default shadow-lg pointer-events-auto flex items-center justify-center">
-                                                            {t}
-                                                        </span>
-                                                        <button
-                                                            onClick={(e) => { e.stopPropagation(); removeTag(s, t); }}
-                                                            onMouseDown={(e) => e.stopPropagation()}
-                                                            className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover/tag:opacity-100 transition-all shadow-lg hover:scale-125 active:scale-90 cursor-pointer z-50 pointer-events-auto border-none"
-                                                            title={`Удалить тег ${t}`}
+                                                {s.tags.map(t => {
+                                                    const isRemoving = removingTags.has(`${s.path}-${t}`);
+                                                    return (
+                                                        <div key={t}
+                                                            className="relative group/tag inline-flex items-center h-7 mr-2 pointer-events-auto"
+                                                            onDoubleClick={(e) => e.stopPropagation()}
                                                         >
-                                                            <svg width="8" height="2" viewBox="0 0 8 2" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                                                                <path d="M1 1h6" />
-                                                            </svg>
-                                                        </button>
-                                                    </div>
-                                                ))}
+                                                            <div className={isRemoving ? 'animate-tag-out' : 'animate-tag-in'}>
+                                                                <span className="text-[11px] font-bold px-3 h-7 rounded-lg bg-white/[0.03] text-white/35 border border-white/10 cursor-default shadow-lg flex items-center justify-center">
+                                                                    {t}
+                                                                </span>
+                                                            </div>
+                                                            <button
+                                                                onClick={(e) => { e.stopPropagation(); removeTag(s, t); }}
+                                                                onMouseDown={(e) => e.stopPropagation()}
+                                                                onDoubleClick={(e) => e.stopPropagation()}
+                                                                className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover/tag:opacity-100 transition-all shadow-lg hover:scale-125 active:scale-90 cursor-pointer z-50 pointer-events-auto border-none"
+                                                                title={`Удалить тег ${t}`}
+                                                            >
+                                                                <svg width="8" height="2" viewBox="0 0 8 2" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                                                                    <path d="M1 1h6" />
+                                                                </svg>
+                                                            </button>
+                                                        </div>
+                                                    );
+                                                })}
                                                 <button
                                                     onClick={(e) => { e.stopPropagation(); startEditing(s); }}
                                                     onMouseDown={(e) => e.stopPropagation()}
+                                                    onDoubleClick={(e) => e.stopPropagation()}
                                                     className={`w-7 h-7 ml-1 flex items-center justify-center rounded-lg bg-white/5 text-white/20 border border-white/5 hover:text-indigo-400 hover:bg-white/10 transition-all shadow-lg group/plus cursor-pointer pointer-events-auto ${editingScript === s.path ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
                                                 >
+
                                                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                                                 </button>
 
@@ -513,6 +548,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
                                             <button
                                                 onClick={(e) => { e.stopPropagation(); handleToggle(s); }}
                                                 onMouseDown={(e) => e.stopPropagation()}
+                                                onDoubleClick={(e) => e.stopPropagation()}
                                                 className={`text-[12px] font-bold px-4 h-7 rounded-lg bg-white/5 border border-white/5 shadow-xl transition-all cursor-pointer active:scale-95 flex items-center justify-center
                                                     ${pendingScripts.has(s.path) ? 'text-white/20 animate-pulse cursor-wait' :
                                                         s.is_running ? 'text-red-500 hover:bg-red-500 hover:text-white' : 'text-indigo-400 hover:bg-indigo-500 hover:text-white'}
@@ -616,7 +652,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
                         <div
                             key={s.path}
                             onMouseDown={(e) => handleCustomMouseDown(e, s)}
-                            onDoubleClick={() => !isDragging && handleToggle(s)}
+                            onDoubleClick={() => !isDragging && handleToggle(s, true)}
                             className={`p-6 rounded-[2.5rem] border transition-all flex flex-col justify-between h-64 select-none relative ${editingScript === s.path ? 'z-[200]' : 'z-10 hover:z-[100]'}
                                 ${!isDragging
                                     ? `group ${editingScript === s.path ? 'shadow-2xl' : 'hover:shadow-2xl cursor-grab active:cursor-grabbing active:scale-[0.98]'}`
@@ -645,29 +681,40 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
                                     />
                                 ) : (
                                     <div className="flex flex-wrap gap-2 pointer-events-none">
-                                        {s.tags.map(t => (
-                                            <div key={t} className="relative group/tag pointer-events-auto">
-                                                <span className={`text-[12px] px-5 py-3 bg-white/5 border border-white/5 text-white/40 font-bold rounded-xl shadow-lg leading-none flex items-center transition-opacity ${isDragging ? 'opacity-20' : ''}`}>#{t}</span>
-                                                {!isDragging && (
-                                                    <button
-                                                        onClick={(e) => { e.stopPropagation(); removeTag(s, t); }}
-                                                        onMouseDown={(e) => e.stopPropagation()}
-                                                        className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover/tag:opacity-100 transition-all shadow-xl hover:scale-125 active:scale-90 cursor-pointer z-50 border-none"
-                                                        title={`Удалить тег ${t}`}
-                                                    >
-                                                        <svg width="10" height="2" viewBox="0 0 10 2" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                                                            <path d="M1 1h8" />
-                                                        </svg>
-                                                    </button>
-                                                )}
-                                            </div>
-                                        ))}
+                                        {s.tags.map(t => {
+                                            const isRemoving = removingTags.has(`${s.path}-${t}`);
+                                            return (
+                                                <div key={t}
+                                                    className="relative group/tag inline-flex items-center pointer-events-auto"
+                                                    onDoubleClick={(e) => e.stopPropagation()}
+                                                >
+                                                    <div className={isRemoving ? 'animate-tag-out' : 'animate-tag-in'}>
+                                                        <span className={`text-[12px] px-5 py-3 bg-white/5 border border-white/5 text-white/40 font-bold rounded-xl shadow-lg leading-none flex items-center transition-opacity ${isDragging ? 'opacity-20' : ''}`}>#{t}</span>
+                                                    </div>
+                                                    {!isDragging && (
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); removeTag(s, t); }}
+                                                            onMouseDown={(e) => e.stopPropagation()}
+                                                            onDoubleClick={(e) => e.stopPropagation()}
+                                                            className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover/tag:opacity-100 transition-all shadow-xl hover:scale-125 active:scale-90 cursor-pointer z-50 border-none"
+                                                            title={`Удалить тег ${t}`}
+                                                        >
+                                                            <svg width="10" height="2" viewBox="0 0 10 2" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                                                                <path d="M1 1h8" />
+                                                            </svg>
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
                                         {!isDragging && (
                                             <button
                                                 onClick={(e) => { e.stopPropagation(); startEditing(s); }}
                                                 onMouseDown={(e) => e.stopPropagation()}
+                                                onDoubleClick={(e) => e.stopPropagation()}
                                                 className="w-[42px] h-[40px] flex items-center justify-center border border-dashed border-white/10 rounded-xl text-white/10 hover:text-white/40 hover:border-white/20 transition-all cursor-pointer pointer-events-auto opacity-0 group-hover:opacity-100"
                                             >
+
                                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                                             </button>
                                         )}
