@@ -241,15 +241,13 @@ function App() {
       ? "opacity-0 invisible pointer-events-none"
       : (draggedScript && isTag && draggedScript.tags.includes(tab))
         ? "text-white/10 border-transparent opacity-30 shadow-none blur-[1px]"
-        : dragOverTag === tab
-          ? "bg-indigo-600 text-white border-indigo-400 shadow-[0_0_20px_rgba(79,70,229,0.5)] scale-[1.02]"
+        : (draggedScript && isTag)
+          ? `text-indigo-400 border-indigo-500/20 tag-pulse-target ${dragOverTag === tab ? "tag-drop-hover" : ""}`
           : activeTab === tab
             ? "text-indigo-400 border-indigo-500 shadow-lg tag-active"
-            : (draggedScript && isTag)
-              ? "text-indigo-400 border-indigo-500/30 bg-indigo-500/15 animate-pulse"
-              : draggedScript
-                ? "text-white/10 border-transparent opacity-30 shadow-none blur-[1px]"
-                : "text-tertiary border-transparent hover:text-secondary tag-hover"}
+            : draggedScript
+              ? "text-white/10 border-transparent opacity-30 shadow-none blur-[1px]"
+              : "text-tertiary border-transparent hover:text-secondary tag-hover"}
   `;
 
   return (

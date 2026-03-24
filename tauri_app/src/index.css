@@ -190,6 +190,38 @@ body {
     animation: scale-in 0.08s cubic-bezier(0, 0, 0.2, 1) forwards;
 }
 
+@keyframes smooth-pulse {
+
+    0%,
+    100% {
+        background-color: rgba(79, 70, 229, 0.18);
+        border-color: rgba(79, 70, 229, 0.45);
+    }
+
+    50% {
+        background-color: rgba(90, 80, 255, 0.28);
+        border-color: rgba(129, 140, 248, 0.9);
+    }
+}
+
+.tag-pulse-target {
+    position: relative;
+    overflow: hidden;
+    animation: smooth-pulse 1.8s cubic-bezier(0.445, 0.05, 0.55, 0.95) infinite !important;
+    will-change: background-color, border-color;
+}
+
+.tag-drop-hover {
+    background-color: #4f46e5 !important;
+    border-color: #818cf8 !important;
+    /* Indigo 400 */
+    color: #ffffff !important;
+    box-shadow: 0 0 25px rgba(79, 70, 229, 0.6) !important;
+    transform: scale(1.02) !important;
+    z-index: 100 !important;
+    /* Do NOT use animation: none, otherwise it restarts from 0% when hover ends */
+}
+
 /* Ensure drag ghost stays above reordering animations */
 ::view-transition-group(drag-ghost) {
     z-index: 999999;
