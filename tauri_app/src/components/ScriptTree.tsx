@@ -195,11 +195,12 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
                     const rect = header.getBoundingClientRect();
                     const container = header.closest('.overflow-y-auto');
 
-                    // If header is above the viewport top
-                    if (rect.top < 60 && container) {
-                        const scrollContainer = container as HTMLElement;
-                        const scrollOffset = rect.top - 40; // Aim for header to be 40px from top
-                        scrollContainer.scrollBy({ top: scrollOffset, behavior: 'smooth' });
+                    if (container) {
+                        const containerRect = container.getBoundingClientRect();
+                        // If the header is above the scroll container's visible top edge
+                        if (rect.top < containerRect.top) {
+                            header.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }
                     }
                 }
             }
