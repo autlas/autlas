@@ -176,73 +176,62 @@ function App() {
     >
       {/* Sidebar - Balanced padding for Symmetric Gutter */}
       <div
-        className="w-72 flex flex-col px-4 py-10 space-y-10 border-r overflow-y-auto custom-scrollbar transition-colors duration-300 relative z-[100]"
+        className="w-72 flex flex-col px-4 py-6 space-y-10 border-r overflow-y-auto custom-scrollbar transition-colors duration-300 relative z-[100]"
         style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-color)' }}
       >
-        <div className="flex flex-col space-y-10 flex-1">
-          <div>
-            <h2 className="text-xs font-bold text-tertiary tracking-widest mb-6 pl-4 uppercase">Core</h2>
+        <div className="flex flex-col space-y-8 flex-1">
+          <ul className="space-y-1.5">
+            {[{ id: "Хаб", label: "Хаб", icon: "" }, { id: "Все скрипты", label: "Дерево", icon: "" }].map((tab) => (
+              <li
+                key={tab.id}
+                className={`px-6 py-4 rounded-xl cursor-pointer text-base font-bold transition-all border flex items-center justify-between ${draggedScript && tab.id !== dragOverTag ? 'opacity-20 blur-[1px] scale-95' : ''
+                  } ${activeTab === tab.id && viewMode !== "settings"
+                    ? tab.id === "Хаб"
+                      ? "bg-gradient-to-r from-indigo-500 to-purple-500 border-indigo-400 shadow-xl shadow-indigo-900/30 text-white"
+                      : "bg-white/10 text-primary border-white/10 shadow-lg"
+                    : "text-secondary border-transparent hover:bg-white/5 hover:text-primary"
+                  }`}
+                onClick={() => !draggedScript && handleTabClick(tab.id)}
+              >
+                <span className="flex items-center space-x-4 pointer-events-none">
+                  {tab.icon}
+                  <span>{tab.label}</span>
+                </span>
+                {tab.id === "Хаб" && activeTab !== "Хаб" && <div className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(79,70,229,0.5)]"></div>}
+              </li>
+            ))}
+          </ul>
+
+          <div className="flex-1">
             <ul className="space-y-1.5">
-              {[{ id: "Хаб", label: "Хаб", icon: "" }, { id: "Все скрипты", label: "Дерево", icon: "" }].map((tab) => (
+              {userTags.map((tag) => (
                 <li
-                  key={tab.id}
-                  className={`px-6 py-4 rounded-xl cursor-pointer text-base font-bold transition-all border flex items-center justify-between ${draggedScript && tab.id !== dragOverTag ? 'opacity-20 blur-[1px] scale-95' : ''
-                    } ${activeTab === tab.id && viewMode !== "settings"
-                      ? tab.id === "Хаб"
-                        ? "bg-gradient-to-r from-indigo-500 to-purple-500 border-indigo-400 shadow-xl shadow-indigo-900/30 text-white"
-                        : "bg-white/10 text-primary border-white/10 shadow-lg"
-                      : "text-secondary border-transparent hover:bg-white/5 hover:text-primary"
-                    }`}
-                  onClick={() => !draggedScript && handleTabClick(tab.id)}
+                  key={tag}
+                  className={navItemClass(tag, true)}
+                  onClick={() => !draggedScript && handleTabClick(tag)}
+                  onMouseEnter={() => draggedScript && setDragOverTag(tag)}
+                  onMouseLeave={() => draggedScript && dragOverTag === tag && setDragOverTag(null)}
                 >
-                  <span className="flex items-center space-x-4 pointer-events-none">
-                    {tab.icon}
-                    <span>{tab.label}</span>
-                  </span>
-                  {tab.id === "Хаб" && activeTab !== "Хаб" && <div className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(79,70,229,0.5)]"></div>}
+                  <span className="relative z-50 pointer-events-none">{tag}</span>
                 </li>
               ))}
             </ul>
           </div>
-
-          {viewMode !== "settings" && (
-            <>
-              <div>
-                <h2 className="text-xs font-bold text-tertiary tracking-widest mb-6 pl-4 uppercase">Status</h2>
-                <ul className="space-y-1.5">
-                  {["Запущенные"].map((item) => (
-                    <li
-                      key={item}
-                      className={navItemClass(item, false)}
-                      onClick={() => !draggedScript && handleTabClick(item)}
-                    >
-                      <span className="relative z-50 pointer-events-none">{item}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              <div className="flex-1">
-                <h2 className="text-xs font-bold text-tertiary tracking-widest mb-6 pl-4 uppercase">Tags</h2>
-                <ul className="space-y-1.5">
-                  {userTags.map((tag) => (
-                    <li
-                      key={tag}
-                      className={navItemClass(tag, true)}
-                      onClick={() => !draggedScript && handleTabClick(tag)}
-                      onMouseEnter={() => draggedScript && setDragOverTag(tag)}
-                      onMouseLeave={() => draggedScript && dragOverTag === tag && setDragOverTag(null)}
-                    >
-                      <span className="relative z-50 pointer-events-none">{tag}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </>
-          )}
         </div>
 
-        <div className="pt-8 border-t border-white/5">
+        <div className="pt-8 border-t border-white/5 space-y-3">
+          <ul className="space-y-1.5">
+            {["Запущенные"].map((item) => (
+              <li
+                key={item}
+                className={navItemClass(item, false)}
+                onClick={() => !draggedScript && handleTabClick(item)}
+              >
+                <span className="relative z-50 pointer-events-none">{item}</span>
+              </li>
+            ))}
+          </ul>
+
           <button
             onClick={() => handleTabClick("Настройки")}
             className={`w-full px-6 py-4 rounded-xl flex items-center space-x-4 transition-all border group ${draggedScript ? 'opacity-20 blur-[1px]' : ''
@@ -287,9 +276,9 @@ function App() {
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-4 custom-scrollbar">
+        <div className="flex-1 overflow-hidden">
           {viewMode === "settings" ? (
-            <div className="max-w-3xl space-y-12">
+            <div className="max-w-3xl space-y-12 overflow-y-auto custom-scrollbar h-full pr-4">
               <section className="space-y-8 bg-white/[0.02] p-10 rounded-[2.5rem] border border-white/5 shadow-2xl">
                 <h3 className="text-sm font-bold tracking-widest text-tertiary uppercase">Настройки темы</h3>
                 <div className="space-y-6">

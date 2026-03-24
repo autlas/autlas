@@ -669,7 +669,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
     const anyExpanded = Object.values(expandedFolders).some(val => val);
 
     return (
-        <div className="flex flex-col space-y-1.5">
+        <div className="flex flex-col h-full overflow-hidden">
             {viewMode === "tree" && (
                 <div className="flex items-center justify-between pl-1 mb-4 pb-2 border-b" style={{ borderColor: 'var(--border-color)' }}>
                     <div className="flex items-center space-x-1">
@@ -741,106 +741,110 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
                 </div>
             )}
 
-            {viewMode === "hub" ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                    {filtered.length === 0 && <div className="text-tertiary col-span-3 text-center py-40 italic tracking-[0.3em] text-sm font-bold">Пустой канал...</div>}
-                    {filtered.map(s => (
-                        <div
-                            key={s.path}
-                            onMouseDown={(e) => handleCustomMouseDown(e, s)}
-                            onDoubleClick={() => !isDragging && handleToggle(s, true)}
-                            className={`p-6 rounded-[2.5rem] border transition-all flex flex-col justify-between h-64 select-none relative ${editingScript === s.path ? 'z-[200]' : 'z-10 hover:z-[100]'}
-                                ${!isDragging
-                                    ? `group ${editingScript === s.path ? 'shadow-2xl' : 'hover:shadow-2xl cursor-grab active:cursor-grabbing active:scale-[0.98]'}`
-                                    : 'opacity-30 border-transparent shadow-none cursor-default'}
-                                ${s.is_running && !isDragging ? 'border-indigo-500/30' : ''}
-                            `}
-                            style={{ backgroundColor: 'var(--bg-tertiary)', borderColor: s.is_running && !isDragging ? 'var(--accent-indigo)' : 'var(--border-color)' }}
-                        >
-                            <div className="flex justify-between items-start pointer-events-none">
-                                <div className="flex flex-col overflow-hidden flex-1">
-                                    <span className={`text-xl font-black truncate pr-4 transition-colors tracking-tight ${!isDragging ? (editingScript === s.path ? 'text-indigo-400' : 'text-secondary group-hover:text-indigo-400') : 'text-secondary'}`}>{s.filename}</span>
-                                    <span className="text-xs text-tertiary font-bold tracking-[0.4em] mt-2">{s.parent}</span>
-                                </div>
-                                <div className={`w-3 h-3 rounded-full mt-2 transition-opacity ${s.is_running ? 'bg-green-500' : 'bg-white/5 border border-white/10'} ${isDragging ? 'opacity-20' : ''}`}></div>
-                            </div>
-
-                            <div className="mt-4 flex-1">
-                                {editingScript === s.path && !isDragging ? (
-                                    <TagPickerPopover
-                                        script={s}
-                                        allUniqueTags={allUniqueTags}
-                                        popoverRef={popoverRef}
-                                        onAdd={addTag}
-                                        onClose={stopEditing}
-                                        variant="hub"
-                                    />
-                                ) : (
-                                    <div className="flex flex-wrap gap-2 pointer-events-none">
-                                        {s.tags.map(t => {
-                                            const isRemoving = removingTags.has(`${s.path}-${t}`);
-                                            return (
-                                                <div key={t}
-                                                    className="relative group/tag inline-flex items-center pointer-events-auto"
-                                                    onDoubleClick={(e) => e.stopPropagation()}
-                                                >
-                                                    <div className={isRemoving ? 'animate-tag-out' : 'animate-tag-in'}>
-                                                        <span className={`text-xs px-5 py-3 bg-white/5 border border-white/5 text-secondary font-bold rounded-xl shadow-lg leading-none flex items-center transition-opacity ${isDragging ? 'opacity-20' : ''}`}>#{t}</span>
-                                                    </div>
-                                                    {!isDragging && (
-                                                        <button
-                                                            onClick={(e) => { e.stopPropagation(); removeTag(s, t); }}
-                                                            onMouseDown={(e) => e.stopPropagation()}
-                                                            onDoubleClick={(e) => e.stopPropagation()}
-                                                            className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover/tag:opacity-100 transition-all shadow-xl hover:scale-125 active:scale-90 cursor-pointer z-50 border-none"
-                                                            title={`Удалить тег ${t}`}
-                                                        >
-                                                            <svg width="10" height="2" viewBox="0 0 10 2" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                                                                <path d="M1 1h8" />
-                                                            </svg>
-                                                        </button>
-                                                    )}
-                                                </div>
-                                            );
-                                        })}
-                                        {!isDragging && (
-                                            <button
-                                                onClick={(e) => { e.stopPropagation(); startEditing(s); }}
-                                                onMouseDown={(e) => e.stopPropagation()}
-                                                onDoubleClick={(e) => e.stopPropagation()}
-                                                className="w-[42px] h-[40px] flex items-center justify-center border border-dashed border-white/10 rounded-xl text-tertiary hover:text-secondary hover:border-white/20 transition-all cursor-pointer pointer-events-auto opacity-0 group-hover:opacity-100"
-                                            >
-
-                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                                            </button>
-                                        )}
+            <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 mt-2">
+                {viewMode === "hub" ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                        {filtered.length === 0 && <div className="text-tertiary col-span-3 text-center py-40 italic tracking-[0.3em] text-sm font-bold">Пустой канал...</div>}
+                        {filtered.map(s => (
+                            <div
+                                key={s.path}
+                                onMouseDown={(e) => handleCustomMouseDown(e, s)}
+                                onDoubleClick={() => !isDragging && handleToggle(s, true)}
+                                className={`p-6 rounded-[2.5rem] border transition-all flex flex-col justify-between h-64 select-none relative ${editingScript === s.path ? 'z-[200]' : 'z-10 hover:z-[100]'}
+                                    ${!isDragging
+                                        ? `group ${editingScript === s.path ? 'shadow-2xl' : 'hover:shadow-2xl cursor-grab active:cursor-grabbing active:scale-[0.98]'}`
+                                        : 'opacity-30 border-transparent shadow-none cursor-default'}
+                                    ${s.is_running && !isDragging ? 'border-indigo-500/30' : ''}
+                                `}
+                                style={{ backgroundColor: 'var(--bg-tertiary)', borderColor: s.is_running && !isDragging ? 'var(--accent-indigo)' : 'var(--border-color)' }}
+                            >
+                                <div className="flex justify-between items-start pointer-events-none">
+                                    <div className="flex flex-col overflow-hidden flex-1">
+                                        <span className={`text-xl font-black truncate pr-4 transition-colors tracking-tight ${!isDragging ? (editingScript === s.path ? 'text-indigo-400' : 'text-secondary group-hover:text-indigo-400') : 'text-secondary'}`}>{s.filename}</span>
+                                        <span className="text-xs text-tertiary font-bold tracking-[0.15em] mt-1 opacity-70">{s.parent}</span>
                                     </div>
+                                    <div className={`w-3 h-3 rounded-full mt-2 transition-opacity ${s.is_running ? 'bg-green-500' : 'bg-white/5 border border-white/10'} ${isDragging ? 'opacity-20' : ''}`}></div>
+                                </div>
+
+                                <div className="mt-4 flex-1">
+                                    {editingScript === s.path && !isDragging ? (
+                                        <TagPickerPopover
+                                            script={s}
+                                            allUniqueTags={allUniqueTags}
+                                            popoverRef={popoverRef}
+                                            onAdd={addTag}
+                                            onClose={stopEditing}
+                                            variant="hub"
+                                        />
+                                    ) : (
+                                        <div className="flex flex-wrap gap-2 pointer-events-none">
+                                            {s.tags.map(t => {
+                                                const isRemoving = removingTags.has(`${s.path}-${t}`);
+                                                return (
+                                                    <div key={t}
+                                                        className="relative group/tag inline-flex items-center pointer-events-auto"
+                                                        onDoubleClick={(e) => e.stopPropagation()}
+                                                    >
+                                                        <div className={isRemoving ? 'animate-tag-out' : 'animate-tag-in'}>
+                                                            <span className={`text-xs px-5 py-3 bg-white/5 border border-white/5 text-secondary font-bold rounded-xl shadow-lg leading-none flex items-center transition-opacity ${isDragging ? 'opacity-20' : ''}`}>#{t}</span>
+                                                        </div>
+                                                        {!isDragging && (
+                                                            <button
+                                                                onClick={(e) => { e.stopPropagation(); removeTag(s, t); }}
+                                                                onMouseDown={(e) => e.stopPropagation()}
+                                                                onDoubleClick={(e) => e.stopPropagation()}
+                                                                className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover/tag:opacity-100 transition-all shadow-xl hover:scale-125 active:scale-90 cursor-pointer z-50 border-none"
+                                                                title={`Удалить тег ${t}`}
+                                                            >
+                                                                <svg width="10" height="2" viewBox="0 0 10 2" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                                                                    <path d="M1 1h8" />
+                                                                </svg>
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
+                                            {!isDragging && (
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); startEditing(s); }}
+                                                    onMouseDown={(e) => e.stopPropagation()}
+                                                    onDoubleClick={(e) => e.stopPropagation()}
+                                                    className="w-[42px] h-[36px] flex items-center justify-center border border-dashed border-white/10 rounded-xl text-tertiary hover:text-secondary hover:border-white/20 transition-all cursor-pointer pointer-events-auto opacity-0 group-hover:opacity-100"
+                                                >
+                                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                                        <line x1="12" y1="5" x2="12" y2="19" />
+                                                        <line x1="5" y1="12" x2="19" y2="12" />
+                                                    </svg>
+                                                </button>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {!isDragging && (
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); handleToggle(s); }}
+                                        onMouseDown={(e) => e.stopPropagation()}
+                                        className={`w-full py-3.5 rounded-2xl text-xs font-bold tracking-[0.1em] transition-all transform cursor-pointer active:scale-95 pointer-events-auto shadow-xl 
+                                            ${pendingScripts.has(s.path) ? 'bg-white/5 text-tertiary animate-pulse cursor-wait border border-white/5' :
+                                                s.is_running ? "bg-red-600/10 text-red-500 border border-red-500/20" :
+                                                    "bg-white text-black hover:bg-gray-100 group-hover:shadow-[0_0_20px_rgba(255,255,255,0.2)]"}
+                                        `}
+                                    >
+                                        {pendingScripts.has(s.path) ? (s.is_running ? "KILLING..." : "IGNITING...") : (s.is_running ? "Kill" : "Run")}
+                                    </button>
                                 )}
                             </div>
-
-                            {!isDragging && (
-                                <button
-                                    onClick={(e) => { e.stopPropagation(); handleToggle(s); }}
-                                    onMouseDown={(e) => e.stopPropagation()}
-                                    className={`w-full py-3.5 rounded-2xl text-xs font-bold tracking-[0.1em] transition-all transform cursor-pointer active:scale-95 mt-4 pointer-events-auto shadow-xl 
-                                                ${pendingScripts.has(s.path) ? 'bg-white/5 text-tertiary animate-pulse cursor-wait border border-white/5' :
-                                            s.is_running ? "bg-red-600/10 text-red-500 border border-red-500/20" :
-                                                "bg-white text-black hover:bg-gray-100 group-hover:shadow-[0_0_20px_rgba(255,255,255,0.2)]"}
-                                            `}
-                                >
-                                    {pendingScripts.has(s.path) ? (s.is_running ? "KRASHING..." : "IGNITING...") : (s.is_running ? "Kill" : "Run")}
-                                </button>
-                            )}
-                        </div>
-                    ))}
-                </div>
-            ) : (
-                <div className="flex flex-col space-y-0.5 select-none pr-6">
-                    {!hasContent ? (
-                        <div className="text-tertiary text-center py-40 italic tracking-[0.3em] text-sm font-bold">Пустой раздел дерева...</div>
-                    ) : renderNode(tree)}
-                </div>
-            )}
+                        ))}
+                    </div>
+                ) : (
+                    <div className="flex flex-col space-y-0.5 select-none">
+                        {!hasContent ? (
+                            <div className="text-tertiary text-center py-40 italic tracking-[0.3em] text-sm font-bold">Пустой раздел дерева...</div>
+                        ) : renderNode(tree)}
+                    </div>
+                )}
+            </div>
         </div >
     );
 }
