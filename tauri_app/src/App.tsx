@@ -14,9 +14,6 @@ function App() {
   const [dragOverTag, setDragOverTag] = useState<string | null>(null);
   const [isCreatingTagFor, setIsCreatingTagFor] = useState<{ path: string, filename: string } | null>(null);
   const [newTagName, setNewTagName] = useState("");
-  const [isEditingTags, setIsEditingTags] = useState(() => {
-    return localStorage.getItem("is-editing-tags") === "true";
-  });
   const [draggedTag, setDraggedTag] = useState<string | null>(null);
   const [isRenamingTag, setIsRenamingTag] = useState<string | null>(null);
   const [editTagName, setEditTagName] = useState("");
@@ -52,13 +49,6 @@ function App() {
     });
   };
 
-  const toggleEditMode = () => {
-    setIsEditingTags(prev => {
-      const next = !prev;
-      localStorage.setItem("is-editing-tags", String(next));
-      return next;
-    });
-  };
 
   const [rootPath] = useState(() => {
     return localStorage.getItem("root-path") || "Desktop / Parent folder";
@@ -249,17 +239,15 @@ function App() {
     will-change-transform select-none
     ${draggedTag === tab
       ? "bg-white/15 text-white border-white/20 shadow-2xl scale-[1.05] z-50 ring-1 ring-white/20 shadow-white/5"
-      : isEditingTags
-        ? "bg-white/[0.05] text-tertiary border-white/5 hover:bg-white/10 hover:text-secondary"
-        : activeTab === tab
-          ? "bg-white/10 text-white border-white/10 shadow-lg"
-          : dragOverTag === tab
-            ? "bg-indigo-600 text-white border-white/40 shadow-[0_0_20px_rgba(79,70,229,0.5)] scale-[1.02]"
-            : (draggedScript && isTag)
-              ? "text-indigo-400 border-indigo-500/30 bg-indigo-500/5 animate-pulse"
-              : draggedScript
-                ? "text-white/10 border-transparent opacity-30 shadow-none scale-[0.98] blur-[1px]"
-                : "text-tertiary border-transparent hover:bg-white/5 hover:text-secondary"}
+      : activeTab === tab
+        ? "bg-white/10 text-white border-white/10 shadow-lg"
+        : dragOverTag === tab
+          ? "bg-indigo-600 text-white border-white/40 shadow-[0_0_20px_rgba(79,70,229,0.5)] scale-[1.02]"
+          : (draggedScript && isTag)
+            ? "text-indigo-400 border-indigo-500/30 bg-indigo-500/5 animate-pulse"
+            : draggedScript
+              ? "text-white/10 border-transparent opacity-30 shadow-none scale-[0.98] blur-[1px]"
+              : "text-tertiary border-transparent hover:bg-white/5 hover:text-secondary"}
   `;
 
   return (
@@ -308,18 +296,6 @@ function App() {
           </ul>
 
           <div className="flex-1">
-            <div className="flex items-center justify-between pl-6 pr-0 mb-4">
-              <span className="text-xs font-black tracking-[0.3em] text-tertiary uppercase opacity-40">Теги</span>
-              <button
-                onClick={toggleEditMode}
-                className={`p-2 rounded-lg transition-all ${isEditingTags ? 'bg-indigo-500/20 text-indigo-400' : 'text-tertiary hover:text-secondary hover:bg-white/5'}`}
-                title={isEditingTags ? "Выйти из режима правки" : "Редактировать теги"}
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-              </button>
-            </div>
             <ul className="flex flex-col space-y-1.5 px-0 w-full">
               {userTags.map((tag) => (
                 <li
@@ -428,7 +404,7 @@ function App() {
                     backgroundColor: activeTab === tag && !draggedScript ? 'var(--bg-tag-active)' : 'var(--bg-tag)'
                   }}
                   onClick={() => {
-                    if (!isEditingTags && !draggedScript) {
+                    if (!draggedScript) {
                       handleTabClick(tag);
                     }
                   }}
@@ -464,24 +440,6 @@ function App() {
                   ) : (
                     <>
                       <span className="relative z-50 pointer-events-none truncate flex-1 font-bold">{tag}</span>
-                      {isEditingTags && (
-                        <div
-                          className="flex items-center space-x-2 ml-4 p-1.5 hover:bg-white/10 rounded-lg transition-all cursor-pointer group/edit-btn"
-                          style={{
-                            // @ts-ignore
-                            viewTransitionName: 'none'
-                          }}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setIsRenamingTag(tag);
-                            setEditTagName(tag);
-                          }}
-                        >
-                          <svg className="w-3.5 h-3.5 opacity-40 group-hover/edit-btn:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                          </svg>
-                        </div>
-                      )}
                     </>
                   )}
                 </li>
@@ -522,36 +480,23 @@ function App() {
           </div>
         </div>
 
-        <div className="pt-8 border-t border-white/5 space-y-3">
-          <ul className="space-y-1.5">
-            {["Запущенные"].map((item) => (
-              <li
-                key={item}
-                className={navItemClass(item, false)}
-                onClick={() => !draggedScript && handleTabClick(item)}
-              >
-                <span className="relative z-50 pointer-events-none">{item}</span>
-              </li>
-            ))}
-          </ul>
 
-          <button
-            onClick={() => handleTabClick("Настройки")}
-            className={`w-full px-6 py-4 rounded-xl flex items-center space-x-4 transition-all border group ${draggedScript ? 'opacity-20 blur-[1px]' : ''
-              } ${viewMode === "settings"
-                ? "bg-indigo-600/10 text-indigo-400 border-indigo-400/20 shadow-lg"
-                : "text-tertiary border-transparent hover:text-secondary hover:bg-white/5"
-              }`}
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
-              className={`transition-transform duration-500 group-hover:rotate-90 ${viewMode === "settings" ? 'stroke-indigo-400' : 'stroke-current'}`}
-              strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 15a3 3 0 100-6 3 3 0 000 6z" />
-              <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" />
-            </svg>
-            <span className="text-sm font-bold">Настройки</span>
-          </button>
-        </div>
+        <button
+          onClick={() => handleTabClick("Настройки")}
+          className={`w-full px-6 py-4 rounded-xl flex items-center space-x-4 transition-all border group ${draggedScript ? 'opacity-20 blur-[1px]' : ''
+            } ${viewMode === "settings"
+              ? "bg-indigo-600/10 text-indigo-400 border-indigo-400/20 shadow-lg"
+              : "text-tertiary border-transparent hover:text-secondary hover:bg-white/5"
+            }`}
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+            className={`transition-transform duration-500 group-hover:rotate-90 ${viewMode === "settings" ? 'stroke-indigo-400' : 'stroke-current'}`}
+            strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 15a3 3 0 100-6 3 3 0 000 6z" />
+            <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" />
+          </svg>
+          <span className="text-sm font-bold">Настройки</span>
+        </button>
       </div>
 
       {/* Main Content */}
