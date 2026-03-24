@@ -21,6 +21,7 @@ function App() {
   const [isRenamingTag, setIsRenamingTag] = useState<string | null>(null);
   const [editTagName, setEditTagName] = useState("");
   const [refreshKey, setRefreshKey] = useState(0);
+  const [contextMenu, setContextMenu] = useState<{ x: number, y: number, type: 'script' | 'tag' | 'general', data: any } | null>(null);
 
   const ghostRef = useRef<HTMLDivElement>(null);
 
@@ -119,6 +120,30 @@ function App() {
     return () => {
       window.removeEventListener("mousemove", handleMouseMove);
       if (animationFrameId) cancelAnimationFrame(animationFrameId);
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleGlobalClick = () => setContextMenu(null);
+    const handleGlobalScroll = () => setContextMenu(null);
+    const handleGlobalContextMenu = (e: MouseEvent) => {
+      // Always prevent default to hide browser menu
+      e.preventDefault();
+
+      // Only close our menu if the right-click wasn't on a custom target
+      // (React's synthetic event will call preventDefault on our custom items)
+      if (!(e as any)._reactProcessed && !e.defaultPrevented) {
+        setContextMenu(null);
+      }
+    };
+
+    window.addEventListener('click', handleGlobalClick);
+    window.addEventListener('scroll', handleGlobalScroll, true);
+    window.addEventListener('contextmenu', handleGlobalContextMenu);
+    return () => {
+      window.removeEventListener('click', handleGlobalClick);
+      window.removeEventListener('scroll', handleGlobalScroll, true);
+      window.removeEventListener('contextmenu', handleGlobalContextMenu);
     };
   }, []);
 
@@ -353,6 +378,12 @@ function App() {
                   onClick={() => {
                     if (!isEditingTags && !draggedScript) {
                       handleTabClick(tag);
+                    }
+                  }}
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    if (!draggedScript) {
+                      setContextMenu({ x: e.clientX, y: e.clientY, type: 'tag', data: tag });
                     }
                   }}
                 >
@@ -620,15 +651,19 @@ function App() {
               isDragging={draggedScript !== null}
               draggedScriptPath={draggedScript?.path || null}
               animationsEnabled={animationsEnabled}
+              onScriptContextMenu={(e, s) => {
+                e.preventDefault();
+                setContextMenu({ x: e.clientX, y: e.clientY, type: 'script', data: s });
+              }}
             />
           )}
         </div>
       </div>
-
+      {/* Ghost Drag Element */}
       <div
         ref={ghostRef}
         data-dragging="false"
-        className={`fixed z-[99999] pointer-events-none px-4 py-2.5 rounded-xl border border-indigo-400/40 bg-indigo-500/20 backdrop-blur-md shadow-2xl flex items-center space-x-3 transition-opacity duration-150 ${draggedScript ? 'opacity-100' : 'opacity-0 hidden'}`}
+        className={`fixed z-[99999] pointer-events-none px-4 py-2.5 rounded-xl border border-indigo-400/40 bg-indigo-500/20 backdrop-blur-md shadow-2xl flex items-center space-x-3 transition-opacity duration-150 ${draggedScript || draggedTag ? 'opacity-100' : 'opacity-0 hidden'}`}
         style={{
           left: 0,
           top: 0,
@@ -636,7 +671,6 @@ function App() {
           willChange: 'transform, opacity'
         }}
       >
-
         {draggedScript && (
           <>
             <div className="w-2 h-2 rounded-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.8)]"></div>
@@ -650,7 +684,105 @@ function App() {
           </>
         )}
       </div>
+
+      {/* Context Menu */}
+      {contextMenu && (
+        <div
+          className="fixed z-[100000] min-w-[200px] bg-[#1a1a1c]/80 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] py-2 animate-scale-in overflow-hidden"
+          style={{
+            left: Math.min(contextMenu.x, window.innerWidth - 220),
+            top: Math.min(contextMenu.y, window.innerHeight - 300),
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {contextMenu.type === 'script' && (
+            <>
+              <div className="px-4 py-2 border-b border-white/5 mb-1">
+                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-tertiary opacity-50 mb-0.5">Скрипт</div>
+                <div className="text-xs font-bold text-white truncate">{contextMenu.data.filename}</div>
+              </div>
+              <ContextMenuItem
+                label={contextMenu.data.is_running ? "Остановить" : "Запустить"}
+                icon={contextMenu.data.is_running ? "⏹" : "▶"}
+                onClick={() => {
+                  if (contextMenu.data.is_running) invoke("kill_script", { path: contextMenu.data.path });
+                  else invoke("run_script", { path: contextMenu.data.path });
+                  setContextMenu(null);
+                  setRefreshKey(p => p + 1);
+                }}
+              />
+              <ContextMenuItem
+                label="Редактировать"
+                icon="📝"
+                onClick={() => {
+                  invoke("edit_script", { path: contextMenu.data.path });
+                  setContextMenu(null);
+                }}
+              />
+              <ContextMenuItem
+                label="Показать в папке"
+                icon="📂"
+                onClick={() => {
+                  invoke("open_in_explorer", { path: contextMenu.data.path });
+                  setContextMenu(null);
+                }}
+              />
+              <div className="h-[1px] bg-white/5 my-1" />
+              <ContextMenuItem
+                label="Копировать путь"
+                icon="🔗"
+                onClick={() => {
+                  navigator.clipboard.writeText(contextMenu.data.path);
+                  setContextMenu(null);
+                }}
+              />
+            </>
+          )}
+
+          {contextMenu.type === 'tag' && (
+            <>
+              <div className="px-4 py-2 border-b border-white/5 mb-1">
+                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-tertiary opacity-50 mb-0.5">Тег</div>
+                <div className="text-xs font-bold text-white truncate">{contextMenu.data}</div>
+              </div>
+              <ContextMenuItem
+                label="Переименовать"
+                icon="✏️"
+                onClick={() => {
+                  setIsRenamingTag(contextMenu.data);
+                  setEditTagName(contextMenu.data);
+                  setContextMenu(null);
+                }}
+              />
+              <ContextMenuItem
+                label="Удалить тег"
+                icon="🗑️"
+                danger
+                onClick={() => {
+                  alert("Удаление тега пока не реализовано в бэкенде");
+                  setContextMenu(null);
+                }}
+              />
+            </>
+          )}
+        </div>
+      )}
     </div>
+  );
+}
+
+function ContextMenuItem({ label, icon, onClick, danger = false }: { label: string, icon: string, onClick: () => void, danger?: boolean }) {
+  return (
+    <button
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
+      className={`w-full px-4 py-2.5 text-xs font-bold flex items-center space-x-3 transition-all cursor-pointer group ${danger ? 'text-red-400 hover:bg-red-500/10' : 'text-secondary hover:bg-white/5 hover:text-white'}`}
+    >
+      <span className="w-4 h-4 flex items-center justify-center opacity-70 group-hover:opacity-100">{icon}</span>
+      <span>{label}</span>
+    </button>
   );
 }
 

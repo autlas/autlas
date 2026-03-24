@@ -10,6 +10,7 @@ interface ScriptTreeProps {
     isDragging: boolean;
     draggedScriptPath: string | null;
     animationsEnabled: boolean;
+    onScriptContextMenu: (e: React.MouseEvent, script: Script) => void;
 }
 
 interface TreeNode {
@@ -153,17 +154,20 @@ interface ScriptRowProps {
     onAddTag: (s: Script, tag: string) => void;
     onRemoveTag: (s: Script, tag: string) => void;
     onCloseEditing: () => void;
+    onScriptContextMenu: (e: React.MouseEvent, script: Script) => void; // Added this prop
 }
 
 const ScriptRow = memo(function ScriptRow({
     s, isDragging, draggedScriptPath, isEditing, isPending, removingTagKeys,
     allUniqueTags, popoverRef,
-    onMouseDown, onDoubleClick, onToggle, onStartEditing, onAddTag, onRemoveTag, onCloseEditing
+    onMouseDown, onDoubleClick, onToggle, onStartEditing, onAddTag, onRemoveTag, onCloseEditing,
+    onScriptContextMenu // Destructure the new prop
 }: ScriptRowProps) {
     return (
         <div
             onMouseDown={(e) => onMouseDown(e, s)}
             onDoubleClick={() => !isDragging && onDoubleClick(s)}
+            onContextMenu={(e) => onScriptContextMenu(e, s)} // Pass context menu event
             className={`flex items-center justify-between h-[42px] px-3 rounded-lg transition-all duration-300 border border-transparent select-none relative z-10 hover:z-[100]
                 group hover:bg-white/5 cursor-grab active:cursor-grabbing long-press-shrink has-[button:active]:scale-100
                 will-change-transform
@@ -261,10 +265,11 @@ const ScriptRow = memo(function ScriptRow({
         prev.isEditing === next.isEditing &&
         prev.isPending === next.isPending &&
         prev.removingTagKeys.length === next.removingTagKeys.length &&
-        prev.removingTagKeys.every((k, i) => k === next.removingTagKeys[i]);
+        prev.removingTagKeys.every((k, i) => k === next.removingTagKeys[i]) &&
+        prev.onScriptContextMenu === next.onScriptContextMenu; // Include the new prop in comparison
 });
 
-export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustomDragStart, isDragging, draggedScriptPath, animationsEnabled }: ScriptTreeProps) {
+export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustomDragStart, isDragging, draggedScriptPath, animationsEnabled, onScriptContextMenu }: ScriptTreeProps) {
     const [allScripts, setAllScripts] = useState<Script[]>([]);
     const [loading, setLoading] = useState(true);
     const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({});
@@ -659,6 +664,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
                                         onAddTag={addTag}
                                         onRemoveTag={removeTag}
                                         onCloseEditing={stopEditing}
+                                        onScriptContextMenu={onScriptContextMenu}
                                     />
                                 );
                             })}
@@ -756,6 +762,10 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
                                 key={s.path}
                                 onMouseDown={(e) => handleCustomMouseDown(e, s)}
                                 onDoubleClick={() => !isDragging && handleToggle(s, true)}
+                                onContextMenu={(e) => {
+                                    e.preventDefault();
+                                    onScriptContextMenu(e, s);
+                                }}
                                 className={`p-6 rounded-[2.5rem] border transition-all duration-300 flex flex-col justify-between h-64 select-none relative ${editingScript === s.path ? 'z-[200]' : 'z-10 hover:z-[100]'}
                                     ${!isDragging
                                         ? `group ${editingScript === s.path ? 'shadow-2xl' : 'hover:shadow-2xl cursor-grab active:cursor-grabbing long-press-shrink will-change-transform'}`

@@ -224,6 +224,33 @@ fn kill_script(path: String) -> Result<(), String> {
 }
 
 #[tauri::command]
+fn open_in_explorer(path: String) -> Result<(), String> {
+    // On Windows, use "explorer /select," to highlight the file
+    let path_buf = std::path::PathBuf::from(&path);
+    if path_buf.exists() {
+        Command::new("explorer")
+            .arg("/select,")
+            .arg(path)
+            .spawn()
+            .map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
+#[tauri::command]
+fn edit_script(path: String) -> Result<(), String> {
+    // Open in default editor (usually cmd /c start)
+    Command::new("cmd")
+        .arg("/c")
+        .arg("start")
+        .arg("") // Title
+        .arg(&path)
+        .spawn()
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
 fn add_script_tag(path: String, tag: String) -> Result<(), String> {
     let metadata = load_metadata();
     let key = path.to_lowercase();
@@ -377,7 +404,9 @@ pub fn run() {
             add_script_tag,
             rename_tag,
             save_tag_order,
-            get_tag_order
+            get_tag_order,
+            open_in_explorer,
+            edit_script
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
