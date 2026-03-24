@@ -60,6 +60,12 @@ body {
     -moz-osx-font-smoothing: grayscale;
 }
 
+.stabilize-text {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    -webkit-font-smoothing: antialiased;
+}
+
 .custom-scrollbar {
     scrollbar-width: thin;
     scrollbar-color: var(--border-color) transparent;

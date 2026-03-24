@@ -162,8 +162,10 @@ const ScriptRow = memo(function ScriptRow({
         <div
             onMouseDown={(e) => onMouseDown(e, s)}
             onDoubleClick={() => !isDragging && onDoubleClick(s)}
-            className={`flex items-center justify-between h-[42px] px-3 rounded-lg transition-all border border-transparent select-none relative ${isEditing ? 'z-[200]' : 'z-10 hover:z-[100]'}
-                ${!isDragging ? `group ${isEditing ? 'bg-white/5' : 'hover:bg-white/5 cursor-grab active:cursor-grabbing active:scale-[0.99] has-[button:active]:scale-100'}` : 'bg-transparent cursor-default opacity-40'}
+            className={`flex items-center justify-between h-[42px] px-3 rounded-lg transition-all border border-transparent select-none relative z-10 hover:z-[100]
+                group hover:bg-white/5 cursor-grab active:cursor-grabbing active:scale-[0.99] has-[button:active]:scale-100
+                will-change-transform
+                ${isDragging ? 'opacity-20 blur-[2px] scale-95 pointer-events-none' : ''}
                 ${s.is_hidden ? 'opacity-40 grayscale-[0.5]' : ''}
                 ${s.is_running ? 'border-green-500/10' : ''}
             `}
@@ -173,7 +175,7 @@ const ScriptRow = memo(function ScriptRow({
                     ${isPending ? 'bg-yellow-500 animate-pulse shadow-[0_0_10px_rgba(234,179,8,0.6)]' :
                         s.is_running ? 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.6)]' : 'bg-white/10'}
                 `}></div>
-                <span className={`text-base font-medium tracking-tight truncate max-w-[200px]
+                <span className={`text-base font-medium tracking-tight truncate max-w-[200px] stabilize-text
                     ${isPending ? 'text-yellow-500/80 animate-pulse' :
                         s.is_running ? 'text-green-400 font-bold' : (isEditing ? 'text-primary' : 'text-secondary group-hover:text-primary')}
                 `}>{s.filename}</span>
@@ -752,7 +754,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
                                 onDoubleClick={() => !isDragging && handleToggle(s, true)}
                                 className={`p-6 rounded-[2.5rem] border transition-all flex flex-col justify-between h-64 select-none relative ${editingScript === s.path ? 'z-[200]' : 'z-10 hover:z-[100]'}
                                     ${!isDragging
-                                        ? `group ${editingScript === s.path ? 'shadow-2xl' : 'hover:shadow-2xl cursor-grab active:cursor-grabbing active:scale-[0.98]'}`
+                                        ? `group ${editingScript === s.path ? 'shadow-2xl' : 'hover:shadow-2xl cursor-grab active:cursor-grabbing active:scale-[0.98] will-change-transform'}`
                                         : 'opacity-30 border-transparent shadow-none cursor-default'}
                                     ${s.is_running && !isDragging ? 'border-indigo-500/30' : ''}
                                 `}
@@ -760,7 +762,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
                             >
                                 <div className="flex justify-between items-start pointer-events-none">
                                     <div className="flex flex-col overflow-hidden flex-1">
-                                        <span className={`text-xl font-black truncate pr-4 transition-colors tracking-tight ${!isDragging ? (editingScript === s.path ? 'text-indigo-400' : 'text-secondary group-hover:text-indigo-400') : 'text-secondary'}`}>{s.filename}</span>
+                                        <span className={`text-xl font-black truncate pr-4 transition-colors tracking-tight stabilize-text ${!isDragging ? (editingScript === s.path ? 'text-indigo-400' : 'text-secondary group-hover:text-indigo-400') : 'text-secondary'}`}>{s.filename}</span>
                                         <span className="text-xs text-tertiary font-bold tracking-[0.15em] mt-1 opacity-70">{s.parent}</span>
                                     </div>
                                     <div className={`w-3 h-3 rounded-full mt-2 transition-opacity ${s.is_running ? 'bg-green-500' : 'bg-white/5 border border-white/10'} ${isDragging ? 'opacity-20' : ''}`}></div>
