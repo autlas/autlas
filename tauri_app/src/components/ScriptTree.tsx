@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, memo } from "react";
 import { getScripts, Script, runScript, killScript } from "../api";
 import { invoke } from "@tauri-apps/api/core";
 
@@ -17,19 +17,130 @@ interface TreeNode {
     children: Record<string, TreeNode>;
 }
 
+// ─── Tag Picker Popover (isolated state → no parent re-render on keystroke) ──
+interface TagPickerProps {
+    script: Script;
+    allUniqueTags: string[];
+    popoverRef: React.RefObject<HTMLDivElement | null>;
+    onAdd: (script: Script, tag: string) => void;
+    onClose: () => void;
+    variant: "tree" | "hub";
+}
+
+const TagPickerPopover = memo(function TagPickerPopover({ script, allUniqueTags, popoverRef, onAdd, onClose, variant }: TagPickerProps) {
+    const [query, setQuery] = useState("");
+    const [selectedIndex, setSelectedIndex] = useState(0);
+
+    useEffect(() => { setSelectedIndex(0); }, [query]);
+
+    const availableTags = useMemo(
+        () => allUniqueTags.filter(t => t.toLowerCase().includes(query.toLowerCase()) && !script.tags.includes(t)),
+        [allUniqueTags, query, script.tags]
+    );
+    const showCreate = query && !allUniqueTags.some(t => t.toLowerCase() === query.toLowerCase());
+    const totalCount = availableTags.length + (showCreate ? 1 : 0);
+
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === "ArrowDown") { e.preventDefault(); setSelectedIndex(p => totalCount > 0 ? (p + 1) % totalCount : 0); }
+        else if (e.key === "ArrowUp") { e.preventDefault(); setSelectedIndex(p => totalCount > 0 ? (p - 1 + totalCount) % totalCount : 0); }
+        else if (e.key === "Enter") {
+            e.preventDefault();
+            if (totalCount > 0) {
+                if (selectedIndex < availableTags.length) onAdd(script, availableTags[selectedIndex]);
+                else if (showCreate) onAdd(script, query);
+            }
+        } else if (e.key === "Escape") { onClose(); }
+    };
+
+    if (variant === "tree") return (
+        <div
+            ref={popoverRef}
+            onClick={(e) => e.stopPropagation()}
+            onDoubleClick={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
+            onMouseUp={(e) => e.stopPropagation()}
+            className="absolute right-0 top-9 w-64 bg-[#1a1a1c]/95 border border-white/10 rounded-2xl shadow-[0_0_30px_rgba(0,0,0,0.8)] z-[1000] p-3 backdrop-blur-3xl pointer-events-auto !cursor-default opacity-100"
+        >
+            <input
+                className="w-full bg-white/5 border border-white/5 rounded-xl px-4 py-2.5 text-[12px] text-white outline-none focus:border-indigo-500/50 transition-all font-bold mb-3"
+                placeholder="Имя нового тега..."
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                autoFocus
+                onKeyDown={handleKeyDown}
+            />
+            <div className="max-h-48 overflow-y-auto custom-scrollbar space-y-1">
+                {availableTags.map((tag, index) => (
+                    <button key={tag} onClick={(e) => { e.stopPropagation(); onAdd(script, tag); }} onMouseDown={(e) => e.stopPropagation()}
+                        className={`cursor-pointer w-full text-left px-4 py-2 rounded-xl transition-all flex items-center justify-between group/suggest ${selectedIndex === index ? 'bg-white/10 text-white' : 'hover:bg-white/5 text-[11px] text-white/40 hover:text-white'}`}>
+                        <span>{tag}</span>
+                        <span className={`text-indigo-400 font-bold ${selectedIndex === index ? 'opacity-100' : 'opacity-0 group-hover/suggest:opacity-100'}`}>+</span>
+                    </button>
+                ))}
+                {showCreate && (
+                    <button onClick={(e) => { e.stopPropagation(); onAdd(script, query); }} onMouseDown={(e) => e.stopPropagation()}
+                        className={`cursor-pointer w-full text-left px-4 py-2.5 rounded-xl text-[11px] transition-all flex items-center justify-between ${selectedIndex === availableTags.length ? 'bg-indigo-500/30 text-indigo-300 font-bold' : 'bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 font-bold'}`}>
+                        <span>Создать "{query}"</span>
+                        <span className="text-xl leading-none">+</span>
+                    </button>
+                )}
+            </div>
+            <button onClick={(e) => { e.stopPropagation(); onClose(); }} onMouseDown={(e) => e.stopPropagation()}
+                className="w-full mt-3 py-2 text-[10px] text-white/20 hover:text-white/40 transition-all font-bold uppercase tracking-widest cursor-pointer">
+                Отмена
+            </button>
+        </div>
+    );
+
+    // hub variant
+    return (
+        <div
+            ref={popoverRef}
+            onClick={(e) => e.stopPropagation()}
+            onDoubleClick={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
+            onMouseUp={(e) => e.stopPropagation()}
+            className="absolute inset-x-0 bottom-0 top-0 bg-[#1a1a1c]/95 border border-white/10 rounded-[2.5rem] shadow-[0_0_30px_rgba(0,0,0,0.8)] z-[1000] p-6 backdrop-blur-3xl pointer-events-auto flex flex-col !cursor-default opacity-100"
+        >
+            <input
+                className="w-full bg-white/5 border border-white/5 rounded-2xl px-6 py-4 text-sm text-white outline-none focus:border-indigo-500/50 transition-all font-bold mb-4"
+                placeholder="Поиск или новый тег..."
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                autoFocus
+                onKeyDown={handleKeyDown}
+            />
+            <div className="flex-1 overflow-y-auto custom-scrollbar space-y-2 mb-4">
+                {availableTags.map((tag, index) => (
+                    <button key={tag} onClick={(e) => { e.stopPropagation(); onAdd(script, tag); }} onMouseDown={(e) => e.stopPropagation()}
+                        className={`cursor-pointer w-full text-left px-6 py-3 rounded-2xl transition-all flex items-center justify-between group/suggest ${selectedIndex === index ? 'bg-white/10 text-white' : 'hover:bg-white/5 text-sm text-white/40 hover:text-white'}`}>
+                        <span>{tag}</span>
+                        <span className={`text-indigo-400 font-bold ${selectedIndex === index ? 'opacity-100' : 'opacity-0 group-hover/suggest:opacity-100'}`}>+</span>
+                    </button>
+                ))}
+                {showCreate && (
+                    <button onClick={(e) => { e.stopPropagation(); onAdd(script, query); }} onMouseDown={(e) => e.stopPropagation()}
+                        className={`cursor-pointer w-full text-left px-6 py-3 rounded-2xl transition-all flex items-center justify-between ${selectedIndex === availableTags.length ? 'bg-indigo-500/30 text-indigo-300 font-bold' : 'bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 font-bold'}`}>
+                        <span>Создать "{query}"</span>
+                        <span className="text-xl leading-none">+</span>
+                    </button>
+                )}
+            </div>
+            <button onClick={(e) => { e.stopPropagation(); onClose(); }} onMouseDown={(e) => e.stopPropagation()}
+                className="w-full py-4 text-[12px] text-white/20 hover:text-white/40 transition-all font-bold uppercase tracking-[0.2em] cursor-pointer">
+                Закрыть
+            </button>
+        </div>
+    );
+});
+
 export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustomDragStart, isDragging }: ScriptTreeProps) {
     const [allScripts, setAllScripts] = useState<Script[]>([]);
     const [loading, setLoading] = useState(true);
     const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({});
     const [isAllExpanded, setIsAllExpanded] = useState(true);
     const [editingScript, setEditingScript] = useState<string | null>(null);
-    const [tempTags, setTempTags] = useState("");
-    const [selectedTagIndex, setSelectedTagIndex] = useState(0);
     const popoverRef = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        setSelectedTagIndex(0);
-    }, [tempTags, editingScript]);
 
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
@@ -133,7 +244,6 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
 
     const startEditing = (s: Script) => {
         setEditingScript(s.path);
-        setTempTags(""); // Use this for the search query now
     };
 
     const addTag = async (script: Script, newTag: string) => {
@@ -385,85 +495,14 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
                                                 </button>
 
                                                 {editingScript === s.path && (
-                                                    <div
-                                                        ref={popoverRef}
-                                                        onClick={(e) => e.stopPropagation()}
-                                                        onDoubleClick={(e) => e.stopPropagation()}
-                                                        onMouseDown={(e) => e.stopPropagation()}
-                                                        onMouseUp={(e) => e.stopPropagation()}
-                                                        className="absolute right-0 top-9 w-64 bg-[#1a1a1c]/95 border border-white/10 rounded-2xl shadow-[0_0_30px_rgba(0,0,0,0.8)] z-[1000] p-3 backdrop-blur-3xl pointer-events-auto !cursor-default opacity-100"
-                                                    >
-                                                        {(() => {
-                                                            const availableTags = allUniqueTags.filter(tag => tag.toLowerCase().includes(tempTags.toLowerCase()) && !s.tags.includes(tag));
-                                                            const showCreateOption = tempTags && !allUniqueTags.some(tag => tag.toLowerCase() === tempTags.toLowerCase());
-                                                            const totalCount = availableTags.length + (showCreateOption ? 1 : 0);
-
-                                                            return (
-                                                                <>
-                                                                    <div className="relative mb-3">
-                                                                        <input
-                                                                            className="w-full bg-white/5 border border-white/5 rounded-xl px-4 py-2.5 text-[12px] text-white outline-none focus:border-indigo-500/50 transition-all font-bold"
-                                                                            placeholder="Имя нового тега..."
-                                                                            value={tempTags}
-                                                                            onChange={(e) => setTempTags(e.target.value)}
-                                                                            autoFocus
-                                                                            onKeyDown={(e) => {
-                                                                                if (e.key === "ArrowDown") {
-                                                                                    e.preventDefault();
-                                                                                    setSelectedTagIndex(prev => totalCount > 0 ? (prev + 1) % totalCount : 0);
-                                                                                } else if (e.key === "ArrowUp") {
-                                                                                    e.preventDefault();
-                                                                                    setSelectedTagIndex(prev => totalCount > 0 ? (prev - 1 + totalCount) % totalCount : 0);
-                                                                                } else if (e.key === "Enter") {
-                                                                                    e.preventDefault();
-                                                                                    if (totalCount > 0) {
-                                                                                        if (selectedTagIndex < availableTags.length) {
-                                                                                            addTag(s, availableTags[selectedTagIndex]);
-                                                                                        } else if (showCreateOption) {
-                                                                                            addTag(s, tempTags);
-                                                                                        }
-                                                                                    }
-                                                                                } else if (e.key === "Escape") {
-                                                                                    setEditingScript(null);
-                                                                                }
-                                                                            }}
-                                                                        />
-                                                                    </div>
-                                                                    <div className="max-h-48 overflow-y-auto custom-scrollbar space-y-1">
-                                                                        {availableTags.map((tag, index) => (
-                                                                            <button
-                                                                                key={tag}
-                                                                                onClick={(e) => { e.stopPropagation(); addTag(s, tag); }}
-                                                                                onMouseDown={(e) => e.stopPropagation()}
-                                                                                className={`cursor-pointer w-full text-left px-4 py-2 rounded-xl transition-all flex items-center justify-between group/suggest ${selectedTagIndex === index ? 'bg-white/10 text-white' : 'hover:bg-white/5 text-[11px] text-white/40 hover:text-white'}`}
-                                                                            >
-                                                                                <span className={selectedTagIndex === index ? 'text-[12px] font-bold' : ''}>{tag}</span>
-                                                                                <span className={`text-indigo-400 font-bold ${selectedTagIndex === index ? 'opacity-100' : 'opacity-0 group-hover/suggest:opacity-100'}`}>+</span>
-                                                                            </button>
-                                                                        ))}
-                                                                        {showCreateOption && (
-                                                                            <button
-                                                                                onClick={(e) => { e.stopPropagation(); addTag(s, tempTags); }}
-                                                                                onMouseDown={(e) => e.stopPropagation()}
-                                                                                className={`cursor-pointer w-full text-left px-4 py-2.5 rounded-xl text-[11px] transition-all flex items-center justify-between ${selectedTagIndex === availableTags.length ? 'bg-indigo-500/30 text-indigo-300 font-bold' : 'bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 font-bold'}`}
-                                                                            >
-                                                                                <span>Создать "{tempTags}"</span>
-                                                                                <span className="text-xl leading-none">+</span>
-                                                                            </button>
-                                                                        )}
-                                                                    </div>
-                                                                </>
-                                                            );
-                                                        })()}
-
-                                                        <button
-                                                            onClick={(e) => { e.stopPropagation(); setEditingScript(null); }}
-                                                            onMouseDown={(e) => e.stopPropagation()}
-                                                            className="w-full mt-3 py-2 text-[10px] text-white/20 hover:text-white/40 transition-all font-bold uppercase tracking-widest"
-                                                        >
-                                                            Отмена
-                                                        </button>
-                                                    </div>
+                                                    <TagPickerPopover
+                                                        script={s}
+                                                        allUniqueTags={allUniqueTags}
+                                                        popoverRef={popoverRef}
+                                                        onAdd={addTag}
+                                                        onClose={() => setEditingScript(null)}
+                                                        variant="tree"
+                                                    />
                                                 )}
                                             </div>
                                         )}
@@ -596,87 +635,14 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
 
                             <div className="mt-4 flex-1">
                                 {editingScript === s.path && !isDragging ? (
-                                    <div
-                                        ref={popoverRef}
-                                        onClick={(e) => e.stopPropagation()}
-                                        onDoubleClick={(e) => e.stopPropagation()}
-                                        onMouseDown={(e) => e.stopPropagation()}
-                                        onMouseUp={(e) => e.stopPropagation()}
-                                        className="absolute inset-x-0 bottom-0 top-0 bg-[#1a1a1c]/95 border border-white/10 rounded-[2.5rem] shadow-[0_0_30px_rgba(0,0,0,0.8)] z-[1000] p-6 backdrop-blur-3xl pointer-events-auto flex flex-col !cursor-default opacity-100"
-                                    >
-                                        {(() => {
-                                            const availableTags = allUniqueTags.filter(tag => tag.toLowerCase().includes(tempTags.toLowerCase()) && !s.tags.includes(tag));
-                                            const showCreateOption = tempTags && !allUniqueTags.some(tag => tag.toLowerCase() === tempTags.toLowerCase());
-                                            const totalCount = availableTags.length + (showCreateOption ? 1 : 0);
-
-                                            return (
-                                                <>
-                                                    <div className="relative mb-4">
-                                                        <input
-                                                            className="w-full bg-white/5 border border-white/5 rounded-2xl px-6 py-4 text-sm text-white outline-none focus:border-indigo-500/50 transition-all font-bold"
-                                                            placeholder="Поиск или новый тег..."
-                                                            value={tempTags}
-                                                            onChange={(e) => setTempTags(e.target.value)}
-                                                            autoFocus
-                                                            onKeyDown={(e) => {
-                                                                if (e.key === "ArrowDown") {
-                                                                    e.preventDefault();
-                                                                    setSelectedTagIndex(prev => totalCount > 0 ? (prev + 1) % totalCount : 0);
-                                                                } else if (e.key === "ArrowUp") {
-                                                                    e.preventDefault();
-                                                                    setSelectedTagIndex(prev => totalCount > 0 ? (prev - 1 + totalCount) % totalCount : 0);
-                                                                } else if (e.key === "Enter") {
-                                                                    e.preventDefault();
-                                                                    if (totalCount > 0) {
-                                                                        if (selectedTagIndex < availableTags.length) {
-                                                                            addTag(s, availableTags[selectedTagIndex]);
-                                                                        } else if (showCreateOption) {
-                                                                            addTag(s, tempTags);
-                                                                        }
-                                                                    }
-                                                                } else if (e.key === "Escape") {
-                                                                    setEditingScript(null);
-                                                                }
-                                                            }}
-                                                        />
-                                                    </div>
-
-                                                    <div className="flex-1 overflow-y-auto custom-scrollbar space-y-2 mb-4">
-                                                        {availableTags.map((tag, index) => (
-                                                            <button
-                                                                key={tag}
-                                                                onClick={(e) => { e.stopPropagation(); addTag(s, tag); }}
-                                                                onMouseDown={(e) => e.stopPropagation()}
-                                                                className={`cursor-pointer w-full text-left px-6 py-3 rounded-2xl transition-all flex items-center justify-between group/suggest ${selectedTagIndex === index ? 'bg-white/10 text-white' : 'hover:bg-white/5 text-sm text-white/40 hover:text-white'}`}
-                                                            >
-                                                                <span className={selectedTagIndex === index ? 'font-bold' : ''}>{tag}</span>
-                                                                <span className={`text-indigo-400 font-bold ${selectedTagIndex === index ? 'opacity-100' : 'opacity-0 group-hover/suggest:opacity-100'}`}>+</span>
-                                                            </button>
-                                                        ))}
-
-                                                        {showCreateOption && (
-                                                            <button
-                                                                onClick={(e) => { e.stopPropagation(); addTag(s, tempTags); }}
-                                                                onMouseDown={(e) => e.stopPropagation()}
-                                                                className={`cursor-pointer w-full text-left px-6 py-3 rounded-2xl transition-all flex items-center justify-between ${selectedTagIndex === availableTags.length ? 'bg-indigo-500/30 text-indigo-300 font-bold' : 'bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 font-bold'}`}
-                                                            >
-                                                                <span>Создать "{tempTags}"</span>
-                                                                <span className="text-xl leading-none">+</span>
-                                                            </button>
-                                                        )}
-                                                    </div>
-                                                </>
-                                            );
-                                        })()}
-
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); setEditingScript(null); }}
-                                            onMouseDown={(e) => e.stopPropagation()}
-                                            className="w-full py-4 text-[12px] text-white/20 hover:text-white/40 transition-all font-bold uppercase tracking-[0.2em]"
-                                        >
-                                            Закрыть
-                                        </button>
-                                    </div>
+                                    <TagPickerPopover
+                                        script={s}
+                                        allUniqueTags={allUniqueTags}
+                                        popoverRef={popoverRef}
+                                        onAdd={addTag}
+                                        onClose={() => setEditingScript(null)}
+                                        variant="hub"
+                                    />
                                 ) : (
                                     <div className="flex flex-wrap gap-2 pointer-events-none">
                                         {s.tags.map(t => (
