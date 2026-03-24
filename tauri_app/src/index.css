@@ -193,6 +193,14 @@ body {
 /* Ensure drag ghost stays above reordering animations */
 ::view-transition-group(drag-ghost) {
     z-index: 999999;
+    animation: none !important;
+    transition: none !important;
+}
+
+.drag-ghost-container {
+    transition: none !important;
+    animation: none !important;
+    pointer-events: none !important;
 }
 
 .tag-hover:hover {

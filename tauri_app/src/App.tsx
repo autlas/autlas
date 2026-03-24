@@ -107,8 +107,11 @@ function App() {
     const updatePosition = () => {
       if (ghostRef.current && isDragging) {
         const type = ghostRef.current.getAttribute("data-drag-type");
-        const posX = type === "tag" ? 144 : latestX;
-        ghostRef.current.style.transform = `translate3d(${posX}px, ${latestY}px, 0) translate(-50%, -50%)`;
+        if (type === "tag") {
+          ghostRef.current.style.transform = `translate3d(144px, ${latestY - tagDragOffsetYRef.current}px, 0) translate(-50%, 0) scale(1.05)`;
+        } else {
+          ghostRef.current.style.transform = `translate3d(${latestX}px, ${latestY}px, 0) translate(-50%, -50%) scale(1.05)`;
+        }
       }
       animationFrameId = 0;
     };
@@ -183,7 +186,7 @@ function App() {
     setDraggedScript({ path: script.path, filename: script.filename });
     if (ghostRef.current) {
       ghostRef.current.setAttribute("data-dragging", "true");
-      ghostRef.current.style.transform = `translate3d(${script.x}px, ${script.y}px, 0) translate(-50%, -50%)`;
+      ghostRef.current.style.transform = `translate3d(${script.x}px, ${script.y}px, 0) translate(-50%, -50%) scale(1.05)`;
     }
   }, []);
 
@@ -201,6 +204,7 @@ function App() {
   }, []);
 
   const pendingTagDragRef = useRef<{ tag: string, x: number, y: number } | null>(null);
+  const tagDragOffsetYRef = useRef<number>(0);
 
   const handleGlobalMouseUp = useCallback(async () => {
     if (draggedScript) {
@@ -340,6 +344,7 @@ function App() {
 
                       const startX = e.clientX;
                       const startY = e.clientY;
+                      tagDragOffsetYRef.current = startY - rect.top;
                       pendingTagDragRef.current = { tag: tagToDrag, x: startX, y: startY };
 
                       const dragTimer = setTimeout(() => {
@@ -347,7 +352,7 @@ function App() {
                           setDraggedTag(tagToDrag);
                           if (ghostRef.current) {
                             ghostRef.current.setAttribute("data-dragging", "true");
-                            ghostRef.current.style.transform = `translate3d(144px, ${startY}px, 0) translate(-50%, -50%)`;
+                            ghostRef.current.style.transform = `translate3d(144px, ${startY - tagDragOffsetYRef.current}px, 0) translate(-50%, 0) scale(1.05)`;
                           }
                         }
                       }, 300);
@@ -363,7 +368,7 @@ function App() {
                           setDraggedTag(pendingTagDragRef.current.tag);
                           if (ghostRef.current) {
                             ghostRef.current.setAttribute("data-dragging", "true");
-                            ghostRef.current.style.transform = `translate3d(144px, ${moveEv.clientY}px, 0) translate(-50%, -50%)`;
+                            ghostRef.current.style.transform = `translate3d(144px, ${moveEv.clientY - tagDragOffsetYRef.current}px, 0) translate(-50%, 0) scale(1.05)`;
                           }
                           cleanup();
                         }
@@ -702,7 +707,7 @@ function App() {
         ref={ghostRef}
         data-dragging="false"
         data-drag-type={draggedTag ? "tag" : (draggedScript ? "script" : "none")}
-        className={`fixed z-[99999] pointer-events-none flex items-center ${draggedScript || draggedTag ? 'opacity-100' : 'opacity-0 hidden'}
+        className={`drag-ghost-container fixed z-[99999] flex items-center ${draggedScript || draggedTag ? 'opacity-100' : 'opacity-0 hidden'}
           ${draggedTag
             ? (draggedTag === activeTab
               ? 'w-[240px] px-6 h-11 rounded-2xl border-b-2 border-indigo-500 shadow-xl text-indigo-400 font-bold'
@@ -716,7 +721,6 @@ function App() {
           top: 0,
           width: draggedTag ? `${dragGhostSize.w}px` : 'auto',
           height: draggedTag ? `${dragGhostSize.h}px` : 'auto',
-          transform: 'translate3d(-50%, -50%, 0)',
           willChange: 'transform, opacity',
           backgroundColor: draggedTag === activeTab ? 'var(--bg-tag-active-hover)' : 'var(--bg-tag-drag)',
           // @ts-ignore
@@ -730,7 +734,7 @@ function App() {
           </>
         )}
         {draggedTag && (
-          <span className="text-sm tracking-tight">{draggedTag}</span>
+          <span className="text-sm font-bold truncate flex-1">{draggedTag}</span>
         )}
       </div>
 
