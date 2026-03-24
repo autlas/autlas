@@ -225,7 +225,7 @@ fn kill_script(path: String) -> Result<(), String> {
 
 #[tauri::command]
 fn add_script_tag(path: String, tag: String) -> Result<(), String> {
-    let mut metadata = load_metadata();
+    let metadata = load_metadata();
     let key = path.to_lowercase();
     let mut tags = metadata.tags.get(&key).cloned().unwrap_or_default();
     
@@ -234,6 +234,135 @@ fn add_script_tag(path: String, tag: String) -> Result<(), String> {
         return save_script_tags_internal(path, tags);
     }
     Ok(())
+}
+
+#[tauri::command]
+fn rename_tag(old_tag: String, new_tag: String) -> Result<(), String> {
+    let metadata = load_metadata();
+    let ini_path = get_ini_path();
+    let bytes = fs::read(&ini_path).unwrap_or_default();
+    let content = if bytes.len() >= 2 && bytes[0] == 0xFF && bytes[1] == 0xFE {
+        let utf16: Vec<u16> = bytes[2..].chunks_exact(2).map(|a| u16::from_le_bytes([a[0], a[1]])).collect();
+        String::from_utf16_lossy(&utf16)
+    } else {
+        String::from_utf8_lossy(&bytes).to_string()
+    };
+
+    let mut lines: Vec<String> = content.lines().map(|s| s.to_string()).collect();
+    let mut in_scripts = false;
+    let old_lower = old_tag.to_lowercase();
+
+    for line in lines.iter_mut() {
+        let trimmed = line.trim();
+        if trimmed.to_lowercase() == "[scripts]" {
+            in_scripts = true;
+            continue;
+        }
+        if trimmed.starts_with('[') {
+            in_scripts = false;
+            continue;
+        }
+
+        if in_scripts {
+            if let Some(pos) = line.find('=') {
+                let key = &line[..pos];
+                let val = &line[pos+1..];
+                let mut tags: Vec<String> = val.split(',')
+                    .map(|s| s.trim().to_string())
+                    .collect();
+                
+                let mut changed = false;
+                for tag in tags.iter_mut() {
+                    if tag.to_lowercase() == old_lower {
+                        *tag = new_tag.clone();
+                        changed = true;
+                    }
+                }
+
+                if changed {
+                    tags.dedup_by(|a, b| a.to_lowercase() == b.to_lowercase());
+                    *line = format!("{}={}", key, tags.join(","));
+                }
+            }
+        }
+    }
+
+    fs::write(&ini_path, lines.join("\r\n")).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+fn save_tag_order(order: Vec<String>) -> Result<(), String> {
+    let ini_path = get_ini_path();
+    let bytes = fs::read(&ini_path).unwrap_or_default();
+    let content = String::from_utf8_lossy(&bytes).to_string();
+    let mut lines: Vec<String> = content.lines().map(|s| s.to_string()).collect();
+    
+    let section_header = "[General]";
+    let key_prefix = "tag_order=";
+    let new_entry = format!("{}{}", key_prefix, order.join(","));
+    
+    let mut section_found = false;
+    let mut key_found = false;
+    
+    for i in 0..lines.len() {
+        let trimmed = lines[i].trim();
+        if trimmed.to_lowercase() == section_header.to_lowercase() {
+            section_found = true;
+            continue;
+        }
+        if section_found && trimmed.starts_with('[') {
+            // End of section, insert key before this
+            lines.insert(i, new_entry.clone());
+            key_found = true;
+            break;
+        }
+        if section_found && trimmed.to_lowercase().starts_with(key_prefix) {
+            lines[i] = new_entry.clone();
+            key_found = true;
+            break;
+        }
+    }
+    
+    if !section_found {
+        lines.push(section_header.to_string());
+        lines.push(new_entry);
+    } else if !key_found {
+        // If section was found but key wasn't, find section index again
+        if let Some(idx) = lines.iter().position(|l| l.trim().to_lowercase() == section_header.to_lowercase()) {
+            lines.insert(idx + 1, new_entry);
+        }
+    }
+    
+    fs::write(&ini_path, lines.join("\r\n")).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+fn get_tag_order() -> Vec<String> {
+    let ini_path = get_ini_path();
+    let content = fs::read_to_string(&ini_path).unwrap_or_default();
+    let mut in_general = false;
+    for line in content.lines() {
+        let trimmed = line.trim();
+        if trimmed.to_lowercase() == "[general]" {
+            in_general = true;
+            continue;
+        }
+        if trimmed.starts_with('[') {
+            in_general = false;
+            continue;
+        }
+        if in_general && trimmed.to_lowercase().starts_with("tag_order=") {
+            if let Some(pos) = line.find('=') {
+                return line[pos+1..].split(',')
+                    .map(|s| s.trim().to_string())
+                    .filter(|s| !s.is_empty())
+                    .collect();
+            }
+        }
+    }
+    Vec::new()
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -245,7 +374,10 @@ pub fn run() {
             run_script,
             kill_script,
             save_script_tags,
-            add_script_tag
+            add_script_tag,
+            rename_tag,
+            save_tag_order,
+            get_tag_order
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

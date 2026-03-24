@@ -14,6 +14,13 @@ function App() {
   const [dragOverTag, setDragOverTag] = useState<string | null>(null);
   const [isCreatingTagFor, setIsCreatingTagFor] = useState<{ path: string, filename: string } | null>(null);
   const [newTagName, setNewTagName] = useState("");
+  const [isEditingTags, setIsEditingTags] = useState(() => {
+    return localStorage.getItem("is-editing-tags") === "true";
+  });
+  const [draggedTag, setDraggedTag] = useState<string | null>(null);
+  const [isRenamingTag, setIsRenamingTag] = useState<string | null>(null);
+  const [editTagName, setEditTagName] = useState("");
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const ghostRef = useRef<HTMLDivElement>(null);
 
@@ -37,6 +44,14 @@ function App() {
     setAnimationsEnabled(prev => {
       const next = !prev;
       localStorage.setItem("animations-enabled", String(next));
+      return next;
+    });
+  };
+
+  const toggleEditMode = () => {
+    setIsEditingTags(prev => {
+      const next = !prev;
+      localStorage.setItem("is-editing-tags", String(next));
       return next;
     });
   };
@@ -134,7 +149,16 @@ function App() {
   }, []);
 
   const handleTagsLoaded = useCallback((tags: string[]) => {
-    setUserTags(tags);
+    // If we have a stored order, prioritize it
+    invoke<string[]>("get_tag_order").then(order => {
+      const merged = [...order];
+      tags.forEach(t => {
+        if (!merged.includes(t)) merged.push(t);
+      });
+      // Filter out tags that no longer exist
+      const existing = merged.filter(t => tags.includes(t));
+      setUserTags(existing);
+    });
   }, []);
 
   const handleGlobalMouseUp = async () => {
@@ -151,6 +175,14 @@ function App() {
       setDraggedScript(null);
       setDragOverTag(null);
     }
+
+    if (draggedTag) {
+      setDraggedTag(null);
+      invoke("save_tag_order", { order: userTags });
+      if (ghostRef.current) {
+        ghostRef.current.setAttribute("data-dragging", "false");
+      }
+    }
   };
 
   const navItemClass = (tab: string, isTag: boolean = false) => `
@@ -160,11 +192,15 @@ function App() {
       ? "bg-white/10 text-white border-white/10 shadow-lg"
       : dragOverTag === tab
         ? "bg-indigo-600 text-white border-white/40 shadow-[0_0_20px_rgba(79,70,229,0.5)] scale-[1.02]"
-        : (draggedScript && isTag)
-          ? "text-indigo-400 border-indigo-500/30 bg-indigo-500/5 animate-pulse"
-          : draggedScript // IF DRAGGING BUT NOT ACTIVE
-            ? "text-white/10 border-transparent opacity-30 shadow-none scale-[0.98] blur-[1px]" // GHOSTY STATE FOR NON-TARGETS
-            : "text-tertiary border-transparent hover:bg-white/5 hover:text-secondary"}
+        : isEditingTags
+          ? (draggedTag === tab
+            ? "bg-indigo-500 text-white border-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.5)] scale-[1.05] z-50 ring-2 ring-indigo-400/50"
+            : "bg-white/[0.05] text-tertiary border-white/5 hover:bg-white/10 hover:text-secondary")
+          : (draggedScript && isTag)
+            ? "text-indigo-400 border-indigo-500/30 bg-indigo-500/5 animate-pulse"
+            : draggedScript
+              ? "text-white/10 border-transparent opacity-30 shadow-none scale-[0.98] blur-[1px]"
+              : "text-tertiary border-transparent hover:bg-white/5 hover:text-secondary"}
   `;
 
   return (
@@ -208,16 +244,99 @@ function App() {
           </ul>
 
           <div className="flex-1">
-            <ul className="space-y-1.5">
+            <div className="flex items-center justify-between px-6 mb-4">
+              <span className="text-xs font-black tracking-[0.3em] text-tertiary uppercase opacity-40">Теги</span>
+              <button
+                onClick={toggleEditMode}
+                className={`p-2 rounded-lg transition-all ${isEditingTags ? 'bg-indigo-500/20 text-indigo-400' : 'text-tertiary hover:text-secondary hover:bg-white/5'}`}
+                title={isEditingTags ? "Выйти из режима правки" : "Редактировать теги"}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+              </button>
+            </div>
+            <ul className="flex flex-col space-y-1.5 px-0 w-full">
               {userTags.map((tag) => (
                 <li
                   key={tag}
-                  className={navItemClass(tag, true)}
-                  onClick={() => !draggedScript && handleTabClick(tag)}
-                  onMouseEnter={() => draggedScript && setDragOverTag(tag)}
+                  onMouseDown={(e) => {
+                    if (isEditingTags && !isRenamingTag) {
+                      setDraggedTag(tag);
+                      if (ghostRef.current) {
+                        ghostRef.current.setAttribute("data-dragging", "true");
+                        ghostRef.current.style.transform = `translate3d(${e.clientX}px, ${e.clientY}px, 0) translate(-50%, -50%)`;
+                      }
+                    }
+                  }}
+                  onMouseEnter={() => {
+                    if (isEditingTags && draggedTag && draggedTag !== tag) {
+                      const newOrder = [...userTags];
+                      const dragIdx = newOrder.indexOf(draggedTag);
+                      const hoverIdx = newOrder.indexOf(tag);
+                      if (dragIdx !== -1 && hoverIdx !== -1) {
+                        newOrder.splice(dragIdx, 1);
+                        newOrder.splice(hoverIdx, 0, draggedTag);
+                        // @ts-ignore
+                        if (document.startViewTransition) {
+                          // @ts-ignore
+                          document.startViewTransition(() => {
+                            setUserTags(newOrder);
+                          });
+                        } else {
+                          setUserTags(newOrder);
+                        }
+                      }
+                    } else if (draggedScript) {
+                      setDragOverTag(tag);
+                    }
+                  }}
                   onMouseLeave={() => draggedScript && dragOverTag === tag && setDragOverTag(null)}
+                  className={`${navItemClass(tag, true)} ${isEditingTags ? 'animate-shake select-none' : ''}`}
+                  style={{
+                    // @ts-ignore
+                    viewTransitionName: `tag-${tag.replace(/\s+/g, '-')}`
+                  }}
+                  onClick={() => {
+                    if (isEditingTags) {
+                      setIsRenamingTag(tag);
+                      setEditTagName(tag);
+                    } else if (!draggedScript) {
+                      handleTabClick(tag);
+                    }
+                  }}
                 >
-                  <span className="relative z-50 pointer-events-none">{tag}</span>
+                  {isRenamingTag === tag ? (
+                    <input
+                      autoFocus
+                      className="bg-transparent border-none outline-none text-sm font-bold w-full text-white"
+                      value={editTagName}
+                      onChange={(e) => setEditTagName(e.target.value)}
+                      onClick={(e) => e.stopPropagation()}
+                      onBlur={() => setIsRenamingTag(null)}
+                      onKeyDown={async (e) => {
+                        if (e.key === "Enter" && editTagName.trim() && editTagName !== tag) {
+                          await invoke("rename_tag", { oldTag: tag, newTag: editTagName.trim() });
+                          setIsRenamingTag(null);
+                          // Trigger re-fetch without reload
+                          setRefreshKey(prev => prev + 1);
+                        } else if (e.key === "Escape") {
+                          setIsRenamingTag(null);
+                        }
+                      }}
+                    />
+                  ) : (
+                    <>
+                      <span className="relative z-50 pointer-events-none truncate flex-1">{tag}</span>
+                      {isEditingTags && (
+                        <div className="flex items-center space-x-2 ml-4">
+                          <svg className="w-3.5 h-3.5 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                          </svg>
+                        </div>
+                      )}
+                    </>
+                  )}
                 </li>
               ))}
               {draggedScript && (
@@ -420,6 +539,7 @@ function App() {
             </div>
           ) : (
             <MemoizedScriptTree
+              key={`script-tree-${refreshKey}`}
               filterTag={activeTab}
               viewMode={viewMode === "hub" ? "hub" : "tree"}
               onTagsLoaded={handleTagsLoaded}
@@ -448,6 +568,12 @@ function App() {
           <>
             <div className="w-2 h-2 rounded-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.8)]"></div>
             <span className="text-xs font-semibold text-white tracking-wide">{draggedScript.filename}</span>
+          </>
+        )}
+        {draggedTag && (
+          <>
+            <div className="w-2 h-2 rounded-full bg-indigo-400 shadow-[0_0_8px_rgba(129,140,248,0.8)]"></div>
+            <span className="text-xs font-semibold text-white tracking-wide">{draggedTag}</span>
           </>
         )}
       </div>
