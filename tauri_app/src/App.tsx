@@ -26,6 +26,8 @@ function App() {
 
   const ghostRef = useRef<HTMLDivElement>(null);
 
+  const [dragGhostSize, setDragGhostSize] = useState({ w: 0, h: 0 });
+
   const [brightness, setBrightness] = useState(() => {
     return parseInt(localStorage.getItem("app-brightness") || "20");
   });
@@ -269,19 +271,19 @@ function App() {
             {[{ id: "Хаб", label: "Хаб", icon: "" }, { id: "Все скрипты", label: "Дерево", icon: "" }].map((tab) => (
               <li
                 key={tab.id}
-                className={`px-6 py-4 rounded-xl cursor-pointer text-base font-bold transition-all border flex items-center justify-between ${draggedScript && tab.id !== dragOverTag ? 'opacity-20 blur-[1px] scale-95' : ''
+                className={`px-6 h-11 rounded-2xl cursor-pointer text-sm font-bold transition-all border-b-2 flex items-center justify-between ${draggedScript && tab.id !== dragOverTag ? 'opacity-20 blur-[1px] scale-95' : ''
                   } ${activeTab === tab.id && viewMode !== "settings"
                     ? tab.id === "Хаб"
-                      ? "bg-gradient-to-r from-indigo-500 to-purple-500 border-indigo-400 shadow-xl shadow-indigo-900/30 text-white"
-                      : "bg-white/10 text-primary border-white/10 shadow-lg"
-                    : "text-secondary border-transparent hover:bg-white/5 hover:text-primary"
+                      ? "bg-gradient-to-r from-indigo-500 to-purple-500 border-indigo-400 shadow-xl shadow-indigo-900/40 text-white"
+                      : "bg-white/[0.03] text-indigo-400 border-indigo-500 shadow-lg"
+                    : "text-tertiary border-transparent hover:bg-white/5 hover:text-secondary"
                   }`}
                 onClick={() => !draggedScript && handleTabClick(tab.id)}
               >
-                <span className="flex items-center space-x-4 pointer-events-none">
+                <div className="flex items-center space-x-4 pointer-events-none">
                   {tab.icon}
                   <span>{tab.label}</span>
-                </span>
+                </div>
                 {tab.id === "Хаб" && activeTab !== "Хаб" && <div className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(79,70,229,0.5)]"></div>}
               </li>
             ))}
@@ -319,6 +321,9 @@ function App() {
                     setActiveTabPressed(tag);
                     if (!isRenamingTag) {
                       const tagToDrag = tag;
+                      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                      setDragGhostSize({ w: rect.width, h: rect.height });
+
                       const startX = e.clientX;
                       const startY = e.clientY;
                       pendingTagDragRef.current = { tag: tagToDrag, x: startX, y: startY };
@@ -682,15 +687,20 @@ function App() {
         ref={ghostRef}
         data-dragging="false"
         data-drag-type={draggedTag ? "tag" : (draggedScript ? "script" : "none")}
-        className={`fixed z-[99999] pointer-events-none flex items-center transition-opacity duration-150 ${draggedScript || draggedTag ? 'opacity-100' : 'opacity-0 hidden'}
+        className={`fixed z-[99999] pointer-events-none flex items-center ${draggedScript || draggedTag ? 'opacity-100' : 'opacity-0 hidden'}
           ${draggedTag
-            ? 'w-[240px] px-6 h-11 rounded-2xl border border-white/20 bg-white/10 backdrop-blur-3xl shadow-[0_15px_50px_rgba(0,0,0,0.5)] text-white font-bold'
+            ? (draggedTag === activeTab
+              ? 'px-6 rounded-2xl border-b-2 border-indigo-500 bg-white/[0.03] backdrop-blur-3xl shadow-xl text-indigo-400 font-bold'
+              : 'px-6 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-3xl shadow-2xl text-white/50 font-bold'
+            )
             : 'px-4 py-2.5 rounded-xl border border-indigo-400/40 bg-indigo-500/20 backdrop-blur-md shadow-2xl text-white space-x-3'
           }
         `}
         style={{
           left: 0,
           top: 0,
+          width: draggedTag ? `${dragGhostSize.w}px` : 'auto',
+          height: draggedTag ? `${dragGhostSize.h}px` : 'auto',
           transform: 'translate3d(-50%, -50%, 0)',
           willChange: 'transform, opacity'
         }}
@@ -702,7 +712,7 @@ function App() {
           </>
         )}
         {draggedTag && (
-          <span className="text-sm font-black tracking-tight">{draggedTag}</span>
+          <span className="text-sm tracking-tight">{draggedTag}</span>
         )}
       </div>
 
