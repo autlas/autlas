@@ -66,6 +66,15 @@ body {
     -webkit-font-smoothing: antialiased;
 }
 
+.long-press-shrink {
+    transition: transform 0.1s ease-out;
+}
+
+.long-press-shrink:active {
+    transform: scale(0.98) translateZ(0);
+    transition: transform 0.3s ease-in;
+}
+
 .custom-scrollbar {
     scrollbar-width: thin;
     scrollbar-color: var(--border-color) transparent;

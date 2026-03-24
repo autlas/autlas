@@ -8,6 +8,7 @@ interface ScriptTreeProps {
     viewMode: "tree" | "hub";
     onCustomDragStart: (script: { path: string, filename: string, x: number, y: number }) => void;
     isDragging: boolean;
+    draggedScriptPath: string | null;
     animationsEnabled: boolean;
 }
 
@@ -139,6 +140,7 @@ const TagPickerPopover = memo(function TagPickerPopover({ script, allUniqueTags,
 interface ScriptRowProps {
     s: Script;
     isDragging: boolean;
+    draggedScriptPath: string | null;
     isEditing: boolean;
     isPending: boolean;
     removingTagKeys: string[]; // tag IDs being removed for this script
@@ -154,7 +156,7 @@ interface ScriptRowProps {
 }
 
 const ScriptRow = memo(function ScriptRow({
-    s, isDragging, isEditing, isPending, removingTagKeys,
+    s, isDragging, draggedScriptPath, isEditing, isPending, removingTagKeys,
     allUniqueTags, popoverRef,
     onMouseDown, onDoubleClick, onToggle, onStartEditing, onAddTag, onRemoveTag, onCloseEditing
 }: ScriptRowProps) {
@@ -162,10 +164,11 @@ const ScriptRow = memo(function ScriptRow({
         <div
             onMouseDown={(e) => onMouseDown(e, s)}
             onDoubleClick={() => !isDragging && onDoubleClick(s)}
-            className={`flex items-center justify-between h-[42px] px-3 rounded-lg transition-all border border-transparent select-none relative z-10 hover:z-[100]
-                group hover:bg-white/5 cursor-grab active:cursor-grabbing active:scale-[0.99] has-[button:active]:scale-100
+            className={`flex items-center justify-between h-[42px] px-3 rounded-lg transition-all duration-300 border border-transparent select-none relative z-10 hover:z-[100]
+                group hover:bg-white/5 cursor-grab active:cursor-grabbing long-press-shrink has-[button:active]:scale-100
                 will-change-transform
-                ${isDragging ? 'opacity-20 blur-[2px] scale-95 pointer-events-none' : ''}
+                ${s.path === draggedScriptPath ? 'opacity-0 pointer-events-none' :
+                    (draggedScriptPath ? 'opacity-20 blur-[1px] pointer-events-none' : '')}
                 ${s.is_hidden ? 'opacity-40 grayscale-[0.5]' : ''}
                 ${s.is_running ? 'border-green-500/10' : ''}
             `}
@@ -261,7 +264,7 @@ const ScriptRow = memo(function ScriptRow({
         prev.removingTagKeys.every((k, i) => k === next.removingTagKeys[i]);
 });
 
-export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustomDragStart, isDragging, animationsEnabled }: ScriptTreeProps) {
+export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustomDragStart, isDragging, draggedScriptPath, animationsEnabled }: ScriptTreeProps) {
     const [allScripts, setAllScripts] = useState<Script[]>([]);
     const [loading, setLoading] = useState(true);
     const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({});
@@ -612,9 +615,9 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
                     <div
                         ref={el => { if (el) folderRefs.current.set(node.fullName, el); }}
                         onClick={() => !isDragging && toggleFolder(node.fullName)}
-                        className={`flex items-center space-x-2 h-[38px] rounded-lg z-10 relative transition-all mb-0.5 border border-transparent hover:z-[50]
-              ${!isDragging ? 'bg-white/[0.015] hover:bg-white/[0.05] cursor-pointer group' : 'bg-transparent text-tertiary cursor-default'}
-            `}
+                        className={`flex items-center space-x-2 h-[38px] rounded-lg z-10 relative transition-all duration-300 mb-0.5 border border-transparent hover:z-[50]
+                            ${!draggedScriptPath ? 'bg-white/[0.015] hover:bg-white/[0.05] cursor-pointer group' : 'bg-transparent text-tertiary cursor-default opacity-20 blur-[1px] pointer-events-none'}
+                        `}
                     >
                         <div className={`w-4 h-4 flex items-center justify-center transition-transform duration-300 ${isExpanded ? 'rotate-90' : ''}`}>
                             <svg width="6" height="6" viewBox="0 0 6 6" className={`transition-colors ${isExpanded && !isDragging ? 'fill-white/20' : 'fill-white/5'} ${!isDragging && 'group-hover:fill-white'}`}><path d="M0 0L6 3L0 6V0Z" /></svg>
@@ -643,6 +646,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
                                         key={s.path}
                                         s={s}
                                         isDragging={isDragging}
+                                        draggedScriptPath={draggedScriptPath}
                                         isEditing={editingScript === s.path}
                                         isPending={pendingScripts.has(s.path)}
                                         removingTagKeys={removingTagKeys}
@@ -673,7 +677,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
     return (
         <div className="flex flex-col h-full overflow-hidden">
             {viewMode === "tree" && (
-                <div className="flex items-center justify-between pl-1 mb-4 pb-2 border-b" style={{ borderColor: 'var(--border-color)' }}>
+                <div className={`flex items-center justify-between pl-1 mb-4 pb-2 border-b transition-all duration-300 ${draggedScriptPath ? 'opacity-20 blur-[1px] pointer-events-none' : ''}`} style={{ borderColor: 'var(--border-color)' }}>
                     <div className="flex items-center space-x-1">
                         <button
                             onClick={toggleAll}
@@ -752,10 +756,10 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
                                 key={s.path}
                                 onMouseDown={(e) => handleCustomMouseDown(e, s)}
                                 onDoubleClick={() => !isDragging && handleToggle(s, true)}
-                                className={`p-6 rounded-[2.5rem] border transition-all flex flex-col justify-between h-64 select-none relative ${editingScript === s.path ? 'z-[200]' : 'z-10 hover:z-[100]'}
+                                className={`p-6 rounded-[2.5rem] border transition-all duration-300 flex flex-col justify-between h-64 select-none relative ${editingScript === s.path ? 'z-[200]' : 'z-10 hover:z-[100]'}
                                     ${!isDragging
-                                        ? `group ${editingScript === s.path ? 'shadow-2xl' : 'hover:shadow-2xl cursor-grab active:cursor-grabbing active:scale-[0.98] will-change-transform'}`
-                                        : 'opacity-30 border-transparent shadow-none cursor-default'}
+                                        ? `group ${editingScript === s.path ? 'shadow-2xl' : 'hover:shadow-2xl cursor-grab active:cursor-grabbing long-press-shrink will-change-transform'}`
+                                        : (s.path === draggedScriptPath ? 'opacity-0 pointer-events-none' : 'opacity-20 blur-[1px] pointer-events-none')}
                                     ${s.is_running && !isDragging ? 'border-indigo-500/30' : ''}
                                 `}
                                 style={{ backgroundColor: 'var(--bg-tertiary)', borderColor: s.is_running && !isDragging ? 'var(--accent-indigo)' : 'var(--border-color)' }}

@@ -256,7 +256,7 @@ function App() {
         className="flex-1 px-8 py-6 flex flex-col overflow-hidden transition-all duration-300 relative z-10"
         style={{ background: viewMode === "settings" ? 'var(--bg-primary)' : 'linear-gradient(to bottom right, var(--bg-primary), var(--bg-secondary))' }}
       >
-        <div className="flex justify-between items-end mb-8">
+        <div className={`flex justify-between items-end mb-8 transition-all duration-300 ${draggedScript ? 'opacity-20 blur-[1px]' : ''}`}>
           <div className="flex flex-col">
             <h1 className="text-4xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-white to-white/40 pb-1">
               {activeTab}
@@ -387,7 +387,8 @@ function App() {
               viewMode={viewMode === "hub" ? "hub" : "tree"}
               onTagsLoaded={handleTagsLoaded}
               onCustomDragStart={startCustomDrag}
-              isDragging={!!draggedScript}
+              isDragging={draggedScript !== null}
+              draggedScriptPath={draggedScript?.path || null}
               animationsEnabled={animationsEnabled}
             />
           )}
