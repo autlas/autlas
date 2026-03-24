@@ -28,6 +28,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
     // Local Filters
     const [treeFilter, setTreeFilter] = useState<"all" | "tagged" | "untagged">("all");
     const [showHidden, setShowHidden] = useState(false);
+    const [pendingScripts, setPendingScripts] = useState<Set<string>>(new Set());
 
     // DnD Threshold Refs
     const pendingDragRef = useRef<{ script: Script, x: number, y: number } | null>(null);
@@ -61,16 +62,51 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
     };
 
     const handleToggle = async (script: Script) => {
+        if (pendingScripts.has(script.path)) return;
+
+        const wasRunning = script.is_running;
+        setPendingScripts(prev => new Set(prev).add(script.path));
+
         try {
-            if (script.is_running) {
+            if (wasRunning) {
                 await killScript(script.path);
             } else {
                 await runScript(script.path);
             }
-            fetchData();
+
+            // Start high-frequency burst polling to catch process state change ASAP
+            let attempts = 0;
+            const burstInterval = setInterval(async () => {
+                attempts++;
+                try {
+                    const data = await getScripts();
+                    setAllScripts(data);
+
+                    const updated = data.find(s => s.path === script.path);
+                    // Check if status has actually flipped
+                    if (updated && updated.is_running !== wasRunning) {
+                        stopBurst(burstInterval, script.path);
+                    }
+
+                    if (attempts > 60) stopBurst(burstInterval, script.path); // Max 6 seconds
+                } catch (e) {
+                    stopBurst(burstInterval, script.path);
+                }
+            }, 100);
+
         } catch (e) {
             console.error(e);
+            stopBurst(null, script.path);
         }
+    };
+
+    const stopBurst = (interval: any, path: string) => {
+        if (interval) clearInterval(interval);
+        setPendingScripts(prev => {
+            const next = new Set(prev);
+            next.delete(path);
+            return next;
+        });
     };
 
     const startEditing = (s: Script) => {
@@ -83,6 +119,16 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
         try {
             await invoke("save_script_tags", { path, tags: tagsArr });
             setEditingScript(null);
+            fetchData();
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
+    const removeTag = async (script: Script, tagToRemove: string) => {
+        const newTags = script.tags.filter(t => t !== tagToRemove);
+        try {
+            await invoke("save_script_tags", { path: script.path, tags: newTags });
             fetchData();
         } catch (e) {
             console.error(e);
@@ -234,11 +280,11 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
         const isExpanded = depth === 0 || expandedFolders[node.fullName] !== false;
 
         return (
-            <div key={node.fullName} className="flex flex-col overflow-hidden">
+            <div key={node.fullName} className="flex flex-col">
                 {node.name !== "Root" && (
                     <div
                         onClick={() => !isDragging && toggleFolder(node.fullName)}
-                        className={`flex items-center space-x-2 h-[32px] rounded-lg z-10 relative transition-all mb-0.5 border border-transparent
+                        className={`flex items-center space-x-2 h-[32px] rounded-lg z-10 relative transition-all mb-0.5 border border-transparent hover:z-[50]
               ${!isDragging ? 'bg-white/[0.015] hover:bg-white/[0.05] cursor-pointer group' : 'bg-transparent text-white/30 cursor-default'}
             `}
                     >
@@ -250,7 +296,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
                 )}
 
                 <div className={`grid transition-all duration-300 ease-in-out relative ${isExpanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
-                    <div className="overflow-hidden">
+                    <div className="overflow-visible">
                         {node.name !== "Root" && isExpanded && (
                             <div
                                 onClick={() => !isDragging && toggleFolder(node.fullName)}
@@ -266,14 +312,22 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
                                 <div
                                     key={s.path}
                                     onMouseDown={(e) => handleCustomMouseDown(e, s)}
-                                    className={`flex items-center justify-between h-[36px] px-3 rounded-lg transition-all border border-transparent select-none
+                                    onDoubleClick={() => !isDragging && handleToggle(s)}
+                                    className={`flex items-center justify-between h-[36px] px-3 rounded-lg transition-all border border-transparent select-none relative z-10 hover:z-[100]
                     ${!isDragging ? 'hover:bg-white/5 group cursor-grab active:cursor-grabbing active:scale-[0.99]' : 'bg-transparent cursor-default opacity-40'}
                     ${s.is_hidden ? 'opacity-40 grayscale-[0.5]' : ''}
-                  `}
+                    ${s.is_running ? 'border-green-500/10' : ''}
+                `}
                                 >
-                                    <div className="flex items-center space-x-4 overflow-hidden flex-1 mr-4 pointer-events-none">
-                                        <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${s.is_running ? 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.6)]' : 'bg-white/10'}`}></div>
-                                        <span className={`text-[15px] font-medium tracking-tight truncate flex-1 ${s.is_running ? 'text-green-400 font-bold' : 'text-white/50 group-hover:text-white'}`}>{s.filename}</span>
+                                    <div className="flex items-center space-x-4 overflow-visible flex-1 mr-4 pointer-events-none">
+                                        <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 
+                                            ${pendingScripts.has(s.path) ? 'bg-yellow-500 animate-pulse shadow-[0_0_10px_rgba(234,179,8,0.6)]' :
+                                                s.is_running ? 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.6)]' : 'bg-white/10'}
+                                        `}></div>
+                                        <span className={`text-[15px] font-medium tracking-tight truncate max-w-[200px] 
+                                            ${pendingScripts.has(s.path) ? 'text-yellow-500/80 animate-pulse' :
+                                                s.is_running ? 'text-green-400 font-bold' : 'text-white/50 group-hover:text-white'}
+                                        `}>{s.filename}</span>
 
                                         {!isDragging && (
                                             editingScript === s.path ? (
@@ -288,14 +342,30 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
                                                     <button onClick={() => saveTags(s.path)} className="text-[12px] font-bold text-indigo-400">Сохранить</button>
                                                 </div>
                                             ) : (
-                                                <div className="flex items-center space-x-2 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity pr-2">
+                                                <div className="flex items-center space-x-2 flex-shrink-0 pr-2 overflow-visible">
                                                     {s.tags.map(t => (
-                                                        <span key={t} className="text-[10px] font-bold px-3 py-1.5 rounded-lg bg-white/5 text-indigo-400 border border-white/5 cursor-default shadow-lg pointer-events-auto">
-                                                            {t}
-                                                        </span>
+                                                        <div key={t} className="relative group/tag flex items-center h-7">
+                                                            <span className="text-[11px] font-bold px-3 h-7 rounded-lg bg-white/[0.03] text-white/35 border border-white/10 cursor-default shadow-lg pointer-events-auto flex items-center justify-center">
+                                                                {t}
+                                                            </span>
+                                                            {!isDragging && (
+                                                                <button
+                                                                    onClick={(e) => { e.stopPropagation(); removeTag(s, t); }}
+                                                                    className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover/tag:opacity-100 transition-all shadow-lg hover:scale-125 active:scale-90 cursor-pointer z-50 pointer-events-auto border-none"
+                                                                    title={`Удалить тег ${t}`}
+                                                                >
+                                                                    <svg width="8" height="2" viewBox="0 0 8 2" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                                                                        <path d="M1 1h6" />
+                                                                    </svg>
+                                                                </button>
+                                                            )}
+                                                        </div>
                                                     ))}
-                                                    <button onClick={() => startEditing(s)} className="w-[30px] h-[30px] ml-1 flex items-center justify-center rounded-lg bg-white/5 text-white/20 border border-white/5 hover:text-indigo-400 hover:bg-white/10 transition-colors shadow-lg group/plus cursor-pointer pointer-events-auto">
-                                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                                                    <button
+                                                        onClick={() => startEditing(s)}
+                                                        className="w-7 h-7 ml-1 flex items-center justify-center rounded-lg bg-white/5 text-white/20 border border-white/5 hover:text-indigo-400 hover:bg-white/10 transition-all shadow-lg group/plus cursor-pointer pointer-events-auto opacity-0 group-hover:opacity-100"
+                                                    >
+                                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                                                     </button>
                                                 </div>
                                             )
@@ -304,8 +374,14 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
 
                                     {!isDragging && (
                                         <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center space-x-2 pointer-events-auto">
-                                            <button onClick={() => handleToggle(s)} className={`text-[12px] font-bold px-4 py-1.5 rounded-lg bg-white/5 border border-white/5 shadow-xl transition-all cursor-pointer active:scale-95 ${s.is_running ? 'text-red-500 hover:bg-red-500 hover:text-white' : 'text-indigo-400 hover:bg-indigo-500 hover:text-white'}`}>
-                                                {s.is_running ? "Kill" : "Run"}
+                                            <button
+                                                onClick={() => handleToggle(s)}
+                                                className={`text-[12px] font-bold px-4 h-7 rounded-lg bg-white/5 border border-white/5 shadow-xl transition-all cursor-pointer active:scale-95 flex items-center justify-center
+                                                    ${pendingScripts.has(s.path) ? 'text-white/20 animate-pulse cursor-wait' :
+                                                        s.is_running ? 'text-red-500 hover:bg-red-500 hover:text-white' : 'text-indigo-400 hover:bg-indigo-500 hover:text-white'}
+                                                `}
+                                            >
+                                                {pendingScripts.has(s.path) ? "Wait..." : s.is_running ? "Kill" : "Run"}
                                             </button>
                                         </div>
                                     )}
@@ -403,6 +479,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
                         <div
                             key={s.path}
                             onMouseDown={(e) => handleCustomMouseDown(e, s)}
+                            onDoubleClick={() => !isDragging && handleToggle(s)}
                             className={`p-6 rounded-[2.5rem] border transition-all flex flex-col justify-between h-64 select-none backdrop-blur-xl
                 ${!isDragging
                                     ? 'group cursor-grab active:cursor-grabbing active:scale-[0.98] hover:shadow-2xl'
@@ -436,9 +513,27 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
                                     </div>
                                 ) : (
                                     <div className="flex flex-wrap gap-2 pointer-events-none">
-                                        {s.tags.map(t => <span key={t} className={`text-[11px] px-5 py-3.5 bg-white/5 border border-white/5 text-indigo-400 font-bold rounded-xl shadow-lg leading-none flex items-center transition-opacity ${isDragging ? 'opacity-20' : ''}`}>#{t}</span>)}
+                                        {s.tags.map(t => (
+                                            <div key={t} className="relative group/tag pointer-events-auto">
+                                                <span className={`text-[12px] px-5 py-3.5 bg-white/5 border border-white/5 text-white/40 font-bold rounded-xl shadow-lg leading-none flex items-center transition-opacity ${isDragging ? 'opacity-20' : ''}`}>#{t}</span>
+                                                {!isDragging && (
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); removeTag(s, t); }}
+                                                        className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover/tag:opacity-100 transition-all shadow-xl hover:scale-125 active:scale-90 cursor-pointer z-50 border-none"
+                                                        title={`Удалить тег ${t}`}
+                                                    >
+                                                        <svg width="10" height="2" viewBox="0 0 10 2" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                                                            <path d="M1 1h8" />
+                                                        </svg>
+                                                    </button>
+                                                )}
+                                            </div>
+                                        ))}
                                         {!isDragging && (
-                                            <button onClick={() => startEditing(s)} className="w-[42px] h-[42px] flex items-center justify-center border border-dashed border-white/10 rounded-xl text-white/10 hover:text-white/40 hover:border-white/20 transition-all cursor-pointer pointer-events-auto">
+                                            <button
+                                                onClick={() => startEditing(s)}
+                                                className="w-[42px] h-[42px] flex items-center justify-center border border-dashed border-white/10 rounded-xl text-white/10 hover:text-white/40 hover:border-white/20 transition-all cursor-pointer pointer-events-auto opacity-0 group-hover:opacity-100"
+                                            >
                                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                                             </button>
                                         )}
@@ -447,8 +542,15 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
                             </div>
 
                             {!isDragging && (
-                                <button onClick={() => handleToggle(s)} className={`w-full py-3.5 rounded-2xl text-[12px] font-bold tracking-[0.1em] transition-all transform cursor-pointer active:scale-95 mt-4 pointer-events-auto shadow-xl ${s.is_running ? "bg-red-600/10 text-red-500 border border-red-500/20" : "bg-white text-black"}`}>
-                                    {s.is_running ? "Kill" : "Run"}
+                                <button
+                                    onClick={() => handleToggle(s)}
+                                    className={`w-full py-3.5 rounded-2xl text-[12px] font-bold tracking-[0.1em] transition-all transform cursor-pointer active:scale-95 mt-4 pointer-events-auto shadow-xl 
+                                        ${pendingScripts.has(s.path) ? 'bg-white/5 text-white/20 animate-pulse cursor-wait border border-white/5' :
+                                            s.is_running ? "bg-red-600/10 text-red-500 border border-red-500/20" :
+                                                "bg-white text-black hover:bg-gray-100 group-hover:shadow-[0_0_20px_rgba(255,255,255,0.2)]"}
+                                    `}
+                                >
+                                    {pendingScripts.has(s.path) ? (s.is_running ? "KRASHING..." : "IGNITING...") : (s.is_running ? "Kill" : "Run")}
                                 </button>
                             )}
                         </div>
