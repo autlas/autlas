@@ -24,6 +24,22 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
     const [isAllExpanded, setIsAllExpanded] = useState(true);
     const [editingScript, setEditingScript] = useState<string | null>(null);
     const [tempTags, setTempTags] = useState("");
+    const [selectedTagIndex, setSelectedTagIndex] = useState(0);
+    const popoverRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        setSelectedTagIndex(0);
+    }, [tempTags, editingScript]);
+
+    useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+            if (editingScript && popoverRef.current && !popoverRef.current.contains(event.target as Node)) {
+                setEditingScript(null);
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, [editingScript]);
 
     // Local Filters
     const [treeFilter, setTreeFilter] = useState<"all" | "tagged" | "untagged">("all");
@@ -109,15 +125,27 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
         });
     };
 
+    const allUniqueTags = useMemo(() => {
+        const tags = new Set<string>();
+        allScripts.forEach(s => s.tags.forEach(t => tags.add(t)));
+        return Array.from(tags).sort();
+    }, [allScripts]);
+
     const startEditing = (s: Script) => {
         setEditingScript(s.path);
-        setTempTags(s.tags.join(", "));
+        setTempTags(""); // Use this for the search query now
     };
 
-    const saveTags = async (path: string) => {
-        const tagsArr = tempTags.split(",").map(t => t.trim()).filter(t => t !== "");
+    const addTag = async (script: Script, newTag: string) => {
+        const trimmed = newTag.trim();
+        if (!trimmed) return;
+        if (script.tags.includes(trimmed)) {
+            setEditingScript(null);
+            return;
+        }
+        const updatedTags = [...script.tags, trimmed];
         try {
-            await invoke("save_script_tags", { path, tags: tagsArr });
+            await invoke("save_script_tags", { path: script.path, tags: updatedTags });
             setEditingScript(null);
             fetchData();
         } catch (e) {
@@ -313,8 +341,8 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
                                     key={s.path}
                                     onMouseDown={(e) => handleCustomMouseDown(e, s)}
                                     onDoubleClick={() => !isDragging && handleToggle(s)}
-                                    className={`flex items-center justify-between h-[36px] px-3 rounded-lg transition-all border border-transparent select-none relative z-10 hover:z-[100]
-                    ${!isDragging ? 'hover:bg-white/5 group cursor-grab active:cursor-grabbing active:scale-[0.99] has-[button:active]:scale-100' : 'bg-transparent cursor-default opacity-40'}
+                                    className={`flex items-center justify-between h-[36px] px-3 rounded-lg transition-all border border-transparent select-none relative ${editingScript === s.path ? 'z-[200]' : 'z-10 hover:z-[100]'}
+                    ${!isDragging ? `group ${editingScript === s.path ? 'bg-white/5' : 'hover:bg-white/5 cursor-grab active:cursor-grabbing active:scale-[0.99] has-[button:active]:scale-100'}` : 'bg-transparent cursor-default opacity-40'}
                     ${s.is_hidden ? 'opacity-40 grayscale-[0.5]' : ''}
                     ${s.is_running ? 'border-green-500/10' : ''}
                 `}
@@ -326,51 +354,118 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
                                         `}></div>
                                         <span className={`text-[15px] font-medium tracking-tight truncate max-w-[200px] 
                                             ${pendingScripts.has(s.path) ? 'text-yellow-500/80 animate-pulse' :
-                                                s.is_running ? 'text-green-400 font-bold' : 'text-white/50 group-hover:text-white'}
+                                                s.is_running ? 'text-green-400 font-bold' : (editingScript === s.path ? 'text-white' : 'text-white/50 group-hover:text-white')}
                                         `}>{s.filename}</span>
 
                                         {!isDragging && (
-                                            editingScript === s.path ? (
-                                                <div className="flex items-center space-x-2 flex-shrink-0 pointer-events-auto">
-                                                    <input
-                                                        className="bg-white/5 border border-white/10 rounded-lg px-3 py-1 text-xs text-white outline-none w-[150px]"
-                                                        value={tempTags}
-                                                        onChange={(e) => setTempTags(e.target.value)}
-                                                        autoFocus
-                                                        onKeyDown={(e) => e.key === "Enter" && saveTags(s.path)}
-                                                    />
-                                                    <button onClick={() => saveTags(s.path)} className="text-[12px] font-bold text-indigo-400">Сохранить</button>
-                                                </div>
-                                            ) : (
-                                                <div className="flex items-center space-x-2 flex-shrink-0 pr-2 overflow-visible">
-                                                    {s.tags.map(t => (
-                                                        <div key={t} className="relative group/tag flex items-center h-7">
-                                                            <span className="text-[11px] font-bold px-3 h-7 rounded-lg bg-white/[0.03] text-white/35 border border-white/10 cursor-default shadow-lg pointer-events-auto flex items-center justify-center">
-                                                                {t}
-                                                            </span>
-                                                            {!isDragging && (
-                                                                <button
-                                                                    onClick={(e) => { e.stopPropagation(); removeTag(s, t); }}
-                                                                    onMouseDown={(e) => e.stopPropagation()}
-                                                                    className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover/tag:opacity-100 transition-all shadow-lg hover:scale-125 active:scale-90 cursor-pointer z-50 pointer-events-auto border-none"
-                                                                    title={`Удалить тег ${t}`}
-                                                                >
-                                                                    <svg width="8" height="2" viewBox="0 0 8 2" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                                                                        <path d="M1 1h6" />
-                                                                    </svg>
-                                                                </button>
-                                                            )}
-                                                        </div>
-                                                    ))}
-                                                    <button
-                                                        onClick={(e) => { e.stopPropagation(); startEditing(s); }}
+                                            <div className="flex items-center space-x-2 flex-shrink-0 pr-2 overflow-visible relative">
+                                                {s.tags.map(t => (
+                                                    <div key={t} className="relative group/tag flex items-center h-7">
+                                                        <span className="text-[11px] font-bold px-3 h-7 rounded-lg bg-white/[0.03] text-white/35 border border-white/10 cursor-default shadow-lg pointer-events-auto flex items-center justify-center">
+                                                            {t}
+                                                        </span>
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); removeTag(s, t); }}
+                                                            onMouseDown={(e) => e.stopPropagation()}
+                                                            className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover/tag:opacity-100 transition-all shadow-lg hover:scale-125 active:scale-90 cursor-pointer z-50 pointer-events-auto border-none"
+                                                            title={`Удалить тег ${t}`}
+                                                        >
+                                                            <svg width="8" height="2" viewBox="0 0 8 2" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                                                                <path d="M1 1h6" />
+                                                            </svg>
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); startEditing(s); }}
+                                                    onMouseDown={(e) => e.stopPropagation()}
+                                                    className={`w-7 h-7 ml-1 flex items-center justify-center rounded-lg bg-white/5 text-white/20 border border-white/5 hover:text-indigo-400 hover:bg-white/10 transition-all shadow-lg group/plus cursor-pointer pointer-events-auto ${editingScript === s.path ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+                                                >
+                                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                                                </button>
+
+                                                {editingScript === s.path && (
+                                                    <div
+                                                        ref={popoverRef}
+                                                        onClick={(e) => e.stopPropagation()}
+                                                        onDoubleClick={(e) => e.stopPropagation()}
                                                         onMouseDown={(e) => e.stopPropagation()}
-                                                        className="w-7 h-7 ml-1 flex items-center justify-center rounded-lg bg-white/5 text-white/20 border border-white/5 hover:text-indigo-400 hover:bg-white/10 transition-all shadow-lg group/plus cursor-pointer pointer-events-auto opacity-0 group-hover:opacity-100"
+                                                        onMouseUp={(e) => e.stopPropagation()}
+                                                        className="absolute right-0 top-9 w-64 bg-[#1a1a1c]/95 border border-white/10 rounded-2xl shadow-[0_0_30px_rgba(0,0,0,0.8)] z-[1000] p-3 backdrop-blur-3xl pointer-events-auto !cursor-default opacity-100"
                                                     >
-                                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                                                    </button>
-                                                </div>
-                                            )
+                                                        {(() => {
+                                                            const availableTags = allUniqueTags.filter(tag => tag.toLowerCase().includes(tempTags.toLowerCase()) && !s.tags.includes(tag));
+                                                            const showCreateOption = tempTags && !allUniqueTags.some(tag => tag.toLowerCase() === tempTags.toLowerCase());
+                                                            const totalCount = availableTags.length + (showCreateOption ? 1 : 0);
+
+                                                            return (
+                                                                <>
+                                                                    <div className="relative mb-3">
+                                                                        <input
+                                                                            className="w-full bg-white/5 border border-white/5 rounded-xl px-4 py-2.5 text-[12px] text-white outline-none focus:border-indigo-500/50 transition-all font-bold"
+                                                                            placeholder="Имя нового тега..."
+                                                                            value={tempTags}
+                                                                            onChange={(e) => setTempTags(e.target.value)}
+                                                                            autoFocus
+                                                                            onKeyDown={(e) => {
+                                                                                if (e.key === "ArrowDown") {
+                                                                                    e.preventDefault();
+                                                                                    setSelectedTagIndex(prev => totalCount > 0 ? (prev + 1) % totalCount : 0);
+                                                                                } else if (e.key === "ArrowUp") {
+                                                                                    e.preventDefault();
+                                                                                    setSelectedTagIndex(prev => totalCount > 0 ? (prev - 1 + totalCount) % totalCount : 0);
+                                                                                } else if (e.key === "Enter") {
+                                                                                    e.preventDefault();
+                                                                                    if (totalCount > 0) {
+                                                                                        if (selectedTagIndex < availableTags.length) {
+                                                                                            addTag(s, availableTags[selectedTagIndex]);
+                                                                                        } else if (showCreateOption) {
+                                                                                            addTag(s, tempTags);
+                                                                                        }
+                                                                                    }
+                                                                                } else if (e.key === "Escape") {
+                                                                                    setEditingScript(null);
+                                                                                }
+                                                                            }}
+                                                                        />
+                                                                    </div>
+                                                                    <div className="max-h-48 overflow-y-auto custom-scrollbar space-y-1">
+                                                                        {availableTags.map((tag, index) => (
+                                                                            <button
+                                                                                key={tag}
+                                                                                onClick={(e) => { e.stopPropagation(); addTag(s, tag); }}
+                                                                                onMouseDown={(e) => e.stopPropagation()}
+                                                                                className={`cursor-pointer w-full text-left px-4 py-2 rounded-xl transition-all flex items-center justify-between group/suggest ${selectedTagIndex === index ? 'bg-white/10 text-white' : 'hover:bg-white/5 text-[11px] text-white/40 hover:text-white'}`}
+                                                                            >
+                                                                                <span className={selectedTagIndex === index ? 'text-[12px] font-bold' : ''}>{tag}</span>
+                                                                                <span className={`text-indigo-400 font-bold ${selectedTagIndex === index ? 'opacity-100' : 'opacity-0 group-hover/suggest:opacity-100'}`}>+</span>
+                                                                            </button>
+                                                                        ))}
+                                                                        {showCreateOption && (
+                                                                            <button
+                                                                                onClick={(e) => { e.stopPropagation(); addTag(s, tempTags); }}
+                                                                                onMouseDown={(e) => e.stopPropagation()}
+                                                                                className={`cursor-pointer w-full text-left px-4 py-2.5 rounded-xl text-[11px] transition-all flex items-center justify-between ${selectedTagIndex === availableTags.length ? 'bg-indigo-500/30 text-indigo-300 font-bold' : 'bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 font-bold'}`}
+                                                                            >
+                                                                                <span>Создать "{tempTags}"</span>
+                                                                                <span className="text-xl leading-none">+</span>
+                                                                            </button>
+                                                                        )}
+                                                                    </div>
+                                                                </>
+                                                            );
+                                                        })()}
+
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); setEditingScript(null); }}
+                                                            onMouseDown={(e) => e.stopPropagation()}
+                                                            className="w-full mt-3 py-2 text-[10px] text-white/20 hover:text-white/40 transition-all font-bold uppercase tracking-widest"
+                                                        >
+                                                            Отмена
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
                                         )}
                                     </div>
 
@@ -483,17 +578,17 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
                             key={s.path}
                             onMouseDown={(e) => handleCustomMouseDown(e, s)}
                             onDoubleClick={() => !isDragging && handleToggle(s)}
-                            className={`p-6 rounded-[2.5rem] border transition-all flex flex-col justify-between h-64 select-none backdrop-blur-xl
-                ${!isDragging
-                                    ? 'group cursor-grab active:cursor-grabbing active:scale-[0.98] hover:shadow-2xl'
+                            className={`p-6 rounded-[2.5rem] border transition-all flex flex-col justify-between h-64 select-none relative ${editingScript === s.path ? 'z-[200]' : 'z-10 hover:z-[100]'}
+                                ${!isDragging
+                                    ? `group ${editingScript === s.path ? 'shadow-2xl' : 'hover:shadow-2xl cursor-grab active:cursor-grabbing active:scale-[0.98]'}`
                                     : 'opacity-30 border-transparent shadow-none cursor-default'}
-                ${s.is_running && !isDragging ? 'border-indigo-500/30 shadow-indigo-900/10' : ''}
-              `}
+                                ${s.is_running && !isDragging ? 'border-indigo-500/30' : ''}
+                            `}
                             style={{ backgroundColor: 'var(--bg-tertiary)', borderColor: s.is_running && !isDragging ? 'var(--accent-indigo)' : 'var(--border-color)' }}
                         >
                             <div className="flex justify-between items-start pointer-events-none">
                                 <div className="flex flex-col overflow-hidden flex-1">
-                                    <span className={`text-xl font-black truncate pr-4 transition-colors tracking-tight ${!isDragging ? 'text-white group-hover:text-indigo-400' : 'text-white/40'}`}>{s.filename}</span>
+                                    <span className={`text-xl font-black truncate pr-4 transition-colors tracking-tight ${!isDragging ? (editingScript === s.path ? 'text-indigo-400' : 'text-white/40 group-hover:text-indigo-400') : 'text-white/40'}`}>{s.filename}</span>
                                     <span className="text-[12px] text-white/20 font-bold tracking-[0.4em] mt-2">{s.parent}</span>
                                 </div>
                                 <div className={`w-3 h-3 rounded-full mt-2 transition-opacity ${s.is_running ? 'bg-green-500' : 'bg-white/5 border border-white/10'} ${isDragging ? 'opacity-20' : ''}`}></div>
@@ -501,29 +596,97 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
 
                             <div className="mt-4 flex-1">
                                 {editingScript === s.path && !isDragging ? (
-                                    <div className="flex flex-col space-y-2 pointer-events-auto">
-                                        <input
-                                            className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white outline-none w-full"
-                                            value={tempTags}
-                                            onChange={(e) => setTempTags(e.target.value)}
-                                            autoFocus
-                                            onKeyDown={(e) => e.key === "Enter" && saveTags(s.path)}
-                                        />
-                                        <div className="flex space-x-3">
-                                            <button onClick={() => saveTags(s.path)} className="text-[12px] font-bold text-indigo-400">Сохранить</button>
-                                            <button onClick={() => setEditingScript(null)} className="text-[12px] font-bold text-white/20">Отмена</button>
-                                        </div>
+                                    <div
+                                        ref={popoverRef}
+                                        onClick={(e) => e.stopPropagation()}
+                                        onDoubleClick={(e) => e.stopPropagation()}
+                                        onMouseDown={(e) => e.stopPropagation()}
+                                        onMouseUp={(e) => e.stopPropagation()}
+                                        className="absolute inset-x-0 bottom-0 top-0 bg-[#1a1a1c]/95 border border-white/10 rounded-[2.5rem] shadow-[0_0_30px_rgba(0,0,0,0.8)] z-[1000] p-6 backdrop-blur-3xl pointer-events-auto flex flex-col !cursor-default opacity-100"
+                                    >
+                                        {(() => {
+                                            const availableTags = allUniqueTags.filter(tag => tag.toLowerCase().includes(tempTags.toLowerCase()) && !s.tags.includes(tag));
+                                            const showCreateOption = tempTags && !allUniqueTags.some(tag => tag.toLowerCase() === tempTags.toLowerCase());
+                                            const totalCount = availableTags.length + (showCreateOption ? 1 : 0);
+
+                                            return (
+                                                <>
+                                                    <div className="relative mb-4">
+                                                        <input
+                                                            className="w-full bg-white/5 border border-white/5 rounded-2xl px-6 py-4 text-sm text-white outline-none focus:border-indigo-500/50 transition-all font-bold"
+                                                            placeholder="Поиск или новый тег..."
+                                                            value={tempTags}
+                                                            onChange={(e) => setTempTags(e.target.value)}
+                                                            autoFocus
+                                                            onKeyDown={(e) => {
+                                                                if (e.key === "ArrowDown") {
+                                                                    e.preventDefault();
+                                                                    setSelectedTagIndex(prev => totalCount > 0 ? (prev + 1) % totalCount : 0);
+                                                                } else if (e.key === "ArrowUp") {
+                                                                    e.preventDefault();
+                                                                    setSelectedTagIndex(prev => totalCount > 0 ? (prev - 1 + totalCount) % totalCount : 0);
+                                                                } else if (e.key === "Enter") {
+                                                                    e.preventDefault();
+                                                                    if (totalCount > 0) {
+                                                                        if (selectedTagIndex < availableTags.length) {
+                                                                            addTag(s, availableTags[selectedTagIndex]);
+                                                                        } else if (showCreateOption) {
+                                                                            addTag(s, tempTags);
+                                                                        }
+                                                                    }
+                                                                } else if (e.key === "Escape") {
+                                                                    setEditingScript(null);
+                                                                }
+                                                            }}
+                                                        />
+                                                    </div>
+
+                                                    <div className="flex-1 overflow-y-auto custom-scrollbar space-y-2 mb-4">
+                                                        {availableTags.map((tag, index) => (
+                                                            <button
+                                                                key={tag}
+                                                                onClick={(e) => { e.stopPropagation(); addTag(s, tag); }}
+                                                                onMouseDown={(e) => e.stopPropagation()}
+                                                                className={`cursor-pointer w-full text-left px-6 py-3 rounded-2xl transition-all flex items-center justify-between group/suggest ${selectedTagIndex === index ? 'bg-white/10 text-white' : 'hover:bg-white/5 text-sm text-white/40 hover:text-white'}`}
+                                                            >
+                                                                <span className={selectedTagIndex === index ? 'font-bold' : ''}>{tag}</span>
+                                                                <span className={`text-indigo-400 font-bold ${selectedTagIndex === index ? 'opacity-100' : 'opacity-0 group-hover/suggest:opacity-100'}`}>+</span>
+                                                            </button>
+                                                        ))}
+
+                                                        {showCreateOption && (
+                                                            <button
+                                                                onClick={(e) => { e.stopPropagation(); addTag(s, tempTags); }}
+                                                                onMouseDown={(e) => e.stopPropagation()}
+                                                                className={`cursor-pointer w-full text-left px-6 py-3 rounded-2xl transition-all flex items-center justify-between ${selectedTagIndex === availableTags.length ? 'bg-indigo-500/30 text-indigo-300 font-bold' : 'bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 font-bold'}`}
+                                                            >
+                                                                <span>Создать "{tempTags}"</span>
+                                                                <span className="text-xl leading-none">+</span>
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </>
+                                            );
+                                        })()}
+
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); setEditingScript(null); }}
+                                            onMouseDown={(e) => e.stopPropagation()}
+                                            className="w-full py-4 text-[12px] text-white/20 hover:text-white/40 transition-all font-bold uppercase tracking-[0.2em]"
+                                        >
+                                            Закрыть
+                                        </button>
                                     </div>
                                 ) : (
                                     <div className="flex flex-wrap gap-2 pointer-events-none">
                                         {s.tags.map(t => (
                                             <div key={t} className="relative group/tag pointer-events-auto">
-                                                <span className={`text-[12px] px-5 py-3.5 bg-white/5 border border-white/5 text-white/40 font-bold rounded-xl shadow-lg leading-none flex items-center transition-opacity ${isDragging ? 'opacity-20' : ''}`}>#{t}</span>
+                                                <span className={`text-[12px] px-5 py-3 bg-white/5 border border-white/5 text-white/40 font-bold rounded-xl shadow-lg leading-none flex items-center transition-opacity ${isDragging ? 'opacity-20' : ''}`}>#{t}</span>
                                                 {!isDragging && (
                                                     <button
                                                         onClick={(e) => { e.stopPropagation(); removeTag(s, t); }}
                                                         onMouseDown={(e) => e.stopPropagation()}
-                                                        className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover/tag:opacity-100 transition-all shadow-xl hover:scale-125 active:scale-90 cursor-pointer z-50 border-none"
+                                                        className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover/tag:opacity-100 transition-all shadow-xl hover:scale-125 active:scale-90 cursor-pointer z-50 border-none"
                                                         title={`Удалить тег ${t}`}
                                                     >
                                                         <svg width="10" height="2" viewBox="0 0 10 2" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -537,7 +700,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
                                             <button
                                                 onClick={(e) => { e.stopPropagation(); startEditing(s); }}
                                                 onMouseDown={(e) => e.stopPropagation()}
-                                                className="w-[42px] h-[42px] flex items-center justify-center border border-dashed border-white/10 rounded-xl text-white/10 hover:text-white/40 hover:border-white/20 transition-all cursor-pointer pointer-events-auto opacity-0 group-hover:opacity-100"
+                                                className="w-[42px] h-[40px] flex items-center justify-center border border-dashed border-white/10 rounded-xl text-white/10 hover:text-white/40 hover:border-white/20 transition-all cursor-pointer pointer-events-auto opacity-0 group-hover:opacity-100"
                                             >
                                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                                             </button>
@@ -551,10 +714,10 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
                                     onClick={(e) => { e.stopPropagation(); handleToggle(s); }}
                                     onMouseDown={(e) => e.stopPropagation()}
                                     className={`w-full py-3.5 rounded-2xl text-[12px] font-bold tracking-[0.1em] transition-all transform cursor-pointer active:scale-95 mt-4 pointer-events-auto shadow-xl 
-                                        ${pendingScripts.has(s.path) ? 'bg-white/5 text-white/20 animate-pulse cursor-wait border border-white/5' :
+                                                ${pendingScripts.has(s.path) ? 'bg-white/5 text-white/20 animate-pulse cursor-wait border border-white/5' :
                                             s.is_running ? "bg-red-600/10 text-red-500 border border-red-500/20" :
                                                 "bg-white text-black hover:bg-gray-100 group-hover:shadow-[0_0_20px_rgba(255,255,255,0.2)]"}
-                                    `}
+                                            `}
                                 >
                                     {pendingScripts.has(s.path) ? (s.is_running ? "KRASHING..." : "IGNITING...") : (s.is_running ? "Kill" : "Run")}
                                 </button>
@@ -571,6 +734,6 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
                     )}
                 </div>
             )}
-        </div>
+        </div >
     );
 }
