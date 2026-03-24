@@ -19,6 +19,18 @@ function App() {
     return parseInt(localStorage.getItem("app-brightness") || "20");
   });
 
+  const [animationsEnabled, setAnimationsEnabled] = useState(() => {
+    return localStorage.getItem("animations-enabled") !== "false";
+  });
+
+  const toggleAnimations = () => {
+    setAnimationsEnabled(prev => {
+      const next = !prev;
+      localStorage.setItem("animations-enabled", String(next));
+      return next;
+    });
+  };
+
   const [rootPath] = useState(() => {
     return localStorage.getItem("root-path") || "Desktop / Parent folder";
   });
@@ -282,6 +294,28 @@ function App() {
               </section>
 
               <section className="space-y-8 bg-white/[0.02] p-10 rounded-[2.5rem] border border-white/5 shadow-2xl">
+                <h3 className="text-sm font-bold tracking-widest text-white/20 uppercase">Интерфейс</h3>
+                <div className="flex justify-between items-center px-2">
+                  <div className="flex flex-col">
+                    <span className="text-base font-bold text-white/60">Анимации</span>
+                    <span className="text-[12px] text-white/20 mt-1">Плавные переходы в дереве скриптов</span>
+                  </div>
+                  <button
+                    onClick={toggleAnimations}
+                    className={`relative w-14 h-7 rounded-full transition-all duration-300 cursor-pointer border ${animationsEnabled
+                        ? 'bg-indigo-500/30 border-indigo-400/40 shadow-[0_0_12px_rgba(99,102,241,0.3)]'
+                        : 'bg-white/5 border-white/10'
+                      }`}
+                  >
+                    <div className={`absolute top-[3px] w-5 h-5 rounded-full transition-all duration-300 shadow-lg ${animationsEnabled
+                        ? 'left-[30px] bg-indigo-400 shadow-indigo-500/50'
+                        : 'left-[3px] bg-white/30'
+                      }`} />
+                  </button>
+                </div>
+              </section>
+
+              <section className="space-y-8 bg-white/[0.02] p-10 rounded-[2.5rem] border border-white/5 shadow-2xl">
                 <h3 className="text-sm font-bold tracking-widest text-white/20 uppercase">Пути к скриптам</h3>
                 <div className="flex flex-col space-y-6">
                   <span className="text-base font-bold text-white/60 pl-2">Корневая папка</span>
@@ -305,6 +339,7 @@ function App() {
               onTagsLoaded={handleTagsLoaded}
               onCustomDragStart={startCustomDrag}
               isDragging={!!draggedScript}
+              animationsEnabled={animationsEnabled}
             />
           )}
         </div>
