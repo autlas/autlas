@@ -161,7 +161,9 @@ function App() {
     });
   }, []);
 
-  const handleGlobalMouseUp = async () => {
+  const pendingTagDragRef = useRef<{ tag: string, x: number, y: number } | null>(null);
+
+  const handleGlobalMouseUp = useCallback(async () => {
     if (draggedScript) {
       if (dragOverTag === "new-tag") {
         setIsCreatingTagFor(draggedScript);
@@ -183,24 +185,37 @@ function App() {
         ghostRef.current.setAttribute("data-dragging", "false");
       }
     }
-  };
+
+    // Always clear pending too
+    pendingTagDragRef.current = null;
+  }, [draggedScript, dragOverTag, draggedTag, userTags]);
+
+  useEffect(() => {
+    const handleWindowMouseUp = () => {
+      if (draggedScript || draggedTag || pendingTagDragRef.current) {
+        handleGlobalMouseUp();
+      }
+    };
+    window.addEventListener('mouseup', handleWindowMouseUp);
+    return () => window.removeEventListener('mouseup', handleWindowMouseUp);
+  }, [draggedScript, draggedTag, handleGlobalMouseUp]);
 
   const navItemClass = (tab: string, isTag: boolean = false) => `
-    px-6 py-3 rounded-xl cursor-pointer text-sm font-bold transition-all border flex items-center justify-between relative z-50
-    will-change-transform
-    ${activeTab === tab
-      ? "bg-white/10 text-white border-white/10 shadow-lg"
-      : dragOverTag === tab
-        ? "bg-indigo-600 text-white border-white/40 shadow-[0_0_20px_rgba(79,70,229,0.5)] scale-[1.02]"
-        : isEditingTags
-          ? (draggedTag === tab
-            ? "bg-indigo-500 text-white border-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.5)] scale-[1.05] z-50 ring-2 ring-indigo-400/50"
-            : "bg-white/[0.05] text-tertiary border-white/5 hover:bg-white/10 hover:text-secondary")
-          : (draggedScript && isTag)
-            ? "text-indigo-400 border-indigo-500/30 bg-indigo-500/5 animate-pulse"
-            : draggedScript
-              ? "text-white/10 border-transparent opacity-30 shadow-none scale-[0.98] blur-[1px]"
-              : "text-tertiary border-transparent hover:bg-white/5 hover:text-secondary"}
+    px-6 h-11 rounded-xl cursor-pointer text-sm font-bold transition-all border flex items-center justify-between relative z-50
+    will-change-transform select-none
+    ${draggedTag === tab
+      ? "bg-white/15 text-white border-white/20 shadow-2xl scale-[1.05] z-50 ring-1 ring-white/20 shadow-white/5"
+      : isEditingTags
+        ? "bg-white/[0.05] text-tertiary border-white/5 hover:bg-white/10 hover:text-secondary"
+        : activeTab === tab
+          ? "bg-white/10 text-white border-white/10 shadow-lg"
+          : dragOverTag === tab
+            ? "bg-indigo-600 text-white border-white/40 shadow-[0_0_20px_rgba(79,70,229,0.5)] scale-[1.02]"
+            : (draggedScript && isTag)
+              ? "text-indigo-400 border-indigo-500/30 bg-indigo-500/5 animate-pulse"
+              : draggedScript
+                ? "text-white/10 border-transparent opacity-30 shadow-none scale-[0.98] blur-[1px]"
+                : "text-tertiary border-transparent hover:bg-white/5 hover:text-secondary"}
   `;
 
   return (
@@ -244,7 +259,7 @@ function App() {
           </ul>
 
           <div className="flex-1">
-            <div className="flex items-center justify-between px-6 mb-4">
+            <div className="flex items-center justify-between pl-6 pr-0 mb-4">
               <span className="text-xs font-black tracking-[0.3em] text-tertiary uppercase opacity-40">Теги</span>
               <button
                 onClick={toggleEditMode}
@@ -261,16 +276,54 @@ function App() {
                 <li
                   key={tag}
                   onMouseDown={(e) => {
-                    if (isEditingTags && !isRenamingTag) {
-                      setDraggedTag(tag);
-                      if (ghostRef.current) {
-                        ghostRef.current.setAttribute("data-dragging", "true");
-                        ghostRef.current.style.transform = `translate3d(${e.clientX}px, ${e.clientY}px, 0) translate(-50%, -50%)`;
-                      }
+                    if (!isRenamingTag) {
+                      const tagToDrag = tag;
+                      const startX = e.clientX;
+                      const startY = e.clientY;
+                      pendingTagDragRef.current = { tag: tagToDrag, x: startX, y: startY };
+
+                      const dragTimer = setTimeout(() => {
+                        if (pendingTagDragRef.current && pendingTagDragRef.current.tag === tagToDrag) {
+                          setDraggedTag(tagToDrag);
+                          if (ghostRef.current) {
+                            ghostRef.current.setAttribute("data-dragging", "true");
+                            ghostRef.current.style.transform = `translate3d(${startX}px, ${startY}px, 0) translate(-50%, -50%)`;
+                          }
+                        }
+                      }, 300);
+
+                      const handleInitialMouseMove = (moveEv: MouseEvent) => {
+                        if (!pendingTagDragRef.current) return;
+                        const dx = moveEv.clientX - pendingTagDragRef.current.x;
+                        const dy = moveEv.clientY - pendingTagDragRef.current.y;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+
+                        if (distance > 5) {
+                          clearTimeout(dragTimer);
+                          setDraggedTag(pendingTagDragRef.current.tag);
+                          if (ghostRef.current) {
+                            ghostRef.current.setAttribute("data-dragging", "true");
+                            ghostRef.current.style.transform = `translate3d(${moveEv.clientX}px, ${moveEv.clientY}px, 0) translate(-50%, -50%)`;
+                          }
+                          cleanup();
+                        }
+                      };
+
+                      const handleInitialMouseUp = () => cleanup();
+
+                      const cleanup = () => {
+                        clearTimeout(dragTimer);
+                        pendingTagDragRef.current = null;
+                        window.removeEventListener('mousemove', handleInitialMouseMove);
+                        window.removeEventListener('mouseup', handleInitialMouseUp);
+                      };
+
+                      window.addEventListener('mousemove', handleInitialMouseMove);
+                      window.addEventListener('mouseup', handleInitialMouseUp);
                     }
                   }}
                   onMouseEnter={() => {
-                    if (isEditingTags && draggedTag && draggedTag !== tag) {
+                    if (draggedTag && draggedTag !== tag) {
                       const newOrder = [...userTags];
                       const dragIdx = newOrder.indexOf(draggedTag);
                       const hoverIdx = newOrder.indexOf(tag);
@@ -292,16 +345,13 @@ function App() {
                     }
                   }}
                   onMouseLeave={() => draggedScript && dragOverTag === tag && setDragOverTag(null)}
-                  className={`${navItemClass(tag, true)} ${isEditingTags ? 'animate-shake select-none' : ''}`}
+                  className={`${navItemClass(tag, true)} ${isEditingTags ? 'select-none !pr-3' : ''}`}
                   style={{
                     // @ts-ignore
                     viewTransitionName: `tag-${tag.replace(/\s+/g, '-')}`
                   }}
                   onClick={() => {
-                    if (isEditingTags) {
-                      setIsRenamingTag(tag);
-                      setEditTagName(tag);
-                    } else if (!draggedScript) {
+                    if (!isEditingTags && !draggedScript) {
                       handleTabClick(tag);
                     }
                   }}
@@ -316,7 +366,19 @@ function App() {
                       onBlur={() => setIsRenamingTag(null)}
                       onKeyDown={async (e) => {
                         if (e.key === "Enter" && editTagName.trim() && editTagName !== tag) {
-                          await invoke("rename_tag", { oldTag: tag, newTag: editTagName.trim() });
+                          const newName = editTagName.trim();
+                          await invoke("rename_tag", { oldTag: tag, newTag: newName });
+
+                          // Preserve position in local state and save it
+                          const newOrder = userTags.map(t => t === tag ? newName : t);
+                          setUserTags(newOrder);
+                          await invoke("save_tag_order", { order: newOrder });
+
+                          // If this was the active tab, update it too
+                          if (activeTab === tag) {
+                            setActiveTab(newName);
+                          }
+
                           setIsRenamingTag(null);
                           // Trigger re-fetch without reload
                           setRefreshKey(prev => prev + 1);
@@ -329,8 +391,19 @@ function App() {
                     <>
                       <span className="relative z-50 pointer-events-none truncate flex-1">{tag}</span>
                       {isEditingTags && (
-                        <div className="flex items-center space-x-2 ml-4">
-                          <svg className="w-3.5 h-3.5 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div
+                          className="flex items-center space-x-2 ml-4 p-1.5 hover:bg-white/10 rounded-lg transition-all cursor-pointer group/edit-btn"
+                          style={{
+                            // @ts-ignore
+                            viewTransitionName: 'none'
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setIsRenamingTag(tag);
+                            setEditTagName(tag);
+                          }}
+                        >
+                          <svg className="w-3.5 h-3.5 opacity-40 group-hover/edit-btn:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                           </svg>
                         </div>
