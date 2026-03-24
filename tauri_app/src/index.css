@@ -13,6 +13,7 @@
     --text-opacity-secondary: 0.7;
     --text-opacity-tertiary: 0.45;
     --contrast-factor: 1.0;
+    --font-scale: 1.0;
 
     --text-primary: rgba(255, 255, 255, calc(1 - (1 - var(--text-opacity-primary)) / var(--contrast-factor)));
     --text-secondary: rgba(255, 255, 255, calc(1 - (1 - var(--text-opacity-secondary)) / var(--contrast-factor)));
@@ -23,6 +24,31 @@
     --color-primary: var(--text-primary);
     --color-secondary: var(--text-secondary);
     --color-tertiary: var(--text-tertiary);
+}
+
+/* Standard Semantic Scaled Font Utilities (Minimum 14px floor) */
+.text-xs {
+    font-size: calc(14px * var(--font-scale));
+}
+
+.text-sm {
+    font-size: calc(16px * var(--font-scale));
+}
+
+.text-base {
+    font-size: calc(17px * var(--font-scale));
+}
+
+.text-lg {
+    font-size: calc(18px * var(--font-scale));
+}
+
+.text-xl {
+    font-size: calc(22px * var(--font-scale));
+}
+
+.text-2xl {
+    font-size: calc(26px * var(--font-scale));
 }
 
 body {

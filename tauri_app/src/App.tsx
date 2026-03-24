@@ -27,6 +27,10 @@ function App() {
     return parseFloat(localStorage.getItem("text-contrast") || "1.0");
   });
 
+  const [fontScale, setFontScale] = useState(() => {
+    return parseFloat(localStorage.getItem("font-scale") || "1.0");
+  });
+
   const toggleAnimations = () => {
     setAnimationsEnabled(prev => {
       const next = !prev;
@@ -58,6 +62,11 @@ function App() {
     document.documentElement.style.setProperty("--contrast-factor", textContrast.toFixed(2));
     localStorage.setItem("text-contrast", textContrast.toString());
   }, [textContrast]);
+
+  useEffect(() => {
+    document.documentElement.style.setProperty("--font-scale", fontScale.toFixed(2));
+    localStorage.setItem("font-scale", fontScale.toString());
+  }, [fontScale]);
 
   useEffect(() => {
     let animationFrameId: number;
@@ -140,7 +149,7 @@ function App() {
   };
 
   const navItemClass = (tab: string, isTag: boolean = false) => `
-    px-6 py-3 rounded-xl cursor-pointer text-[14px] font-bold transition-all border flex items-center justify-between relative z-50
+    px-6 py-3 rounded-xl cursor-pointer text-sm font-bold transition-all border flex items-center justify-between relative z-50
     will-change-transform
     ${activeTab === tab
       ? "bg-white/10 text-white border-white/10 shadow-lg"
@@ -172,9 +181,9 @@ function App() {
       >
         <div className="flex flex-col space-y-10 flex-1">
           <div>
-            <h2 className="text-[12px] font-bold text-tertiary tracking-widest mb-6 pl-4 uppercase">Core</h2>
+            <h2 className="text-xs font-bold text-tertiary tracking-widest mb-6 pl-4 uppercase">Core</h2>
             <ul className="space-y-1.5">
-              {[{ id: "Хаб", label: "Хаб", icon: "🚀" }, { id: "Все скрипты", label: "Дерево", icon: "📁" }].map((tab) => (
+              {[{ id: "Хаб", label: "Хаб", icon: "" }, { id: "Все скрипты", label: "Дерево", icon: "" }].map((tab) => (
                 <li
                   key={tab.id}
                   className={`px-6 py-4 rounded-xl cursor-pointer text-base font-bold transition-all border flex items-center justify-between ${draggedScript && tab.id !== dragOverTag ? 'opacity-20 blur-[1px] scale-95' : ''
@@ -199,7 +208,7 @@ function App() {
           {viewMode !== "settings" && (
             <>
               <div>
-                <h2 className="text-[12px] font-bold text-tertiary tracking-widest mb-6 pl-4 uppercase">Status</h2>
+                <h2 className="text-xs font-bold text-tertiary tracking-widest mb-6 pl-4 uppercase">Status</h2>
                 <ul className="space-y-1.5">
                   {["Запущенные"].map((item) => (
                     <li
@@ -214,7 +223,7 @@ function App() {
               </div>
 
               <div className="flex-1">
-                <h2 className="text-[12px] font-bold text-tertiary tracking-widest mb-6 pl-4 uppercase">Tags</h2>
+                <h2 className="text-xs font-bold text-tertiary tracking-widest mb-6 pl-4 uppercase">Tags</h2>
                 <ul className="space-y-1.5">
                   {userTags.map((tag) => (
                     <li
@@ -248,7 +257,7 @@ function App() {
               <path d="M12 15a3 3 0 100-6 3 3 0 000 6z" />
               <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" />
             </svg>
-            <span className="text-[14px] font-bold">Настройки</span>
+            <span className="text-sm font-bold">Настройки</span>
           </button>
         </div>
       </div>
@@ -267,11 +276,11 @@ function App() {
               <div className="h-1.5 w-12 bg-white/5 rounded-full overflow-hidden">
                 <div className="h-full w-1/2 bg-indigo-500"></div>
               </div>
-              <span className="text-[12px] text-tertiary uppercase tracking-[0.5em] font-mono">Operations Unit Ready</span>
+              <span className="text-xs text-tertiary uppercase tracking-[0.5em] font-mono">Operations Unit Ready</span>
             </div>
           </div>
           <button
-            className="px-10 py-4 bg-white/5 hover:bg-white/10 rounded-xl border border-white/5 transition-all text-[12px] font-bold tracking-widest cursor-pointer active:scale-95 shadow-lg"
+            className="px-10 py-4 bg-white/5 hover:bg-white/10 rounded-xl border border-white/5 transition-all text-xs font-bold tracking-widest cursor-pointer active:scale-95 shadow-lg"
             onClick={() => !draggedScript && window.location.reload()}
           >
             Обновить
@@ -295,7 +304,7 @@ function App() {
                     onChange={(e) => setBrightness(parseInt(e.target.value))}
                     className="w-full h-2 bg-white/5 rounded-lg appearance-none cursor-pointer accent-indigo-500 hover:accent-indigo-400 transition-all opacity-80 hover:opacity-100"
                   />
-                  <div className="flex justify-between text-[12px] text-tertiary font-bold uppercase tracking-[0.3em] pt-2 px-1">
+                  <div className="flex justify-between text-xs text-tertiary font-bold uppercase tracking-[0.3em] pt-2 px-1">
                     <span>OLED черный</span>
                     <span>Светло-серый</span>
                   </div>
@@ -305,7 +314,7 @@ function App() {
                   <div className="flex justify-between items-center px-2">
                     <div className="flex flex-col">
                       <span className="text-base font-bold text-secondary">Контраст текста</span>
-                      <span className="text-[12px] text-tertiary mt-1">Яркость второстепенных текстов</span>
+                      <span className="text-xs text-tertiary mt-1">Яркость второстепенных текстов</span>
                     </div>
                     <span className="text-xs font-mono text-indigo-400 font-bold bg-indigo-400/10 px-4 py-1.5 rounded-full tracking-widest uppercase">{textContrast.toFixed(1)}x</span>
                   </div>
@@ -316,9 +325,30 @@ function App() {
                     onChange={(e) => setTextContrast(parseFloat(e.target.value))}
                     className="w-full h-2 bg-white/5 rounded-lg appearance-none cursor-pointer accent-indigo-500 hover:accent-indigo-400 transition-all opacity-80 hover:opacity-100"
                   />
-                  <div className="flex justify-between text-[12px] text-tertiary font-bold uppercase tracking-[0.3em] pt-2 px-1">
+                  <div className="flex justify-between text-xs text-tertiary font-bold uppercase tracking-[0.3em] pt-2 px-1">
                     <span>Стандарт</span>
                     <span>Максимум (100%)</span>
+                  </div>
+                </div>
+
+                <div className="space-y-6 pt-4 border-t border-white/5">
+                  <div className="flex justify-between items-center px-2">
+                    <div className="flex flex-col">
+                      <span className="text-base font-bold text-secondary">Размер текста</span>
+                      <span className="text-xs text-tertiary mt-1">Глобальное масштабирование шрифтов</span>
+                    </div>
+                    <span className="text-xs font-mono text-indigo-400 font-bold bg-indigo-400/10 px-4 py-1.5 rounded-full tracking-widest uppercase">{fontScale.toFixed(2)}x</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0.75" max="1.5" step="0.05"
+                    value={fontScale}
+                    onChange={(e) => setFontScale(parseFloat(e.target.value))}
+                    className="w-full h-2 bg-white/5 rounded-lg appearance-none cursor-pointer accent-indigo-500 hover:accent-indigo-400 transition-all opacity-80 hover:opacity-100"
+                  />
+                  <div className="flex justify-between text-xs text-tertiary font-bold uppercase tracking-[0.3em] pt-2 px-1">
+                    <span>1.0x</span>
+                    <span>1.5x</span>
                   </div>
                 </div>
               </section>
@@ -328,7 +358,7 @@ function App() {
                 <div className="flex justify-between items-center px-2">
                   <div className="flex flex-col">
                     <span className="text-base font-bold text-secondary">Анимации</span>
-                    <span className="text-[12px] text-tertiary mt-1">Плавные переходы в дереве скриптов</span>
+                    <span className="text-xs text-tertiary mt-1">Плавные переходы в дереве скриптов</span>
                   </div>
                   <button
                     onClick={toggleAnimations}
@@ -350,15 +380,15 @@ function App() {
                 <div className="flex flex-col space-y-6">
                   <span className="text-base font-bold text-secondary pl-2">Корневая папка</span>
                   <div className="flex items-center space-x-4 p-5 bg-white/[0.03] border border-white/5 rounded-2xl">
-                    <span className="flex-1 text-[12px] font-bold text-tertiary truncate font-mono italic tracking-tight">{rootPath}</span>
+                    <span className="flex-1 text-xs font-bold text-tertiary truncate font-mono italic tracking-tight">{rootPath}</span>
                     <button
                       onClick={() => alert("Интерфейс выбора папки - в разработке")}
-                      className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-[12px] font-bold tracking-widest transition-all shadow-xl shadow-indigo-900/20 active:scale-95 border border-transparent"
+                      className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-xs font-bold tracking-widest transition-all shadow-xl shadow-indigo-900/20 active:scale-95 border border-transparent"
                     >
                       Обзор
                     </button>
                   </div>
-                  <p className="text-[12px] text-tertiary pl-2 max-w-sm italic leading-relaxed">Обычно скрипты подгружаются с Рабочего стола или из папки приложения.</p>
+                  <p className="text-xs text-tertiary pl-2 max-w-sm italic leading-relaxed">Обычно скрипты подгружаются с Рабочего стола или из папки приложения.</p>
                 </div>
               </section>
             </div>
@@ -389,7 +419,7 @@ function App() {
         {draggedScript && (
           <>
             <div className="w-2 h-2 rounded-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.8)]"></div>
-            <span className="text-[13px] font-semibold text-white tracking-wide">{draggedScript.filename}</span>
+            <span className="text-xs font-semibold text-white tracking-wide">{draggedScript.filename}</span>
           </>
         )}
       </div>
