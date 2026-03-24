@@ -38,7 +38,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
                 )}
 
                 <div className={`grid ${animationsEnabled ? 'transition-all duration-150 ease-in-out' : ''} relative ${isExpanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`} style={{ overflow: isExpanded ? 'visible' : 'hidden' }}>
-                    <div className="min-h-0 overflow-hidden">
+                    <div className={`min-h-0 ${isExpanded ? 'overflow-visible' : 'overflow-hidden'}`}>
                         {node.name !== "Root" && (
                             <div
                                 onClick={() => !isDragging && toggleFolder(node.fullName)}

@@ -78,7 +78,7 @@ body {
 .custom-scrollbar {
     scrollbar-width: thin;
     scrollbar-color: var(--border-color) transparent;
-    scrollbar-gutter: stable both-edges;
+    scrollbar-gutter: stable;
 }
 
 .custom-scrollbar::-webkit-scrollbar {

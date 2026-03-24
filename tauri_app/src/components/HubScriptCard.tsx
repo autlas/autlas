@@ -33,7 +33,7 @@ const HubScriptCard = memo(function HubScriptCard({
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseLeave}
             onDoubleClick={() => !isDragging && onToggle(s, true)}
-            className={`p-6 rounded-[2.5rem] border transition-all duration-300 flex flex-col justify-between h-64 select-none relative ${isEditing ? 'z-[200]' : 'z-10'}
+            className={`p-6 rounded-[24px] border transition-all duration-300 flex flex-col justify-between h-64 select-none relative ${isEditing ? 'z-[200]' : 'z-10'}
                 ${!draggedScriptPath
                     ? `group hover:z-[100] ${isEditing ? 'shadow-2xl' : 'hover:shadow-2xl cursor-grab active:cursor-grabbing long-press-shrink will-change-transform'}`
                     : (s.path === draggedScriptPath ? 'opacity-0 pointer-events-none' : 'z-10')}

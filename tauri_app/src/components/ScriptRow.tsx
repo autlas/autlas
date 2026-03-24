@@ -31,7 +31,8 @@ const ScriptRow = memo(function ScriptRow({
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseLeave}
             onDoubleClick={() => !isDragging && onDoubleClick(s)}
-            className={`flex items-center justify-between h-[42px] px-3 rounded-lg transition-all duration-300 border border-transparent select-none relative z-10
+            className={`flex items-center justify-between h-[42px] px-3 rounded-lg transition-all duration-300 border border-transparent select-none relative
+                ${isEditing ? 'z-[200] !opacity-100' : 'z-10'}
                 ${!draggedScriptPath ? 'hover:z-[100] group hover:bg-white/5 cursor-grab active:cursor-grabbing' : ''}
                 long-press-shrink has-[button:active]:scale-100 will-change-transform
                 ${s.path === draggedScriptPath ? 'opacity-0 pointer-events-none' : ''}
