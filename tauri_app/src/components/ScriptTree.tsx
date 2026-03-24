@@ -280,7 +280,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
         const isExpanded = depth === 0 || expandedFolders[node.fullName] !== false;
 
         return (
-            <div key={node.fullName} className="flex flex-col">
+            <div key={node.fullName} className={`flex flex-col ${isExpanded ? 'overflow-visible' : 'overflow-hidden'}`}>
                 {node.name !== "Root" && (
                     <div
                         onClick={() => !isDragging && toggleFolder(node.fullName)}
@@ -295,8 +295,8 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
                     </div>
                 )}
 
-                <div className={`grid transition-all duration-300 ease-in-out relative ${isExpanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
-                    <div className="overflow-visible">
+                <div className={`grid transition-all duration-300 ease-in-out relative ${isExpanded ? 'grid-rows-[1fr] opacity-100 overflow-visible' : 'grid-rows-[0fr] opacity-0 overflow-hidden'}`}>
+                    <div className={isExpanded ? 'overflow-visible' : 'overflow-hidden'}>
                         {node.name !== "Root" && isExpanded && (
                             <div
                                 onClick={() => !isDragging && toggleFolder(node.fullName)}
