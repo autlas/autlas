@@ -12,6 +12,8 @@ function App() {
 
   const [draggedScript, setDraggedScript] = useState<{ path: string, filename: string } | null>(null);
   const [dragOverTag, setDragOverTag] = useState<string | null>(null);
+  const [isCreatingTagFor, setIsCreatingTagFor] = useState<{ path: string, filename: string } | null>(null);
+  const [newTagName, setNewTagName] = useState("");
 
   const ghostRef = useRef<HTMLDivElement>(null);
 
@@ -137,7 +139,10 @@ function App() {
 
   const handleGlobalMouseUp = async () => {
     if (draggedScript) {
-      if (dragOverTag) {
+      if (dragOverTag === "new-tag") {
+        setIsCreatingTagFor(draggedScript);
+        setNewTagName("");
+      } else if (dragOverTag) {
         await handleCustomDrop(draggedScript.path, dragOverTag);
       }
       if (ghostRef.current) {
@@ -215,6 +220,38 @@ function App() {
                   <span className="relative z-50 pointer-events-none">{tag}</span>
                 </li>
               ))}
+              {draggedScript && (
+                <li
+                  className={navItemClass("new-tag", true)}
+                  onMouseEnter={() => setDragOverTag("new-tag")}
+                  onMouseLeave={() => dragOverTag === "new-tag" && setDragOverTag(null)}
+                >
+                  <span className="flex items-center justify-center w-full pointer-events-none">
+                    <span className="text-xl font-light">+</span>
+                  </span>
+                </li>
+              )}
+              {isCreatingTagFor && (
+                <li className={navItemClass("", true)}>
+                  <input
+                    autoFocus
+                    type="text"
+                    className="w-full bg-transparent border-none outline-none text-sm font-bold text-white placeholder:text-white/20"
+                    placeholder="Имя тега..."
+                    value={newTagName}
+                    onChange={(e) => setNewTagName(e.target.value)}
+                    onBlur={() => setIsCreatingTagFor(null)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && newTagName.trim()) {
+                        handleCustomDrop(isCreatingTagFor.path, newTagName.trim());
+                        setIsCreatingTagFor(null);
+                      } else if (e.key === "Escape") {
+                        setIsCreatingTagFor(null);
+                      }
+                    }}
+                  />
+                </li>
+              )}
             </ul>
           </div>
         </div>
@@ -406,6 +443,7 @@ function App() {
           willChange: 'transform, opacity'
         }}
       >
+
         {draggedScript && (
           <>
             <div className="w-2 h-2 rounded-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.8)]"></div>
