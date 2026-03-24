@@ -314,7 +314,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
                                     onMouseDown={(e) => handleCustomMouseDown(e, s)}
                                     onDoubleClick={() => !isDragging && handleToggle(s)}
                                     className={`flex items-center justify-between h-[36px] px-3 rounded-lg transition-all border border-transparent select-none relative z-10 hover:z-[100]
-                    ${!isDragging ? 'hover:bg-white/5 group cursor-grab active:cursor-grabbing active:scale-[0.99]' : 'bg-transparent cursor-default opacity-40'}
+                    ${!isDragging ? 'hover:bg-white/5 group cursor-grab active:cursor-grabbing active:scale-[0.99] has-[button:active]:scale-100' : 'bg-transparent cursor-default opacity-40'}
                     ${s.is_hidden ? 'opacity-40 grayscale-[0.5]' : ''}
                     ${s.is_running ? 'border-green-500/10' : ''}
                 `}
@@ -351,6 +351,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
                                                             {!isDragging && (
                                                                 <button
                                                                     onClick={(e) => { e.stopPropagation(); removeTag(s, t); }}
+                                                                    onMouseDown={(e) => e.stopPropagation()}
                                                                     className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover/tag:opacity-100 transition-all shadow-lg hover:scale-125 active:scale-90 cursor-pointer z-50 pointer-events-auto border-none"
                                                                     title={`Удалить тег ${t}`}
                                                                 >
@@ -362,7 +363,8 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
                                                         </div>
                                                     ))}
                                                     <button
-                                                        onClick={() => startEditing(s)}
+                                                        onClick={(e) => { e.stopPropagation(); startEditing(s); }}
+                                                        onMouseDown={(e) => e.stopPropagation()}
                                                         className="w-7 h-7 ml-1 flex items-center justify-center rounded-lg bg-white/5 text-white/20 border border-white/5 hover:text-indigo-400 hover:bg-white/10 transition-all shadow-lg group/plus cursor-pointer pointer-events-auto opacity-0 group-hover:opacity-100"
                                                     >
                                                         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
@@ -375,7 +377,8 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
                                     {!isDragging && (
                                         <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center space-x-2 pointer-events-auto">
                                             <button
-                                                onClick={() => handleToggle(s)}
+                                                onClick={(e) => { e.stopPropagation(); handleToggle(s); }}
+                                                onMouseDown={(e) => e.stopPropagation()}
                                                 className={`text-[12px] font-bold px-4 h-7 rounded-lg bg-white/5 border border-white/5 shadow-xl transition-all cursor-pointer active:scale-95 flex items-center justify-center
                                                     ${pendingScripts.has(s.path) ? 'text-white/20 animate-pulse cursor-wait' :
                                                         s.is_running ? 'text-red-500 hover:bg-red-500 hover:text-white' : 'text-indigo-400 hover:bg-indigo-500 hover:text-white'}
@@ -519,6 +522,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
                                                 {!isDragging && (
                                                     <button
                                                         onClick={(e) => { e.stopPropagation(); removeTag(s, t); }}
+                                                        onMouseDown={(e) => e.stopPropagation()}
                                                         className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover/tag:opacity-100 transition-all shadow-xl hover:scale-125 active:scale-90 cursor-pointer z-50 border-none"
                                                         title={`Удалить тег ${t}`}
                                                     >
@@ -531,7 +535,8 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
                                         ))}
                                         {!isDragging && (
                                             <button
-                                                onClick={() => startEditing(s)}
+                                                onClick={(e) => { e.stopPropagation(); startEditing(s); }}
+                                                onMouseDown={(e) => e.stopPropagation()}
                                                 className="w-[42px] h-[42px] flex items-center justify-center border border-dashed border-white/10 rounded-xl text-white/10 hover:text-white/40 hover:border-white/20 transition-all cursor-pointer pointer-events-auto opacity-0 group-hover:opacity-100"
                                             >
                                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
@@ -543,7 +548,8 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
 
                             {!isDragging && (
                                 <button
-                                    onClick={() => handleToggle(s)}
+                                    onClick={(e) => { e.stopPropagation(); handleToggle(s); }}
+                                    onMouseDown={(e) => e.stopPropagation()}
                                     className={`w-full py-3.5 rounded-2xl text-[12px] font-bold tracking-[0.1em] transition-all transform cursor-pointer active:scale-95 mt-4 pointer-events-auto shadow-xl 
                                         ${pendingScripts.has(s.path) ? 'bg-white/5 text-white/20 animate-pulse cursor-wait border border-white/5' :
                                             s.is_running ? "bg-red-600/10 text-red-500 border border-red-500/20" :
