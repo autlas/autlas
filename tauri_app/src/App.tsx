@@ -67,8 +67,17 @@ function App() {
   const updatePalette = (val: number) => {
     const base = Math.floor((31 * val) / 100);
     const side = Math.floor((37 * val) / 100);
+    const tagActiveHover = Math.min(255, side + 16);
+    const tagActive = Math.min(255, side + 12);
+    const tagHover = Math.min(255, side + 6);
+    const tagDrag = Math.min(255, side + 8);
     document.documentElement.style.setProperty("--bg-primary", `rgb(${base}, ${base}, ${base})`);
     document.documentElement.style.setProperty("--bg-secondary", `rgb(${side}, ${side}, ${side})`);
+    document.documentElement.style.setProperty("--bg-tag", `transparent`);
+    document.documentElement.style.setProperty("--bg-tag-active", `rgb(${tagActive}, ${tagActive}, ${tagActive})`);
+    document.documentElement.style.setProperty("--bg-tag-active-hover", `rgb(${tagActiveHover}, ${tagActiveHover}, ${tagActiveHover})`);
+    document.documentElement.style.setProperty("--bg-tag-hover", `rgb(${tagHover}, ${tagHover}, ${tagHover})`);
+    document.documentElement.style.setProperty("--bg-tag-drag", `rgb(${tagDrag}, ${tagDrag}, ${tagDrag})`);
     document.documentElement.style.setProperty("--bg-tertiary", val < 10 ? "rgba(255, 255, 255, 0.05)" : "rgba(255, 255, 255, 0.03)");
     document.documentElement.style.setProperty("--border-color", val < 10 ? "rgba(255, 255, 255, 0.1)" : "rgba(255, 255, 255, 0.05)");
     document.documentElement.style.setProperty("--accent-indigo", "#6366f1");
@@ -273,11 +282,16 @@ function App() {
                 key={tab.id}
                 className={`px-6 h-11 rounded-2xl cursor-pointer text-sm font-bold transition-all border-b-2 flex items-center justify-between ${draggedScript && tab.id !== dragOverTag ? 'opacity-20 blur-[1px] scale-95' : ''
                   } ${activeTab === tab.id && viewMode !== "settings"
-                    ? tab.id === "Хаб"
+                    ? (tab.id === "Хаб"
                       ? "bg-gradient-to-r from-indigo-500 to-purple-500 border-indigo-400 shadow-xl shadow-indigo-900/40 text-white"
-                      : "bg-white/[0.03] text-indigo-400 border-indigo-500 shadow-lg"
-                    : "text-tertiary border-transparent hover:bg-white/5 hover:text-secondary"
+                      : "text-indigo-400 border-indigo-500 shadow-lg tag-active")
+                    : "text-tertiary border-transparent hover:text-secondary tag-hover"
                   }`}
+                style={{
+                  backgroundColor: (activeTab === tab.id && viewMode !== "settings" && tab.id === "Хаб")
+                    ? 'transparent'
+                    : (activeTab === tab.id && viewMode !== "settings" ? 'var(--bg-tag-active)' : 'var(--bg-tag)')
+                }}
                 onClick={() => !draggedScript && handleTabClick(tab.id)}
               >
                 <div className="flex items-center space-x-4 pointer-events-none">
@@ -396,8 +410,8 @@ function App() {
                   }}
                   className={`relative flex items-center h-11 px-6 rounded-2xl cursor-pointer transition-all duration-300 group select-none whitespace-nowrap border-b-2 
                     ${activeTab === tag && !draggedScript
-                      ? "text-indigo-400 border-indigo-500 bg-white/[0.03] shadow-[0_4px_15px_rgba(79,70,229,0.1)]"
-                      : "text-tertiary border-transparent hover:text-secondary hover:bg-white/[0.02]"
+                      ? "text-indigo-400 border-indigo-500 shadow-[0_4px_15px_rgba(79,70,229,0.1)] tag-active"
+                      : "text-tertiary border-transparent hover:text-secondary tag-hover"
                     }
                     ${draggedTag === tag ? "opacity-0 invisible" : ""}
                     ${draggedScript ? "pointer-events-none opacity-20 blur-[1px]" : ""}
@@ -405,7 +419,8 @@ function App() {
                   `}
                   style={{
                     // @ts-ignore
-                    viewTransitionName: `tag-${tag.replace(/\s+/g, '-')}`
+                    viewTransitionName: `tag-${tag.replace(/\s+/g, '-')}`,
+                    backgroundColor: activeTab === tag && !draggedScript ? 'var(--bg-tag-active)' : 'var(--bg-tag)'
                   }}
                   onClick={() => {
                     if (!isEditingTags && !draggedScript) {
@@ -690,8 +705,8 @@ function App() {
         className={`fixed z-[99999] pointer-events-none flex items-center ${draggedScript || draggedTag ? 'opacity-100' : 'opacity-0 hidden'}
           ${draggedTag
             ? (draggedTag === activeTab
-              ? 'px-6 rounded-2xl border-b-2 border-indigo-500 bg-white/[0.03] backdrop-blur-3xl shadow-xl text-indigo-400 font-bold'
-              : 'px-6 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-3xl shadow-2xl text-white/50 font-bold'
+              ? 'w-[240px] px-6 h-11 rounded-2xl border-b-2 border-indigo-500 shadow-xl text-indigo-400 font-bold'
+              : 'w-[240px] px-6 h-11 rounded-2xl border-transparent shadow-2xl text-secondary font-bold'
             )
             : 'px-4 py-2.5 rounded-xl border border-indigo-400/40 bg-indigo-500/20 backdrop-blur-md shadow-2xl text-white space-x-3'
           }
@@ -702,7 +717,10 @@ function App() {
           width: draggedTag ? `${dragGhostSize.w}px` : 'auto',
           height: draggedTag ? `${dragGhostSize.h}px` : 'auto',
           transform: 'translate3d(-50%, -50%, 0)',
-          willChange: 'transform, opacity'
+          willChange: 'transform, opacity',
+          backgroundColor: draggedTag === activeTab ? 'var(--bg-tag-active-hover)' : 'var(--bg-tag-drag)',
+          // @ts-ignore
+          viewTransitionName: 'drag-ghost'
         }}
       >
         {draggedScript && (

@@ -189,3 +189,16 @@ body {
 .animate-scale-in {
     animation: scale-in 0.08s cubic-bezier(0, 0, 0.2, 1) forwards;
 }
+
+/* Ensure drag ghost stays above reordering animations */
+::view-transition-group(drag-ghost) {
+    z-index: 999999;
+}
+
+.tag-hover:hover {
+    background-color: var(--bg-tag-hover) !important;
+}
+
+.tag-active:hover {
+    background-color: var(--bg-tag-active-hover) !important;
+}
