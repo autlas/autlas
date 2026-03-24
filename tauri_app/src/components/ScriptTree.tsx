@@ -73,7 +73,7 @@ const TagPickerPopover = memo(function TagPickerPopover({ script, allUniqueTags,
             <div className="max-h-48 overflow-y-auto custom-scrollbar space-y-1">
                 {availableTags.map((tag, index) => (
                     <button key={tag} onClick={(e) => { e.stopPropagation(); onAdd(script, tag); }} onMouseDown={(e) => e.stopPropagation()}
-                        className={`cursor-pointer w-full text-left px-4 py-2 rounded-xl transition-all flex items-center justify-between group/suggest ${selectedIndex === index ? 'bg-white/10 text-white' : 'hover:bg-white/5 text-[11px] text-white/40 hover:text-white'}`}>
+                        className={`cursor-pointer w-full text-left px-4 py-2 rounded-xl transition-all flex items-center justify-between group/suggest ${selectedIndex === index ? 'bg-white/10 text-primary' : 'hover:bg-white/5 text-[11px] text-secondary hover:text-primary'}`}>
                         <span>{tag}</span>
                         <span className={`text-indigo-400 font-bold ${selectedIndex === index ? 'opacity-100' : 'opacity-0 group-hover/suggest:opacity-100'}`}>+</span>
                     </button>
@@ -87,7 +87,7 @@ const TagPickerPopover = memo(function TagPickerPopover({ script, allUniqueTags,
                 )}
             </div>
             <button onClick={(e) => { e.stopPropagation(); onClose(); }} onMouseDown={(e) => e.stopPropagation()}
-                className="w-full mt-3 py-2 text-[10px] text-white/20 hover:text-white/40 transition-all font-bold uppercase tracking-widest cursor-pointer">
+                className="w-full mt-3 py-2 text-[10px] text-tertiary hover:text-secondary transition-all font-bold uppercase tracking-widest cursor-pointer">
                 Отмена
             </button>
         </div>
@@ -114,7 +114,7 @@ const TagPickerPopover = memo(function TagPickerPopover({ script, allUniqueTags,
             <div className="flex-1 overflow-y-auto custom-scrollbar space-y-2 mb-4">
                 {availableTags.map((tag, index) => (
                     <button key={tag} onClick={(e) => { e.stopPropagation(); onAdd(script, tag); }} onMouseDown={(e) => e.stopPropagation()}
-                        className={`cursor-pointer w-full text-left px-6 py-3 rounded-2xl transition-all flex items-center justify-between group/suggest ${selectedIndex === index ? 'bg-white/10 text-white' : 'hover:bg-white/5 text-sm text-white/40 hover:text-white'}`}>
+                        className={`cursor-pointer w-full text-left px-6 py-3 rounded-2xl transition-all flex items-center justify-between group/suggest ${selectedIndex === index ? 'bg-white/10 text-primary' : 'hover:bg-white/5 text-sm text-secondary hover:text-primary'}`}>
                         <span>{tag}</span>
                         <span className={`text-indigo-400 font-bold ${selectedIndex === index ? 'opacity-100' : 'opacity-0 group-hover/suggest:opacity-100'}`}>+</span>
                     </button>
@@ -128,7 +128,7 @@ const TagPickerPopover = memo(function TagPickerPopover({ script, allUniqueTags,
                 )}
             </div>
             <button onClick={(e) => { e.stopPropagation(); onClose(); }} onMouseDown={(e) => e.stopPropagation()}
-                className="w-full py-4 text-[12px] text-white/20 hover:text-white/40 transition-all font-bold uppercase tracking-[0.2em] cursor-pointer">
+                className="w-full py-4 text-[12px] text-tertiary hover:text-secondary transition-all font-bold uppercase tracking-[0.2em] cursor-pointer">
                 Закрыть
             </button>
         </div>
@@ -175,7 +175,7 @@ const ScriptRow = memo(function ScriptRow({
                 `}></div>
                 <span className={`text-[15px] font-medium tracking-tight truncate max-w-[200px]
                     ${isPending ? 'text-yellow-500/80 animate-pulse' :
-                        s.is_running ? 'text-green-400 font-bold' : (isEditing ? 'text-white' : 'text-white/50 group-hover:text-white')}
+                        s.is_running ? 'text-green-400 font-bold' : (isEditing ? 'text-primary' : 'text-secondary group-hover:text-primary')}
                 `}>{s.filename}</span>
 
                 {!isDragging && (
@@ -188,7 +188,7 @@ const ScriptRow = memo(function ScriptRow({
                                     onDoubleClick={(e) => e.stopPropagation()}
                                 >
                                     <div className={isRemoving ? 'animate-tag-out' : 'animate-tag-in'}>
-                                        <span className="text-[11px] font-bold px-3 h-7 rounded-lg bg-white/[0.03] text-white/35 border border-white/10 cursor-default shadow-lg flex items-center justify-center">
+                                        <span className="text-[11px] font-bold px-3 h-7 rounded-lg bg-white/[0.03] text-tertiary border border-white/10 cursor-default shadow-lg flex items-center justify-center">
                                             {t}
                                         </span>
                                     </div>
@@ -208,7 +208,7 @@ const ScriptRow = memo(function ScriptRow({
                             onClick={(e) => { e.stopPropagation(); onStartEditing(s); }}
                             onMouseDown={(e) => e.stopPropagation()}
                             onDoubleClick={(e) => e.stopPropagation()}
-                            className={`w-7 h-7 ml-1 flex items-center justify-center rounded-lg bg-white/5 text-white/20 border border-white/5 hover:text-indigo-400 hover:bg-white/10 transition-all shadow-lg group/plus cursor-pointer pointer-events-auto ${isEditing ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+                            className={`w-7 h-7 ml-1 flex items-center justify-center rounded-lg bg-white/5 text-tertiary border border-white/5 hover:text-indigo-400 hover:bg-white/10 transition-all shadow-lg group/plus cursor-pointer pointer-events-auto ${isEditing ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
                         >
                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                         </button>
@@ -611,13 +611,13 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
                         ref={el => { if (el) folderRefs.current.set(node.fullName, el); }}
                         onClick={() => !isDragging && toggleFolder(node.fullName)}
                         className={`flex items-center space-x-2 h-[32px] rounded-lg z-10 relative transition-all mb-0.5 border border-transparent hover:z-[50]
-              ${!isDragging ? 'bg-white/[0.015] hover:bg-white/[0.05] cursor-pointer group' : 'bg-transparent text-white/30 cursor-default'}
+              ${!isDragging ? 'bg-white/[0.015] hover:bg-white/[0.05] cursor-pointer group' : 'bg-transparent text-tertiary cursor-default'}
             `}
                     >
                         <div className={`w-4 h-4 flex items-center justify-center transition-transform duration-300 ${isExpanded ? 'rotate-90' : ''}`}>
                             <svg width="6" height="6" viewBox="0 0 6 6" className={`transition-colors ${isExpanded && !isDragging ? 'fill-white/20' : 'fill-white/5'} ${!isDragging && 'group-hover:fill-white'}`}><path d="M0 0L6 3L0 6V0Z" /></svg>
                         </div>
-                        <span className={`text-[14px] font-bold transition-colors ${isExpanded && !isDragging ? 'text-white' : 'text-white/20'} ${!isDragging && 'group-hover:text-white'}`}>{node.name}</span>
+                        <span className={`text-[14px] font-bold transition-colors ${isExpanded && !isDragging ? 'text-primary' : 'text-tertiary'} ${!isDragging && 'group-hover:text-primary'}`}>{node.name}</span>
                     </div>
                 )}
 
@@ -663,7 +663,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
         );
     };
 
-    if (loading) return <div className="p-10 text-center text-white/10 font-bold text-xs tracking-[0.5em] animate-pulse uppercase">Syncing Uplink...</div>;
+    if (loading) return <div className="p-10 text-center text-tertiary font-bold text-xs tracking-[0.5em] animate-pulse uppercase">Syncing Uplink...</div>;
 
     const hasContent = Object.keys(tree.children).length > 0 || tree.scripts.length > 0;
     const anyExpanded = Object.values(expandedFolders).some(val => val);
@@ -706,7 +706,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
                                     onClick={() => !isDragging && setTreeFilter(f.id as any)}
                                     className={`px-4 py-1.5 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${treeFilter === f.id
                                         ? "bg-indigo-600 text-white shadow-lg shadow-indigo-900/20"
-                                        : "text-white/20 hover:text-white/40"
+                                        : "text-tertiary hover:text-secondary"
                                         } ${isDragging ? 'opacity-20 pointer-events-none' : ''}`}
                                 >
                                     {f.label}
@@ -720,7 +720,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
                         onClick={() => !isDragging && setShowHidden(!showHidden)}
                         className={`p-2.5 rounded-xl transition-all cursor-pointer border ${showHidden
                             ? "bg-indigo-500/10 border-indigo-500/30 text-indigo-400 shadow-[0_0_15px_rgba(79,70,229,0.2)]"
-                            : "bg-white/[0.03] border-white/5 text-white/10 hover:text-white/30 hover:bg-white/[0.05]"
+                            : "bg-white/[0.03] border-white/5 text-tertiary hover:text-secondary hover:bg-white/[0.05]"
                             } ${isDragging ? 'opacity-10 pointer-events-none' : ''}`}
                         title={showHidden ? "Скрыть 'Скрытые'" : "Показать 'Скрытые'"}
                     >
@@ -743,7 +743,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
 
             {viewMode === "hub" ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                    {filtered.length === 0 && <div className="text-white/10 col-span-3 text-center py-40 italic tracking-[0.3em] text-[14px] font-bold">Пустой канал...</div>}
+                    {filtered.length === 0 && <div className="text-tertiary col-span-3 text-center py-40 italic tracking-[0.3em] text-[14px] font-bold">Пустой канал...</div>}
                     {filtered.map(s => (
                         <div
                             key={s.path}
@@ -759,8 +759,8 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
                         >
                             <div className="flex justify-between items-start pointer-events-none">
                                 <div className="flex flex-col overflow-hidden flex-1">
-                                    <span className={`text-xl font-black truncate pr-4 transition-colors tracking-tight ${!isDragging ? (editingScript === s.path ? 'text-indigo-400' : 'text-white/40 group-hover:text-indigo-400') : 'text-white/40'}`}>{s.filename}</span>
-                                    <span className="text-[12px] text-white/20 font-bold tracking-[0.4em] mt-2">{s.parent}</span>
+                                    <span className={`text-xl font-black truncate pr-4 transition-colors tracking-tight ${!isDragging ? (editingScript === s.path ? 'text-indigo-400' : 'text-secondary group-hover:text-indigo-400') : 'text-secondary'}`}>{s.filename}</span>
+                                    <span className="text-[12px] text-tertiary font-bold tracking-[0.4em] mt-2">{s.parent}</span>
                                 </div>
                                 <div className={`w-3 h-3 rounded-full mt-2 transition-opacity ${s.is_running ? 'bg-green-500' : 'bg-white/5 border border-white/10'} ${isDragging ? 'opacity-20' : ''}`}></div>
                             </div>
@@ -785,7 +785,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
                                                     onDoubleClick={(e) => e.stopPropagation()}
                                                 >
                                                     <div className={isRemoving ? 'animate-tag-out' : 'animate-tag-in'}>
-                                                        <span className={`text-[12px] px-5 py-3 bg-white/5 border border-white/5 text-white/40 font-bold rounded-xl shadow-lg leading-none flex items-center transition-opacity ${isDragging ? 'opacity-20' : ''}`}>#{t}</span>
+                                                        <span className={`text-[12px] px-5 py-3 bg-white/5 border border-white/5 text-secondary font-bold rounded-xl shadow-lg leading-none flex items-center transition-opacity ${isDragging ? 'opacity-20' : ''}`}>#{t}</span>
                                                     </div>
                                                     {!isDragging && (
                                                         <button
@@ -808,7 +808,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
                                                 onClick={(e) => { e.stopPropagation(); startEditing(s); }}
                                                 onMouseDown={(e) => e.stopPropagation()}
                                                 onDoubleClick={(e) => e.stopPropagation()}
-                                                className="w-[42px] h-[40px] flex items-center justify-center border border-dashed border-white/10 rounded-xl text-white/10 hover:text-white/40 hover:border-white/20 transition-all cursor-pointer pointer-events-auto opacity-0 group-hover:opacity-100"
+                                                className="w-[42px] h-[40px] flex items-center justify-center border border-dashed border-white/10 rounded-xl text-tertiary hover:text-secondary hover:border-white/20 transition-all cursor-pointer pointer-events-auto opacity-0 group-hover:opacity-100"
                                             >
 
                                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
@@ -823,7 +823,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
                                     onClick={(e) => { e.stopPropagation(); handleToggle(s); }}
                                     onMouseDown={(e) => e.stopPropagation()}
                                     className={`w-full py-3.5 rounded-2xl text-[12px] font-bold tracking-[0.1em] transition-all transform cursor-pointer active:scale-95 mt-4 pointer-events-auto shadow-xl 
-                                                ${pendingScripts.has(s.path) ? 'bg-white/5 text-white/20 animate-pulse cursor-wait border border-white/5' :
+                                                ${pendingScripts.has(s.path) ? 'bg-white/5 text-tertiary animate-pulse cursor-wait border border-white/5' :
                                             s.is_running ? "bg-red-600/10 text-red-500 border border-red-500/20" :
                                                 "bg-white text-black hover:bg-gray-100 group-hover:shadow-[0_0_20px_rgba(255,255,255,0.2)]"}
                                             `}
@@ -837,7 +837,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
             ) : (
                 <div className="flex flex-col space-y-0.5 select-none pr-6">
                     {!hasContent ? (
-                        <div className="text-white/10 text-center py-40 italic tracking-[0.3em] text-[14px] font-bold">Пустой раздел дерева...</div>
+                        <div className="text-tertiary text-center py-40 italic tracking-[0.3em] text-[14px] font-bold">Пустой раздел дерева...</div>
                     ) : renderNode(tree)}
                 </div>
             )}
