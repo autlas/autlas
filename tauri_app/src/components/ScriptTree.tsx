@@ -6,7 +6,7 @@ interface ScriptTreeProps {
     filterTag: string;
     onTagsLoaded: (tags: string[]) => void;
     viewMode: "tree" | "hub";
-    onCustomDragStart: (script: { path: string, filename: string, x: number, y: number }) => void;
+    onCustomDragStart: (script: { path: string, filename: string, tags: string[], x: number, y: number }) => void;
     isDragging: boolean;
     draggedScriptPath: string | null;
     animationsEnabled: boolean;
@@ -670,6 +670,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
                 onCustomDragStart({
                     path: pendingDragRef.current.script.path,
                     filename: pendingDragRef.current.script.filename,
+                    tags: pendingDragRef.current.script.tags,
                     x,
                     y
                 });

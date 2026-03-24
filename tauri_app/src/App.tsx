@@ -10,9 +10,9 @@ function App() {
   const [userTags, setUserTags] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<"tree" | "hub" | "settings">("hub");
 
-  const [draggedScript, setDraggedScript] = useState<{ path: string, filename: string } | null>(null);
+  const [draggedScript, setDraggedScript] = useState<{ path: string, filename: string, tags: string[] } | null>(null);
   const [dragOverTag, setDragOverTag] = useState<string | null>(null);
-  const [isCreatingTagFor, setIsCreatingTagFor] = useState<{ path: string, filename: string } | null>(null);
+  const [isCreatingTagFor, setIsCreatingTagFor] = useState<{ path: string, filename: string, tags: string[] } | null>(null);
   const [newTagName, setNewTagName] = useState("");
   const [draggedTag, setDraggedTag] = useState<string | null>(null);
   const [isRenamingTag, setIsRenamingTag] = useState<string | null>(null);
@@ -172,8 +172,8 @@ function App() {
     }
   };
 
-  const startCustomDrag = useCallback((script: { path: string, filename: string, x: number, y: number }) => {
-    setDraggedScript({ path: script.path, filename: script.filename });
+  const startCustomDrag = useCallback((script: { path: string, filename: string, tags: string[], x: number, y: number }) => {
+    setDraggedScript({ path: script.path, filename: script.filename, tags: script.tags });
     if (ghostRef.current) {
       ghostRef.current.setAttribute("data-dragging", "true");
       ghostRef.current.style.transform = `translate3d(${script.x}px, ${script.y}px, 0) translate(-50%, -50%) scale(1.05)`;
@@ -235,19 +235,21 @@ function App() {
   }, [draggedScript, draggedTag, handleGlobalMouseUp]);
 
   const navItemClass = (tab: string, isTag: boolean = false) => `
-    px-6 h-11 rounded-xl cursor-pointer text-sm font-bold transition-all border flex items-center justify-between relative z-50
-    will-change-transform select-none
+    px-6 h-11 rounded-2xl cursor-pointer text-sm font-bold transition-all border-b-2 flex items-center justify-between relative z-50
+    will-change-transform select-none long-press-shrink ${activeTabPressed === tab ? "active-left" : ""}
     ${draggedTag === tab
-      ? "bg-white/15 text-white border-white/20 shadow-2xl scale-[1.05] z-50 ring-1 ring-white/20 shadow-white/5"
-      : activeTab === tab
-        ? "bg-white/10 text-white border-white/10 shadow-lg"
+      ? "opacity-0 invisible pointer-events-none"
+      : (draggedScript && isTag && draggedScript.tags.includes(tab))
+        ? "text-white/10 border-transparent opacity-30 shadow-none blur-[1px]"
         : dragOverTag === tab
-          ? "bg-indigo-600 text-white border-white/40 shadow-[0_0_20px_rgba(79,70,229,0.5)] scale-[1.02]"
-          : (draggedScript && isTag)
-            ? "text-indigo-400 border-indigo-500/30 bg-indigo-500/5 animate-pulse"
-            : draggedScript
-              ? "text-white/10 border-transparent opacity-30 shadow-none scale-[0.98] blur-[1px]"
-              : "text-tertiary border-transparent hover:bg-white/5 hover:text-secondary"}
+          ? "bg-indigo-600 text-white border-indigo-400 shadow-[0_0_20px_rgba(79,70,229,0.5)] scale-[1.02]"
+          : activeTab === tab
+            ? "text-indigo-400 border-indigo-500 shadow-lg tag-active"
+            : (draggedScript && isTag)
+              ? "text-indigo-400 border-indigo-500/30 bg-indigo-500/15 animate-pulse"
+              : draggedScript
+                ? "text-white/10 border-transparent opacity-30 shadow-none blur-[1px]"
+                : "text-tertiary border-transparent hover:text-secondary tag-hover"}
   `;
 
   return (
@@ -272,7 +274,7 @@ function App() {
             {[{ id: "Хаб", label: "Хаб", icon: "" }, { id: "Все скрипты", label: "Дерево", icon: "" }].map((tab) => (
               <li
                 key={tab.id}
-                className={`px-6 h-11 rounded-2xl cursor-pointer text-sm font-bold transition-all border-b-2 flex items-center justify-between ${draggedScript && tab.id !== dragOverTag ? 'opacity-20 blur-[1px] scale-95' : ''
+                className={`px-6 h-11 rounded-2xl cursor-pointer text-sm font-bold transition-all border-b-2 flex items-center justify-between ${draggedScript && tab.id !== dragOverTag ? 'opacity-20 blur-[1px]' : ''
                   } ${activeTab === tab.id && viewMode !== "settings"
                     ? (tab.id === "Хаб"
                       ? "bg-gradient-to-r from-indigo-500 to-purple-500 border-indigo-400 shadow-xl shadow-indigo-900/40 text-white"
@@ -389,19 +391,13 @@ function App() {
                     setActiveTabPressed(null);
                     draggedScript && dragOverTag === tag && setDragOverTag(null)
                   }}
-                  className={`relative flex items-center h-11 px-6 rounded-2xl cursor-pointer transition-all duration-300 group select-none whitespace-nowrap border-b-2 
-                    ${activeTab === tag && !draggedScript
-                      ? "text-indigo-400 border-indigo-500 shadow-[0_4px_15px_rgba(79,70,229,0.1)] tag-active"
-                      : "text-tertiary border-transparent hover:text-secondary tag-hover"
-                    }
-                    ${draggedTag === tag ? "opacity-0 invisible" : ""}
-                    ${draggedScript ? "pointer-events-none opacity-20 blur-[1px]" : ""}
-                    long-press-shrink ${activeTabPressed === tag ? 'active-left' : ''}
-                  `}
+                  className={navItemClass(tag, true)}
                   style={{
+                    backgroundColor: (dragOverTag === tag || (draggedScript && !draggedScript.tags.includes(tag)))
+                      ? undefined
+                      : (activeTab === tag ? 'var(--bg-tag-active)' : 'var(--bg-tag)'),
                     // @ts-ignore
                     viewTransitionName: `tag-${tag.replace(/\s+/g, '-')}`,
-                    backgroundColor: activeTab === tag && !draggedScript ? 'var(--bg-tag-active)' : 'var(--bg-tag)'
                   }}
                   onClick={() => {
                     if (!draggedScript) {
@@ -658,7 +654,7 @@ function App() {
               ? 'w-[240px] px-6 h-11 rounded-2xl border-b-2 border-indigo-500 shadow-xl text-indigo-400 font-bold'
               : 'w-[240px] px-6 h-11 rounded-2xl border-transparent shadow-2xl text-secondary font-bold'
             )
-            : 'px-4 py-2.5 rounded-xl border border-indigo-400/40 bg-indigo-500/20 backdrop-blur-md shadow-2xl text-white space-x-3'
+            : (draggedScript ? 'bg-white/10 border border-white/20 shadow-2xl backdrop-blur-xl rounded-2xl px-6 py-3 text-white font-bold whitespace-nowrap space-x-3' : '')
           }
         `}
         style={{
@@ -667,7 +663,7 @@ function App() {
           width: draggedTag ? `${dragGhostSize.w}px` : 'auto',
           height: draggedTag ? `${dragGhostSize.h}px` : 'auto',
           willChange: 'transform, opacity',
-          backgroundColor: draggedTag === activeTab ? 'var(--bg-tag-active-hover)' : 'var(--bg-tag-drag)',
+          backgroundColor: draggedTag ? (draggedTag === activeTab ? 'var(--bg-tag-active-hover)' : 'var(--bg-tag-drag)') : 'transparent',
           // @ts-ignore
           viewTransitionName: 'drag-ghost'
         }}
