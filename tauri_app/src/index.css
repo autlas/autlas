@@ -70,7 +70,7 @@ body {
     transition: transform 0.1s ease-out;
 }
 
-.long-press-shrink:active {
+.long-press-shrink.active-left {
     transform: scale(0.98) translateZ(0);
     transition: transform 0.3s ease-in;
 }
@@ -177,7 +177,7 @@ body {
 @keyframes scale-in {
     from {
         opacity: 0;
-        transform: scale(0.95) translateY(-5px);
+        transform: scale(0.98) translateY(-3px);
     }
 
     to {
@@ -187,5 +187,5 @@ body {
 }
 
 .animate-scale-in {
-    animation: scale-in 0.15s cubic-bezier(0, 0, 0.2, 1) forwards;
+    animation: scale-in 0.08s cubic-bezier(0, 0, 0.2, 1) forwards;
 }

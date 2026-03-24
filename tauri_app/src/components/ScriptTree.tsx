@@ -161,13 +161,30 @@ const ScriptRow = memo(function ScriptRow({
     s, isDragging, draggedScriptPath, isEditing, isPending, removingTagKeys,
     allUniqueTags, popoverRef,
     onMouseDown, onDoubleClick, onToggle, onStartEditing, onAddTag, onRemoveTag, onCloseEditing,
-    onScriptContextMenu // Destructure the new prop
+    onScriptContextMenu
 }: ScriptRowProps) {
+    const [isLeftPressed, setIsLeftPressed] = useState(false);
+
+    const handleMouseDown = (e: React.MouseEvent) => {
+        if (e.button === 2) {
+            e.preventDefault();
+            onScriptContextMenu(e, s);
+            return;
+        }
+        if (e.button === 0) {
+            setIsLeftPressed(true);
+        }
+        onMouseDown(e, s);
+    };
+
+    const handleMouseUp = () => setIsLeftPressed(false);
+    const handleMouseLeave = () => setIsLeftPressed(false);
     return (
         <div
-            onMouseDown={(e) => onMouseDown(e, s)}
+            onMouseDown={handleMouseDown}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseLeave}
             onDoubleClick={() => !isDragging && onDoubleClick(s)}
-            onContextMenu={(e) => onScriptContextMenu(e, s)} // Pass context menu event
             className={`flex items-center justify-between h-[42px] px-3 rounded-lg transition-all duration-300 border border-transparent select-none relative z-10 hover:z-[100]
                 group hover:bg-white/5 cursor-grab active:cursor-grabbing long-press-shrink has-[button:active]:scale-100
                 will-change-transform
@@ -175,6 +192,7 @@ const ScriptRow = memo(function ScriptRow({
                     (draggedScriptPath ? 'opacity-20 blur-[1px] pointer-events-none' : '')}
                 ${s.is_hidden ? 'opacity-40 grayscale-[0.5]' : ''}
                 ${s.is_running ? 'border-green-500/10' : ''}
+                ${isLeftPressed ? 'active-left' : ''}
             `}
         >
             <div className="flex items-center space-x-4 overflow-visible flex-1 mr-4 pointer-events-none">
@@ -254,19 +272,164 @@ const ScriptRow = memo(function ScriptRow({
         </div>
     );
 }, (prev, next) => {
-    // Custom comparator — only re-render if THIS row's data actually changed
     return prev.s.path === next.s.path &&
         prev.s.is_running === next.s.is_running &&
         prev.s.is_hidden === next.s.is_hidden &&
         prev.s.filename === next.s.filename &&
-        prev.s.tags.length === next.s.tags.length &&
-        prev.s.tags.every((t, i) => t === next.s.tags[i]) &&
+        prev.s.tags.join(',') === next.s.tags.join(',') &&
         prev.isDragging === next.isDragging &&
+        prev.draggedScriptPath === next.draggedScriptPath &&
         prev.isEditing === next.isEditing &&
         prev.isPending === next.isPending &&
-        prev.removingTagKeys.length === next.removingTagKeys.length &&
-        prev.removingTagKeys.every((k, i) => k === next.removingTagKeys[i]) &&
-        prev.onScriptContextMenu === next.onScriptContextMenu; // Include the new prop in comparison
+        prev.removingTagKeys.join(',') === next.removingTagKeys.join(',') &&
+        prev.allUniqueTags.join(',') === next.allUniqueTags.join(',');
+});
+
+interface HubScriptCardProps {
+    s: Script;
+    isDragging: boolean;
+    draggedScriptPath: string | null;
+    editingScript: string | null;
+    pendingScripts: Set<string>;
+    removingTags: Set<string>;
+    allUniqueTags: string[];
+    popoverRef: React.RefObject<HTMLDivElement | null>;
+    onMouseDown: (e: React.MouseEvent, s: Script) => void;
+    onToggle: (s: Script, force?: boolean) => void;
+    onStartEditing: (s: Script) => void;
+    onAddTag: (s: Script, tag: string) => void;
+    onRemoveTag: (s: Script, tag: string) => void;
+    onCloseEditing: () => void;
+    onScriptContextMenu: (e: React.MouseEvent, s: Script) => void;
+}
+
+const HubScriptCard = memo(function HubScriptCard({
+    s, isDragging, draggedScriptPath, editingScript, pendingScripts, removingTags,
+    allUniqueTags, popoverRef, onMouseDown, onToggle, onStartEditing, onAddTag, onRemoveTag, onCloseEditing,
+    onScriptContextMenu
+}: HubScriptCardProps) {
+    const [isLeftPressed, setIsLeftPressed] = useState(false);
+
+    const handleMouseDown = (e: React.MouseEvent) => {
+        if (e.button === 2) {
+            e.preventDefault();
+            onScriptContextMenu(e, s);
+            return;
+        }
+        if (e.button === 0) {
+            setIsLeftPressed(true);
+        }
+        onMouseDown(e, s);
+    };
+
+    const handleMouseUp = () => setIsLeftPressed(false);
+    const handleMouseLeave = () => setIsLeftPressed(false);
+
+    const isEditing = editingScript === s.path;
+    const isPending = pendingScripts.has(s.path);
+
+    return (
+        <div
+            onMouseDown={handleMouseDown}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseLeave}
+            onDoubleClick={() => !isDragging && onToggle(s, true)}
+            className={`p-6 rounded-[2.5rem] border transition-all duration-300 flex flex-col justify-between h-64 select-none relative ${isEditing ? 'z-[200]' : 'z-10 hover:z-[100]'}
+                ${!isDragging
+                    ? `group ${isEditing ? 'shadow-2xl' : 'hover:shadow-2xl cursor-grab active:cursor-grabbing long-press-shrink will-change-transform'}`
+                    : (s.path === draggedScriptPath ? 'opacity-0 pointer-events-none' : 'opacity-20 blur-[1px] pointer-events-none')}
+                ${s.is_running && !isDragging ? 'border-indigo-500/30' : ''}
+                ${isLeftPressed && !isEditing ? 'active-left' : ''}
+            `}
+            style={{ backgroundColor: 'var(--bg-tertiary)', borderColor: s.is_running && !isDragging ? 'var(--accent-indigo)' : 'var(--border-color)' }}
+        >
+            <div className="flex justify-between items-start pointer-events-none">
+                <div className="flex flex-col overflow-hidden flex-1">
+                    <span className={`text-xl font-black truncate pr-4 transition-colors tracking-tight stabilize-text ${!isDragging ? (isEditing ? 'text-indigo-400' : 'text-secondary group-hover:text-indigo-400') : 'text-secondary'}`}>{s.filename}</span>
+                    <span className="text-xs text-tertiary font-bold tracking-[0.15em] mt-1 opacity-70">{s.parent}</span>
+                </div>
+                <div className={`w-3 h-3 rounded-full mt-2 transition-opacity ${s.is_running ? 'bg-green-500' : 'bg-white/5 border border-white/10'} ${isDragging ? 'opacity-20' : ''}`}></div>
+            </div>
+
+            <div className="mt-4 flex-1">
+                {isEditing && !isDragging ? (
+                    <TagPickerPopover
+                        script={s}
+                        allUniqueTags={allUniqueTags}
+                        popoverRef={popoverRef}
+                        onAdd={(script, tag) => onAddTag(script, tag)}
+                        onClose={onCloseEditing}
+                        variant="hub"
+                    />
+                ) : (
+                    <div className="flex flex-wrap gap-2 pointer-events-none">
+                        {s.tags.map(t => {
+                            const isRemoving = removingTags.has(`${s.path}-${t}`);
+                            return (
+                                <div key={t}
+                                    className="relative group/tag inline-flex items-center pointer-events-auto"
+                                    onDoubleClick={(e) => e.stopPropagation()}
+                                >
+                                    <div className={isRemoving ? 'animate-tag-out' : 'animate-tag-in'}>
+                                        <span className={`text-xs px-5 py-3 bg-white/5 border border-white/5 text-secondary font-bold rounded-xl shadow-lg leading-none flex items-center transition-opacity ${isDragging ? 'opacity-20' : ''}`}>#{t}</span>
+                                    </div>
+                                    {!isDragging && (
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); onRemoveTag(s, t); }}
+                                            onMouseDown={(e) => e.stopPropagation()}
+                                            onDoubleClick={(e) => e.stopPropagation()}
+                                            className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover/tag:opacity-100 transition-all shadow-xl hover:scale-125 active:scale-90 cursor-pointer z-50 border-none"
+                                            title={`Удалить тег ${t}`}
+                                        >
+                                            <svg width="10" height="2" viewBox="0 0 10 2" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                                                <path d="M1 1h8" />
+                                            </svg>
+                                        </button>
+                                    )}
+                                </div>
+                            );
+                        })}
+                        {!isDragging && (
+                            <button
+                                onClick={(e) => { e.stopPropagation(); onStartEditing(s); }}
+                                onMouseDown={(e) => e.stopPropagation()}
+                                onDoubleClick={(e) => e.stopPropagation()}
+                                className="w-[42px] h-[36px] flex items-center justify-center border border-dashed border-white/10 rounded-xl text-tertiary hover:text-secondary hover:border-white/20 transition-all cursor-pointer pointer-events-auto opacity-0 group-hover:opacity-100"
+                            >
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                    <line x1="12" y1="5" x2="12" y2="19" />
+                                    <line x1="5" y1="12" x2="19" y2="12" />
+                                </svg>
+                            </button>
+                        )}
+                    </div>
+                )}
+            </div>
+
+            {!isDragging && (
+                <button
+                    onClick={(e) => { e.stopPropagation(); onToggle(s); }}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    className={`w-full py-3.5 rounded-2xl text-xs font-bold tracking-[0.1em] transition-all transform cursor-pointer active:scale-95 pointer-events-auto shadow-xl 
+                        ${isPending ? 'bg-white/5 text-tertiary animate-pulse cursor-wait border border-white/5' :
+                            s.is_running ? "bg-red-600/10 text-red-500 border border-red-500/20" :
+                                "bg-white text-black hover:bg-gray-100 group-hover:shadow-[0_0_20px_rgba(255,255,255,0.2)]"}
+                    `}
+                >
+                    {isPending ? (s.is_running ? "KILLING..." : "IGNITING...") : (s.is_running ? "Kill" : "Run")}
+                </button>
+            )}
+        </div>
+    );
+}, (prev, next) => {
+    return prev.s.path === next.s.path &&
+        prev.s.is_running === next.s.is_running &&
+        prev.s.filename === next.s.filename &&
+        prev.s.tags.join(',') === next.s.tags.join(',') &&
+        prev.isDragging === next.isDragging &&
+        prev.draggedScriptPath === next.draggedScriptPath &&
+        prev.editingScript === next.editingScript &&
+        prev.pendingScripts === next.pendingScripts;
 });
 
 export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustomDragStart, isDragging, draggedScriptPath, animationsEnabled, onScriptContextMenu }: ScriptTreeProps) {
@@ -473,7 +636,10 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
     }, [removingTags]);
 
     const handleCustomMouseDown = useCallback((e: React.MouseEvent, script: Script) => {
-        if (e.button !== 0) return;
+        if (e.button !== 0) {
+            e.preventDefault();
+            return;
+        }
         const target = e.target as HTMLElement;
         if (target.closest('button') || target.closest('input')) return;
 
@@ -758,99 +924,24 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                         {filtered.length === 0 && <div className="text-tertiary col-span-3 text-center py-40 italic tracking-[0.3em] text-sm font-bold">Пустой канал...</div>}
                         {filtered.map(s => (
-                            <div
+                            <HubScriptCard
                                 key={s.path}
-                                onMouseDown={(e) => handleCustomMouseDown(e, s)}
-                                onDoubleClick={() => !isDragging && handleToggle(s, true)}
-                                onContextMenu={(e) => {
-                                    e.preventDefault();
-                                    onScriptContextMenu(e, s);
-                                }}
-                                className={`p-6 rounded-[2.5rem] border transition-all duration-300 flex flex-col justify-between h-64 select-none relative ${editingScript === s.path ? 'z-[200]' : 'z-10 hover:z-[100]'}
-                                    ${!isDragging
-                                        ? `group ${editingScript === s.path ? 'shadow-2xl' : 'hover:shadow-2xl cursor-grab active:cursor-grabbing long-press-shrink will-change-transform'}`
-                                        : (s.path === draggedScriptPath ? 'opacity-0 pointer-events-none' : 'opacity-20 blur-[1px] pointer-events-none')}
-                                    ${s.is_running && !isDragging ? 'border-indigo-500/30' : ''}
-                                `}
-                                style={{ backgroundColor: 'var(--bg-tertiary)', borderColor: s.is_running && !isDragging ? 'var(--accent-indigo)' : 'var(--border-color)' }}
-                            >
-                                <div className="flex justify-between items-start pointer-events-none">
-                                    <div className="flex flex-col overflow-hidden flex-1">
-                                        <span className={`text-xl font-black truncate pr-4 transition-colors tracking-tight stabilize-text ${!isDragging ? (editingScript === s.path ? 'text-indigo-400' : 'text-secondary group-hover:text-indigo-400') : 'text-secondary'}`}>{s.filename}</span>
-                                        <span className="text-xs text-tertiary font-bold tracking-[0.15em] mt-1 opacity-70">{s.parent}</span>
-                                    </div>
-                                    <div className={`w-3 h-3 rounded-full mt-2 transition-opacity ${s.is_running ? 'bg-green-500' : 'bg-white/5 border border-white/10'} ${isDragging ? 'opacity-20' : ''}`}></div>
-                                </div>
-
-                                <div className="mt-4 flex-1">
-                                    {editingScript === s.path && !isDragging ? (
-                                        <TagPickerPopover
-                                            script={s}
-                                            allUniqueTags={allUniqueTags}
-                                            popoverRef={popoverRef}
-                                            onAdd={addTag}
-                                            onClose={stopEditing}
-                                            variant="hub"
-                                        />
-                                    ) : (
-                                        <div className="flex flex-wrap gap-2 pointer-events-none">
-                                            {s.tags.map(t => {
-                                                const isRemoving = removingTags.has(`${s.path}-${t}`);
-                                                return (
-                                                    <div key={t}
-                                                        className="relative group/tag inline-flex items-center pointer-events-auto"
-                                                        onDoubleClick={(e) => e.stopPropagation()}
-                                                    >
-                                                        <div className={isRemoving ? 'animate-tag-out' : 'animate-tag-in'}>
-                                                            <span className={`text-xs px-5 py-3 bg-white/5 border border-white/5 text-secondary font-bold rounded-xl shadow-lg leading-none flex items-center transition-opacity ${isDragging ? 'opacity-20' : ''}`}>#{t}</span>
-                                                        </div>
-                                                        {!isDragging && (
-                                                            <button
-                                                                onClick={(e) => { e.stopPropagation(); removeTag(s, t); }}
-                                                                onMouseDown={(e) => e.stopPropagation()}
-                                                                onDoubleClick={(e) => e.stopPropagation()}
-                                                                className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover/tag:opacity-100 transition-all shadow-xl hover:scale-125 active:scale-90 cursor-pointer z-50 border-none"
-                                                                title={`Удалить тег ${t}`}
-                                                            >
-                                                                <svg width="10" height="2" viewBox="0 0 10 2" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                                                                    <path d="M1 1h8" />
-                                                                </svg>
-                                                            </button>
-                                                        )}
-                                                    </div>
-                                                );
-                                            })}
-                                            {!isDragging && (
-                                                <button
-                                                    onClick={(e) => { e.stopPropagation(); startEditing(s); }}
-                                                    onMouseDown={(e) => e.stopPropagation()}
-                                                    onDoubleClick={(e) => e.stopPropagation()}
-                                                    className="w-[42px] h-[36px] flex items-center justify-center border border-dashed border-white/10 rounded-xl text-tertiary hover:text-secondary hover:border-white/20 transition-all cursor-pointer pointer-events-auto opacity-0 group-hover:opacity-100"
-                                                >
-                                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                                                        <line x1="12" y1="5" x2="12" y2="19" />
-                                                        <line x1="5" y1="12" x2="19" y2="12" />
-                                                    </svg>
-                                                </button>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-
-                                {!isDragging && (
-                                    <button
-                                        onClick={(e) => { e.stopPropagation(); handleToggle(s); }}
-                                        onMouseDown={(e) => e.stopPropagation()}
-                                        className={`w-full py-3.5 rounded-2xl text-xs font-bold tracking-[0.1em] transition-all transform cursor-pointer active:scale-95 pointer-events-auto shadow-xl 
-                                            ${pendingScripts.has(s.path) ? 'bg-white/5 text-tertiary animate-pulse cursor-wait border border-white/5' :
-                                                s.is_running ? "bg-red-600/10 text-red-500 border border-red-500/20" :
-                                                    "bg-white text-black hover:bg-gray-100 group-hover:shadow-[0_0_20px_rgba(255,255,255,0.2)]"}
-                                        `}
-                                    >
-                                        {pendingScripts.has(s.path) ? (s.is_running ? "KILLING..." : "IGNITING...") : (s.is_running ? "Kill" : "Run")}
-                                    </button>
-                                )}
-                            </div>
+                                s={s}
+                                isDragging={isDragging}
+                                draggedScriptPath={draggedScriptPath}
+                                editingScript={editingScript}
+                                pendingScripts={pendingScripts}
+                                removingTags={removingTags}
+                                allUniqueTags={allUniqueTags}
+                                popoverRef={popoverRef}
+                                onMouseDown={handleCustomMouseDown}
+                                onToggle={handleToggle}
+                                onStartEditing={startEditing}
+                                onAddTag={addTag}
+                                onRemoveTag={removeTag}
+                                onCloseEditing={stopEditing}
+                                onScriptContextMenu={onScriptContextMenu}
+                            />
                         ))}
                     </div>
                 ) : (

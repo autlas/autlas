@@ -239,12 +239,11 @@ fn open_in_explorer(path: String) -> Result<(), String> {
 
 #[tauri::command]
 fn edit_script(path: String) -> Result<(), String> {
-    // Open in default editor (usually cmd /c start)
-    Command::new("cmd")
-        .arg("/c")
-        .arg("start")
-        .arg("") // Title
-        .arg(&path)
+    // Open in default editor using the 'Edit' verb
+    Command::new("powershell")
+        .arg("-NoProfile")
+        .arg("-Command")
+        .arg(format!("Start-Process -FilePath '{}' -Verb Edit", path))
         .spawn()
         .map_err(|e| e.to_string())?;
     Ok(())
