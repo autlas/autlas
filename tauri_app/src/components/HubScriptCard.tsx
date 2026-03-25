@@ -37,10 +37,10 @@ const HubScriptCard = memo(function HubScriptCard({
                 ${!draggedScriptPath
                     ? `group hover:z-[100] ${isEditing ? 'shadow-2xl' : 'hover:shadow-2xl cursor-grab active:cursor-grabbing long-press-shrink will-change-transform'}`
                     : (s.path === draggedScriptPath ? 'opacity-0 pointer-events-none' : 'z-10')}
-                ${s.is_running && !isDragging ? 'border-indigo-500/30' : ''}
+                ${s.is_running && !isDragging ? '' : ''}
                 ${isLeftPressed && !isEditing ? 'active-left' : ''}
             `}
-            style={{ backgroundColor: 'var(--bg-tertiary)', borderColor: s.is_running && !isDragging ? 'var(--accent-indigo)' : 'var(--border-color)' }}
+            style={{ backgroundColor: 'var(--bg-tertiary)', borderColor: 'var(--border-color)' }}
         >
             <div className="flex justify-between items-start pointer-events-none">
                 <div className="flex flex-col overflow-hidden flex-1">
@@ -70,7 +70,7 @@ const HubScriptCard = memo(function HubScriptCard({
                                     onDoubleClick={(e) => e.stopPropagation()}
                                 >
                                     <div className={isRemoving ? 'animate-tag-out' : 'animate-tag-in'}>
-                                        <span className={`text-xs px-5 py-3 bg-white/5 border border-white/5 text-secondary font-bold rounded-xl shadow-lg leading-none flex items-center transition-opacity ${isDragging ? 'opacity-20' : ''}`}>#{t}</span>
+                                        <span className={`text-xs px-5 py-3 bg-white/5 border border-white/5 text-secondary font-bold rounded-xl shadow-lg leading-none flex items-center transition-opacity ${isDragging ? 'opacity-20' : ''}`}>{t}</span>
                                     </div>
                                     {!isDragging && (
                                         <button
@@ -111,7 +111,7 @@ const HubScriptCard = memo(function HubScriptCard({
                     onMouseDown={(e) => e.stopPropagation()}
                     className={`w-full py-3.5 rounded-2xl text-xs font-bold tracking-[0.1em] transition-all transform cursor-pointer active:scale-95 pointer-events-auto shadow-xl 
                         ${isPending ? 'bg-white/5 text-tertiary animate-pulse cursor-wait border border-white/5' :
-                            s.is_running ? "bg-red-600/10 text-red-500 border border-red-500/20" :
+                            s.is_running ? "bg-white/5 text-tertiary border border-white/5 hover:bg-red-600/15 hover:text-red-500 hover:border-red-500/30 active:bg-red-600/25 active:text-red-500 transition-all" :
                                 "bg-white text-black hover:bg-gray-100 group-hover:shadow-[0_0_20px_rgba(255,255,255,0.2)]"
                         }
                     `}

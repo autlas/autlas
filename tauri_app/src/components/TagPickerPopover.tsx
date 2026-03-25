@@ -35,7 +35,7 @@ const TagPickerPopover = memo(function TagPickerPopover({ script, allUniqueTags,
         }
         else if (e.key === "ArrowUp") {
             e.preventDefault();
-            setSelectedIndex(p => totalCount > 0 ? (p - 1 + totalCount) % totalCount : 0);
+            setSelectedIndex(p => totalCount > 0 ? (p - 1 + totalCount) : 0);
         }
         else if (e.key === "Enter") {
             e.preventDefault();
@@ -87,7 +87,7 @@ const TagPickerPopover = memo(function TagPickerPopover({ script, allUniqueTags,
         </div>
     );
 
-    // hub variant (compact mode)
+    // hub variant (compact & scroll fixed)
     return (
         <div
             ref={popoverRef}
@@ -95,9 +95,9 @@ const TagPickerPopover = memo(function TagPickerPopover({ script, allUniqueTags,
             onDoubleClick={(e) => e.stopPropagation()}
             onMouseDown={(e) => e.stopPropagation()}
             onMouseUp={(e) => e.stopPropagation()}
-            className="absolute inset-0 bg-[#1a1a1c] border border-white/10 rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.9)] z-[1000] p-4 backdrop-blur-3xl pointer-events-auto flex flex-col !cursor-default !opacity-100"
+            className="absolute inset-0 bg-[#1a1a1c] border border-white/10 rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.9)] z-[1000] overflow-hidden backdrop-blur-3xl pointer-events-auto flex flex-col !cursor-default !opacity-100"
         >
-            <div className="pb-0">
+            <div className="p-4 pb-0">
                 <input
                     className="w-full bg-white/5 border border-white/5 rounded-xl px-5 py-3 text-xs text-white outline-none focus:border-indigo-500/50 transition-all font-bold mb-3 flex-shrink-0"
                     placeholder="Поиск или новый тег..."
@@ -109,18 +109,18 @@ const TagPickerPopover = memo(function TagPickerPopover({ script, allUniqueTags,
             </div>
             <div
                 ref={listRef}
-                className="flex-1 overflow-y-auto custom-scrollbar pl-1 pr-1 pb-4 space-y-0.5 w-full"
+                className="flex-1 overflow-y-auto custom-scrollbar pl-4 pr-1 pb-4 space-y-0.5 w-full"
             >
                 {availableTags.map((tag, index) => (
                     <button key={tag} onClick={(e) => { e.stopPropagation(); onAdd(script, tag); }} onMouseDown={(e) => e.stopPropagation()}
-                        className={`cursor-pointer w-full text-left px-4 py-2.5 rounded-xl transition-all flex items-center justify-between group/suggest ${selectedIndex === index ? 'bg-white/10 text-primary' : 'hover:bg-white/5 text-xs text-secondary hover:text-primary'}`}>
+                        className={`cursor-pointer w-full text-left px-5 py-2.5 rounded-xl transition-all flex items-center justify-between group/suggest ${selectedIndex === index ? 'bg-white/10 text-primary' : 'hover:bg-white/5 text-xs text-secondary hover:text-primary'}`}>
                         <span className="font-bold">{tag}</span>
                         <span className={`text-indigo-400 font-bold ${selectedIndex === index ? 'opacity-100' : 'opacity-0 group-hover/suggest:opacity-100'}`}>+</span>
                     </button>
                 ))}
                 {showCreate && (
                     <button onClick={(e) => { e.stopPropagation(); onAdd(script, query); }} onMouseDown={(e) => e.stopPropagation()}
-                        className={`cursor-pointer w-full text-left px-4 py-2.5 rounded-xl transition-all flex items-center justify-between ${selectedIndex === availableTags.length ? 'bg-indigo-500/30 text-indigo-300 font-bold' : 'bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 font-bold'}`}>
+                        className={`cursor-pointer w-full text-left px-5 py-2.5 rounded-xl transition-all flex items-center justify-between ${selectedIndex === availableTags.length ? 'bg-indigo-500/30 text-indigo-300 font-bold' : 'bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 font-bold'}`}>
                         <span className="text-xs font-bold">Создать "{query}"</span>
                         <span className="text-xl leading-none">+</span>
                     </button>
