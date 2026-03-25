@@ -242,3 +242,21 @@ body {
 .tag-active:hover {
     background-color: var(--bg-tag-active-hover) !important;
 }
+
+@keyframes status-glow-pulse {
+
+    0%,
+    100% {
+        box-shadow: 0 0 10px rgba(34, 197, 94, 0.6);
+        transform: scale(1);
+    }
+
+    50% {
+        box-shadow: 0 0 20px rgba(34, 197, 94, 1.0);
+        transform: scale(1.1);
+    }
+}
+
+.animate-status-glow {
+    animation: status-glow-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}

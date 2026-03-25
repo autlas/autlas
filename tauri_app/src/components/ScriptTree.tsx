@@ -159,9 +159,9 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
                 </div>
             )}
 
-            <div className={`flex-1 overflow-y-auto custom-scrollbar pr-2 mt-2 transition-all duration-300 ${draggedScriptPath ? 'opacity-30 blur-[1px]' : ''}`}>
+            <div className={`flex-1 overflow-y-auto custom-scrollbar mt-2 transition-all duration-300 ${draggedScriptPath ? 'opacity-30 blur-[1px]' : ''}`}>
                 {viewMode === "hub" ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-[repeat(auto-fill,minmax(340px,1fr))] gap-6 pb-10">
                         {filtered.length === 0 && <div className="text-tertiary col-span-3 text-center py-40 italic tracking-[0.3em] text-sm font-bold">Пустой канал...</div>}
                         {filtered.map(s => (
                             <HubScriptCard

@@ -42,14 +42,14 @@ const ScriptRow = memo(function ScriptRow({
             `}
         >
             <div className="flex items-center space-x-4 overflow-visible flex-1 mr-4 pointer-events-none">
-                <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0
+                <div className={`w-2 h-2 rounded-full flex-shrink-0 transition-all duration-500
                     ${isPending ? 'bg-yellow-500 animate-pulse shadow-[0_0_10px_rgba(234,179,8,0.6)]' :
-                        s.is_running ? 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.6)]' : 'bg-white/10'}
+                        s.is_running ? 'bg-green-500 animate-status-glow shadow-[0_0_12px_rgba(34,197,94,0.8)]' : 'bg-white/10'}
                 `}></div>
                 <span className={`text-base font-medium tracking-tight truncate max-w-[200px] stabilize-text
                     ${isPending ? 'text-yellow-500/80 animate-pulse' :
-                        s.is_running ? 'text-green-400 font-bold' : (isEditing ? 'text-primary' : 'text-secondary group-hover:text-primary')}
-                `}>{s.filename}</span>
+                        (isEditing ? 'text-primary' : 'text-secondary group-hover:text-primary')}
+                `}>{s.filename.replace(/\.ahk$/i, '')}</span>
 
                 {!isDragging && (
                     <div className="flex items-center space-x-2 flex-shrink-0 pr-2 overflow-visible relative">

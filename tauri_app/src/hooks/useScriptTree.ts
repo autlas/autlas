@@ -241,10 +241,11 @@ export function useScriptTree({ filterTag, onTagsLoaded, viewMode, onCustomDragS
     }, [onCustomDragStart]);
 
     const filtered = useMemo(() => {
-        if (viewMode === "hub") {
-            return allScripts.filter(s => s.is_running || s.tags.some(t => t.toLowerCase() === "hub" || t.toLowerCase() === "fav"));
-        }
         let list = [...allScripts];
+        if (filterTag === "Хаб") {
+            return list.filter(s => s.is_running || s.tags.some(t => t.toLowerCase() === "hub" || t.toLowerCase() === "fav" || t.toLowerCase() === "favourites"));
+        }
+
         list = list.filter(s => {
             if (filterTag === "Запущенные") {
                 if (!s.is_running) return false;
@@ -254,7 +255,7 @@ export function useScriptTree({ filterTag, onTagsLoaded, viewMode, onCustomDragS
                 if (!s.is_hidden) return false;
             } else if (filterTag === "С тегами") {
                 if (s.tags.length === 0) return false;
-            } else if (filterTag !== "Все скрипты" && filterTag !== "Дерево" && filterTag !== "Хаб" && filterTag !== "") {
+            } else if (filterTag !== "Все скрипты" && filterTag !== "Дерево" && filterTag !== "Хаб" && filterTag !== "Хаб" && filterTag !== "") {
                 if (!s.tags.includes(filterTag)) return false;
             } else {
                 if (s.is_hidden && !showHidden) return false;

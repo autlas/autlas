@@ -44,10 +44,10 @@ const HubScriptCard = memo(function HubScriptCard({
         >
             <div className="flex justify-between items-start pointer-events-none">
                 <div className="flex flex-col overflow-hidden flex-1">
-                    <span className={`text-xl font-black truncate pr-4 transition-colors tracking-tight stabilize-text ${!isDragging ? (isEditing ? 'text-indigo-400' : 'text-secondary group-hover:text-indigo-400') : 'text-secondary'}`}>{s.filename}</span>
+                    <span className={`text-xl font-black truncate pr-4 transition-colors tracking-tight stabilize-text ${!isDragging ? (isEditing ? 'text-indigo-400' : 'text-secondary group-hover:text-indigo-400') : 'text-secondary'}`}>{s.filename.replace(/\.ahk$/i, '')}</span>
                     <span className="text-xs text-tertiary font-bold tracking-[0.15em] mt-1 opacity-70">{s.parent}</span>
                 </div>
-                <div className={`w-3 h-3 rounded-full mt-2 transition-opacity ${s.is_running ? 'bg-green-500' : 'bg-white/5 border border-white/10'} ${isDragging ? 'opacity-20' : ''}`}></div>
+                <div className={`w-4 h-4 rounded-full transition-all duration-500 ${s.is_running ? 'bg-green-500 animate-status-glow shadow-[0_0_12px_rgba(34,197,94,0.8)]' : 'bg-white/5 border border-white/10'} ${isDragging ? 'opacity-20' : ''}`}></div>
             </div>
 
             <div className="mt-4 flex-1">
@@ -112,7 +112,7 @@ const HubScriptCard = memo(function HubScriptCard({
                     className={`w-full py-3.5 rounded-2xl text-xs font-bold tracking-[0.1em] transition-all transform cursor-pointer active:scale-95 pointer-events-auto shadow-xl 
                         ${isPending ? 'bg-white/5 text-tertiary animate-pulse cursor-wait border border-white/5' :
                             s.is_running ? "bg-white/5 text-tertiary border border-white/5 hover:bg-red-600/15 hover:text-red-500 hover:border-red-500/30 active:bg-red-600/25 active:text-red-500 transition-all" :
-                                "bg-white text-black hover:bg-gray-100 group-hover:shadow-[0_0_20px_rgba(255,255,255,0.2)]"
+                                "bg-white/5 text-tertiary border border-white/5 hover:bg-green-600/15 hover:text-green-500 hover:border-green-500/30 active:bg-green-600/25 transition-all text-secondary hover:text-green-500"
                         }
                     `}
                 >

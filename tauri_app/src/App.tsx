@@ -18,6 +18,9 @@ function App() {
   const [isRenamingTag, setIsRenamingTag] = useState<string | null>(null);
   const [editTagName, setEditTagName] = useState("");
   const [refreshKey, setRefreshKey] = useState(0);
+  const [displayMode, setDisplayMode] = useState<"tree" | "tiles">(() => {
+    return (localStorage.getItem("ahk_display_mode") as "tree" | "tiles") || "tree";
+  });
   const [contextMenu, setContextMenu] = useState<{ x: number, y: number, type: 'script' | 'tag' | 'general', data: any } | null>(null);
   const [activeTabPressed, setActiveTabPressed] = useState<string | null>(null);
 
@@ -156,9 +159,20 @@ function App() {
 
   const handleTabClick = (tab: string) => {
     setActiveTab(tab);
-    if (tab === "Хаб") setViewMode("hub");
+    if (tab === "Хаб") {
+      setViewMode("hub");
+      setDisplayMode("tiles");
+    }
     else if (tab === "Настройки") setViewMode("settings");
-    else setViewMode("tree");
+    else {
+      setViewMode("tree");
+      // Optionally restore displayMode from localStorage or keep current
+    }
+  };
+
+  const toggleDisplayMode = (mode: "tree" | "tiles") => {
+    setDisplayMode(mode);
+    localStorage.setItem("ahk_display_mode", mode);
   };
 
   const handleCustomDrop = async (path: string, tag: string) => {
@@ -510,12 +524,44 @@ function App() {
               <span className="text-xs text-tertiary uppercase tracking-[0.5em] font-mono">Operations Unit Ready</span>
             </div>
           </div>
-          <button
-            className="px-10 py-4 bg-white/5 hover:bg-white/10 rounded-xl border border-white/5 transition-all text-xs font-bold tracking-widest cursor-pointer active:scale-95 shadow-lg"
-            onClick={() => !draggedScript && window.location.reload()}
-          >
-            Обновить
-          </button>
+          <div className="flex items-center space-x-2 bg-white/5 p-1 rounded-2xl border border-white/5">
+            <button
+              onClick={() => toggleDisplayMode("tree")}
+              className={`p-3 rounded-xl transition-all flex items-center space-x-2 group ${displayMode === "tree" ? "bg-indigo-500 text-white shadow-lg" : "text-tertiary hover:text-secondary hover:bg-white/5"}`}
+              title="Режим дерева"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 9h18M3 15h18" />
+                <path d="M3 6h18M3 18h18" />
+                <path d="M7 6v12M17 6v12" />
+              </svg>
+              {displayMode === "tree" && <span className="text-xs font-black uppercase tracking-widest pl-1">Tree</span>}
+            </button>
+            <button
+              onClick={() => toggleDisplayMode("tiles")}
+              className={`p-3 rounded-xl transition-all flex items-center space-x-2 group ${displayMode === "tiles" ? "bg-indigo-500 text-white shadow-lg" : "text-tertiary hover:text-secondary hover:bg-white/5"}`}
+              title="Режим плитки"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="7" height="7" />
+                <rect x="14" y="3" width="7" height="7" />
+                <rect x="14" y="14" width="7" height="7" />
+                <rect x="3" y="14" width="7" height="7" />
+              </svg>
+              {displayMode === "tiles" && <span className="text-xs font-black uppercase tracking-widest pl-1">Tiles</span>}
+            </button>
+            <div className="w-[1px] h-6 bg-white/10 mx-2" />
+            <button
+              className="p-3 text-tertiary hover:text-secondary transition-all cursor-pointer active:scale-90"
+              onClick={() => !draggedScript && window.location.reload()}
+              title="Обновить"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M23 4v6h-6" />
+                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+              </svg>
+            </button>
+          </div>
         </div>
 
         <div className="flex-1 overflow-hidden">
@@ -627,7 +673,7 @@ function App() {
             <MemoizedScriptTree
               key={`script-tree-${refreshKey}`}
               filterTag={activeTab}
-              viewMode={viewMode === "hub" ? "hub" : "tree"}
+              viewMode={displayMode === "tiles" ? "hub" : "tree"}
               onTagsLoaded={handleTagsLoaded}
               onCustomDragStart={startCustomDrag}
               isDragging={draggedScript !== null}
@@ -691,7 +737,7 @@ function App() {
             {contextMenu.type === 'script' && (
               <>
                 <div className="px-4 py-2 border-b border-white/5 mb-1">
-                  <div className="text-[10px] font-black uppercase tracking-[0.2em] text-tertiary opacity-50 mb-0.5">Скрипт</div>
+                  <div className="text-xs font-black uppercase tracking-[0.2em] text-tertiary opacity-50 mb-0.5">Скрипт</div>
                   <div className="text-xs font-bold text-white truncate">{contextMenu.data.filename}</div>
                 </div>
                 <ContextMenuItem
@@ -751,9 +797,12 @@ function App() {
                   label="Удалить тег"
                   icon="🗑️"
                   danger
-                  onClick={() => {
-                    alert("Удаление тега пока не реализовано в бэкенде");
-                    setContextMenu(null);
+                  onClick={async () => {
+                    if (confirm(`Вы уверены, что хотите удалить тег "${contextMenu.data}" у всех скриптов и из базы?`)) {
+                      await invoke("delete_tag", { tag: contextMenu.data });
+                      setContextMenu(null);
+                      setRefreshKey(p => p + 1);
+                    }
                   }}
                 />
               </>

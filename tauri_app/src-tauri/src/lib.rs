@@ -391,6 +391,69 @@ fn get_tag_order() -> Vec<String> {
     Vec::new()
 }
 
+#[tauri::command]
+fn delete_tag(tag: String) -> Result<(), String> {
+    let ini_path = get_ini_path();
+    let bytes = fs::read(&ini_path).unwrap_or_default();
+    let content = if bytes.len() >= 2 && bytes[0] == 0xFF && bytes[1] == 0xFE {
+        let utf16: Vec<u16> = bytes[2..].chunks_exact(2).map(|a| u16::from_le_bytes([a[0], a[1]])).collect();
+        String::from_utf16_lossy(&utf16)
+    } else {
+        String::from_utf8_lossy(&bytes).to_string()
+    };
+
+    let mut lines: Vec<String> = content.lines().map(|s| s.to_string()).collect();
+    let mut in_scripts = false;
+    let mut in_general = false;
+    let target_lower = tag.to_lowercase();
+
+    for line in lines.iter_mut() {
+        let trimmed = line.trim();
+        let trimmed_lower = trimmed.to_lowercase();
+        
+        if trimmed_lower == "[scripts]" {
+            in_scripts = true;
+            in_general = false;
+            continue;
+        }
+        if trimmed_lower == "[general]" {
+            in_general = true;
+            in_scripts = false;
+            continue;
+        }
+        if trimmed.starts_with('[') {
+            in_scripts = false;
+            in_general = false;
+            continue;
+        }
+
+        if in_scripts {
+             if let Some(pos) = line.find('=') {
+                let key = &line[..pos];
+                let val = &line[pos+1..];
+                let mut tags: Vec<String> = val.split(',')
+                    .map(|s| s.trim().to_string())
+                    .filter(|s| !s.is_empty() && s.to_lowercase() != target_lower)
+                    .collect();
+                *line = format!("{}={}", key, tags.join(","));
+             }
+        } else if in_general && trimmed_lower.starts_with("tag_order=") {
+            if let Some(pos) = line.find('=') {
+                let prefix = &line[..pos+1];
+                let val = &line[pos+1..];
+                let mut tags: Vec<String> = val.split(',')
+                    .map(|s| s.trim().to_string())
+                    .filter(|s| !s.is_empty() && s.to_lowercase() != target_lower)
+                    .collect();
+                *line = format!("{}{}", prefix, tags.join(","));
+            }
+        }
+    }
+
+    fs::write(&ini_path, lines.join("\r\n")).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -405,7 +468,8 @@ pub fn run() {
             save_tag_order,
             get_tag_order,
             open_in_explorer,
-            edit_script
+            edit_script,
+            delete_tag
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
