@@ -4,7 +4,7 @@ import { useScriptTree } from "../hooks/useScriptTree";
 import ScriptRow from "./ScriptRow";
 import HubScriptCard from "./HubScriptCard";
 
-export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustomDragStart, isDragging, draggedScriptPath, animationsEnabled, onScriptContextMenu }: ScriptTreeProps) {
+export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onViewModeChange, onCustomDragStart, isDragging, draggedScriptPath, animationsEnabled, onScriptContextMenu }: ScriptTreeProps) {
     const {
         loading, filtered, tree,
         expandedFolders,
@@ -15,7 +15,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
         toggleFolder, toggleAll,
         handleToggle, startEditing, stopEditing,
         addTag, removeTag, handleCustomMouseDown,
-    } = useScriptTree({ filterTag, onTagsLoaded, viewMode, onCustomDragStart });
+    } = useScriptTree({ filterTag, onTagsLoaded, viewMode: viewMode === "tree" ? "tree" : "hub", onCustomDragStart });
 
     const renderNode = (node: TreeNode, depth: number = 0): React.ReactNode => {
         const isExpanded = depth === 0 || expandedFolders[node.fullName] !== false;
@@ -88,9 +88,9 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
 
     return (
         <div className="flex flex-col h-full overflow-hidden">
-            {viewMode === "tree" && (
-                <div className={`flex items-center justify-between pl-1 mb-4 pb-2 border-b transition-all duration-300 ${draggedScriptPath ? 'opacity-20 blur-[1px] pointer-events-none' : ''}`} style={{ borderColor: 'var(--border-color)' }}>
-                    <div className="flex items-center space-x-1">
+            <div className={`flex items-center justify-between pl-1 mb-4 pb-2 border-b transition-all duration-300 ${draggedScriptPath ? 'opacity-20 blur-[1px] pointer-events-none' : ''}`} style={{ borderColor: 'var(--border-color)' }}>
+                <div className="flex items-center space-x-1">
+                    {viewMode === "tree" && (
                         <button
                             onClick={toggleAll}
                             className={`p-2 transition-all h-10 w-10 flex flex-col items-center justify-center border-none shadow-none bg-transparent focus:outline-none relative cursor-pointer ${!isDragging ? 'group/toggle' : 'opacity-10 cursor-default'}`}
@@ -109,37 +109,61 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
                                 </svg>
                             </div>
                         </button>
+                    )}
+                    {viewMode === "tree" && <div className="h-4 w-[1px] bg-white/5 mx-2"></div>}
 
-                        <div className="h-4 w-[1px] bg-white/5 mx-2"></div>
+                    {/* Segmented Filter Control */}
+                    <div className="flex bg-white/[0.03] p-1 rounded-xl border border-white/5 h-[42px] items-center">
+                        {[
+                            { id: "all", label: "Все" },
+                            { id: "tagged", label: "С тегами" },
+                            { id: "untagged", label: "Без" }
+                        ].map((f) => (
+                            <button
+                                key={f.id}
+                                onClick={() => !isDragging && setTreeFilter(f.id as any)}
+                                className={`px-4 h-full rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center ${treeFilter === f.id
+                                    ? "bg-indigo-600 text-white shadow-lg shadow-indigo-900/20"
+                                    : "text-tertiary hover:text-secondary"
+                                    } ${isDragging ? 'opacity-20 pointer-events-none' : ''}`}
+                            >
+                                {f.label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
 
-                        {/* Segmented Filter Control */}
-                        <div className="flex bg-white/[0.03] p-1 rounded-xl border border-white/5">
-                            {[
-                                { id: "all", label: "Все" },
-                                { id: "tagged", label: "С тегами" },
-                                { id: "untagged", label: "Без" }
-                            ].map((f) => (
-                                <button
-                                    key={f.id}
-                                    onClick={() => !isDragging && setTreeFilter(f.id as any)}
-                                    className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${treeFilter === f.id
-                                        ? "bg-indigo-600 text-white shadow-lg shadow-indigo-900/20"
-                                        : "text-tertiary hover:text-secondary"
-                                        } ${isDragging ? 'opacity-20 pointer-events-none' : ''}`}
-                                >
-                                    {f.label}
-                                </button>
-                            ))}
-                        </div>
+                <div className="flex items-center space-x-3">
+                    {/* Segmented View Mode Switcher */}
+                    <div className="flex bg-white/[0.03] p-1 rounded-xl border border-white/5 h-[42px] items-center">
+                        {[
+                            { id: "tree", icon: "M3 9h18M3 15h18 M3 6h18M3 18h18 M7 6v12M17 6v12" },
+                            { id: "tiles", icon: "M3 3h7v7H3z M14 3h7v7h-7z M14 14h7v7h-7z M3 14h7v7H3z" },
+                            { id: "list", icon: "M3 6h7M3 12h7M3 18h7M14 6h7M14 12h7M14 18h7" }
+                        ].map((m) => (
+                            <button
+                                key={m.id}
+                                onClick={() => !isDragging && onViewModeChange(m.id as any)}
+                                className={`px-4 h-full rounded-lg transition-all cursor-pointer flex items-center justify-center ${viewMode === m.id
+                                    ? "bg-indigo-600 text-white shadow-lg shadow-indigo-900/20"
+                                    : "text-tertiary hover:text-secondary hover:bg-white/5"
+                                    } ${isDragging ? 'opacity-20 pointer-events-none' : ''}`}
+                                title={`Режим: ${m.id}`}
+                            >
+                                <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d={m.icon} />
+                                </svg>
+                            </button>
+                        ))}
                     </div>
 
                     {/* Hidden Toggle (Eye) */}
                     <button
                         onClick={() => !isDragging && setShowHidden(!showHidden)}
-                        className={`p-2.5 rounded-xl transition-all cursor-pointer border ${showHidden
+                        className={`h-[42px] w-[42px] flex items-center justify-center rounded-xl transition-all cursor-pointer border ${showHidden
                             ? "bg-indigo-500/10 border-indigo-500/30 text-indigo-400 shadow-[0_0_15px_rgba(79,70,229,0.2)]"
                             : "bg-white/[0.03] border-white/5 text-tertiary hover:text-secondary hover:bg-white/[0.05]"
-                            } ${isDragging ? 'opacity-10 pointer-events-none' : ''}`}
+                            } ${isDragging ? 'opacity-20 pointer-events-none' : ''}`}
                         title={showHidden ? "Скрыть 'Скрытые'" : "Показать 'Скрытые'"}
                     >
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -157,10 +181,10 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
                         </svg>
                     </button>
                 </div>
-            )}
+            </div>
 
             <div className={`flex-1 overflow-y-auto custom-scrollbar mt-2 transition-all duration-300 ${draggedScriptPath ? 'opacity-30 blur-[1px]' : ''}`}>
-                {viewMode === "hub" ? (
+                {viewMode === "tiles" ? (
                     <div className="grid grid-cols-[repeat(auto-fill,minmax(340px,1fr))] gap-6 pb-10">
                         {filtered.length === 0 && <div className="text-tertiary col-span-3 text-center py-40 italic tracking-[0.3em] text-sm font-bold">Пустой канал...</div>}
                         {filtered.map(s => (
@@ -184,6 +208,34 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
                             />
                         ))}
                     </div>
+                ) : viewMode === "list" ? (
+                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-x-8 gap-y-1 pb-10 pr-2">
+                        {filtered.length === 0 && <div className="text-tertiary col-span-2 text-center py-40 italic tracking-[0.3em] text-sm font-bold">Пустой раздел...</div>}
+                        {filtered.map(s => {
+                            const removingTagKeys = Array.from(removingTags).filter(k => k.startsWith(s.path + '-'));
+                            return (
+                                <ScriptRow
+                                    key={s.path}
+                                    s={s}
+                                    isDragging={isDragging}
+                                    draggedScriptPath={draggedScriptPath}
+                                    isEditing={editingScript === s.path}
+                                    isPending={pendingScripts.has(s.path)}
+                                    removingTagKeys={removingTagKeys}
+                                    allUniqueTags={allUniqueTags}
+                                    popoverRef={popoverRef}
+                                    onMouseDown={handleCustomMouseDown}
+                                    onDoubleClick={(s) => handleToggle(s, true)}
+                                    onToggle={handleToggle}
+                                    onStartEditing={startEditing}
+                                    onAddTag={addTag}
+                                    onRemoveTag={removeTag}
+                                    onCloseEditing={stopEditing}
+                                    onScriptContextMenu={onScriptContextMenu}
+                                />
+                            );
+                        })}
+                    </div>
                 ) : (
                     <div className="flex flex-col space-y-0.5 select-none">
                         {!hasContent ? (
@@ -192,6 +244,6 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onCustom
                     </div>
                 )}
             </div>
-        </div>
+        </div >
     );
 }

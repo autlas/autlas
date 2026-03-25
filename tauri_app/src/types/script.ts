@@ -11,7 +11,8 @@ export interface TreeNode {
 export interface ScriptTreeProps {
     filterTag: string;
     onTagsLoaded: (tags: string[]) => void;
-    viewMode: "tree" | "hub";
+    viewMode: "tree" | "tiles" | "list";
+    onViewModeChange: (mode: "tree" | "tiles" | "list") => void;
     onCustomDragStart: (script: { path: string, filename: string, tags: string[], x: number, y: number }) => void;
     isDragging: boolean;
     draggedScriptPath: string | null;

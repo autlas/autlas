@@ -18,8 +18,8 @@ function App() {
   const [isRenamingTag, setIsRenamingTag] = useState<string | null>(null);
   const [editTagName, setEditTagName] = useState("");
   const [refreshKey, setRefreshKey] = useState(0);
-  const [displayMode, setDisplayMode] = useState<"tree" | "tiles">(() => {
-    return (localStorage.getItem("ahk_display_mode") as "tree" | "tiles") || "tree";
+  const [displayMode, setDisplayMode] = useState<"tree" | "tiles" | "list">(() => {
+    return (localStorage.getItem("ahk_display_mode") as "tree" | "tiles" | "list") || "tree";
   });
   const [contextMenu, setContextMenu] = useState<{ x: number, y: number, type: 'script' | 'tag' | 'general', data: any } | null>(null);
   const [activeTabPressed, setActiveTabPressed] = useState<string | null>(null);
@@ -170,7 +170,7 @@ function App() {
     }
   };
 
-  const toggleDisplayMode = (mode: "tree" | "tiles") => {
+  const toggleDisplayMode = (mode: "tree" | "tiles" | "list") => {
     setDisplayMode(mode);
     localStorage.setItem("ahk_display_mode", mode);
   };
@@ -524,41 +524,16 @@ function App() {
               <span className="text-xs text-tertiary uppercase tracking-[0.5em] font-mono">Operations Unit Ready</span>
             </div>
           </div>
-          <div className="flex items-center space-x-2 bg-white/5 p-1 rounded-2xl border border-white/5">
-            <button
-              onClick={() => toggleDisplayMode("tree")}
-              className={`p-3 rounded-xl transition-all flex items-center space-x-2 group ${displayMode === "tree" ? "bg-indigo-500 text-white shadow-lg" : "text-tertiary hover:text-secondary hover:bg-white/5"}`}
-              title="Режим дерева"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M3 9h18M3 15h18" />
-                <path d="M3 6h18M3 18h18" />
-                <path d="M7 6v12M17 6v12" />
-              </svg>
-              {displayMode === "tree" && <span className="text-xs font-black uppercase tracking-widest pl-1">Tree</span>}
-            </button>
-            <button
-              onClick={() => toggleDisplayMode("tiles")}
-              className={`p-3 rounded-xl transition-all flex items-center space-x-2 group ${displayMode === "tiles" ? "bg-indigo-500 text-white shadow-lg" : "text-tertiary hover:text-secondary hover:bg-white/5"}`}
-              title="Режим плитки"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="3" width="7" height="7" />
-                <rect x="14" y="3" width="7" height="7" />
-                <rect x="14" y="14" width="7" height="7" />
-                <rect x="3" y="14" width="7" height="7" />
-              </svg>
-              {displayMode === "tiles" && <span className="text-xs font-black uppercase tracking-widest pl-1">Tiles</span>}
-            </button>
-            <div className="w-[1px] h-6 bg-white/10 mx-2" />
+          <div className="flex items-center">
             <button
               className="p-3 text-tertiary hover:text-secondary transition-all cursor-pointer active:scale-90"
-              onClick={() => !draggedScript && window.location.reload()}
-              title="Обновить"
+              onClick={() => {
+                setRefreshKey(p => p + 1);
+              }}
+              title="Обновить список"
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M23 4v6h-6" />
-                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+                <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2" />
               </svg>
             </button>
           </div>
@@ -673,7 +648,8 @@ function App() {
             <MemoizedScriptTree
               key={`script-tree-${refreshKey}`}
               filterTag={activeTab}
-              viewMode={displayMode === "tiles" ? "hub" : "tree"}
+              viewMode={displayMode}
+              onViewModeChange={toggleDisplayMode}
               onTagsLoaded={handleTagsLoaded}
               onCustomDragStart={startCustomDrag}
               isDragging={draggedScript !== null}
