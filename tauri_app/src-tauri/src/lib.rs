@@ -88,7 +88,7 @@ fn load_metadata() -> ManagerMetadata {
 }
 
 #[tauri::command]
-fn save_script_tags(path: String, tags: Vec<String>) -> Result<(), String> {
+async fn save_script_tags(path: String, tags: Vec<String>) -> Result<(), String> {
     save_script_tags_internal(path, tags)
 }
 
@@ -145,7 +145,7 @@ fn save_script_tags_internal(path: String, tags: Vec<String>) -> Result<(), Stri
 }
 
 #[tauri::command]
-fn get_scripts() -> Vec<Script> {
+async fn get_scripts() -> Vec<Script> {
     let mut sys = System::new_all();
     sys.refresh_all();
     
@@ -200,13 +200,13 @@ fn get_scripts() -> Vec<Script> {
 }
 
 #[tauri::command]
-fn run_script(path: String) -> Result<(), String> {
+async fn run_script(path: String) -> Result<(), String> {
     Command::new("explorer").arg(&path).spawn().map_err(|e| e.to_string())?;
     Ok(())
 }
 
 #[tauri::command]
-fn kill_script(path: String) -> Result<(), String> {
+async fn kill_script(path: String) -> Result<(), String> {
     let mut sys = System::new_all();
     sys.refresh_all();
     let path_lower = path.to_lowercase();
@@ -224,7 +224,7 @@ fn kill_script(path: String) -> Result<(), String> {
 }
 
 #[tauri::command]
-fn open_in_explorer(path: String) -> Result<(), String> {
+async fn open_in_explorer(path: String) -> Result<(), String> {
     // On Windows, use "explorer /select," to highlight the file
     let path_buf = std::path::PathBuf::from(&path);
     if path_buf.exists() {
@@ -238,7 +238,7 @@ fn open_in_explorer(path: String) -> Result<(), String> {
 }
 
 #[tauri::command]
-fn edit_script(path: String) -> Result<(), String> {
+async fn edit_script(path: String) -> Result<(), String> {
     // Open in default editor using the 'Edit' verb
     Command::new("powershell")
         .arg("-NoProfile")
@@ -250,7 +250,7 @@ fn edit_script(path: String) -> Result<(), String> {
 }
 
 #[tauri::command]
-fn add_script_tag(path: String, tag: String) -> Result<(), String> {
+async fn add_script_tag(path: String, tag: String) -> Result<(), String> {
     let metadata = load_metadata();
     let key = path.to_lowercase();
     let mut tags = metadata.tags.get(&key).cloned().unwrap_or_default();
@@ -263,7 +263,7 @@ fn add_script_tag(path: String, tag: String) -> Result<(), String> {
 }
 
 #[tauri::command]
-fn rename_tag(old_tag: String, new_tag: String) -> Result<(), String> {
+async fn rename_tag(old_tag: String, new_tag: String) -> Result<(), String> {
     let metadata = load_metadata();
     let ini_path = get_ini_path();
     let bytes = fs::read(&ini_path).unwrap_or_default();
@@ -318,7 +318,7 @@ fn rename_tag(old_tag: String, new_tag: String) -> Result<(), String> {
 }
 
 #[tauri::command]
-fn save_tag_order(order: Vec<String>) -> Result<(), String> {
+async fn save_tag_order(order: Vec<String>) -> Result<(), String> {
     let ini_path = get_ini_path();
     let bytes = fs::read(&ini_path).unwrap_or_default();
     let content = String::from_utf8_lossy(&bytes).to_string();
@@ -365,7 +365,7 @@ fn save_tag_order(order: Vec<String>) -> Result<(), String> {
 }
 
 #[tauri::command]
-fn get_tag_order() -> Vec<String> {
+async fn get_tag_order() -> Vec<String> {
     let ini_path = get_ini_path();
     let content = fs::read_to_string(&ini_path).unwrap_or_default();
     let mut in_general = false;
@@ -392,7 +392,7 @@ fn get_tag_order() -> Vec<String> {
 }
 
 #[tauri::command]
-fn delete_tag(tag: String) -> Result<(), String> {
+async fn delete_tag(tag: String) -> Result<(), String> {
     let ini_path = get_ini_path();
     let bytes = fs::read(&ini_path).unwrap_or_default();
     let content = if bytes.len() >= 2 && bytes[0] == 0xFF && bytes[1] == 0xFE {

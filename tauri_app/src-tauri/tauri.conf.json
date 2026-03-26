@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "tauri_app",
+  "productName": "AHK Manager",
   "version": "0.1.0",
-  "identifier": "com.heavym.tauri_app",
+  "identifier": "com.heavym.ahkmanager",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
@@ -12,9 +12,11 @@
   "app": {
     "windows": [
       {
-        "title": "tauri_app",
+        "title": "AHK Manager",
         "width": 800,
-        "height": 600
+        "height": 600,
+        "devtools": true,
+        "additionalBrowserArgs": "--enable-gpu --ignore-gpu-blocklist --enable-accelerated-2d-canvas"
       }
     ],
     "security": {

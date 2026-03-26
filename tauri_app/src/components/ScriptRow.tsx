@@ -1,8 +1,9 @@
-import React, { useState, memo, useRef, useEffect, useLayoutEffect } from "react";
+import React, { useState, memo, useRef, useEffect } from "react";
+
 import { ScriptRowProps } from "../types/script";
 import TagPickerPopover from "./TagPickerPopover";
 import { HighlightText } from "./HighlightText";
-import { useSearchQuery } from "../context/SearchContext";
+
 
 const ScriptRow = memo(function ScriptRow({
     s, isDragging, draggedScriptPath, isEditing, isPending, removingTagKeys,
@@ -10,18 +11,23 @@ const ScriptRow = memo(function ScriptRow({
     onMouseDown, onDoubleClick, onToggle, onStartEditing, onAddTag, onRemoveTag, onCloseEditing,
     onScriptContextMenu
 }: ScriptRowProps) {
-    const searchQuery = useSearchQuery();
+
     const [isLeftPressed, setIsLeftPressed] = useState(false);
     const [visibleCount, setVisibleCount] = useState(s.tags.length);
     const containerRef = useRef<HTMLDivElement>(null);
     const measureRef = useRef<HTMLDivElement>(null);
     const [tagWidths, setTagWidths] = useState<number[]>([]);
+    // Track previous tags to only animate NEWLY ADDED tags (not on initial render)
+    const prevTagsRef = useRef<string[]>(s.tags);
+    const newTagsSet = new Set(s.tags.filter(t => !prevTagsRef.current.includes(t)));
 
-    // Measure actual tag widths whenever tags change
-    useLayoutEffect(() => {
+    // Async measurement — useEffect (not useLayoutEffect) to avoid blocking initial paint
+    // useLayoutEffect with 172 instances blocks the JS thread for seconds in production
+    useEffect(() => {
+        prevTagsRef.current = s.tags;
         if (measureRef.current) {
             const children = Array.from(measureRef.current.children) as HTMLElement[];
-            setTagWidths(children.map(c => c.offsetWidth + 8)); // 8px for margin/gap
+            setTagWidths(children.map(c => c.offsetWidth + 8));
         }
     }, [s.tags]);
 
@@ -101,7 +107,8 @@ const ScriptRow = memo(function ScriptRow({
             className={`flex items-center justify-between h-[42px] px-3 rounded-lg transition-all duration-300 border border-transparent select-none relative
                 ${isEditing ? 'z-[200] !opacity-100' : 'z-10'}
                 ${!draggedScriptPath ? 'hover:z-[100] group hover:bg-white/5 cursor-grab active:cursor-grabbing' : ''}
-                long-press-shrink has-[button:active]:scale-100 will-change-transform
+                long-press-shrink has-[button:active]:scale-100
+
                 ${s.path === draggedScriptPath ? 'opacity-0 pointer-events-none' : ''}
                 ${s.is_hidden ? 'opacity-40 grayscale-[0.5]' : ''}
                 ${s.is_running ? 'border-green-500/10' : ''}
@@ -135,7 +142,7 @@ const ScriptRow = memo(function ScriptRow({
                                     className="relative group/tag inline-flex items-center h-7 mr-2 flex-shrink-0 pointer-events-auto"
                                     onDoubleClick={(e) => e.stopPropagation()}
                                 >
-                                    <div className={isRemoving ? 'animate-tag-out' : 'animate-tag-in'}>
+                                    <div className={isRemoving ? 'animate-tag-out' : (newTagsSet.has(t) ? 'animate-tag-in' : '')}>
                                         <span className="text-xs font-bold px-3 h-7 rounded-lg bg-white/[0.03] text-tertiary border border-white/10 cursor-default shadow-lg flex items-center justify-center">
                                             {t}
                                         </span>

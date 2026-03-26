@@ -8,7 +8,8 @@ import HubScriptCard from "./HubScriptCard";
 import { Script } from "../api";
 
 // ─── PERF LOGGING ──────────────────────────────────────────────
-const PERF = true; // set false to disable all perf logs
+const PERF = false; // set true to enable perf logs
+
 // ───────────────────────────────────────────────────────────────
 
 // ─── TREE CONTEXT (stable handlers — don't bust memo) ──────────
@@ -193,17 +194,25 @@ const TreeNodeRenderer = memo(function TreeNodeRenderer({
         </div>
     );
 }, (prev, next) => {
-    // ROOT (depth=0): always re-render so it propagates new isExpanded to children
+    // ROOT (depth=0): always re-render to propagate new isExpanded to children
     if (prev.depth === 0) return false;
-    // NON-ROOT: skip if this node's expansion and data haven't changed
-    const sameNode = prev.node === next.node;
-    const sameExpanded = prev.isExpanded === next.isExpanded;
-    const skip = sameNode && sameExpanded;
-    if (!skip && prev.node.name !== 'Root') {
-        console.warn(`%c[MEMO] "${prev.node.name.split('|').pop()}" depth=${prev.depth} RERENDER: nodeRef=${sameNode ? 'same✓' : 'CHANGED❌'} isExpanded=${sameExpanded ? 'same✓' : `${prev.isExpanded}→${next.isExpanded}❌`}`, 'color:#fb923c');
+    // NON-ROOT: compare by VALUE not reference — polling rebuilds tree with new refs
+    // but the structure (fullName, script count, children) should be stable
+    if (prev.isExpanded !== next.isExpanded) return false;
+    if (prev.node.fullName !== next.node.fullName) return false;
+    if (prev.node.scripts.length !== next.node.scripts.length) return false;
+    const prevChildKeys = Object.keys(prev.node.children);
+    const nextChildKeys = Object.keys(next.node.children);
+    if (prevChildKeys.length !== nextChildKeys.length) return false;
+    // Scripts changed (different run state, tags) → must re-render
+    for (let i = 0; i < prev.node.scripts.length; i++) {
+        const ps = prev.node.scripts[i];
+        const ns = next.node.scripts[i];
+        if (ps.path !== ns.path || ps.is_running !== ns.is_running || ps.tags.join(',') !== ns.tags.join(',')) return false;
     }
-    return skip;
+    return true;
 });
+
 // ───────────────────────────────────────────────────────────────
 
 export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, viewMode, onViewModeChange, onCustomDragStart, isDragging, draggedScriptPath, animationsEnabled, onScriptContextMenu, onFolderContextMenu, searchQuery, setSearchQuery }: ScriptTreeProps) {

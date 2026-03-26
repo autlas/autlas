@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import ScriptTree from "./components/ScriptTree";
 import { invoke } from "@tauri-apps/api/core";
+import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import "./App.css";
 
 const MemoizedScriptTree = React.memo(ScriptTree);
@@ -23,6 +24,7 @@ function App() {
   const [isRenamingTag, setIsRenamingTag] = useState<string | null>(null);
   const [editTagName, setEditTagName] = useState("");
   const [refreshKey, setRefreshKey] = useState(0);
+  const [fps, setFps] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const refreshIconRef = useRef<HTMLDivElement>(null);
   const settingsIconRef = useRef<HTMLDivElement>(null);
@@ -161,11 +163,46 @@ function App() {
     window.addEventListener('click', handleGlobalClick);
     window.addEventListener('scroll', handleGlobalScroll, true);
     window.addEventListener('contextmenu', handleGlobalContextMenu);
+
+    const handleKeyDown = async (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'i') {
+        const win = getCurrentWebviewWindow();
+        // Fallback for different tauri v2 API versions if openDevtools doesn't exist
+        if ('openDevtools' in win) {
+          (win as any).openDevtools();
+        } else if ('toggleDevtools' in win) {
+          (win as any).toggleDevtools();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+
     return () => {
       window.removeEventListener('click', handleGlobalClick);
       window.removeEventListener('scroll', handleGlobalScroll, true);
       window.removeEventListener('contextmenu', handleGlobalContextMenu);
+      window.removeEventListener('keydown', handleKeyDown);
     };
+  }, []);
+
+  // FPS Counter Effect
+  useEffect(() => {
+    let frameCount = 0;
+    let lastTime = performance.now();
+    let animFrame: number;
+
+    const measureFPS = () => {
+      const now = performance.now();
+      frameCount++;
+      if (now - lastTime >= 1000) {
+        setFps(Math.round((frameCount * 1000) / (now - lastTime)));
+        frameCount = 0;
+        lastTime = now;
+      }
+      animFrame = requestAnimationFrame(measureFPS);
+    };
+    animFrame = requestAnimationFrame(measureFPS);
+    return () => cancelAnimationFrame(animFrame);
   }, []);
 
   const handleTabClick = (tab: string) => {
@@ -961,9 +998,11 @@ function App() {
           </div>
         )
       }
+      <div className="fixed bottom-2 right-2 text-[10px] font-mono font-black text-white/30 bg-black/40 px-2 py-1 rounded backdrop-blur-md z-[9999] pointer-events-none border border-white/5">FPS: {fps}</div>
     </div >
   );
 }
+
 
 function ContextMenuItem({ label, icon, onClick, danger = false }: { label: string, icon: string, onClick: () => void, danger?: boolean }) {
   return (

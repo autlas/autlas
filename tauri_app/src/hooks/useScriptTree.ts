@@ -80,12 +80,11 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
 
 
     const toggleFolder = useCallback((path: string) => {
-        const t0 = performance.now();
         setExpandedFolders(prev => {
             const isCurrentlyExpanded = prev[path] !== false;
-            console.log(`%c[PERF] toggleFolder: "${path.split('\\').pop()}" → ${isCurrentlyExpanded ? 'COLLAPSE' : 'EXPAND'} | keys: ${Object.keys(prev).length} | took: ${(performance.now() - t0).toFixed(2)}ms`, 'color: #818cf8; font-weight: bold');
             return { ...prev, [path]: !isCurrentlyExpanded };
         });
+
         // Scroll to folder header when collapsing (if it went out of view)
         requestAnimationFrame(() => {
             const header = folderRefs.current.get(path);

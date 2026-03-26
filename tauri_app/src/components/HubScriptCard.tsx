@@ -2,14 +2,14 @@ import React, { useState, memo } from "react";
 import { HubScriptCardProps } from "../types/script";
 import TagPickerPopover from "./TagPickerPopover";
 import { HighlightText } from "./HighlightText";
-import { useSearchQuery } from "../context/SearchContext";
+
 
 const HubScriptCard = memo(function HubScriptCard({
     s, isDragging, draggedScriptPath, editingScript, pendingScripts, removingTags,
     allUniqueTags, popoverRef, onMouseDown, onToggle, onStartEditing, onAddTag, onRemoveTag, onCloseEditing,
     onScriptContextMenu
 }: HubScriptCardProps) {
-    const searchQuery = useSearchQuery();
+
     const [isLeftPressed, setIsLeftPressed] = useState(false);
 
     const handleMouseDown = (e: React.MouseEvent) => {
@@ -38,7 +38,8 @@ const HubScriptCard = memo(function HubScriptCard({
             onDoubleClick={() => !isDragging && onToggle(s, true)}
             className={`p-6 rounded-[24px] border transition-all duration-300 flex flex-col min-h-[220px] select-none relative ${isEditing ? 'z-[200]' : 'z-10'}
                 ${!draggedScriptPath
-                    ? `group hover:z-[100] ${isEditing ? 'shadow-2xl' : 'hover:shadow-2xl cursor-grab active:cursor-grabbing long-press-shrink will-change-transform'}`
+                    ? `group hover:z-[100] ${isEditing ? 'shadow-2xl' : 'hover:shadow-2xl cursor-grab active:cursor-grabbing long-press-shrink'}`
+
                     : (s.path === draggedScriptPath ? 'opacity-0 pointer-events-none' : 'z-10')}
                 ${s.is_running && !isDragging ? '' : ''}
                 ${isLeftPressed && !isEditing ? 'active-left' : ''}
