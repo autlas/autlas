@@ -196,7 +196,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, v
 
     return (
         <div className="flex flex-col h-full overflow-hidden">
-            <div className={`flex items-center justify-between pl-1 pr-8 pb-2 border-b transition-all duration-300 ${draggedScriptPath ? 'opacity-20 blur-[1px] pointer-events-none' : ''}`} style={{ borderColor: 'var(--border-color)' }}>
+            <div className={`flex items-center justify-between pt-6 pb-2 border-b transition-all duration-300 ${draggedScriptPath ? 'opacity-20 blur-[1px] pointer-events-none' : ''}`} style={{ borderColor: 'var(--border-color)' }}>
                 <div className="flex-1 flex items-center space-x-1">
                     {/* VIEW MODE SWITCHER (First on the left) */}
                     <div className="flex bg-white/[0.03] p-1 rounded-xl border border-white/5 h-[42px] items-center">
@@ -217,6 +217,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, v
                                 <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                                     <path d={m.icon} />
                                 </svg>
+
                             </button>
                         ))}
                     </div>

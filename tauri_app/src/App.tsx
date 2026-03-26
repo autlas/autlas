@@ -681,15 +681,13 @@ function App() {
 
       {/* Main Content */}
       <div
-        className="flex-1 pl-8 py-6 flex flex-col overflow-hidden transition-all duration-300 relative z-10"
+        className="flex-1 px-8 flex flex-col overflow-hidden transition-all duration-300 relative z-10"
         style={{ background: viewMode === "settings" ? 'var(--bg-primary)' : 'linear-gradient(to bottom right, var(--bg-primary), var(--bg-secondary))' }}
       >
 
-        <div className="mb-2" />
-
-        <div className="flex-1 overflow-hidden">
+        <div className={`flex-1 ${viewMode === "settings" ? "overflow-y-auto custom-scrollbar" : "overflow-hidden"}`}>
           {viewMode === "settings" ? (
-            <div className="max-w-3xl space-y-12 overflow-y-auto custom-scrollbar h-full pr-4">
+            <div className="max-w-[1200px] mx-auto w-full space-y-12 py-8">
               <section className="space-y-8 bg-white/[0.02] p-10 rounded-[2.5rem] border border-white/5 shadow-2xl">
                 <h3 className="text-sm font-bold tracking-widest text-tertiary uppercase">Настройки темы</h3>
                 <div className="space-y-6">
@@ -788,7 +786,6 @@ function App() {
                       Обзор
                     </button>
                   </div>
-                  <p className="text-xs text-tertiary pl-2 max-w-sm italic leading-relaxed">Обычно скрипты подгружаются с Рабочего стола или из папки приложения.</p>
                 </div>
               </section>
             </div>
