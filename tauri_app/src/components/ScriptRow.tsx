@@ -1,6 +1,8 @@
 import React, { useState, memo } from "react";
 import { ScriptRowProps } from "../types/script";
 import TagPickerPopover from "./TagPickerPopover";
+import { HighlightText } from "./HighlightText";
+import { useSearchQuery } from "../context/SearchContext";
 
 const ScriptRow = memo(function ScriptRow({
     s, isDragging, draggedScriptPath, isEditing, isPending, removingTagKeys,
@@ -8,6 +10,7 @@ const ScriptRow = memo(function ScriptRow({
     onMouseDown, onDoubleClick, onToggle, onStartEditing, onAddTag, onRemoveTag, onCloseEditing,
     onScriptContextMenu
 }: ScriptRowProps) {
+    const searchQuery = useSearchQuery();
     const [isLeftPressed, setIsLeftPressed] = useState(false);
 
     const handleMouseDown = (e: React.MouseEvent) => {
@@ -46,10 +49,10 @@ const ScriptRow = memo(function ScriptRow({
                     ${isPending ? 'bg-yellow-500 animate-pulse shadow-[0_0_10px_rgba(234,179,8,0.6)]' :
                         s.is_running ? 'bg-green-500 animate-status-glow shadow-[0_0_12px_rgba(34,197,94,0.8)]' : 'bg-white/10'}
                 `}></div>
-                <span className={`text-base font-medium tracking-tight truncate max-w-[200px] stabilize-text
-                    ${isPending ? 'text-yellow-500/80 animate-pulse' :
-                        (isEditing ? 'text-primary' : 'text-secondary group-hover:text-primary')}
-                `}>{s.filename.replace(/\.ahk$/i, '')}</span>
+                <span className={`text-base font-medium tracking-tight truncate transition-colors stabilize-text ${!isDragging ? (isEditing ? 'text-indigo-400' : 'text-secondary/90 group-hover:text-white') : 'text-secondary/50'
+                    }`}>
+                    <HighlightText text={s.filename.replace(/\.ahk$/i, '')} variant="file" />
+                </span>
 
                 {!isDragging && (
                     <div className="flex items-center space-x-2 flex-shrink-0 pr-2 overflow-visible relative">
@@ -100,22 +103,24 @@ const ScriptRow = memo(function ScriptRow({
                 )}
             </div>
 
-            {!isDragging && (
-                <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center space-x-2 pointer-events-auto">
-                    <button
-                        onClick={(e) => { e.stopPropagation(); onToggle(s); }}
-                        onMouseDown={(e) => e.stopPropagation()}
-                        onDoubleClick={(e) => e.stopPropagation()}
-                        className={`text-xs font-bold px-4 h-7 rounded-lg bg-white/5 border border-white/5 shadow-xl transition-all cursor-pointer active:scale-95 flex items-center justify-center
+            {
+                !isDragging && (
+                    <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center space-x-2 pointer-events-auto">
+                        <button
+                            onClick={(e) => { e.stopPropagation(); onToggle(s); }}
+                            onMouseDown={(e) => e.stopPropagation()}
+                            onDoubleClick={(e) => e.stopPropagation()}
+                            className={`text-xs font-bold px-4 h-7 rounded-lg bg-white/5 border border-white/5 shadow-xl transition-all cursor-pointer active:scale-95 flex items-center justify-center
                             ${isPending ? 'text-white/20 animate-pulse cursor-wait' :
-                                s.is_running ? 'text-red-500 hover:bg-red-500 hover:text-white' : 'text-indigo-400 hover:bg-indigo-500 hover:text-white'}
+                                    s.is_running ? 'text-red-500 hover:bg-red-500 hover:text-white' : 'text-indigo-400 hover:bg-indigo-500 hover:text-white'}
                         `}
-                    >
-                        {isPending ? "Wait..." : s.is_running ? "Kill" : "Run"}
-                    </button>
-                </div>
-            )}
-        </div>
+                        >
+                            {isPending ? "Wait..." : s.is_running ? "Kill" : "Run"}
+                        </button>
+                    </div>
+                )
+            }
+        </div >
     );
 }, (prev, next) => {
     return prev.s.path === next.s.path &&

@@ -18,10 +18,11 @@ function App() {
   const [isRenamingTag, setIsRenamingTag] = useState<string | null>(null);
   const [editTagName, setEditTagName] = useState("");
   const [refreshKey, setRefreshKey] = useState(0);
+  const [searchQuery, setSearchQuery] = useState("");
   const [displayMode, setDisplayMode] = useState<"tree" | "tiles" | "list">(() => {
     return (localStorage.getItem("ahk_display_mode") as "tree" | "tiles" | "list") || "tree";
   });
-  const [contextMenu, setContextMenu] = useState<{ x: number, y: number, type: 'script' | 'tag' | 'general', data: any } | null>(null);
+  const [contextMenu, setContextMenu] = useState<{ x: number, y: number, type: 'script' | 'tag' | 'folder' | 'general', data: any } | null>(null);
   const [activeTabPressed, setActiveTabPressed] = useState<string | null>(null);
 
   const ghostRef = useRef<HTMLDivElement>(null);
@@ -162,6 +163,8 @@ function App() {
     if (tab === "Хаб") {
       setViewMode("hub");
       setDisplayMode("tiles");
+    } else if (tab === "Все" || tab === "С тегами" || tab === "Без тегов") {
+      setViewMode("tree");
     }
     else if (tab === "Настройки") setViewMode("settings");
     else {
@@ -282,34 +285,72 @@ function App() {
         style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-color)' }}
       >
         <div className="flex flex-col space-y-8 flex-1">
+          {/* Group 1: Hub */}
           <ul className="space-y-1.5">
-            {[{ id: "Хаб", label: "Хаб", icon: "" }, { id: "Все скрипты", label: "Дерево", icon: "" }].map((tab) => (
+            {[
+              { id: "Хаб", label: "Хаб", icon: "" }
+            ].map((tab) => (
               <li
                 key={tab.id}
                 className={`px-6 h-11 rounded-2xl cursor-pointer text-sm font-bold transition-all border-b-2 flex items-center justify-between ${draggedScript && tab.id !== dragOverTag ? 'opacity-20 blur-[1px]' : ''
                   } ${activeTab === tab.id && viewMode !== "settings"
-                    ? (tab.id === "Хаб"
-                      ? "bg-gradient-to-r from-indigo-500 to-purple-500 border-indigo-400 shadow-xl shadow-indigo-900/40 text-white"
-                      : "text-indigo-400 border-indigo-500 shadow-lg tag-active")
+                    ? "bg-gradient-to-r from-indigo-500 to-purple-500 border-indigo-400 shadow-xl shadow-indigo-900/40 text-white"
                     : "text-tertiary border-transparent hover:text-secondary tag-hover"
                   }`}
                 style={{
-                  backgroundColor: (activeTab === tab.id && viewMode !== "settings" && tab.id === "Хаб")
+                  backgroundColor: (activeTab === tab.id && viewMode !== "settings")
                     ? 'transparent'
-                    : (activeTab === tab.id && viewMode !== "settings" ? 'var(--bg-tag-active)' : 'var(--bg-tag)')
+                    : 'var(--bg-tag)'
                 }}
                 onClick={() => !draggedScript && handleTabClick(tab.id)}
               >
                 <div className="flex items-center space-x-4 pointer-events-none">
-                  {tab.icon}
                   <span>{tab.label}</span>
                 </div>
-                {tab.id === "Хаб" && activeTab !== "Хаб" && <div className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(79,70,229,0.5)]"></div>}
+                {activeTab !== "Хаб" && <div className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(79,70,229,0.5)]"></div>}
               </li>
             ))}
           </ul>
 
-          <div className="flex-1">
+          <div className="h-[1px] bg-white/5 mx-2" />
+
+          {/* Group 2: Global Filters */}
+          <ul className="space-y-1.5">
+            {[
+              { id: "Все", label: "Все", icon: "" },
+              { id: "Без тегов", label: "Без тегов", icon: "" }
+            ].map((tab) => (
+              <li
+                key={tab.id}
+                className={`px-6 h-11 rounded-2xl cursor-pointer text-sm font-bold transition-all border-b-2 flex items-center justify-between ${draggedScript && tab.id !== dragOverTag ? 'opacity-20 blur-[1px]' : ''
+                  } ${activeTab === tab.id && viewMode !== "settings"
+                    ? "text-indigo-400 border-indigo-500 shadow-lg tag-active"
+                    : "text-tertiary border-transparent hover:text-secondary tag-hover"
+                  }`}
+                style={{
+                  backgroundColor: (activeTab === tab.id && viewMode !== "settings" ? 'var(--bg-tag-active)' : 'var(--bg-tag)')
+                }}
+                onClick={() => !draggedScript && handleTabClick(tab.id)}
+              >
+                <div className="flex items-center space-x-4 pointer-events-none">
+                  <span>{tab.label}</span>
+                </div>
+              </li>
+            ))}
+          </ul>
+
+          <div className="h-[1px] bg-white/5 mx-2" />
+
+          {/* Group 3: Tags Header */}
+          <div className="flex flex-col space-y-4">
+            <div
+              className={`px-6 flex items-center justify-between group cursor-pointer ${activeTab === "С тегами" ? "text-indigo-400" : "text-tertiary"}`}
+              onClick={() => handleTabClick("С тегами")}
+            >
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-50 group-hover:opacity-100 transition-opacity">С тегами</span>
+              <div className="w-1.5 h-1.5 rounded-full bg-white/10" />
+            </div>
+
             <ul className="flex flex-col space-y-1.5 px-0 w-full">
               {userTags.map((tag) => (
                 <li
@@ -509,10 +550,10 @@ function App() {
 
       {/* Main Content */}
       <div
-        className="flex-1 px-8 py-6 flex flex-col overflow-hidden transition-all duration-300 relative z-10"
+        className="flex-1 pl-8 py-6 flex flex-col overflow-hidden transition-all duration-300 relative z-10"
         style={{ background: viewMode === "settings" ? 'var(--bg-primary)' : 'linear-gradient(to bottom right, var(--bg-primary), var(--bg-secondary))' }}
       >
-        <div className={`flex justify-between items-end mb-8 transition-all duration-300 ${draggedScript ? 'opacity-20 blur-[1px]' : ''}`}>
+        <div className={`flex justify-between items-end mb-8 pr-8 transition-all duration-300 ${draggedScript ? 'opacity-20 blur-[1px]' : ''}`}>
           <div className="flex flex-col">
             <h1 className="text-4xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-white to-white/40 pb-1">
               {activeTab}
@@ -655,9 +696,15 @@ function App() {
               isDragging={draggedScript !== null}
               draggedScriptPath={draggedScript?.path || null}
               animationsEnabled={animationsEnabled}
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
               onScriptContextMenu={(e, s) => {
                 e.preventDefault();
                 setContextMenu({ x: e.clientX, y: e.clientY, type: 'script', data: s });
+              }}
+              onFolderContextMenu={(e, folderData) => {
+                e.preventDefault();
+                setContextMenu({ x: e.clientX, y: e.clientY, type: 'folder', data: folderData });
               }}
             />
           )}
@@ -779,6 +826,41 @@ function App() {
                       setContextMenu(null);
                       setRefreshKey(p => p + 1);
                     }
+                  }}
+                />
+              </>
+            )}
+
+            {contextMenu.type === 'folder' && (
+              <>
+                <div className="px-4 py-2 border-b border-white/5 mb-1">
+                  <div className="text-[10px] font-black uppercase tracking-[0.2em] text-tertiary opacity-50 mb-0.5">Папка</div>
+                  <div className="text-xs font-bold text-white truncate">{contextMenu.data.name.replace('|', ' \ ')}</div>
+                </div>
+                <ContextMenuItem
+                  label="Показать в проводнике"
+                  icon="📂"
+                  onClick={() => {
+                    invoke("open_in_explorer", { path: contextMenu.data.fullName });
+                    setContextMenu(null);
+                  }}
+                />
+                <div className="h-[1px] bg-white/5 my-1" />
+                <ContextMenuItem
+                  label="Развернуть все вложенные"
+                  icon="➕"
+                  onClick={() => {
+                    contextMenu.data.onExpandAll();
+                    setContextMenu(null);
+                  }}
+                />
+                <div className="h-[1px] bg-white/5 my-1" />
+                <ContextMenuItem
+                  label="Копировать путь"
+                  icon="🔗"
+                  onClick={() => {
+                    navigator.clipboard.writeText(contextMenu.data.fullName);
+                    setContextMenu(null);
                   }}
                 />
               </>

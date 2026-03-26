@@ -1,21 +1,23 @@
 import React from "react";
+import { HighlightText } from "./HighlightText";
+import { SearchContext } from "../context/SearchContext";
 import { ScriptTreeProps, TreeNode } from "../types/script";
 import { useScriptTree } from "../hooks/useScriptTree";
 import ScriptRow from "./ScriptRow";
 import HubScriptCard from "./HubScriptCard";
 
-export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onViewModeChange, onCustomDragStart, isDragging, draggedScriptPath, animationsEnabled, onScriptContextMenu }: ScriptTreeProps) {
+export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onViewModeChange, onCustomDragStart, isDragging, draggedScriptPath, animationsEnabled, onScriptContextMenu, onFolderContextMenu, searchQuery, setSearchQuery }: ScriptTreeProps) {
     const {
         loading, filtered, tree,
         expandedFolders,
         editingScript, pendingScripts, removingTags,
-        treeFilter, showHidden, allUniqueTags,
+        isAllExpanded, showHidden, allUniqueTags,
         popoverRef, folderRefs,
-        setTreeFilter, setShowHidden,
-        toggleFolder, toggleAll,
+        setShowHidden,
+        toggleFolder, toggleAll, setFolderExpansionRecursive,
         handleToggle, startEditing, stopEditing,
         addTag, removeTag, handleCustomMouseDown,
-    } = useScriptTree({ filterTag, onTagsLoaded, viewMode: viewMode === "tree" ? "tree" : "hub", onCustomDragStart });
+    } = useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, searchQuery, setSearchQuery });
 
     const renderNode = (node: TreeNode, depth: number = 0): React.ReactNode => {
         const isExpanded = depth === 0 || expandedFolders[node.fullName] !== false;
@@ -26,14 +28,37 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onViewMo
                     <div
                         ref={el => { if (el) folderRefs.current.set(node.fullName, el); }}
                         onClick={() => !isDragging && toggleFolder(node.fullName)}
-                        className={`flex items-center space-x-2 h-[38px] rounded-lg z-10 relative transition-all duration-300 mb-0.5 border border-transparent hover:z-[50]
-                            ${!draggedScriptPath ? 'bg-white/[0.015] hover:bg-white/[0.05] cursor-pointer group' : 'bg-transparent text-tertiary cursor-default pointer-events-none'}
+                        onContextMenu={(e) => {
+                            e.preventDefault();
+                            onFolderContextMenu(e, {
+                                ...node,
+                                onExpandAll: () => setFolderExpansionRecursive(node, true),
+                                onCollapseAll: () => setFolderExpansionRecursive(node, false),
+                            } as any);
+                        }}
+                        className={`flex items-center space-x-2 h-[38px] pl-[4px] rounded-lg z-10 relative transition-all duration-300 mb-0.5 border border-transparent hover:z-[50]
+                            ${!draggedScriptPath ? 'bg-transparent hover:bg-white/[0.05] cursor-pointer group' : 'bg-transparent text-tertiary cursor-default pointer-events-none'}
                         `}
                     >
                         <div className={`w-4 h-4 flex items-center justify-center transition-transform duration-300 ${isExpanded ? 'rotate-90' : ''}`}>
-                            <svg width="6" height="6" viewBox="0 0 6 6" className={`transition-colors ${isExpanded && !isDragging ? 'fill-white/20' : 'fill-white/5'} ${!isDragging && 'group-hover:fill-white'}`}><path d="M0 0L6 3L0 6V0Z" /></svg>
+                            <svg
+                                width="10" height="10" viewBox="0 0 24 24"
+                                className={`transition-all ${!isDragging ? 'text-white opacity-20' : 'opacity-10'} ${!isDragging && 'group-hover:opacity-100'}`}
+                                stroke="currentColor" fill="currentColor" strokeWidth="4" strokeLinejoin="round"
+                            >
+                                <path d="M5.5 3.5L5.5 20.5L20.2 12L5.5 3.5Z" />
+                            </svg>
                         </div>
-                        <span className={`text-sm font-bold transition-colors ${isExpanded && !isDragging ? 'text-primary' : 'text-tertiary'} ${!isDragging && 'group-hover:text-primary'}`}>{node.name}</span>
+                        <div className="flex items-center overflow-hidden">
+                            {node.name.split('|').map((part, i) => (
+                                <React.Fragment key={part + i}>
+                                    {i > 0 && <div className="w-[5px] h-[5px] rounded-full bg-white/10 mx-3 flex-shrink-0" />}
+                                    <span className={`text-base font-medium tracking-tight transition-colors truncate stabilize-text ${!isDragging ? 'text-secondary group-hover:text-primary' : 'text-tertiary'} `}>
+                                        <HighlightText text={part} variant="path" />
+                                    </span>
+                                </React.Fragment>
+                            ))}
+                        </div>
                     </div>
                 )}
 
@@ -51,7 +76,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onViewMo
                         <div className={`${node.name !== "Root" ? 'pl-5 ml-2.5 mb-0.5 mt-0.5' : ''} space-y-1.5 relative`}>
                             {Object.values(node.children).sort((a, b) => a.name.localeCompare(b.name)).map(child => renderNode(child, depth + 1))}
                             {node.scripts.sort((a, b) => a.filename.localeCompare(b.filename)).map(s => {
-                                const removingTagKeys = Array.from(removingTags).filter(k => k.startsWith(s.path + '-'));
+                                const removingTagKeys = Array.from(removingTags as Set<string>).filter(k => k.startsWith(s.path + '-'));
                                 return (
                                     <ScriptRow
                                         key={s.path}
@@ -72,6 +97,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onViewMo
                                         onCloseEditing={stopEditing}
                                         onScriptContextMenu={onScriptContextMenu}
                                     />
+
                                 );
                             })}
                         </div>
@@ -84,57 +110,12 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onViewMo
     if (loading) return <div className="p-10 text-center text-tertiary font-bold text-xs tracking-[0.5em] animate-pulse uppercase">Syncing Uplink...</div>;
 
     const hasContent = Object.keys(tree.children).length > 0 || tree.scripts.length > 0;
-    const anyExpanded = Object.values(expandedFolders).some(val => val);
 
     return (
         <div className="flex flex-col h-full overflow-hidden">
-            <div className={`flex items-center justify-between pl-1 mb-4 pb-2 border-b transition-all duration-300 ${draggedScriptPath ? 'opacity-20 blur-[1px] pointer-events-none' : ''}`} style={{ borderColor: 'var(--border-color)' }}>
+            <div className={`flex items-center justify-between pl-1 pr-8 pb-2 border-b transition-all duration-300 ${draggedScriptPath ? 'opacity-20 blur-[1px] pointer-events-none' : ''}`} style={{ borderColor: 'var(--border-color)' }}>
                 <div className="flex items-center space-x-1">
-                    {viewMode === "tree" && (
-                        <button
-                            onClick={toggleAll}
-                            className={`p-2 transition-all h-10 w-10 flex flex-col items-center justify-center border-none shadow-none bg-transparent focus:outline-none relative cursor-pointer ${!isDragging ? 'group/toggle' : 'opacity-10 cursor-default'}`}
-                            title="Свернуть/Развернуть все"
-                        >
-                            <div className="flex flex-col items-center space-y-[3px]">
-                                <svg width="14" height="6" viewBox="0 0 24 10" fill="none"
-                                    className={`transition-all duration-300 ease-in-out stroke-white/20 ${!isDragging && 'group-hover/toggle:stroke-indigo-400'} ${anyExpanded ? 'rotate-180' : ''}`}
-                                    strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M5 8l7-7 7 7" />
-                                </svg>
-                                <svg width="14" height="6" viewBox="0 0 24 10" fill="none"
-                                    className={`transition-all duration-300 ease-in-out stroke-white/20 ${!isDragging && 'group-hover/toggle:stroke-indigo-400'} ${anyExpanded ? 'rotate-180' : ''}`}
-                                    strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M5 2l7 7 7-7" />
-                                </svg>
-                            </div>
-                        </button>
-                    )}
-                    {viewMode === "tree" && <div className="h-4 w-[1px] bg-white/5 mx-2"></div>}
-
-                    {/* Segmented Filter Control */}
-                    <div className="flex bg-white/[0.03] p-1 rounded-xl border border-white/5 h-[42px] items-center">
-                        {[
-                            { id: "all", label: "Все" },
-                            { id: "tagged", label: "С тегами" },
-                            { id: "untagged", label: "Без" }
-                        ].map((f) => (
-                            <button
-                                key={f.id}
-                                onClick={() => !isDragging && setTreeFilter(f.id as any)}
-                                className={`px-4 h-full rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center ${treeFilter === f.id
-                                    ? "bg-indigo-600 text-white shadow-lg shadow-indigo-900/20"
-                                    : "text-tertiary hover:text-secondary"
-                                    } ${isDragging ? 'opacity-20 pointer-events-none' : ''}`}
-                            >
-                                {f.label}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-
-                <div className="flex items-center space-x-3">
-                    {/* Segmented View Mode Switcher */}
+                    {/* VIEW MODE SWITCHER (First on the left) */}
                     <div className="flex bg-white/[0.03] p-1 rounded-xl border border-white/5 h-[42px] items-center">
                         {[
                             { id: "tree", icon: "M3 9h18M3 15h18 M3 6h18M3 18h18 M7 6v12M17 6v12" },
@@ -157,6 +138,58 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onViewMo
                         ))}
                     </div>
 
+                    {viewMode === "tree" && <div className="h-4 w-[1px] bg-white/5 mx-2"></div>}
+                    {viewMode === "tree" && (
+                        <button
+                            onClick={toggleAll}
+                            className={`p-2 transition-all h-10 w-10 flex flex-col items-center justify-center border-none shadow-none bg-transparent focus:outline-none relative cursor-pointer ${!isDragging ? 'group/toggle' : 'opacity-10 cursor-default'} text-white/20 hover:text-indigo-400`}
+                            title={isAllExpanded ? "Свернуть все" : "Развернуть все"}
+                        >
+                            <div className="flex flex-col items-center space-y-[3px]">
+                                <svg width="14" height="6" viewBox="0 0 24 10" fill="none"
+                                    className={`transition-all duration-300 ease-in-out stroke-current ${isAllExpanded ? 'rotate-180' : ''}`}
+                                    strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M5 8l7-7 7 7" />
+                                </svg>
+                                <svg width="14" height="6" viewBox="0 0 24 10" fill="none"
+                                    className={`transition-all duration-300 ease-in-out stroke-current ${isAllExpanded ? 'rotate-180' : ''}`}
+                                    strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M5 2l7 7 7-7" />
+                                </svg>
+                            </div>
+                        </button>
+                    )}
+
+                    {/* SEARCH INPUT */}
+                    <div className="flex-1 max-w-sm ml-4 relative group">
+                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-tertiary group-focus-within:text-indigo-400 transition-colors pointer-events-none">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                            </svg>
+                        </div>
+                        <input
+                            type="text"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            placeholder="Поиск скриптов..."
+                            className="w-full bg-white/[0.03] border border-white/5 rounded-xl h-[42px] pl-10 pr-10 text-xs font-medium transition-all focus:outline-none focus:border-indigo-500/50 focus:bg-white/[0.05] placeholder:text-tertiary/50"
+                        />
+                        {searchQuery && (
+                            <button
+                                onClick={() => setSearchQuery("")}
+                                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 hover:bg-white/10 rounded-lg text-tertiary hover:text-white transition-all flex items-center justify-center cursor-pointer"
+                            >
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                </svg>
+                            </button>
+                        )}
+                    </div>
+                </div>
+
+                <div className="flex items-center space-x-3">
                     {/* Hidden Toggle (Eye) */}
                     <button
                         onClick={() => !isDragging && setShowHidden(!showHidden)}
@@ -183,49 +216,28 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onViewMo
                 </div>
             </div>
 
-            <div className={`flex-1 overflow-y-auto custom-scrollbar mt-2 transition-all duration-300 ${draggedScriptPath ? 'opacity-30 blur-[1px]' : ''}`}>
-                {viewMode === "tiles" ? (
-                    <div className="grid grid-cols-[repeat(auto-fill,minmax(340px,1fr))] gap-6 pb-10">
-                        {filtered.length === 0 && <div className="text-tertiary col-span-3 text-center py-40 italic tracking-[0.3em] text-sm font-bold">Пустой канал...</div>}
-                        {filtered.map(s => (
-                            <HubScriptCard
-                                key={s.path}
-                                s={s}
-                                isDragging={isDragging}
-                                draggedScriptPath={draggedScriptPath}
-                                editingScript={editingScript}
-                                pendingScripts={pendingScripts}
-                                removingTags={removingTags}
-                                allUniqueTags={allUniqueTags}
-                                popoverRef={popoverRef}
-                                onMouseDown={handleCustomMouseDown}
-                                onToggle={handleToggle}
-                                onStartEditing={startEditing}
-                                onAddTag={addTag}
-                                onRemoveTag={removeTag}
-                                onCloseEditing={stopEditing}
-                                onScriptContextMenu={onScriptContextMenu}
-                            />
-                        ))}
-                    </div>
-                ) : viewMode === "list" ? (
-                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-x-8 gap-y-1 pb-10 pr-2">
-                        {filtered.length === 0 && <div className="text-tertiary col-span-2 text-center py-40 italic tracking-[0.3em] text-sm font-bold">Пустой раздел...</div>}
-                        {filtered.map(s => {
-                            const removingTagKeys = Array.from(removingTags).filter(k => k.startsWith(s.path + '-'));
-                            return (
-                                <ScriptRow
+            <SearchContext.Provider value={{
+                query: searchQuery.toLowerCase().includes("file:") ? searchQuery.replace(/file:/gi, "").trim() :
+                    searchQuery.toLowerCase().includes("path:") ? searchQuery.replace(/path:/gi, "").trim() : searchQuery,
+                prefix: searchQuery.toLowerCase().startsWith("file:") ? "file" :
+                    searchQuery.toLowerCase().startsWith("path:") ? "path" : null
+            }}>
+                <div className={`flex-1 overflow-y-auto custom-scrollbar mt-2 transition-all duration-300 ${draggedScriptPath ? 'opacity-30 blur-[1px]' : ''}`}>
+                    {viewMode === "tiles" ? (
+                        <div className="grid grid-cols-[repeat(auto-fill,minmax(340px,1fr))] gap-6 pb-10 pr-6">
+                            {filtered.length === 0 && <div className="text-tertiary col-span-3 text-center py-40 italic tracking-[0.3em] text-sm font-bold">Пустой канал...</div>}
+                            {filtered.map(s => (
+                                <HubScriptCard
                                     key={s.path}
                                     s={s}
                                     isDragging={isDragging}
                                     draggedScriptPath={draggedScriptPath}
-                                    isEditing={editingScript === s.path}
-                                    isPending={pendingScripts.has(s.path)}
-                                    removingTagKeys={removingTagKeys}
+                                    editingScript={editingScript}
+                                    pendingScripts={pendingScripts}
+                                    removingTags={removingTags}
                                     allUniqueTags={allUniqueTags}
                                     popoverRef={popoverRef}
                                     onMouseDown={handleCustomMouseDown}
-                                    onDoubleClick={(s) => handleToggle(s, true)}
                                     onToggle={handleToggle}
                                     onStartEditing={startEditing}
                                     onAddTag={addTag}
@@ -233,17 +245,46 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onViewMo
                                     onCloseEditing={stopEditing}
                                     onScriptContextMenu={onScriptContextMenu}
                                 />
-                            );
-                        })}
-                    </div>
-                ) : (
-                    <div className="flex flex-col space-y-0.5 select-none">
-                        {!hasContent ? (
-                            <div className="text-tertiary text-center py-40 italic tracking-[0.3em] text-sm font-bold">Пустой раздел дерева...</div>
-                        ) : renderNode(tree)}
-                    </div>
-                )}
-            </div>
+                            ))}
+                        </div>
+                    ) : viewMode === "list" ? (
+                        <div className="grid grid-cols-1 xl:grid-cols-2 gap-x-8 gap-y-1 pb-10 pr-6">
+                            {filtered.length === 0 && <div className="text-tertiary col-span-2 text-center py-40 italic tracking-[0.3em] text-sm font-bold">Пустой раздел...</div>}
+                            {filtered.map(s => {
+                                const removingTagKeys = Array.from(removingTags as Set<string>).filter(k => k.startsWith(s.path + '-'));
+                                return (
+                                    <ScriptRow
+                                        key={s.path}
+                                        s={s}
+                                        isDragging={isDragging}
+                                        draggedScriptPath={draggedScriptPath}
+                                        isEditing={editingScript === s.path}
+                                        isPending={pendingScripts.has(s.path)}
+                                        removingTagKeys={removingTagKeys}
+                                        allUniqueTags={allUniqueTags}
+                                        popoverRef={popoverRef}
+                                        onMouseDown={handleCustomMouseDown}
+                                        onDoubleClick={(s) => handleToggle(s, true)}
+                                        onToggle={handleToggle}
+                                        onStartEditing={startEditing}
+                                        onAddTag={addTag}
+                                        onRemoveTag={removeTag}
+                                        onCloseEditing={stopEditing}
+                                        onScriptContextMenu={onScriptContextMenu}
+                                    />
+
+                                );
+                            })}
+                        </div>
+                    ) : (
+                        <div className="flex flex-col space-y-0.5 select-none pr-6">
+                            {!hasContent ? (
+                                <div className="text-tertiary text-center py-40 italic tracking-[0.3em] text-sm font-bold">Пустой раздел дерева...</div>
+                            ) : renderNode(tree)}
+                        </div>
+                    )}
+                </div>
+            </SearchContext.Provider>
         </div >
     );
 }

@@ -1,12 +1,15 @@
 import React, { useState, memo } from "react";
 import { HubScriptCardProps } from "../types/script";
 import TagPickerPopover from "./TagPickerPopover";
+import { HighlightText } from "./HighlightText";
+import { useSearchQuery } from "../context/SearchContext";
 
 const HubScriptCard = memo(function HubScriptCard({
     s, isDragging, draggedScriptPath, editingScript, pendingScripts, removingTags,
     allUniqueTags, popoverRef, onMouseDown, onToggle, onStartEditing, onAddTag, onRemoveTag, onCloseEditing,
     onScriptContextMenu
 }: HubScriptCardProps) {
+    const searchQuery = useSearchQuery();
     const [isLeftPressed, setIsLeftPressed] = useState(false);
 
     const handleMouseDown = (e: React.MouseEvent) => {
@@ -44,8 +47,12 @@ const HubScriptCard = memo(function HubScriptCard({
         >
             <div className="flex justify-between items-start pointer-events-none">
                 <div className="flex flex-col overflow-hidden flex-1">
-                    <span className={`text-xl font-black truncate pr-4 transition-colors tracking-tight stabilize-text ${!isDragging ? (isEditing ? 'text-indigo-400' : 'text-secondary group-hover:text-indigo-400') : 'text-secondary'}`}>{s.filename.replace(/\.ahk$/i, '')}</span>
-                    <span className="text-xs text-tertiary font-bold tracking-[0.15em] mt-1 opacity-70">{s.parent}</span>
+                    <span className={`text-xl font-black truncate pr-4 transition-colors tracking-tight stabilize-text ${!isDragging ? (isEditing ? 'text-indigo-400' : 'text-secondary group-hover:text-indigo-400') : 'text-secondary'}`}>
+                        <HighlightText text={s.filename.replace(/\.ahk$/i, '')} variant="file" />
+                    </span>
+                    <span className="text-xs text-tertiary font-bold tracking-[0.15em] mt-1 opacity-70">
+                        <HighlightText text={s.parent} variant="path" />
+                    </span>
                 </div>
                 <div className={`w-4 h-4 rounded-full transition-all duration-500 ${s.is_running ? 'bg-green-500 animate-status-glow shadow-[0_0_12px_rgba(34,197,94,0.8)]' : 'bg-white/5 border border-white/10'} ${isDragging ? 'opacity-20' : ''}`}></div>
             </div>

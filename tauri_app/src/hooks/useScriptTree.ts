@@ -7,18 +7,18 @@ import { TreeNode } from "../types/script";
 interface UseScriptTreeOptions {
     filterTag: string;
     onTagsLoaded: (tags: string[]) => void;
-    viewMode: "tree" | "hub";
     onCustomDragStart: (script: { path: string, filename: string, tags: string[], x: number, y: number }) => void;
+    searchQuery: string;
+    setSearchQuery: (query: string) => void;
 }
 
-export function useScriptTree({ filterTag, onTagsLoaded, viewMode, onCustomDragStart }: UseScriptTreeOptions) {
+export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, searchQuery, setSearchQuery }: UseScriptTreeOptions) {
     const [allScripts, setAllScripts] = useState<Script[]>([]);
     const [loading, setLoading] = useState(true);
     const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({});
     const [isAllExpanded, setIsAllExpanded] = useState(true);
     const [editingScript, setEditingScript] = useState<string | null>(null);
     const popoverRef = useRef<HTMLDivElement>(null);
-    const [treeFilter, setTreeFilter] = useState<"all" | "tagged" | "untagged">("all");
     const [showHidden, setShowHidden] = useState(false);
     const [pendingScripts, setPendingScripts] = useState<Set<string>>(new Set());
     const [removingTags, setRemovingTags] = useState<Set<string>>(new Set());
@@ -255,22 +255,42 @@ export function useScriptTree({ filterTag, onTagsLoaded, viewMode, onCustomDragS
                 if (!s.is_hidden) return false;
             } else if (filterTag === "С тегами") {
                 if (s.tags.length === 0) return false;
-            } else if (filterTag !== "Все скрипты" && filterTag !== "Дерево" && filterTag !== "Хаб" && filterTag !== "Хаб" && filterTag !== "") {
+            } else if (filterTag !== "Все" && filterTag !== "Все скрипты" && filterTag !== "Дерево" && filterTag !== "Хаб" && filterTag !== "") {
                 if (!s.tags.includes(filterTag)) return false;
-            } else {
-                if (s.is_hidden && !showHidden) return false;
             }
-            if (viewMode === "tree") {
-                if (treeFilter === "tagged" && s.tags.length === 0) return false;
-                if (treeFilter === "untagged" && s.tags.length > 0) return false;
-                if (s.is_hidden && !showHidden) return false;
-            } else {
-                if (s.is_hidden) return false;
+
+            // Common visibility logic
+            if (!showHidden && s.is_hidden) return false;
+
+            // Advanced Search Prefix logic
+            const rawQuery = searchQuery.trim().toLowerCase();
+            if (rawQuery) {
+                if (rawQuery.startsWith("file:")) {
+                    const q = rawQuery.replace("file:", "").trim();
+                    if (q) {
+                        const matchesName = s.filename.toLowerCase().includes(q);
+                        if (!matchesName) return false;
+                    }
+                } else if (rawQuery.startsWith("path:")) {
+                    const q = rawQuery.replace("path:", "").trim();
+                    if (q) {
+                        // Match only the folder part (parent directory)
+                        // This excludes the filename itself from the path match
+                        const folderPath = s.path.toLowerCase().replace(s.filename.toLowerCase(), "");
+                        if (!folderPath.includes(q)) return false;
+                    }
+                } else {
+                    // Default logic (name OR path)
+                    const matchesName = s.filename.toLowerCase().includes(rawQuery);
+                    const matchesPath = s.path.toLowerCase().includes(rawQuery);
+                    if (!matchesName && !matchesPath) return false;
+                }
             }
+
             return true;
         });
         return list;
-    }, [allScripts, filterTag, viewMode, treeFilter, showHidden]);
+    }, [allScripts, filterTag, showHidden, searchQuery]);
 
     const tree = useMemo(() => {
         const root: TreeNode = { name: "Root", fullName: "Root", scripts: [], children: {} };
@@ -297,8 +317,38 @@ export function useScriptTree({ filterTag, onTagsLoaded, viewMode, onCustomDragS
             }
             current.scripts.push(script);
         });
-        return root;
+        const compact = (node: TreeNode): TreeNode => {
+            const childKeys = Object.keys(node.children);
+            for (const key of childKeys) {
+                node.children[key] = compact(node.children[key]);
+            }
+
+            if (node.name !== "Root" && childKeys.length === 1 && node.scripts.length === 0) {
+                const child = node.children[childKeys[0]];
+                return {
+                    ...child,
+                    name: `${node.name}|${child.name}`
+                };
+            }
+            return node;
+        };
+
+        return compact(root);
     }, [filtered]);
+
+    // Auto-expand everything when searching
+    useEffect(() => {
+        if (searchQuery.trim().length > 0) {
+            setIsAllExpanded(true);
+            const next: Record<string, boolean> = {};
+            const traverse = (node: TreeNode) => {
+                if (node.name !== "Root") next[node.fullName] = true;
+                Object.values(node.children).forEach(traverse);
+            };
+            traverse(tree);
+            setExpandedFolders(next);
+        }
+    }, [searchQuery, tree]);
 
     const toggleAll = useCallback(() => {
         const nextState = !isAllExpanded;
@@ -312,16 +362,28 @@ export function useScriptTree({ filterTag, onTagsLoaded, viewMode, onCustomDragS
         setIsAllExpanded(nextState);
     }, [isAllExpanded, tree]);
 
+    const setFolderExpansionRecursive = useCallback((node: TreeNode, expanded: boolean) => {
+        setExpandedFolders(prev => {
+            const next = { ...prev };
+            const traverse = (n: TreeNode) => {
+                if (n.name !== "Root") next[n.fullName] = expanded;
+                Object.values(n.children).forEach(traverse);
+            };
+            traverse(node);
+            return next;
+        });
+    }, []);
+
     return {
         // state
         loading, allScripts, filtered, tree,
         expandedFolders, isAllExpanded,
         editingScript, pendingScripts, removingTags,
-        treeFilter, showHidden, allUniqueTags,
+        showHidden, allUniqueTags, searchQuery,
         popoverRef, folderRefs,
         // actions
-        setTreeFilter, setShowHidden,
-        toggleFolder, toggleAll,
+        setShowHidden, setSearchQuery,
+        toggleFolder, toggleAll, setFolderExpansionRecursive,
         handleToggle, startEditing, stopEditing,
         addTag, removeTag, handleCustomMouseDown,
     };

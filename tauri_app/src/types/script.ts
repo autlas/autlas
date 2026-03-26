@@ -18,6 +18,9 @@ export interface ScriptTreeProps {
     draggedScriptPath: string | null;
     animationsEnabled: boolean;
     onScriptContextMenu: (e: React.MouseEvent, script: Script) => void;
+    onFolderContextMenu: (e: React.MouseEvent, folderData: { name: string, fullName: string, onExpandAll: () => void }) => void;
+    searchQuery: string;
+    setSearchQuery: (query: string) => void;
 }
 
 export interface TagPickerProps {
