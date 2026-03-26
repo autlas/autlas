@@ -1,12 +1,220 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef, useMemo, createContext, useContext, memo } from "react";
 import { HighlightText } from "./HighlightText";
 import { SearchContext } from "../context/SearchContext";
 import { ScriptTreeProps, TreeNode } from "../types/script";
 import { useScriptTree } from "../hooks/useScriptTree";
 import ScriptRow from "./ScriptRow";
 import HubScriptCard from "./HubScriptCard";
+import { Script } from "../api";
+
+// ─── PERF LOGGING ──────────────────────────────────────────────
+const PERF = true; // set false to disable all perf logs
+// ───────────────────────────────────────────────────────────────
+
+// ─── TREE CONTEXT (stable handlers — don't bust memo) ──────────
+interface TreeContextValue {
+    expandedFoldersRef: React.MutableRefObject<Record<string, boolean>>;
+    toggleFolder: (path: string) => void;
+    setFolderExpansionRecursive: (node: TreeNode, expanded: boolean) => void;
+    folderRefs: React.MutableRefObject<Map<string, HTMLDivElement>>;
+    isDragging: boolean;
+    draggedScriptPath: string | null;
+    animationsEnabled: boolean;
+    onFolderContextMenu: (e: React.MouseEvent, data: any) => void;
+    onScriptContextMenu: (e: React.MouseEvent, s: Script) => void;
+    editingScript: string | null;
+    pendingScripts: Set<string>;
+    removingTags: Set<string>;
+    allUniqueTags: string[];
+    popoverRef: React.MutableRefObject<HTMLDivElement | null>;
+    handleCustomMouseDown: (e: React.MouseEvent, script: Script) => void;
+    handleToggle: (s: Script, forceStart?: boolean) => void;
+    startEditing: (s: Script) => void;
+    stopEditing: () => void;
+    addTag: (script: Script, tag: string) => void;
+    removeTag: (script: Script, tag: string) => void;
+}
+const TreeContext = createContext<TreeContextValue>(null as any);
+// ───────────────────────────────────────────────────────────────
+
+// ─── MEMOIZED TREE NODE ─────────────────────────────────────────
+const TreeNodeRenderer = memo(function TreeNodeRenderer({
+    node,
+    depth,
+    isExpanded,
+}: {
+    node: TreeNode;
+    depth: number;
+    isExpanded: boolean;
+}) {
+    const nodeRenderCountRef = useRef(0);
+    const ctx = useContext(TreeContext);
+    const { expandedFoldersRef, toggleFolder, setFolderExpansionRecursive,
+        folderRefs, isDragging, draggedScriptPath,
+        onFolderContextMenu, onScriptContextMenu,
+        editingScript, pendingScripts, removingTags, allUniqueTags,
+        popoverRef, handleCustomMouseDown, handleToggle,
+        startEditing, stopEditing, addTag, removeTag } = ctx;
+
+    if (PERF && depth < 3 && node.name !== 'Root') {
+        nodeRenderCountRef.current += 1;
+        console.log(`%c  [NODE] render "${node.name.split('|').pop()}" depth=${depth} isExpanded=${isExpanded} #${nodeRenderCountRef.current}`, 'color: #38bdf8');
+    }
+
+    // ── Height animation via CSS grid-rows trick ──────────────────────────
+    // childVisible: keeps DOM alive during exit animation
+    // gridExpanded: drives grid-template-rows 0fr ↔ 1fr for smooth height
+    const [childVisible, setChildVisible] = useState(isExpanded);
+    const [gridExpanded, setGridExpanded] = useState(isExpanded);
+    const skipFirstEffect = useRef(true);
+
+    useEffect(() => {
+        if (skipFirstEffect.current) { skipFirstEffect.current = false; return; }
+        const animated = ctx.animationsEnabled;
+        if (isExpanded) {
+            setChildVisible(true);
+            if (animated) {
+                setGridExpanded(false); // paint at 0fr first
+                requestAnimationFrame(() => requestAnimationFrame(() => setGridExpanded(true)));
+            } else {
+                setGridExpanded(true);
+            }
+        } else {
+            if (animated) {
+                setGridExpanded(false); // collapse height
+                const t = setTimeout(() => setChildVisible(false), 230);
+                return () => clearTimeout(t);
+            } else {
+                setGridExpanded(false);
+                setChildVisible(false);
+            }
+        }
+    }, [isExpanded]); // eslint-disable-line react-hooks/exhaustive-deps
+    // ────────────────────────────────────────────────────────────────────
+
+    return (
+        <div className="flex flex-col">
+            {node.name !== "Root" && (
+                <div
+                    ref={el => { if (el) folderRefs.current!.set(node.fullName, el); }}
+                    onClick={() => !isDragging && toggleFolder(node.fullName)}
+                    onContextMenu={(e) => {
+                        e.preventDefault();
+                        onFolderContextMenu(e, {
+                            ...node,
+                            onExpandAll: () => setFolderExpansionRecursive(node, true),
+                            onCollapseAll: () => setFolderExpansionRecursive(node, false),
+                        } as any);
+                    }}
+                    className={`flex items-center space-x-2 h-[38px] pl-[4px] rounded-lg z-10 relative transition-all duration-300 mb-0.5 border border-transparent hover:z-[50]
+                        ${!draggedScriptPath ? 'bg-transparent hover:bg-white/[0.05] cursor-pointer group' : 'bg-transparent text-tertiary cursor-default pointer-events-none'}
+                    `}
+                >
+                    <div className={`w-4 h-4 flex items-center justify-center transition-transform duration-300 ${isExpanded ? 'rotate-90' : ''}`}>
+                        <svg
+                            width="10" height="10" viewBox="0 0 24 24"
+                            className={`transition-all ${!isDragging ? 'text-white opacity-20' : 'opacity-10'} ${!isDragging && 'group-hover:opacity-100'}`}
+                            stroke="currentColor" fill="currentColor" strokeWidth="4" strokeLinejoin="round"
+                        >
+                            <path d="M5.5 3.5L5.5 20.5L20.2 12L5.5 3.5Z" />
+                        </svg>
+                    </div>
+                    <div className="flex items-center overflow-hidden">
+                        {node.name.split('|').map((part, i) => (
+                            <React.Fragment key={part + i}>
+                                {i > 0 && <div className="w-[5px] h-[5px] rounded-full bg-white/10 mx-3 flex-shrink-0" />}
+                                <span className={`text-base font-medium tracking-tight transition-colors truncate stabilize-text ${!isDragging ? 'text-secondary group-hover:text-primary' : 'text-tertiary'} `}>
+                                    <HighlightText text={part} variant="path" />
+                                </span>
+                            </React.Fragment>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* Grid-rows height animation — content below slides up/down */}
+            {childVisible && (
+                <div
+                    style={{
+                        display: 'grid',
+                        gridTemplateRows: gridExpanded ? '1fr' : '0fr',
+                        transition: ctx.animationsEnabled ? 'grid-template-rows 0.22s cubic-bezier(0.33, 1, 0.68, 1)' : 'none',
+                    }}
+                >
+                    {/* overflow:hidden on inner div required for grid-rows trick */}
+                    <div style={{ minHeight: 0, overflow: 'hidden' }}>
+                        <div className="relative">
+                            {node.name !== "Root" && (
+                                <div
+                                    onClick={() => !isDragging && toggleFolder(node.fullName)}
+                                    className={`absolute left-[13px] top-0 bottom-4 w-5 -ml-2.5 z-20 transition-all duration-150 rounded-full ${!draggedScriptPath ? 'cursor-pointer group/line hover:bg-white/[0.05]' : ''}`}
+                                >
+                                    <div className={`absolute left-[9px] top-0 bottom-0 w-[1px] transition-colors shadow-2xl ${isDragging ? 'bg-white/5' : 'bg-white/10'}`}></div>
+                                </div>
+                            )}
+                            <div className={`${node.name !== "Root" ? 'pl-5 ml-2.5 mb-0.5 mt-0.5' : ''} space-y-1.5 relative`}>
+                                {Object.values(node.children).sort((a, b) => a.name.localeCompare(b.name)).map(child => (
+                                    <TreeNodeRenderer
+                                        key={child.fullName}
+                                        node={child}
+                                        depth={depth + 1}
+                                        isExpanded={expandedFoldersRef.current![child.fullName] !== false}
+                                    />
+                                ))}
+                                {node.scripts.sort((a, b) => a.filename.localeCompare(b.filename)).map(s => {
+                                    const removingTagKeys = Array.from(removingTags as Set<string>).filter(k => k.startsWith(s.path + '-'));
+                                    return (
+                                        <ScriptRow
+                                            key={s.path}
+                                            s={s}
+                                            isDragging={isDragging}
+                                            draggedScriptPath={draggedScriptPath}
+                                            isEditing={editingScript === s.path}
+                                            isPending={pendingScripts.has(s.path)}
+                                            removingTagKeys={removingTagKeys}
+                                            allUniqueTags={allUniqueTags}
+                                            popoverRef={popoverRef}
+                                            onMouseDown={handleCustomMouseDown}
+                                            onDoubleClick={(s) => handleToggle(s, true)}
+                                            onToggle={handleToggle}
+                                            onStartEditing={startEditing}
+                                            onAddTag={addTag}
+                                            onRemoveTag={removeTag}
+                                            onCloseEditing={stopEditing}
+                                            onScriptContextMenu={onScriptContextMenu}
+                                        />
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}, (prev, next) => {
+    // ROOT (depth=0): always re-render so it propagates new isExpanded to children
+    if (prev.depth === 0) return false;
+    // NON-ROOT: skip if this node's expansion and data haven't changed
+    const sameNode = prev.node === next.node;
+    const sameExpanded = prev.isExpanded === next.isExpanded;
+    const skip = sameNode && sameExpanded;
+    if (!skip && prev.node.name !== 'Root') {
+        console.warn(`%c[MEMO] "${prev.node.name.split('|').pop()}" depth=${prev.depth} RERENDER: nodeRef=${sameNode ? 'same✓' : 'CHANGED❌'} isExpanded=${sameExpanded ? 'same✓' : `${prev.isExpanded}→${next.isExpanded}❌`}`, 'color:#fb923c');
+    }
+    return skip;
+});
+// ───────────────────────────────────────────────────────────────
 
 export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, viewMode, onViewModeChange, onCustomDragStart, isDragging, draggedScriptPath, animationsEnabled, onScriptContextMenu, onFolderContextMenu, searchQuery, setSearchQuery }: ScriptTreeProps) {
+    const renderCountRef = useRef(0);
+    const renderStartRef = useRef(0);
+    if (PERF) {
+        renderCountRef.current += 1;
+        renderStartRef.current = performance.now();
+        console.log(`%c[PERF] ScriptTree render #${renderCountRef.current} | filterTag: "${filterTag}"`, 'color: #f59e0b; font-weight: bold');
+    }
+
     const {
         loading, filtered, tree,
         expandedFolders,
@@ -94,6 +302,54 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, v
         scrollPositions.current[currentKey] = container.scrollTop;
     };
 
+    // ─── expandedFoldersRef: stable reference for TreeNodeRenderer memo ───
+    const expandedFoldersRef = useRef<Record<string, boolean>>(expandedFolders);
+    expandedFoldersRef.current = expandedFolders;
+
+    // ─── STABLE context ref (never changes reference → never busts TreeNodeRenderer memo) ───
+    // We mutate the object IN PLACE so the Provider value is always the same object ref.
+    const stableCtxRef = useRef<TreeContextValue>({} as TreeContextValue);
+    Object.assign(stableCtxRef.current, {
+        expandedFoldersRef,
+        toggleFolder, setFolderExpansionRecursive, folderRefs,
+        isDragging, draggedScriptPath, animationsEnabled,
+        onFolderContextMenu, onScriptContextMenu,
+        editingScript, pendingScripts, removingTags, allUniqueTags,
+        popoverRef, handleCustomMouseDown, handleToggle,
+        startEditing, stopEditing, addTag, removeTag,
+    });
+
+    // ─── Context stability detector ───────────────────────────────────────
+    if (PERF) {
+        const deps = {
+            toggleFolder, setFolderExpansionRecursive,
+            isDragging, draggedScriptPath, animationsEnabled,
+            editingScript, pendingScripts, removingTags, allUniqueTags,
+            handleCustomMouseDown, handleToggle, startEditing, stopEditing, addTag, removeTag,
+            onFolderContextMenu, onScriptContextMenu,
+        };
+        // eslint-disable-next-line react-hooks/rules-of-hooks
+        const prevDepsRef = useRef<typeof deps | null>(null);
+        if (prevDepsRef.current) {
+            const changed = (Object.keys(deps) as Array<keyof typeof deps>).filter(
+                k => !Object.is(deps[k], prevDepsRef.current![k])
+            );
+            if (changed.length > 0) {
+                console.warn(`%c[CTX] deps changed (context stable): ${changed.join(', ')}`, 'color: #f97316; font-weight: bold');
+            }
+        }
+        prevDepsRef.current = deps;
+    }
+
+    // Log when render completes
+    const renderCountAtEffectRef = useRef(0);
+    useEffect(() => {
+        if (!PERF) return;
+        renderCountAtEffectRef.current += 1;
+        const renderMs = (performance.now() - renderStartRef.current).toFixed(1);
+        console.log(`%c[PERF] ScriptTree paint done #${renderCountAtEffectRef.current} | ${renderMs}ms | scripts: ${filtered.length} | folders: ${Object.keys(expandedFolders).length}`, 'color: #fb7185; font-weight: bold');
+    });
+
     const masonryColumns = useMemo(() => {
         const cols: any[][] = Array.from({ length: columnsCount }, () => []);
         filtered.forEach((s, i) => {
@@ -102,93 +358,6 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, v
         return cols;
     }, [filtered, columnsCount]);
 
-    const renderNode = (node: TreeNode, depth: number = 0): React.ReactNode => {
-        const isExpanded = depth === 0 || expandedFolders[node.fullName] !== false;
-
-        return (
-            <div key={node.fullName} className={`flex flex-col ${isExpanded ? 'overflow-visible' : 'overflow-hidden'}`}>
-                {node.name !== "Root" && (
-                    <div
-                        ref={el => { if (el) folderRefs.current.set(node.fullName, el); }}
-                        onClick={() => !isDragging && toggleFolder(node.fullName)}
-                        onContextMenu={(e) => {
-                            e.preventDefault();
-                            onFolderContextMenu(e, {
-                                ...node,
-                                onExpandAll: () => setFolderExpansionRecursive(node, true),
-                                onCollapseAll: () => setFolderExpansionRecursive(node, false),
-                            } as any);
-                        }}
-                        className={`flex items-center space-x-2 h-[38px] pl-[4px] rounded-lg z-10 relative transition-all duration-300 mb-0.5 border border-transparent hover:z-[50]
-                            ${!draggedScriptPath ? 'bg-transparent hover:bg-white/[0.05] cursor-pointer group' : 'bg-transparent text-tertiary cursor-default pointer-events-none'}
-                        `}
-                    >
-                        <div className={`w-4 h-4 flex items-center justify-center transition-transform duration-300 ${isExpanded ? 'rotate-90' : ''}`}>
-                            <svg
-                                width="10" height="10" viewBox="0 0 24 24"
-                                className={`transition-all ${!isDragging ? 'text-white opacity-20' : 'opacity-10'} ${!isDragging && 'group-hover:opacity-100'}`}
-                                stroke="currentColor" fill="currentColor" strokeWidth="4" strokeLinejoin="round"
-                            >
-                                <path d="M5.5 3.5L5.5 20.5L20.2 12L5.5 3.5Z" />
-                            </svg>
-                        </div>
-                        <div className="flex items-center overflow-hidden">
-                            {node.name.split('|').map((part, i) => (
-                                <React.Fragment key={part + i}>
-                                    {i > 0 && <div className="w-[5px] h-[5px] rounded-full bg-white/10 mx-3 flex-shrink-0" />}
-                                    <span className={`text-base font-medium tracking-tight transition-colors truncate stabilize-text ${!isDragging ? 'text-secondary group-hover:text-primary' : 'text-tertiary'} `}>
-                                        <HighlightText text={part} variant="path" />
-                                    </span>
-                                </React.Fragment>
-                            ))}
-                        </div>
-                    </div>
-                )}
-
-                <div className={`grid ${animationsEnabled ? 'transition-all duration-150 ease-in-out' : ''} relative ${isExpanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`} style={{ overflow: isExpanded ? 'visible' : 'hidden' }}>
-                    <div className={`min-h-0 ${isExpanded ? 'overflow-visible' : 'overflow-hidden'}`}>
-                        {node.name !== "Root" && (
-                            <div
-                                onClick={() => !isDragging && toggleFolder(node.fullName)}
-                                className={`absolute left-[13px] top-0 bottom-4 w-5 -ml-2.5 z-20 ${animationsEnabled ? 'transition-all duration-150' : ''} rounded-full ${!draggedScriptPath ? 'cursor-pointer group/line hover:bg-white/[0.05]' : ''} ${isExpanded ? 'opacity-100' : 'opacity-0 pointer-events-auto'}`}
-                            >
-                                <div className={`absolute left-[9px] top-0 bottom-0 w-[1px] transition-colors shadow-2xl ${isDragging ? 'bg-white/5' : 'bg-white/10'}`}></div>
-                            </div>
-                        )}
-
-                        <div className={`${node.name !== "Root" ? 'pl-5 ml-2.5 mb-0.5 mt-0.5' : ''} space-y-1.5 relative`}>
-                            {Object.values(node.children).sort((a, b) => a.name.localeCompare(b.name)).map(child => renderNode(child, depth + 1))}
-                            {node.scripts.sort((a, b) => a.filename.localeCompare(b.filename)).map(s => {
-                                const removingTagKeys = Array.from(removingTags as Set<string>).filter(k => k.startsWith(s.path + '-'));
-                                return (
-                                    <ScriptRow
-                                        key={s.path}
-                                        s={s}
-                                        isDragging={isDragging}
-                                        draggedScriptPath={draggedScriptPath}
-                                        isEditing={editingScript === s.path}
-                                        isPending={pendingScripts.has(s.path)}
-                                        removingTagKeys={removingTagKeys}
-                                        allUniqueTags={allUniqueTags}
-                                        popoverRef={popoverRef}
-                                        onMouseDown={handleCustomMouseDown}
-                                        onDoubleClick={(s) => handleToggle(s, true)}
-                                        onToggle={handleToggle}
-                                        onStartEditing={startEditing}
-                                        onAddTag={addTag}
-                                        onRemoveTag={removeTag}
-                                        onCloseEditing={stopEditing}
-                                        onScriptContextMenu={onScriptContextMenu}
-                                    />
-
-                                );
-                            })}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        );
-    };
 
     if (loading) return <div className="p-10 text-center text-tertiary font-bold text-xs tracking-[0.5em] animate-pulse uppercase">Syncing Uplink...</div>;
 
@@ -382,9 +551,17 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, v
                         </div>
                     ) : (
                         <div className="flex flex-col space-y-0.5 select-none pr-6">
-                            {!hasContent ? (
-                                <div className="text-tertiary text-center py-40 italic tracking-[0.3em] text-sm font-bold">Пустой раздел дерева...</div>
-                            ) : renderNode(tree)}
+                            <TreeContext.Provider value={stableCtxRef.current}>
+                                {!hasContent ? (
+                                    <div className="text-tertiary text-center py-40 italic tracking-[0.3em] text-sm font-bold">Пустой раздел дерева...</div>
+                                ) : (
+                                    <TreeNodeRenderer
+                                        node={tree}
+                                        depth={0}
+                                        isExpanded={true}
+                                    />
+                                )}
+                            </TreeContext.Provider>
                         </div>
                     )}
                 </div>

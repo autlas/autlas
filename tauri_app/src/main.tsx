@@ -4,7 +4,7 @@ import App from "./App";
 import "./index.css";
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>,
+  // StrictMode disabled temporarily for perf testing (re-enable before production)
+  // StrictMode's double-render bypasses React.memo areEqual — masking our optimization
+  <App />,
 );

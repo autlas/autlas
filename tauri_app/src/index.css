@@ -260,3 +260,37 @@ body {
 .animate-status-glow {
     animation: status-glow-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
+
+/* ── Tree folder expand animation ──────────────────────────── */
+@keyframes tree-expand {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.tree-expand {
+    animation: tree-expand 0.18s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes tree-collapse {
+    from {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    to {
+        opacity: 0;
+        transform: translateY(-6px);
+    }
+}
+
+.tree-collapse {
+    animation: tree-collapse 0.15s cubic-bezier(0.4, 0, 1, 1) forwards;
+    pointer-events: none;
+}

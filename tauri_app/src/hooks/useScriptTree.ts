@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback, startTransition } from "react";
 import React from "react";
 import { getScripts, Script, runScript, killScript } from "../api";
 import { invoke } from "@tauri-apps/api/core";
@@ -41,20 +41,22 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
     const fetchData = async () => {
         try {
             const data = await getScripts();
-            setAllScripts(prev => {
-                if (prev.length !== data.length) return data;
-                const prevMap = new Map(prev.map(s => [s.path, s]));
-                for (const d of data) {
-                    const p = prevMap.get(d.path);
-                    if (!p ||
-                        p.is_running !== d.is_running ||
-                        p.is_hidden !== d.is_hidden ||
-                        p.tags.length !== d.tags.length ||
-                        p.tags.some((t, j) => t !== d.tags[j])) {
-                        return data;
+            startTransition(() => {
+                setAllScripts(prev => {
+                    if (prev.length !== data.length) return data;
+                    const prevMap = new Map(prev.map(s => [s.path, s]));
+                    for (const d of data) {
+                        const p = prevMap.get(d.path);
+                        if (!p ||
+                            p.is_running !== d.is_running ||
+                            p.is_hidden !== d.is_hidden ||
+                            p.tags.length !== d.tags.length ||
+                            p.tags.some((t, j) => t !== d.tags[j])) {
+                            return data;
+                        }
                     }
-                }
-                return prev;
+                    return prev;
+                });
             });
             const tagsKey = data.flatMap(s => s.tags).sort().join(',');
             if (tagsKey !== lastTagsKeyRef.current) {
@@ -76,25 +78,32 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
         return () => clearInterval(interval);
     }, []);
 
+
     const toggleFolder = useCallback((path: string) => {
-        const isCurrentlyExpanded = expandedFolders[path] !== false;
-        setExpandedFolders(prev => ({ ...prev, [path]: !isCurrentlyExpanded }));
-        if (isCurrentlyExpanded) {
-            requestAnimationFrame(() => {
-                const header = folderRefs.current.get(path);
-                if (header) {
-                    const container = header.closest('.overflow-y-auto');
-                    if (container) {
-                        const rect = header.getBoundingClientRect();
-                        const containerRect = container.getBoundingClientRect();
-                        if (rect.top < containerRect.top) {
-                            header.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                        }
+        const t0 = performance.now();
+        setExpandedFolders(prev => {
+            const isCurrentlyExpanded = prev[path] !== false;
+            console.log(`%c[PERF] toggleFolder: "${path.split('\\').pop()}" → ${isCurrentlyExpanded ? 'COLLAPSE' : 'EXPAND'} | keys: ${Object.keys(prev).length} | took: ${(performance.now() - t0).toFixed(2)}ms`, 'color: #818cf8; font-weight: bold');
+            return { ...prev, [path]: !isCurrentlyExpanded };
+        });
+        // Scroll to folder header when collapsing (if it went out of view)
+        requestAnimationFrame(() => {
+            const header = folderRefs.current.get(path);
+            if (header) {
+                const container = header.closest('.overflow-y-auto');
+                if (container) {
+                    const rect = header.getBoundingClientRect();
+                    const containerRect = container.getBoundingClientRect();
+                    if (rect.top < containerRect.top) {
+                        header.scrollIntoView({ behavior: 'smooth', block: 'start' });
                     }
                 }
-            });
-        }
-    }, [expandedFolders]);
+            }
+        });
+    }, []); // ← no deps: reads prev state via functional setState
+
+
+
 
     const stopBurst = useCallback((interval: any, path: string) => {
         if (interval) clearInterval(interval);
