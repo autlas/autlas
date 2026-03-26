@@ -1,4 +1,4 @@
-import React, { useState, memo } from "react";
+import React, { useState, memo, useRef, useEffect, useLayoutEffect } from "react";
 import { ScriptRowProps } from "../types/script";
 import TagPickerPopover from "./TagPickerPopover";
 import { HighlightText } from "./HighlightText";
@@ -12,6 +12,70 @@ const ScriptRow = memo(function ScriptRow({
 }: ScriptRowProps) {
     const searchQuery = useSearchQuery();
     const [isLeftPressed, setIsLeftPressed] = useState(false);
+    const [visibleCount, setVisibleCount] = useState(s.tags.length);
+    const containerRef = useRef<HTMLDivElement>(null);
+    const measureRef = useRef<HTMLDivElement>(null);
+    const [tagWidths, setTagWidths] = useState<number[]>([]);
+
+    // Measure actual tag widths whenever tags change
+    useLayoutEffect(() => {
+        if (measureRef.current) {
+            const children = Array.from(measureRef.current.children) as HTMLElement[];
+            setTagWidths(children.map(c => c.offsetWidth + 8)); // 8px for margin/gap
+        }
+    }, [s.tags]);
+
+    // Update visible tags based on container width
+    useEffect(() => {
+        if (!containerRef.current) return;
+
+        const update = (width?: number) => {
+            if (!containerRef.current) return;
+            const containerWidth = width !== undefined ? width : containerRef.current.offsetWidth;
+            const ADD_BTN_WIDTH = 36;
+            const COUNTER_WIDTH = 42;
+            const available = containerWidth - ADD_BTN_WIDTH;
+
+            if (tagWidths.length === 0) {
+                setVisibleCount(s.tags.length);
+                return;
+            }
+
+            let totalWidth = 0;
+            let count = tagWidths.length;
+
+            for (let i = 0; i < tagWidths.length; i++) {
+                const nextWidth = totalWidth + tagWidths[i];
+
+                if (nextWidth > available) {
+                    // We need a counter. How many fit with the counter?
+                    let fitWithCounter = 0;
+                    let widthWithCounter = 0;
+                    for (let j = 0; j < i; j++) {
+                        if (widthWithCounter + tagWidths[j] + COUNTER_WIDTH <= available) {
+                            widthWithCounter += tagWidths[j];
+                            fitWithCounter++;
+                        } else {
+                            break;
+                        }
+                    }
+                    count = fitWithCounter;
+                    break;
+                }
+                totalWidth = nextWidth;
+            }
+            setVisibleCount(count);
+        };
+
+        const observer = new ResizeObserver((entries) => {
+            for (const entry of entries) {
+                update(entry.contentRect.width);
+            }
+        });
+        observer.observe(containerRef.current);
+        update();
+        return () => observer.disconnect();
+    }, [s.tags, tagWidths]);
 
     const handleMouseDown = (e: React.MouseEvent) => {
         if (e.button === 2) {
@@ -55,12 +119,20 @@ const ScriptRow = memo(function ScriptRow({
                 </span>
 
                 {!isDragging && (
-                    <div className="flex items-center space-x-2 flex-shrink-0 pr-2 overflow-visible relative">
-                        {s.tags.map(t => {
+                    <div ref={containerRef} className="flex-1 flex items-center pr-2 pointer-events-none min-w-0 w-0">
+                        {/* Hidden measuring container */}
+                        <div ref={measureRef} className="absolute opacity-0 pointer-events-none flex whitespace-nowrap -z-50">
+                            {s.tags.map(t => (
+                                <span key={t} className="text-xs font-bold px-3 h-7 rounded-lg mr-2 leading-none flex items-center bg-white/5 border border-white/5">{t}</span>
+                            ))}
+                        </div>
+
+                        {/* Visible tags */}
+                        {s.tags.slice(0, visibleCount).map(t => {
                             const isRemoving = removingTagKeys.includes(`${s.path}-${t}`);
                             return (
                                 <div key={t}
-                                    className="relative group/tag inline-flex items-center h-7 mr-2 pointer-events-auto"
+                                    className="relative group/tag inline-flex items-center h-7 mr-2 flex-shrink-0 pointer-events-auto"
                                     onDoubleClick={(e) => e.stopPropagation()}
                                 >
                                     <div className={isRemoving ? 'animate-tag-out' : 'animate-tag-in'}>
@@ -80,11 +152,19 @@ const ScriptRow = memo(function ScriptRow({
                                 </div>
                             );
                         })}
+
+                        {/* Counter pill */}
+                        {visibleCount < s.tags.length && (
+                            <div className="h-7 px-2 rounded-lg bg-white/5 border border-white/10 text-[10px] font-black text-indigo-400 flex items-center justify-center mr-2 flex-shrink-0 cursor-default shadow-xl" title={s.tags.slice(visibleCount).join(", ")}>
+                                +{s.tags.length - visibleCount}
+                            </div>
+                        )}
+
                         <button
                             onClick={(e) => { e.stopPropagation(); onStartEditing(s); }}
                             onMouseDown={(e) => e.stopPropagation()}
                             onDoubleClick={(e) => e.stopPropagation()}
-                            className={`w-7 h-7 ml-1 flex items-center justify-center rounded-lg bg-white/5 text-tertiary border border-white/5 hover:text-indigo-400 hover:bg-white/10 transition-all shadow-lg group/plus cursor-pointer pointer-events-auto ${isEditing ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+                            className={`w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-lg bg-white/5 text-tertiary border border-white/5 hover:text-indigo-400 hover:bg-white/10 transition-all shadow-lg group/plus cursor-pointer pointer-events-auto ${isEditing ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
                         >
                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                         </button>
