@@ -23,6 +23,10 @@ function App() {
   const [isRenamingTag, setIsRenamingTag] = useState<string | null>(null);
   const [editTagName, setEditTagName] = useState("");
   const [refreshKey, setRefreshKey] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const refreshIconRef = useRef<HTMLDivElement>(null);
+  const settingsIconRef = useRef<HTMLDivElement>(null);
+  const activeAnimRef = useRef<Animation | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [displayMode, setDisplayMode] = useState<"tree" | "tiles" | "list">(() => {
     // Determine which mode to load based on where we are starting
@@ -148,8 +152,6 @@ function App() {
     const handleGlobalContextMenu = (e: MouseEvent) => {
       // Always prevent default to hide browser menu
       e.preventDefault();
-
-      // Only close our menu if the right-click wasn't on a custom target
       // (React's synthetic event will call preventDefault on our custom items)
       if (!(e as any)._reactProcessed && !e.defaultPrevented) {
         setContextMenu(null);
@@ -179,7 +181,21 @@ function App() {
       const savedMode = (localStorage.getItem("ahk_tree_display_mode") as any) || "tree";
       setDisplayMode(savedMode);
     }
-    else if (tab === "Настройки") setViewMode("settings");
+    else if (tab === "Настройки") {
+      setViewMode("settings");
+      if (settingsIconRef.current) {
+        settingsIconRef.current.animate(
+          [{ transform: 'rotate(0deg)' }, { transform: 'rotate(180deg)' }],
+          {
+            duration: 700,
+            easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
+            fill: 'forwards'
+          }
+        ).onfinish = () => {
+          if (settingsIconRef.current) settingsIconRef.current.style.transform = 'rotate(0deg)';
+        };
+      }
+    }
     else {
       setViewMode("tree");
       const savedMode = (localStorage.getItem("ahk_tree_display_mode") as any) || "tree";
@@ -192,6 +208,21 @@ function App() {
     const key = activeTab === "Хаб" ? "ahk_hub_display_mode" : "ahk_tree_display_mode";
     localStorage.setItem(key, mode);
   };
+
+  useEffect(() => {
+    const loadTags = async () => {
+      setIsRefreshing(true);
+      try {
+        const tags = await invoke<string[]>("get_all_tags");
+        setUserTags(tags);
+      } catch (err) {
+        console.error("Failed to load tags:", err);
+      } finally {
+        // We'll let ScriptTree handle the final isRefreshing = false if it's also loading
+      }
+    };
+    loadTags();
+  }, [refreshKey]);
 
   const handleCustomDrop = async (path: string, tag: string) => {
     setDragOverTag(null);
@@ -224,6 +255,61 @@ function App() {
       setUserTags(existing);
     });
   }, []);
+
+  // Web Animations API for the refresh icon (Hardware Accelerated & Smooth Finish)
+  useEffect(() => {
+    const icon = refreshIconRef.current;
+    if (!icon) return;
+
+    if (isRefreshing) {
+      if (activeAnimRef.current) activeAnimRef.current.cancel();
+
+      activeAnimRef.current = icon.animate(
+        [
+          { transform: 'rotate(0deg)' },
+          { transform: 'rotate(360deg)' }
+        ],
+        {
+          duration: 800,
+          iterations: Infinity,
+          easing: 'linear'
+        }
+      );
+    } else {
+      // Logic for smooth finish (V5 variant approved by user)
+      if (activeAnimRef.current && activeAnimRef.current.playState !== 'idle') {
+        const style = window.getComputedStyle(icon);
+        const matrix = new DOMMatrix(style.transform);
+        const currentAngle = Math.round(Math.atan2(matrix.b, matrix.a) * (180 / Math.PI));
+
+        activeAnimRef.current.cancel();
+        activeAnimRef.current = null;
+
+        const startDeg = currentAngle < 0 ? currentAngle + 360 : currentAngle;
+
+        // Target: Current + 360 deg (at least one full circle) 
+        // AND aligned to the nearest 180deg (symmetric home position)
+        let targetDeg = startDeg + 360;
+        targetDeg = Math.ceil(targetDeg / 180) * 180;
+
+        icon.animate(
+          [
+            { transform: `rotate(${startDeg}deg)` },
+            { transform: `rotate(${targetDeg}deg)` }
+          ],
+          {
+            duration: 800,
+            easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)', // V5: Back-out / Overshoot
+            fill: 'forwards'
+          }
+        ).onfinish = () => {
+          // Reset to normalized angle to prevent accumulation issues
+          icon.style.transform = `rotate(${targetDeg % 360}deg)`;
+        };
+      }
+    }
+  }, [isRefreshing]);
+
 
   const pendingTagDragRef = useRef<{ tag: string, x: number, y: number } | null>(null);
   const tagDragOffsetYRef = useRef<number>(0);
@@ -265,6 +351,7 @@ function App() {
     window.addEventListener('mouseup', handleWindowMouseUp);
     return () => window.removeEventListener('mouseup', handleWindowMouseUp);
   }, [draggedScript, draggedTag, handleGlobalMouseUp]);
+
 
   const navItemClass = (tab: string, isTag: boolean = false) => `
     px-6 h-11 rounded-2xl cursor-pointer text-sm font-bold transition-all border-b-2 flex items-center justify-between relative z-50
@@ -544,22 +631,52 @@ function App() {
         </div>
 
 
-        <button
-          onClick={() => handleTabClick("Настройки")}
-          className={`w-full px-6 py-4 rounded-xl flex items-center space-x-4 transition-all border group ${draggedScript ? 'opacity-20 blur-[1px]' : ''
-            } ${viewMode === "settings"
-              ? "bg-indigo-600/10 text-indigo-400 border-indigo-400/20 shadow-lg"
-              : "text-tertiary border-transparent hover:text-secondary hover:bg-white/5"
-            }`}
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
-            className={`transition-transform duration-500 group-hover:rotate-90 ${viewMode === "settings" ? 'stroke-indigo-400' : 'stroke-current'}`}
-            strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 15a3 3 0 100-6 3 3 0 000 6z" />
-            <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" />
-          </svg>
-          <span className="text-sm font-bold">Настройки</span>
-        </button>
+        <div className="flex items-center space-x-3 w-full">
+          <button
+            onClick={() => handleTabClick("Настройки")}
+            className={`flex-1 h-12 rounded-xl flex items-center justify-center transition-all border-b-2 group ${draggedScript ? 'opacity-20 blur-[1px]' : ''
+              } ${viewMode === "settings"
+                ? "text-indigo-400 border-indigo-500 shadow-lg tag-active bg-white/5"
+                : "text-tertiary border-transparent hover:text-secondary hover:bg-white/5"
+              }`}
+            title="Настройки"
+            style={{
+              backgroundColor: viewMode === "settings" ? 'var(--bg-tag-active)' : 'transparent'
+            }}
+          >
+            <div className="transition-transform duration-500 group-hover:rotate-45">
+              <div ref={settingsIconRef} className="flex items-center justify-center will-change-transform">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                  className={viewMode === "settings" ? 'stroke-white' : 'stroke-current'}
+                  strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 15a3 3 0 100-6 3 3 0 000 6z" />
+                  <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" />
+                </svg>
+              </div>
+            </div>
+          </button>
+
+          <button
+            onClick={() => {
+              setRefreshKey(p => p + 1);
+              setIsRefreshing(true);
+            }}
+            className={`flex-1 h-12 rounded-xl flex items-center justify-center transition-all border group ${draggedScript ? 'opacity-20 blur-[1px]' : ''
+              } text-tertiary border-transparent hover:text-secondary hover:bg-white/5 active:scale-95`}
+            title="Обновить список"
+          >
+            <div className="transition-transform duration-500 group-hover:-rotate-45">
+              <div
+                ref={refreshIconRef}
+                className="flex items-center justify-center will-change-transform"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2" />
+                </svg>
+              </div>
+            </div>
+          </button>
+        </div>
       </div>
 
       {/* Main Content */}
@@ -567,19 +684,8 @@ function App() {
         className="flex-1 pl-8 py-6 flex flex-col overflow-hidden transition-all duration-300 relative z-10"
         style={{ background: viewMode === "settings" ? 'var(--bg-primary)' : 'linear-gradient(to bottom right, var(--bg-primary), var(--bg-secondary))' }}
       >
-        <div className={`flex justify-end items-center mb-6 pr-8 transition-all duration-300 ${draggedScript ? 'opacity-20 blur-[1px]' : ''}`}>
-          <button
-            className="p-3 text-tertiary hover:text-secondary transition-all cursor-pointer active:scale-90"
-            onClick={() => {
-              setRefreshKey(p => p + 1);
-            }}
-            title="Обновить список"
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2" />
-            </svg>
-          </button>
-        </div>
+
+        <div className="mb-2" />
 
         <div className="flex-1 overflow-hidden">
           {viewMode === "settings" ? (
@@ -690,9 +796,10 @@ function App() {
             <MemoizedScriptTree
               key={`script-tree-${refreshKey}`}
               filterTag={activeTab}
+              onTagsLoaded={handleTagsLoaded}
+              onLoadingChange={setIsRefreshing}
               viewMode={displayMode}
               onViewModeChange={toggleDisplayMode}
-              onTagsLoaded={handleTagsLoaded}
               onCustomDragStart={startCustomDrag}
               isDragging={draggedScript !== null}
               draggedScriptPath={draggedScript?.path || null}

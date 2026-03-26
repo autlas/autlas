@@ -6,7 +6,7 @@ import { useScriptTree } from "../hooks/useScriptTree";
 import ScriptRow from "./ScriptRow";
 import HubScriptCard from "./HubScriptCard";
 
-export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onViewModeChange, onCustomDragStart, isDragging, draggedScriptPath, animationsEnabled, onScriptContextMenu, onFolderContextMenu, searchQuery, setSearchQuery }: ScriptTreeProps) {
+export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, viewMode, onViewModeChange, onCustomDragStart, isDragging, draggedScriptPath, animationsEnabled, onScriptContextMenu, onFolderContextMenu, searchQuery, setSearchQuery }: ScriptTreeProps) {
     const {
         loading, filtered, tree,
         expandedFolders,
@@ -19,8 +19,16 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onViewMo
         addTag, removeTag, handleCustomMouseDown,
     } = useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, searchQuery, setSearchQuery });
 
+    useEffect(() => {
+        if (onLoadingChange) {
+            onLoadingChange(loading);
+        }
+    }, [loading, onLoadingChange]);
+
     const [columnsCount, setColumnsCount] = useState(1);
     const containerRef = useRef<HTMLDivElement>(null);
+    const scrollPositions = useRef<Record<string, number>>({});
+    const prevKeyRef = useRef<string>("");
 
     useEffect(() => {
         if (!containerRef.current) return;
@@ -50,6 +58,41 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onViewMo
             resizeObserver.disconnect();
         };
     }, [viewMode]);
+
+    // Scroll Restoration Logic
+    useEffect(() => {
+        const container = containerRef.current;
+        if (!container) return;
+
+        const currentKey = `${filterTag}-${viewMode}`;
+
+        // 1. Save previous position before switching
+        if (prevKeyRef.current && prevKeyRef.current !== currentKey) {
+            // We don't save here because the state has already changed and content might have shrunk
+            // Saving is better handled in a scroll listener or before the state change in App.tsx
+            // However, we can use a "beforeunload" style logic here by capturing current before changing key
+        }
+
+        // 2. Restore position for the new key
+        const savedPos = scrollPositions.current[currentKey] || 0;
+        container.scrollTop = savedPos;
+
+        prevKeyRef.current = currentKey;
+    }, [filterTag, viewMode]);
+
+    // Handle search scroll reset
+    useEffect(() => {
+        if (searchQuery && containerRef.current) {
+            containerRef.current.scrollTop = 0;
+        }
+    }, [searchQuery]);
+
+    // Save scroll position on every scroll to be precise
+    const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+        const container = e.currentTarget;
+        const currentKey = `${filterTag}-${viewMode}`;
+        scrollPositions.current[currentKey] = container.scrollTop;
+    };
 
     const masonryColumns = useMemo(() => {
         const cols: any[][] = Array.from({ length: columnsCount }, () => []);
@@ -267,6 +310,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onViewMo
             }}>
                 <div
                     ref={containerRef}
+                    onScroll={handleScroll}
                     className={`flex-1 overflow-y-auto custom-scrollbar mt-2 transition-all duration-300 ${draggedScriptPath ? 'opacity-30 blur-[1px]' : ''}`}
                 >
                     {viewMode === "tiles" ? (
