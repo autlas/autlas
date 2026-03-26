@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { HighlightText } from "./HighlightText";
 import { SearchContext } from "../context/SearchContext";
 import { ScriptTreeProps, TreeNode } from "../types/script";
@@ -18,6 +18,46 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onViewMo
         handleToggle, startEditing, stopEditing,
         addTag, removeTag, handleCustomMouseDown,
     } = useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, searchQuery, setSearchQuery });
+
+    const [columnsCount, setColumnsCount] = useState(1);
+    const containerRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (!containerRef.current) return;
+
+        const GAP = 24; // gap-6
+        const MIN_COL_WIDTH = 340;
+
+        const updateColumns = (width: number) => {
+            const count = Math.max(1, Math.floor((width + GAP) / (MIN_COL_WIDTH + GAP)));
+            setColumnsCount(count);
+        };
+
+        const resizeObserver = new ResizeObserver((entries) => {
+            for (const entry of entries) {
+                if (entry.contentRect) {
+                    updateColumns(entry.contentRect.width);
+                }
+            }
+        });
+
+        resizeObserver.observe(containerRef.current);
+
+        // Initial call
+        updateColumns(containerRef.current.offsetWidth);
+
+        return () => {
+            resizeObserver.disconnect();
+        };
+    }, [viewMode]);
+
+    const masonryColumns = useMemo(() => {
+        const cols: any[][] = Array.from({ length: columnsCount }, () => []);
+        filtered.forEach((s, i) => {
+            cols[i % columnsCount].push(s);
+        });
+        return cols;
+    }, [filtered, columnsCount]);
 
     const renderNode = (node: TreeNode, depth: number = 0): React.ReactNode => {
         const isExpanded = depth === 0 || expandedFolders[node.fullName] !== false;
@@ -222,30 +262,40 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onViewMo
                 prefix: searchQuery.toLowerCase().startsWith("file:") ? "file" :
                     searchQuery.toLowerCase().startsWith("path:") ? "path" : null
             }}>
-                <div className={`flex-1 overflow-y-auto custom-scrollbar mt-2 transition-all duration-300 ${draggedScriptPath ? 'opacity-30 blur-[1px]' : ''}`}>
+                <div
+                    ref={containerRef}
+                    className={`flex-1 overflow-y-auto custom-scrollbar mt-2 transition-all duration-300 ${draggedScriptPath ? 'opacity-30 blur-[1px]' : ''}`}
+                >
                     {viewMode === "tiles" ? (
-                        <div className="grid grid-cols-[repeat(auto-fill,minmax(340px,1fr))] gap-6 pb-10 pr-6 items-start">
-                            {filtered.length === 0 && <div className="text-tertiary col-span-3 text-center py-40 italic tracking-[0.3em] text-sm font-bold">Пустой канал...</div>}
-                            {filtered.map(s => (
-                                <HubScriptCard
-                                    key={s.path}
-                                    s={s}
-                                    isDragging={isDragging}
-                                    draggedScriptPath={draggedScriptPath}
-                                    editingScript={editingScript}
-                                    pendingScripts={pendingScripts}
-                                    removingTags={removingTags}
-                                    allUniqueTags={allUniqueTags}
-                                    popoverRef={popoverRef}
-                                    onMouseDown={handleCustomMouseDown}
-                                    onToggle={handleToggle}
-                                    onStartEditing={startEditing}
-                                    onAddTag={addTag}
-                                    onRemoveTag={removeTag}
-                                    onCloseEditing={stopEditing}
-                                    onScriptContextMenu={onScriptContextMenu}
-                                />
-                            ))}
+                        <div className="flex flex-row gap-6 pb-10 pr-6 items-start">
+                            {filtered.length === 0 ? (
+                                <div className="text-tertiary w-full text-center py-40 italic tracking-[0.3em] text-sm font-bold">Пустой канал...</div>
+                            ) : (
+                                masonryColumns.map((col, colIdx) => (
+                                    <div key={colIdx} className="flex flex-col gap-6 flex-1 min-w-0">
+                                        {col.map(s => (
+                                            <HubScriptCard
+                                                key={s.path}
+                                                s={s}
+                                                isDragging={isDragging}
+                                                draggedScriptPath={draggedScriptPath}
+                                                editingScript={editingScript}
+                                                pendingScripts={pendingScripts}
+                                                removingTags={removingTags}
+                                                allUniqueTags={allUniqueTags}
+                                                popoverRef={popoverRef}
+                                                onMouseDown={handleCustomMouseDown}
+                                                onToggle={handleToggle}
+                                                onStartEditing={startEditing}
+                                                onAddTag={addTag}
+                                                onRemoveTag={removeTag}
+                                                onCloseEditing={stopEditing}
+                                                onScriptContextMenu={onScriptContextMenu}
+                                            />
+                                        ))}
+                                    </div>
+                                ))
+                            )}
                         </div>
                     ) : viewMode === "list" ? (
                         <div className="grid grid-cols-1 xl:grid-cols-2 gap-x-8 gap-y-1 pb-10 pr-6">
