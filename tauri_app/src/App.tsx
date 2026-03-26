@@ -671,15 +671,14 @@ function App() {
         <div className="flex items-center space-x-3 w-full">
           <button
             onClick={() => handleTabClick("Настройки")}
-            className={`flex-1 h-12 rounded-xl flex items-center justify-center transition-all border-b-2 group ${draggedScript ? 'opacity-20 blur-[1px]' : ''
+            className={`flex-1 h-12 rounded-xl flex items-center justify-center transition-all border-b-2 group cursor-pointer ${draggedScript ? 'opacity-20 blur-[1px]' : ''
               } ${viewMode === "settings"
                 ? "text-indigo-400 border-indigo-500 shadow-lg tag-active bg-white/5"
-                : "text-tertiary border-transparent hover:text-secondary hover:bg-white/5"
+                : "text-tertiary border-transparent hover:text-secondary tag-hover"
               }`}
             title="Настройки"
-            style={{
-              backgroundColor: viewMode === "settings" ? 'var(--bg-tag-active)' : 'transparent'
-            }}
+            style={viewMode === "settings" ? { backgroundColor: 'var(--bg-tag-active)' } : {}}
+
           >
             <div className="transition-transform duration-500 group-hover:rotate-45">
               <div ref={settingsIconRef} className="flex items-center justify-center will-change-transform">
@@ -698,8 +697,8 @@ function App() {
               setRefreshKey(p => p + 1);
               setIsRefreshing(true);
             }}
-            className={`flex-1 h-12 rounded-xl flex items-center justify-center transition-all border group ${draggedScript ? 'opacity-20 blur-[1px]' : ''
-              } text-tertiary border-transparent hover:text-secondary hover:bg-white/5 active:scale-95`}
+            className={`flex-1 h-12 rounded-xl flex items-center justify-center transition-all border group cursor-pointer ${draggedScript ? 'opacity-20 blur-[1px]' : ''
+              } text-tertiary border-transparent hover:text-secondary tag-hover active:scale-95`}
             title="Обновить список"
           >
             <div className="transition-transform duration-500 group-hover:-rotate-45">
