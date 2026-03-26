@@ -36,7 +36,7 @@ const HubScriptCard = memo(function HubScriptCard({
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseLeave}
             onDoubleClick={() => !isDragging && onToggle(s, true)}
-            className={`p-6 rounded-[24px] border transition-all duration-300 flex flex-col justify-between h-64 select-none relative ${isEditing ? 'z-[200]' : 'z-10'}
+            className={`p-6 rounded-[24px] border transition-all duration-300 flex flex-col min-h-[220px] select-none relative ${isEditing ? 'z-[200]' : 'z-10'}
                 ${!draggedScriptPath
                     ? `group hover:z-[100] ${isEditing ? 'shadow-2xl' : 'hover:shadow-2xl cursor-grab active:cursor-grabbing long-press-shrink will-change-transform'}`
                     : (s.path === draggedScriptPath ? 'opacity-0 pointer-events-none' : 'z-10')}
@@ -57,7 +57,7 @@ const HubScriptCard = memo(function HubScriptCard({
                 <div className={`w-4 h-4 rounded-full transition-all duration-500 ${s.is_running ? 'bg-green-500 animate-status-glow shadow-[0_0_12px_rgba(34,197,94,0.8)]' : 'bg-white/5 border border-white/10'} ${isDragging ? 'opacity-20' : ''}`}></div>
             </div>
 
-            <div className="mt-4 flex-1">
+            <div className="mt-4 mb-6">
                 {isEditing && !isDragging ? (
                     <TagPickerPopover
                         script={s}
@@ -116,7 +116,7 @@ const HubScriptCard = memo(function HubScriptCard({
                 <button
                     onClick={(e) => { e.stopPropagation(); onToggle(s); }}
                     onMouseDown={(e) => e.stopPropagation()}
-                    className={`w-full py-3.5 rounded-2xl text-xs font-bold tracking-[0.1em] transition-all transform cursor-pointer active:scale-95 pointer-events-auto shadow-xl 
+                    className={`w-full py-3.5 mt-auto rounded-2xl text-xs font-bold tracking-[0.1em] transition-all transform cursor-pointer active:scale-95 pointer-events-auto shadow-xl 
                         ${isPending ? 'bg-white/5 text-tertiary animate-pulse cursor-wait border border-white/5' :
                             s.is_running ? "bg-white/5 text-tertiary border border-white/5 hover:bg-red-600/15 hover:text-red-500 hover:border-red-500/30 active:bg-red-600/25 active:text-red-500 transition-all" :
                                 "bg-white/5 text-tertiary border border-white/5 hover:bg-green-600/15 hover:text-green-500 hover:border-green-500/30 active:bg-green-600/25 transition-all text-secondary hover:text-green-500"
