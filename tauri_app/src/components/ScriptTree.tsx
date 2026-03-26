@@ -26,10 +26,10 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onViewMo
         if (!containerRef.current) return;
 
         const GAP = 24; // gap-6
-        const MIN_COL_WIDTH = 340;
 
         const updateColumns = (width: number) => {
-            const count = Math.max(1, Math.floor((width + GAP) / (MIN_COL_WIDTH + GAP)));
+            const minWidth = viewMode === "tiles" ? 340 : 450;
+            const count = Math.max(1, Math.floor((width + GAP) / (minWidth + GAP)));
             setColumnsCount(count);
         };
 
@@ -298,33 +298,39 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onViewMo
                             )}
                         </div>
                     ) : viewMode === "list" ? (
-                        <div className="grid grid-cols-1 xl:grid-cols-2 gap-x-8 gap-y-1 pb-10 pr-6">
-                            {filtered.length === 0 && <div className="text-tertiary col-span-2 text-center py-40 italic tracking-[0.3em] text-sm font-bold">Пустой раздел...</div>}
-                            {filtered.map(s => {
-                                const removingTagKeys = Array.from(removingTags as Set<string>).filter(k => k.startsWith(s.path + '-'));
-                                return (
-                                    <ScriptRow
-                                        key={s.path}
-                                        s={s}
-                                        isDragging={isDragging}
-                                        draggedScriptPath={draggedScriptPath}
-                                        isEditing={editingScript === s.path}
-                                        isPending={pendingScripts.has(s.path)}
-                                        removingTagKeys={removingTagKeys}
-                                        allUniqueTags={allUniqueTags}
-                                        popoverRef={popoverRef}
-                                        onMouseDown={handleCustomMouseDown}
-                                        onDoubleClick={(s) => handleToggle(s, true)}
-                                        onToggle={handleToggle}
-                                        onStartEditing={startEditing}
-                                        onAddTag={addTag}
-                                        onRemoveTag={removeTag}
-                                        onCloseEditing={stopEditing}
-                                        onScriptContextMenu={onScriptContextMenu}
-                                    />
-
-                                );
-                            })}
+                        <div className="flex flex-row gap-x-8 gap-y-1 pb-10 pr-6 items-start">
+                            {filtered.length === 0 ? (
+                                <div className="text-tertiary w-full text-center py-40 italic tracking-[0.3em] text-sm font-bold">Пустой раздел...</div>
+                            ) : (
+                                masonryColumns.map((col, colIdx) => (
+                                    <div key={colIdx} className="flex flex-col gap-y-1 flex-1 min-w-0">
+                                        {col.map(s => {
+                                            const removingTagKeys = Array.from(removingTags as Set<string>).filter(k => k.startsWith(s.path + '-'));
+                                            return (
+                                                <ScriptRow
+                                                    key={s.path}
+                                                    s={s}
+                                                    isDragging={isDragging}
+                                                    draggedScriptPath={draggedScriptPath}
+                                                    isEditing={editingScript === s.path}
+                                                    isPending={pendingScripts.has(s.path)}
+                                                    removingTagKeys={removingTagKeys}
+                                                    allUniqueTags={allUniqueTags}
+                                                    popoverRef={popoverRef}
+                                                    onMouseDown={handleCustomMouseDown}
+                                                    onDoubleClick={(s) => handleToggle(s, true)}
+                                                    onToggle={handleToggle}
+                                                    onStartEditing={startEditing}
+                                                    onAddTag={addTag}
+                                                    onRemoveTag={removeTag}
+                                                    onCloseEditing={stopEditing}
+                                                    onScriptContextMenu={onScriptContextMenu}
+                                                />
+                                            );
+                                        })}
+                                    </div>
+                                ))
+                            )}
                         </div>
                     ) : (
                         <div className="flex flex-col space-y-0.5 select-none pr-6">
