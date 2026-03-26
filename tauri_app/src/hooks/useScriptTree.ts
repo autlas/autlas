@@ -253,7 +253,7 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
                 if (s.tags.length > 0) return false;
             } else if (filterTag === "Скрытые") {
                 if (!s.is_hidden) return false;
-            } else if (filterTag === "С тегами") {
+            } else if (filterTag === "ТЕГИ") {
                 if (s.tags.length === 0) return false;
             } else if (filterTag !== "Все" && filterTag !== "Все скрипты" && filterTag !== "Дерево" && filterTag !== "Хаб" && filterTag !== "") {
                 if (!s.tags.includes(filterTag)) return false;
@@ -289,7 +289,7 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
 
             return true;
         });
-        return list;
+        return list.sort((a, b) => a.filename.localeCompare(b.filename));
     }, [allScripts, filterTag, showHidden, searchQuery]);
 
     const tree = useMemo(() => {

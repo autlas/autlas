@@ -6,9 +6,14 @@ import "./App.css";
 const MemoizedScriptTree = React.memo(ScriptTree);
 
 function App() {
-  const [activeTab, setActiveTab] = useState("Хаб");
+  const [activeTab, setActiveTab] = useState(() => localStorage.getItem("ahk_active_tab") || "Хаб");
   const [userTags, setUserTags] = useState<string[]>([]);
-  const [viewMode, setViewMode] = useState<"tree" | "hub" | "settings">("hub");
+  const [viewMode, setViewMode] = useState<"tree" | "hub" | "settings">(() => {
+    const tab = localStorage.getItem("ahk_active_tab") || "Хаб";
+    if (tab === "Настройки") return "settings";
+    if (tab === "Хаб") return "hub";
+    return "tree";
+  });
 
   const [draggedScript, setDraggedScript] = useState<{ path: string, filename: string, tags: string[] } | null>(null);
   const [dragOverTag, setDragOverTag] = useState<string | null>(null);
@@ -20,7 +25,10 @@ function App() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
   const [displayMode, setDisplayMode] = useState<"tree" | "tiles" | "list">(() => {
-    return (localStorage.getItem("ahk_display_mode") as "tree" | "tiles" | "list") || "tree";
+    // Determine which mode to load based on where we are starting
+    const isHub = (localStorage.getItem("ahk_active_tab") || "Хаб") === "Хаб";
+    const key = isHub ? "ahk_hub_display_mode" : "ahk_tree_display_mode";
+    return (localStorage.getItem(key) as "tree" | "tiles" | "list") || (isHub ? "tiles" : "tree");
   });
   const [contextMenu, setContextMenu] = useState<{ x: number, y: number, type: 'script' | 'tag' | 'folder' | 'general', data: any } | null>(null);
   const [activeTabPressed, setActiveTabPressed] = useState<string | null>(null);
@@ -160,22 +168,29 @@ function App() {
 
   const handleTabClick = (tab: string) => {
     setActiveTab(tab);
+    localStorage.setItem("ahk_active_tab", tab);
+
     if (tab === "Хаб") {
       setViewMode("hub");
-      setDisplayMode("tiles");
-    } else if (tab === "Все" || tab === "С тегами" || tab === "Без тегов") {
+      const savedMode = (localStorage.getItem("ahk_hub_display_mode") as any) || "tiles";
+      setDisplayMode(savedMode);
+    } else if (tab === "Все" || tab === "ТЕГИ" || tab === "Без тегов") {
       setViewMode("tree");
+      const savedMode = (localStorage.getItem("ahk_tree_display_mode") as any) || "tree";
+      setDisplayMode(savedMode);
     }
     else if (tab === "Настройки") setViewMode("settings");
     else {
       setViewMode("tree");
-      // Optionally restore displayMode from localStorage or keep current
+      const savedMode = (localStorage.getItem("ahk_tree_display_mode") as any) || "tree";
+      setDisplayMode(savedMode);
     }
   };
 
   const toggleDisplayMode = (mode: "tree" | "tiles" | "list") => {
     setDisplayMode(mode);
-    localStorage.setItem("ahk_display_mode", mode);
+    const key = activeTab === "Хаб" ? "ahk_hub_display_mode" : "ahk_tree_display_mode";
+    localStorage.setItem(key, mode);
   };
 
   const handleCustomDrop = async (path: string, tag: string) => {
@@ -284,7 +299,7 @@ function App() {
         className="w-72 flex flex-col px-4 py-6 space-y-10 border-r overflow-y-auto custom-scrollbar transition-colors duration-300 relative z-[100]"
         style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-color)' }}
       >
-        <div className="flex flex-col space-y-8 flex-1">
+        <div className="flex flex-col space-y-5 flex-1">
           {/* Group 1: Hub */}
           <ul className="space-y-1.5">
             {[
@@ -292,7 +307,7 @@ function App() {
             ].map((tab) => (
               <li
                 key={tab.id}
-                className={`px-6 h-11 rounded-2xl cursor-pointer text-sm font-bold transition-all border-b-2 flex items-center justify-between ${draggedScript && tab.id !== dragOverTag ? 'opacity-20 blur-[1px]' : ''
+                className={`px-6 h-[62px] rounded-2xl cursor-pointer text-sm font-bold border-b-2 flex items-center justify-between ${draggedScript && tab.id !== dragOverTag ? 'opacity-20 blur-[1px]' : ''
                   } ${activeTab === tab.id && viewMode !== "settings"
                     ? "bg-gradient-to-r from-indigo-500 to-purple-500 border-indigo-400 shadow-xl shadow-indigo-900/40 text-white"
                     : "text-tertiary border-transparent hover:text-secondary tag-hover"
@@ -305,7 +320,7 @@ function App() {
                 onClick={() => !draggedScript && handleTabClick(tab.id)}
               >
                 <div className="flex items-center space-x-4 pointer-events-none">
-                  <span>{tab.label}</span>
+                  <span className="text-lg tracking-tight">{tab.label}</span>
                 </div>
                 {activeTab !== "Хаб" && <div className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(79,70,229,0.5)]"></div>}
               </li>
@@ -344,11 +359,10 @@ function App() {
           {/* Group 3: Tags Header */}
           <div className="flex flex-col space-y-4">
             <div
-              className={`px-6 flex items-center justify-between group cursor-pointer ${activeTab === "С тегами" ? "text-indigo-400" : "text-tertiary"}`}
-              onClick={() => handleTabClick("С тегами")}
+              className={`px-6 flex items-center justify-between group cursor-pointer ${activeTab === "ТЕГИ" ? "text-indigo-400" : "text-tertiary"}`}
+              onClick={() => handleTabClick("ТЕГИ")}
             >
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-50 group-hover:opacity-100 transition-opacity">С тегами</span>
-              <div className="w-1.5 h-1.5 rounded-full bg-white/10" />
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-50 group-hover:opacity-100 transition-opacity">ТЕГИ</span>
             </div>
 
             <ul className="flex flex-col space-y-1.5 px-0 w-full">
@@ -553,31 +567,18 @@ function App() {
         className="flex-1 pl-8 py-6 flex flex-col overflow-hidden transition-all duration-300 relative z-10"
         style={{ background: viewMode === "settings" ? 'var(--bg-primary)' : 'linear-gradient(to bottom right, var(--bg-primary), var(--bg-secondary))' }}
       >
-        <div className={`flex justify-between items-end mb-8 pr-8 transition-all duration-300 ${draggedScript ? 'opacity-20 blur-[1px]' : ''}`}>
-          <div className="flex flex-col">
-            <h1 className="text-4xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-white to-white/40 pb-1">
-              {activeTab}
-            </h1>
-            <div className="flex items-center space-x-3 mt-3">
-              <div className="h-1.5 w-12 bg-white/5 rounded-full overflow-hidden">
-                <div className="h-full w-1/2 bg-indigo-500"></div>
-              </div>
-              <span className="text-xs text-tertiary uppercase tracking-[0.5em] font-mono">Operations Unit Ready</span>
-            </div>
-          </div>
-          <div className="flex items-center">
-            <button
-              className="p-3 text-tertiary hover:text-secondary transition-all cursor-pointer active:scale-90"
-              onClick={() => {
-                setRefreshKey(p => p + 1);
-              }}
-              title="Обновить список"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2" />
-              </svg>
-            </button>
-          </div>
+        <div className={`flex justify-end items-center mb-6 pr-8 transition-all duration-300 ${draggedScript ? 'opacity-20 blur-[1px]' : ''}`}>
+          <button
+            className="p-3 text-tertiary hover:text-secondary transition-all cursor-pointer active:scale-90"
+            onClick={() => {
+              setRefreshKey(p => p + 1);
+            }}
+            title="Обновить список"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2" />
+            </svg>
+          </button>
         </div>
 
         <div className="flex-1 overflow-hidden">
@@ -759,10 +760,6 @@ function App() {
           >
             {contextMenu.type === 'script' && (
               <>
-                <div className="px-4 py-2 border-b border-white/5 mb-1">
-                  <div className="text-xs font-black uppercase tracking-[0.2em] text-tertiary opacity-50 mb-0.5">Скрипт</div>
-                  <div className="text-xs font-bold text-white truncate">{contextMenu.data.filename}</div>
-                </div>
                 <ContextMenuItem
                   label={contextMenu.data.is_running ? "Остановить" : "Запустить"}
                   icon={contextMenu.data.is_running ? "⏹" : "▶"}
@@ -803,10 +800,6 @@ function App() {
 
             {contextMenu.type === 'tag' && (
               <>
-                <div className="px-4 py-2 border-b border-white/5 mb-1">
-                  <div className="text-[10px] font-black uppercase tracking-[0.2em] text-tertiary opacity-50 mb-0.5">Тег</div>
-                  <div className="text-xs font-bold text-white truncate">{contextMenu.data}</div>
-                </div>
                 <ContextMenuItem
                   label="Переименовать"
                   icon="✏️"
@@ -833,10 +826,6 @@ function App() {
 
             {contextMenu.type === 'folder' && (
               <>
-                <div className="px-4 py-2 border-b border-white/5 mb-1">
-                  <div className="text-[10px] font-black uppercase tracking-[0.2em] text-tertiary opacity-50 mb-0.5">Папка</div>
-                  <div className="text-xs font-bold text-white truncate">{contextMenu.data.name.replace('|', ' \ ')}</div>
-                </div>
                 <ContextMenuItem
                   label="Показать в проводнике"
                   icon="📂"

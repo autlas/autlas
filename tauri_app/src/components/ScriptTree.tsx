@@ -154,7 +154,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onViewMo
     return (
         <div className="flex flex-col h-full overflow-hidden">
             <div className={`flex items-center justify-between pl-1 pr-8 pb-2 border-b transition-all duration-300 ${draggedScriptPath ? 'opacity-20 blur-[1px] pointer-events-none' : ''}`} style={{ borderColor: 'var(--border-color)' }}>
-                <div className="flex items-center space-x-1">
+                <div className="flex-1 flex items-center space-x-1">
                     {/* VIEW MODE SWITCHER (First on the left) */}
                     <div className="flex bg-white/[0.03] p-1 rounded-xl border border-white/5 h-[42px] items-center">
                         {[
@@ -166,7 +166,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onViewMo
                                 key={m.id}
                                 onClick={() => !isDragging && onViewModeChange(m.id as any)}
                                 className={`px-4 h-full rounded-lg transition-all cursor-pointer flex items-center justify-center ${viewMode === m.id
-                                    ? "bg-indigo-600 text-white shadow-lg shadow-indigo-900/20"
+                                    ? "bg-white/10 text-white shadow-lg shadow-white/5"
                                     : "text-tertiary hover:text-secondary hover:bg-white/5"
                                     } ${isDragging ? 'opacity-20 pointer-events-none' : ''}`}
                                 title={`Режим: ${m.id}`}
@@ -178,11 +178,14 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onViewMo
                         ))}
                     </div>
 
-                    {viewMode === "tree" && <div className="h-4 w-[1px] bg-white/5 mx-2"></div>}
-                    {viewMode === "tree" && (
+                    {/* TREE CONTROLS ANIMATED GROUP */}
+                    <div
+                        className={`flex items-center overflow-hidden transition-all duration-[150ms] ease-in-out ${viewMode === "tree" ? 'w-[52px] opacity-100' : 'w-0 opacity-0 pointer-events-none'}`}
+                    >
+                        <div className="h-4 w-[1px] bg-white/5 mx-2 flex-shrink-0"></div>
                         <button
                             onClick={toggleAll}
-                            className={`p-2 transition-all h-10 w-10 flex flex-col items-center justify-center border-none shadow-none bg-transparent focus:outline-none relative cursor-pointer ${!isDragging ? 'group/toggle' : 'opacity-10 cursor-default'} text-white/20 hover:text-indigo-400`}
+                            className={`p-2 transition-all h-10 w-10 flex flex-shrink-0 flex-col items-center justify-center border-none shadow-none bg-transparent focus:outline-none relative cursor-pointer ${!isDragging ? 'group/toggle' : 'opacity-10 cursor-default'} text-white/20 hover:text-indigo-400`}
                             title={isAllExpanded ? "Свернуть все" : "Развернуть все"}
                         >
                             <div className="flex flex-col items-center space-y-[3px]">
@@ -198,10 +201,10 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onViewMo
                                 </svg>
                             </div>
                         </button>
-                    )}
+                    </div>
 
                     {/* SEARCH INPUT */}
-                    <div className="flex-1 max-w-sm ml-4 relative group">
+                    <div className="flex-1 ml-4 mr-4 relative group">
                         <div className="absolute left-3 top-1/2 -translate-y-1/2 text-tertiary group-focus-within:text-indigo-400 transition-colors pointer-events-none">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                                 <circle cx="11" cy="11" r="8"></circle>
@@ -234,7 +237,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, viewMode, onViewMo
                     <button
                         onClick={() => !isDragging && setShowHidden(!showHidden)}
                         className={`h-[42px] w-[42px] flex items-center justify-center rounded-xl transition-all cursor-pointer border ${showHidden
-                            ? "bg-indigo-500/10 border-indigo-500/30 text-indigo-400 shadow-[0_0_15px_rgba(79,70,229,0.2)]"
+                            ? "bg-white/10 border-white/20 text-white shadow-lg"
                             : "bg-white/[0.03] border-white/5 text-tertiary hover:text-secondary hover:bg-white/[0.05]"
                             } ${isDragging ? 'opacity-20 pointer-events-none' : ''}`}
                         title={showHidden ? "Скрыть 'Скрытые'" : "Показать 'Скрытые'"}
