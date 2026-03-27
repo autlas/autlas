@@ -7,7 +7,7 @@ import { useTranslation } from "react-i18next";
 
 const HubScriptCard = memo(function HubScriptCard({
     s, isDragging, draggedScriptPath, editingScript, pendingScripts, removingTags,
-    allUniqueTags, popoverRef, visibilityMode, onMouseDown, onToggle, onStartEditing, onAddTag, onRemoveTag, onCloseEditing,
+    isContextMenuOpen, allUniqueTags, popoverRef, visibilityMode, onMouseDown, onToggle, onStartEditing, onAddTag, onRemoveTag, onCloseEditing,
     onScriptContextMenu
 }: HubScriptCardProps) {
     const { t } = useTranslation();
@@ -40,18 +40,19 @@ const HubScriptCard = memo(function HubScriptCard({
             onDoubleClick={() => !isDragging && onToggle(s, true)}
             className={`p-6 rounded-[24px] border transition-all duration-300 flex flex-col select-none relative ${isEditing ? 'z-[200]' : 'z-10'}
                 ${!draggedScriptPath
-                    ? `group hover:z-[100] hover:bg-white/[0.06] ${isEditing ? 'shadow-2xl bg-white/[0.05]' : 'bg-white/[0.03] hover:shadow-2xl cursor-grab active:cursor-grabbing long-press-shrink'}`
+                    ? `group hover:z-[100] hover:bg-white/[0.06] ${isEditing || isContextMenuOpen ? 'shadow-2xl bg-white/[0.05]' : 'bg-white/[0.03] hover:shadow-2xl cursor-grab active:cursor-grabbing long-press-shrink'}`
 
                     : (s.path === draggedScriptPath ? 'opacity-0 pointer-events-none' : 'z-10')}
                 ${s.is_running && !isDragging ? '' : ''}
                 ${s.is_hidden && visibilityMode !== 'only' ? 'opacity-40 grayscale-[0.5]' : ''}
                 ${isLeftPressed && !isEditing ? 'active-left' : ''}
+                ${isContextMenuOpen ? 'border-indigo-500/30' : ''}
             `}
-            style={{ borderColor: 'var(--border-color)' }}
+            style={{ borderColor: isContextMenuOpen ? 'rgba(99, 102, 241, 0.4)' : 'var(--border-color)' }}
         >
             <div className="flex justify-between items-start pointer-events-none">
                 <div className="flex flex-col overflow-hidden flex-1 -mt-[8px]">
-                    <span className={`text-xl font-black truncate pr-4 transition-colors tracking-tight stabilize-text ${!isDragging ? (isEditing ? 'text-indigo-400' : 'text-secondary') : 'text-secondary'}`}>
+                    <span className={`text-xl font-black truncate pr-4 transition-colors tracking-tight stabilize-text ${!isDragging ? (isEditing || isContextMenuOpen ? 'text-indigo-400' : 'text-secondary') : 'text-secondary'}`}>
                         <HighlightText text={s.filename.replace(/\.ahk$/i, '')} variant="file" />
                     </span>
                 </div>
@@ -145,6 +146,7 @@ const HubScriptCard = memo(function HubScriptCard({
         prev.draggedScriptPath === next.draggedScriptPath &&
         prev.editingScript === next.editingScript &&
         prev.pendingScripts === next.pendingScripts &&
+        prev.isContextMenuOpen === next.isContextMenuOpen &&
         prev.visibilityMode === next.visibilityMode;
 });
 
