@@ -50,9 +50,9 @@ const HubScriptCard = memo(function HubScriptCard({
                 ${s.is_running && !isDragging ? '' : ''}
                 ${s.is_hidden && visibilityMode !== 'only' ? 'opacity-40 grayscale-[0.5]' : ''}
                 ${isLeftPressed && !isEditing ? 'active-left' : ''}
-                ${isContextMenuOpen ? 'border-indigo-500/30' : ''}
+                ${isContextMenuOpen || isEditing ? 'border-indigo-500/30' : ''}
             `}
-            style={{ borderColor: isContextMenuOpen ? 'rgba(99, 102, 241, 0.4)' : 'var(--border-color)' }}
+            style={{ borderColor: (isContextMenuOpen || isEditing) ? 'rgba(99, 102, 241, 0.4)' : 'var(--border-color)' }}
         >
             <div className="flex justify-between items-start pointer-events-none">
                 <div className="flex flex-col overflow-hidden flex-1 -mt-[8px]">

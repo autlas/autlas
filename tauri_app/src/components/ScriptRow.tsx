@@ -109,7 +109,7 @@ const ScriptRow = memo(function ScriptRow({
             onDoubleClick={() => !isDragging && onDoubleClick(s)}
             className={`flex items-center justify-between h-[42px] px-3 rounded-lg transition-all duration-300 border border-transparent select-none relative
                 ${isEditing ? 'z-[200] !opacity-100' : 'z-10'}
-                ${!draggedScriptPath ? (isContextMenuOpen ? 'hover:z-[100] group bg-white/5 shadow-xl border-indigo-500/20' : 'hover:z-[100] group hover:bg-white/5 cursor-grab active:cursor-grabbing') : ''}
+                ${!draggedScriptPath ? (isContextMenuOpen || isEditing ? 'hover:z-[100] group bg-white/5 shadow-xl border-indigo-500/20' : 'hover:z-[100] group hover:bg-white/5 cursor-grab active:cursor-grabbing') : ''}
                 long-press-shrink has-[button:active]:scale-100
 
                 ${s.path === draggedScriptPath ? 'opacity-0 pointer-events-none' : ''}
@@ -180,9 +180,9 @@ const ScriptRow = memo(function ScriptRow({
                             }}
                             onMouseDown={(e) => e.stopPropagation()}
                             onDoubleClick={(e) => e.stopPropagation()}
-                            className={`w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-lg bg-white/5 text-tertiary border border-white/5 hover:text-indigo-400 hover:bg-white/10 transition-all shadow-lg group/plus cursor-pointer pointer-events-auto ${isEditing ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+                            className={`w-[28px] h-[28px] flex-shrink-0 flex items-center justify-center border border-dashed border-white/10 rounded-lg text-tertiary hover:text-white hover:border-white/20 transition-all cursor-pointer pointer-events-auto ${isEditing ? 'opacity-100 bg-white/5' : 'opacity-0 group-hover:opacity-100'}`}
                         >
-                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                         </button>
 
                         {isEditing && (

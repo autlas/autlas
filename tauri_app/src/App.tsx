@@ -607,7 +607,7 @@ function App() {
                   <span className="text-lg tracking-tight">{tab.label}</span>
                 </div>
                 {activeTab !== "hub" && (
-                  <div className={`flex items-center justify-center rounded-full bg-indigo-500 transition-all duration-500 ${runningCount > 0 ? 'w-5 h-5 shadow-[0_0_12px_rgba(99,102,241,0.6)]' : 'w-2 h-2 animate-pulse shadow-[0_0_8px_rgba(79,70,229,0.5)]'}`}>
+                  <div className={`flex items-center justify-center rounded-full bg-indigo-400 transition-all duration-500 ${runningCount > 0 ? 'w-5 h-5 shadow-[0_0_12px_rgba(99,102,241,0.6)]' : 'w-2 h-2 animate-pulse shadow-[0_0_8px_rgba(79,70,229,0.5)]'}`}>
                     {runningCount > 0 && <span className="text-[15px] font-bold leading-none mt-[1px]" style={{ color: 'var(--bg-secondary)' }}>{runningCount}</span>}
                   </div>
                 )}
