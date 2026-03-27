@@ -510,10 +510,10 @@ function App() {
     >
       {/* Sidebar - Balanced padding for Symmetric Gutter */}
       <div
-        className="w-72 flex flex-col px-4 py-6 space-y-10 border-r overflow-y-auto custom-scrollbar transition-colors duration-300 relative z-[100]"
-        style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-color)' }}
+        className="w-72 flex flex-col py-6 border-r overflow-y-auto custom-scrollbar transition-colors duration-300 relative z-[100]"
+        style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-color)', paddingLeft: '16px', paddingRight: '0' }}
       >
-        <div className="flex flex-col space-y-5 flex-1">
+        <div className="flex flex-col space-y-10 flex-1 pr-[6px]">
           {/* Group 1: Hub */}
           <ul className="space-y-1.5">
             {[
@@ -775,7 +775,7 @@ function App() {
         </div>
 
 
-        <div className="flex items-center space-x-3 w-full">
+        <div className="flex items-center space-x-3 w-full pr-[10px] mt-10">
           <button
             onClick={() => handleTabClick("settings")}
             className={`flex-1 h-12 rounded-xl flex items-center justify-center transition-all border-b-2 group cursor-pointer ${draggedScript ? 'opacity-20 blur-[1px]' : ''
