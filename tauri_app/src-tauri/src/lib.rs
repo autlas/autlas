@@ -253,12 +253,13 @@ async fn kill_script(path: String) -> Result<(), String> {
 
 #[tauri::command]
 async fn open_in_explorer(path: String) -> Result<(), String> {
-    // On Windows, use "explorer /select," to highlight the file
     let path_buf = std::path::PathBuf::from(&path);
     if path_buf.exists() {
-        Command::new("explorer")
-            .arg("/select,")
-            .arg(path)
+        let mut cmd = Command::new("explorer");
+        if path_buf.is_file() {
+            cmd.arg("/select,");
+        }
+        cmd.arg(path)
             .spawn()
             .map_err(|e| e.to_string())?;
     }

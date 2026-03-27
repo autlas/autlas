@@ -121,16 +121,65 @@ const TreeNodeRenderer = memo(function TreeNodeRenderer({
                             <path d="M5.5 3.5L5.5 20.5L20.2 12L5.5 3.5Z" />
                         </svg>
                     </div>
-                    <div className="flex items-center overflow-hidden">
-                        {node.name.split('|').map((part, i) => (
-                            <React.Fragment key={part + i}>
-                                {i > 0 && <div className="w-[5px] h-[5px] rounded-full bg-white/10 mx-3 flex-shrink-0" />}
-                                <span className={`text-base font-medium tracking-tight transition-colors truncate stabilize-text 
-                                    ${!isDragging ? (ctx.contextMenu?.type === 'folder' && ctx.contextMenu?.data?.fullName === node.fullName ? 'text-indigo-400' : 'text-secondary group-hover:text-primary') : 'text-tertiary'} `}>
-                                    <HighlightText text={part} variant="path" />
-                                </span>
-                            </React.Fragment>
-                        ))}
+                    <div className="flex items-center overflow-hidden h-full">
+                        {(() => {
+                            const rawParts = node.name.split('|').map(p => p.trim());
+                            // Calculate full names for each part back to front
+                            const partFullNames: string[] = [];
+                            let currentPath = node.fullName;
+                            for (let i = rawParts.length - 1; i >= 0; i--) {
+                                partFullNames[i] = currentPath;
+                                // Find parent directory separator (either \ or /)
+                                const lastSlash = Math.max(currentPath.lastIndexOf('\\'), currentPath.lastIndexOf('/'));
+                                if (lastSlash !== -1) {
+                                    currentPath = currentPath.substring(0, lastSlash);
+                                }
+                            }
+
+                            return rawParts.map((part, i) => {
+                                const partFullName = partFullNames[i];
+                                const isActive = ctx.contextMenu?.type === 'folder' && ctx.contextMenu?.data?.fullName === partFullName;
+                                return (
+                                    <React.Fragment key={part + i}>
+                                        {i > 0 && <div className="w-[5px] h-[5px] rounded-full bg-white/10 mx-2 flex-shrink-0" />}
+                                        <div
+                                            className={`px-2 py-0.5 rounded-md transition-all duration-200 
+                                                ${!isDragging ? 'hover:bg-white/[0.08] cursor-pointer' : ''}
+                                                ${isActive ? 'bg-white/10' : ''}
+                                            `}
+                                            onClick={(e) => {
+                                                if (isDragging) return;
+                                                e.stopPropagation();
+                                                // If it's the terminal folder, toggle expansion as before.
+                                                // If it's a parent folder, maybe we should navigate?
+                                                // User mostly asked for context menu. Let's keep toggle for the terminal one.
+                                                if (i === rawParts.length - 1) {
+                                                    toggleFolder(node.fullName);
+                                                }
+                                            }}
+                                            onContextMenu={(e) => {
+                                                if (isDragging) return;
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                onFolderContextMenu(e, {
+                                                    ...node,
+                                                    name: part,
+                                                    fullName: partFullName,
+                                                    is_hidden: !!node.is_hidden, // Note: hidden state might be different for parents, but our recursive state is on the node
+                                                    onExpandAll: () => setFolderExpansionRecursive(node, true),
+                                                    onCollapseAll: () => setFolderExpansionRecursive(node, false),
+                                                } as any);
+                                            }}
+                                        >
+                                            <span className={`text-base font-medium tracking-tight transition-colors truncate stabilize-text 
+                                                ${!isDragging ? (isActive ? 'text-indigo-400' : 'text-secondary/90 hover:text-white group-hover:text-primary') : 'text-tertiary'} `}>
+                                                <HighlightText text={part} variant="path" />
+                                            </span>
+                                        </div>
+                                    </React.Fragment>
+                                );
+                            });
+                        })()}
                     </div>
                 </div>
             )}
