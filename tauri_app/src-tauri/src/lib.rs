@@ -19,6 +19,7 @@ struct Script {
     tags: Vec<String>,
     is_hidden: bool,
     is_running: bool,
+    has_ui: bool,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -211,6 +212,19 @@ async fn get_scripts() -> Vec<Script> {
                 let is_hidden = metadata.hidden_folders.iter().any(|h| path_lower.contains(&h.to_lowercase()));
                 let is_running = running_cmds.iter().any(|cmd| cmd.contains(&path_lower));
 
+                // Super fast static scan to see if the script supports AHK Manager UI triggers
+                // ONLY DO THIS FOR RUNNING SCRIPTS to avoid slowing down the directory scan!
+                let has_ui = if is_running {
+                    if let Ok(content) = fs::read_to_string(&path_buf) {
+                        let text = content.to_lowercase();
+                        text.contains("0x0401") || text.contains("0x401")
+                    } else {
+                        false
+                    }
+                } else {
+                    false
+                };
+
                 scripts.push(Script {
                     path: path_str,
                     filename,
@@ -218,6 +232,7 @@ async fn get_scripts() -> Vec<Script> {
                     tags,
                     is_hidden,
                     is_running,
+                    has_ui,
                 });
             }
         }
@@ -249,6 +264,101 @@ async fn kill_script(path: String) -> Result<(), String> {
         }
     }
     Ok(())
+}
+
+#[tauri::command]
+async fn restart_script(path: String) -> Result<(), String> {
+    // 1. Kill the script
+    let mut sys = System::new_all();
+    sys.refresh_all();
+    let path_lower = path.to_lowercase();
+    for (_pid, process) in sys.processes() {
+        let name = process.name().to_string_lossy().to_lowercase();
+        if name.contains("autohotkey") {
+            let cmd: Vec<String> = process.cmd().iter().map(|s| s.to_string_lossy().into_owned()).collect();
+            let cmd_str = cmd.join(" ").to_lowercase();
+            if cmd_str.contains(&path_lower) {
+                process.kill();
+            }
+        }
+    }
+    
+    // 2. Wait a bit for the process to fully close
+    std::thread::sleep(std::time::Duration::from_millis(150));
+    
+    // 3. Run it again
+    Command::new("explorer").arg(&path).spawn().map_err(|e| e.to_string())?;
+    
+    Ok(())
+}
+
+#[tauri::command]
+async fn show_script_ui(path: String) -> Result<(), String> {
+    println!("[show_script_ui] Request for path: {}", path);
+    let mut sys = System::new_all();
+    sys.refresh_all();
+    let path_lower = path.to_lowercase().replace("/", "\\");
+    
+    for (pid, process) in sys.processes() {
+        let name = process.name().to_string_lossy().to_lowercase();
+        if name.contains("autohotkey") {
+            let cmd: Vec<String> = process.cmd().iter().map(|s| s.to_string_lossy().into_owned()).collect();
+            let cmd_str = cmd.join(" ").to_lowercase().replace("/", "\\");
+            
+            if cmd_str.contains(&path_lower) {
+                let pid_val = pid.as_u32();
+                println!("[show_script_ui] Found matching process PID: {}", pid_val);
+                
+                // Ultimate foolproof solution: C# implementation compiled by PowerShell.
+                // 1. Move the EnumWindows loop entirely into C# to bypass PowerShell callback scope limits.
+                // 2. The C# class stores the target PID, enumerates windows natively, and calls PostMessage.
+                let ps_script = format!(
+                    "Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; public class Win32 {{ \
+                        [DllImport(\"user32.dll\")] public static extern bool PostMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam); \
+                        [DllImport(\"user32.dll\")] public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId); \
+                        public delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam); \
+                        [DllImport(\"user32.dll\")] public static extern bool EnumWindows(EnumWindowsProc lpEnumFunc, IntPtr lParam); \
+                        private static uint TargetPid; \
+                        private static int Count; \
+                        public static int TriggerAhkUi(uint pid) {{ \
+                            TargetPid = pid; Count = 0; \
+                            EnumWindows(EnumProc, IntPtr.Zero); \
+                            return Count; \
+                        }} \
+                        private static bool EnumProc(IntPtr hWnd, IntPtr lParam) {{ \
+                            uint pId; \
+                            GetWindowThreadProcessId(hWnd, out pId); \
+                            if (pId == TargetPid) {{ \
+                                PostMessage(hWnd, 0x0401, IntPtr.Zero, IntPtr.Zero); \
+                                Count++; \
+                            }} \
+                            return true; \
+                        }} \
+                     }}'; \
+                     $c = [Win32]::TriggerAhkUi({}); \
+                     if ($c -gt 0) {{ Write-Output \"Sent message to $c windows for PID {}\"; }} else {{ Write-Error \"No windows found for PID {}\"; }}",
+                    pid_val, pid_val, pid_val
+                );
+                
+                let output = Command::new("powershell")
+                    .arg("-NoProfile")
+                    .arg("-Command")
+                    .arg(ps_script)
+                    .output()
+                    .map_err(|e| e.to_string())?;
+                
+                println!("[show_script_ui] PS Output: {}", String::from_utf8_lossy(&output.stdout));
+                if !output.stderr.is_empty() {
+                    println!("[show_script_ui] PS Error: {}", String::from_utf8_lossy(&output.stderr));
+                }
+                
+                return Ok(());
+            }
+        }
+    }
+    
+    println!("[show_script_ui] FAIL: No running process found for path: {}", path);
+    Err("Script is not running".into())
 }
 
 #[tauri::command]
@@ -460,7 +570,7 @@ async fn toggle_hide_folder(path: String) -> Result<(), String> {
         String::from_utf8_lossy(&bytes).to_string()
     };
 
-    let mut lines: Vec<String> = content.lines().map(|s| s.to_string()).collect();
+    let lines: Vec<String> = content.lines().map(|s| s.to_string()).collect();
     let mut in_hidden = false;
     let mut found = false;
     let path_lower = path.to_lowercase();
@@ -559,7 +669,7 @@ async fn delete_tag(tag: String) -> Result<(), String> {
              if let Some(pos) = line.find('=') {
                 let key = &line[..pos];
                 let val = &line[pos+1..];
-                let mut tags: Vec<String> = val.split(',')
+                let tags: Vec<String> = val.split(',')
                     .map(|s| s.trim().to_string())
                     .filter(|s| !s.is_empty() && s.to_lowercase() != target_lower)
                     .collect();
@@ -569,7 +679,7 @@ async fn delete_tag(tag: String) -> Result<(), String> {
             if let Some(pos) = line.find('=') {
                 let prefix = &line[..pos+1];
                 let val = &line[pos+1..];
-                let mut tags: Vec<String> = val.split(',')
+                let tags: Vec<String> = val.split(',')
                     .map(|s| s.trim().to_string())
                     .filter(|s| !s.is_empty() && s.to_lowercase() != target_lower)
                     .collect();
@@ -603,7 +713,9 @@ pub fn run() {
             open_in_explorer,
             edit_script,
             delete_tag,
-            toggle_hide_folder
+            toggle_hide_folder,
+            show_script_ui,
+            restart_script
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

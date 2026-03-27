@@ -8,7 +8,7 @@ import { useTranslation } from "react-i18next";
 const HubScriptCard = memo(function HubScriptCard({
     s, isDragging, draggedScriptPath, editingScript, pendingScripts, removingTags,
     isContextMenuOpen, allUniqueTags, popoverRef, visibilityMode, onMouseDown, onToggle, onStartEditing, onAddTag, onRemoveTag, onCloseEditing,
-    onScriptContextMenu
+    onScriptContextMenu, onShowUI, onRestart
 }: HubScriptCardProps) {
     const { t } = useTranslation();
 
@@ -122,18 +122,45 @@ const HubScriptCard = memo(function HubScriptCard({
             </div>
 
             {!isDragging && (
-                <button
-                    onClick={(e) => { e.stopPropagation(); onToggle(s); }}
-                    onMouseDown={(e) => e.stopPropagation()}
-                    className={`w-full py-3.5 mt-auto rounded-2xl text-xs font-bold tracking-[0.1em] transition-all transform cursor-pointer active:scale-95 pointer-events-auto shadow-xl 
-                        ${isPending ? 'bg-white/5 text-tertiary animate-pulse cursor-wait border border-white/5' :
-                            s.is_running ? "bg-white/5 text-tertiary border border-white/5 hover:bg-red-600/15 hover:text-red-500 hover:border-red-500/30 active:bg-red-600/25 active:text-red-500 transition-all" :
-                                "bg-white/5 text-tertiary border border-white/5 hover:bg-green-600/15 hover:text-green-500 hover:border-green-500/30 active:bg-green-600/25 transition-all text-secondary hover:text-green-500"
-                        }
-                    `}
-                >
-                    {isPending ? (s.is_running ? "KILLING..." : "IGNITING...") : (s.is_running ? "Kill" : "Run")}
-                </button>
+                <div className="mt-auto">
+                    {s.is_running ? (
+                        <div className="flex items-center gap-2">
+                            {s.has_ui && (
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); onShowUI(s); }}
+                                    onMouseDown={(e) => e.stopPropagation()}
+                                    className="flex-1 py-3 rounded-2xl text-[10px] font-bold tracking-[0.1em] bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 hover:bg-indigo-500/20 transition-all cursor-pointer pointer-events-auto uppercase"
+                                    title="Show Interface"
+                                >
+                                    UI
+                                </button>
+                            )}
+                            <button
+                                onClick={(e) => { e.stopPropagation(); onToggle(s); }}
+                                onMouseDown={(e) => e.stopPropagation()}
+                                className={`flex-1 py-3 rounded-2xl text-[10px] font-bold tracking-[0.1em] transition-all transform cursor-pointer active:scale-95 pointer-events-auto shadow-xl bg-white/5 text-tertiary border border-white/5 hover:bg-red-600/15 hover:text-red-500 hover:border-red-500/30 active:bg-red-600/25 active:text-red-500 uppercase`}
+                            >
+                                {isPending ? "..." : "Kill"}
+                            </button>
+                            <button
+                                onClick={(e) => { e.stopPropagation(); onRestart(s); }}
+                                onMouseDown={(e) => e.stopPropagation()}
+                                className="flex-1 py-3 rounded-2xl text-[10px] font-bold tracking-[0.1em] bg-white/5 text-tertiary border border-white/5 hover:bg-white/10 hover:text-secondary transition-all cursor-pointer pointer-events-auto uppercase"
+                                title="Restart Script"
+                            >
+                                {isPending ? "..." : "Reset"}
+                            </button>
+                        </div>
+                    ) : (
+                        <button
+                            onClick={(e) => { e.stopPropagation(); onToggle(s); }}
+                            onMouseDown={(e) => e.stopPropagation()}
+                            className={`w-full py-4 rounded-2xl text-xs font-bold tracking-[0.1em] transition-all transform cursor-pointer active:scale-95 pointer-events-auto shadow-xl bg-white/5 text-tertiary border border-white/5 hover:bg-green-600/15 hover:text-green-500 hover:border-green-500/30 active:bg-green-600/25 transition-all text-secondary hover:text-green-500`}
+                        >
+                            {isPending ? "IGNITING..." : "Run"}
+                        </button>
+                    )}
+                </div>
             )}
         </div>
     );
@@ -147,7 +174,8 @@ const HubScriptCard = memo(function HubScriptCard({
         prev.editingScript === next.editingScript &&
         prev.pendingScripts === next.pendingScripts &&
         prev.isContextMenuOpen === next.isContextMenuOpen &&
-        prev.visibilityMode === next.visibilityMode;
+        prev.visibilityMode === next.visibilityMode &&
+        prev.onRestart === next.onRestart;
 });
 
 export default HubScriptCard;

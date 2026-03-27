@@ -1,4 +1,5 @@
 ﻿C:\$Recycle.Bin\S-1-5-21-1910291255-2589405741-3536615778-1001\$I087VOI.ahk
+C:\$Recycle.Bin\S-1-5-21-1910291255-2589405741-3536615778-1001\$I0VO619.ahk
 C:\$Recycle.Bin\S-1-5-21-1910291255-2589405741-3536615778-1001\$I2NL29M.ahk
 C:\$Recycle.Bin\S-1-5-21-1910291255-2589405741-3536615778-1001\$I7112X2.ahk
 C:\$Recycle.Bin\S-1-5-21-1910291255-2589405741-3536615778-1001\$ICGIAXD.ahk
@@ -8,10 +9,12 @@ C:\$Recycle.Bin\S-1-5-21-1910291255-2589405741-3536615778-1001\$IHX767I.ahk
 C:\$Recycle.Bin\S-1-5-21-1910291255-2589405741-3536615778-1001\$IKG11OF.ahk
 C:\$Recycle.Bin\S-1-5-21-1910291255-2589405741-3536615778-1001\$IKPRCYX.ahk
 C:\$Recycle.Bin\S-1-5-21-1910291255-2589405741-3536615778-1001\$INBM1MF.ahk
+C:\$Recycle.Bin\S-1-5-21-1910291255-2589405741-3536615778-1001\$IQBE1B3.ahk
 C:\$Recycle.Bin\S-1-5-21-1910291255-2589405741-3536615778-1001\$IRMZUTF.ahk
 C:\$Recycle.Bin\S-1-5-21-1910291255-2589405741-3536615778-1001\$IVA3CZI.ahk
 C:\$Recycle.Bin\S-1-5-21-1910291255-2589405741-3536615778-1001\$IY9XKND.ahk
 C:\$Recycle.Bin\S-1-5-21-1910291255-2589405741-3536615778-1001\$R087VOI.ahk
+C:\$Recycle.Bin\S-1-5-21-1910291255-2589405741-3536615778-1001\$R0VO619.ahk
 C:\$Recycle.Bin\S-1-5-21-1910291255-2589405741-3536615778-1001\$R2NL29M.ahk
 C:\$Recycle.Bin\S-1-5-21-1910291255-2589405741-3536615778-1001\$R7112X2.ahk
 C:\$Recycle.Bin\S-1-5-21-1910291255-2589405741-3536615778-1001\$RCGIAXD.ahk
@@ -21,11 +24,13 @@ C:\$Recycle.Bin\S-1-5-21-1910291255-2589405741-3536615778-1001\$RHX767I.ahk
 C:\$Recycle.Bin\S-1-5-21-1910291255-2589405741-3536615778-1001\$RKG11OF.ahk
 C:\$Recycle.Bin\S-1-5-21-1910291255-2589405741-3536615778-1001\$RKPRCYX.ahk
 C:\$Recycle.Bin\S-1-5-21-1910291255-2589405741-3536615778-1001\$RNBM1MF.ahk
+C:\$Recycle.Bin\S-1-5-21-1910291255-2589405741-3536615778-1001\$RQBE1B3.ahk
 C:\$Recycle.Bin\S-1-5-21-1910291255-2589405741-3536615778-1001\$RRMZUTF.ahk
 C:\$Recycle.Bin\S-1-5-21-1910291255-2589405741-3536615778-1001\$RVA3CZI.ahk
 C:\$Recycle.Bin\S-1-5-21-1910291255-2589405741-3536615778-1001\$RY9XKND.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-448bfecb\00Kx.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-3ff6e0ec\047D.ahk
+C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-303ef4fc\0cOA.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-3ff6e0ec\0D1X.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\592034e1\0g5E.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-432a25df\0GD7.ahk
@@ -40,6 +45,7 @@ C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-47e8a8e6\11nE.ahk
 C:\Users\Heavym\.gemini\antigravity\code_tracker\active\ahk_5d69356d9a20edbae2ec8df0e5142be922892301\145b0e1e500f9095896f67682b34fc6a_State.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\e62eef8\16BW.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-432a25df\16VZ.ahk
+C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-633d1651\17D1.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-3ff6e0ec\17rB.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\37300bbe\1bIe.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\1b29f0b5\1K5K.ahk
@@ -67,6 +73,7 @@ C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\e002de3\2X9E.ahk
 C:\Users\Heavym\.gemini\antigravity\code_tracker\active\ahk_5d69356d9a20edbae2ec8df0e5142be922892301\317cbf6aae7d3c0aa832996aac497e1b_MainMenu.ahk
 C:\Users\Heavym\.gemini\antigravity\code_tracker\active\ahk_5d69356d9a20edbae2ec8df0e5142be922892301\3310045be4cba141ad4629b4a6f8d36c_MovieOverlay.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-550759a\34mt.ahk
+C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-633d1651\37VK.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\1dee45d6\39yI.ahk
 C:\Users\Heavym\.gemini\antigravity\code_tracker\active\ahk_5d69356d9a20edbae2ec8df0e5142be922892301\3ad93fec962a97ce543691cac029fb9c_Run_AutoPot_v30.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-1ef6b1bd\3GPo.ahk
@@ -101,6 +108,7 @@ C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\58c9af13\5Oq1.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-7fb84bb0\5qpJ.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-13f42401\5VtD.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-3ff6e0ec\5Wjc.ahk
+C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-1010b980\5Ykc.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\1b29f0b5\602q.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\e62eef8\6AaB.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-3ff6e0ec\6BKI.ahk
@@ -165,6 +173,7 @@ C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-432a25df\9qmM.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-432a25df\9QXk.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-30b8fb37\9sI3.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\1dee45d6\9VoC.ahk
+C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-303ef4fc\9XnT.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\592034e1\9yJG.ahk
 C:\Users\Heavym\Desktop\ahk\beatls\_combat_mode_v1.ahk
 C:\Users\Heavym\Desktop\ahk\beatls\_combat_mode_v2.ahk
@@ -180,7 +189,7 @@ C:\Users\Heavym\.cursor\extensions\mark-wiemer.vscode-autohotkey-plus-plus-6.7.3
 C:\Users\Heavym\.antigravity\extensions\mark-wiemer.vscode-autohotkey-plus-plus-6.7.3-universal\ahk2\syntaxes\ahk2_h.d.ahk
 C:\Users\Heavym\.cursor\extensions\mark-wiemer.vscode-autohotkey-plus-plus-6.7.3-universal\ahk2\syntaxes\ahk2_h.d.ahk
 C:\Users\Heavym\Desktop\ahk\ahk_manager\ahk_manager.ahk
-C:\Users\Heavym\Desktop\AutoHotkeys\AHKmanager\ahk_manager.ahk
+C:\Users\Heavym\Desktop\chest\code\AutoHotkeys\AHKmanager\ahk_manager.ahk
 C:\Users\Heavym\.antigravity\extensions\mark-wiemer.vscode-autohotkey-plus-plus-6.7.3-universal\ahk2\server\dist\ahkProvider.ahk
 C:\Users\Heavym\.cursor\extensions\mark-wiemer.vscode-autohotkey-plus-plus-6.7.3-universal\ahk2\server\dist\ahkProvider.ahk
 C:\$Recycle.Bin\S-1-5-21-1910291255-2589405741-3536615778-1001\$RGD6PAG\poe-fuck-machine\autobuy.ahk
@@ -193,7 +202,9 @@ C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-3ff6e0ec\b3wn.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-6ebf85e5\b4qn.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-762ddcc2\b4YE.ahk
 C:\Users\Heavym\.gemini\antigravity\code_tracker\active\ahk_5d69356d9a20edbae2ec8df0e5142be922892301\b54353d812fd32d505a8905430f19a19_Feature_CapsLock.ahk
+C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-633d1651\B67J.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\37300bbe\b7bk.ahk
+C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-1010b980\b7ww.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-448bfecb\b8Wn.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-22138b55\ba8J.ahk
 C:\Users\Heavym\.gemini\antigravity\code_tracker\active\ahk_5d69356d9a20edbae2ec8df0e5142be922892301\bc45860c8f5615458092659cd8423787_PixelPicker.ahk
@@ -215,8 +226,10 @@ C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-30b8fb37\BMWw.ahk
 C:\Users\Heavym\Desktop\chest\forGames\minecraft\Prominence_II_Hasturian_Era\bordMine.ahk
 C:\Users\Heavym\AppData\Local\Programs\AutoHotkey\UX\inc\bounce-v1.ahk
 C:\Users\Heavym\Downloads\AutoHotkey_2.0.19\UX\inc\bounce-v1.ahk
+C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-19470f1d\bpAa.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\e62eef8\brw7.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\373e40aa\bsHh.ahk
+C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-1010b980\BTE9.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-3ff6e0ec\bTMW.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\11d47f9\bVfH.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-448bfecb\bvVQ.ahk
@@ -320,6 +333,7 @@ C:\Users\Heavym\Downloads\WingmanReloaded-v.16.00\WingmanReloaded\lib\api\DBUpda
 C:\Users\Heavym\.gemini\antigravity\code_tracker\active\ahk_5d69356d9a20edbae2ec8df0e5142be922892301\dcdbb88fe5457671eb5289498c850d6e_Overlay.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\1b29f0b5\dcDf.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-550759a\DDfP.ahk
+C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-303ef4fc\DDWi.ahk
 C:\$Recycle.Bin\S-1-5-21-1910291255-2589405741-3536615778-1001\$RXMQPNS\Lib\UI\Debug.ahk
 C:\Users\Heavym\Desktop\ahk\v30_OOP\Lib\UI\Debug.ahk
 C:\Users\Heavym\.gemini\antigravity\code_tracker\active\ahk_5d69356d9a20edbae2ec8df0e5142be922892301\dec6bb3bddac66a1d8644a0e9cc1597b__grid_gdi_functions.ahk
@@ -338,6 +352,7 @@ C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-5dc1deb9\djZ4.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-5dc1deb9\dJzu.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\e62eef8\dK6B.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-e128a0a\dKQD.ahk
+C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-633d1651\Dl6i.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\11d47f9\dLuF.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\37300bbe\DluM.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-448bfecb\DM5P.ahk
@@ -371,6 +386,7 @@ C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\11d47f9\ehAZ.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\1b29f0b5\EljC.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-5dc1deb9\eLju.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\1b29f0b5\eLrg.ahk
+C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-303ef4fc\ELXw.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-448bfecb\eMcf.ahk
 C:\Users\Heavym\AppData\Local\Programs\AutoHotkey\UX\inc\EnableUIAccess.ahk
 C:\Users\Heavym\Downloads\AutoHotkey_2.0.19\UX\inc\EnableUIAccess.ahk
@@ -423,6 +439,7 @@ C:\Users\Heavym\Desktop\ahk\Lib\Functions_Shared.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-550759a\fYfk.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-22138b55\G8DH.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-3ff6e0ec\G8sQ.ahk
+C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-633d1651\g8Yg.ahk
 C:\Users\Heavym\Desktop\lootPicker\WingmanReloaded-master\lib\GameLogs.ahk
 C:\Users\Heavym\Downloads\WingmanReloaded-v.16.00\WingmanReloaded\lib\GameLogs.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-633d1651\GAS5.ahk
@@ -454,6 +471,7 @@ C:\Users\Heavym\Desktop\lootPicker\WingmanReloaded-master\lib\gui\GUI helpers.ah
 C:\Users\Heavym\Downloads\WingmanReloaded-v.16.00\WingmanReloaded\lib\gui\GUI helpers.ahk
 C:\Users\Heavym\Desktop\lootPicker\WingmanReloaded-master\lib\GuiStatus.ahk
 C:\Users\Heavym\Downloads\WingmanReloaded-v.16.00\WingmanReloaded\lib\GuiStatus.ahk
+C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-633d1651\gV9B.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\1951f3de\gvcy.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\e62eef8\GvLg.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\373e40aa\gX9t.ahk
@@ -509,6 +527,7 @@ C:\Users\Heavym\AppData\Local\Programs\AutoHotkey\UX\inc\identify.ahk
 C:\Users\Heavym\Downloads\AutoHotkey_2.0.19\UX\inc\identify.ahk
 C:\Users\Heavym\AppData\Local\Programs\AutoHotkey\UX\inc\identify_regex.ahk
 C:\Users\Heavym\Downloads\AutoHotkey_2.0.19\UX\inc\identify_regex.ahk
+C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-633d1651\IEwn.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\64719e63\ifDI.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\37300bbe\IFR3.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-432a25df\Ig6k.ahk
@@ -533,6 +552,7 @@ C:\Users\Heavym\Downloads\AutoHotkey_2.0.19\UX\install.ahk
 C:\Users\Heavym\Desktop\lootPicker\WingmanReloaded-master\lib\routine\Inventory.ahk
 C:\Users\Heavym\Downloads\WingmanReloaded-v.16.00\WingmanReloaded\lib\routine\Inventory.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-550759a\iO3B.ahk
+C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\2ecb1b19\iOeO.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-4a2cd3b3\iOht.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\64719e63\ioZr.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\1b29f0b5\IqJ6.ahk
@@ -590,11 +610,13 @@ C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-432a25df\Jytq.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\11d47f9\JzSJ.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\11d47f9\K0gq.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\58c9af13\k3bh.ahk
+C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-633d1651\K6yM.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\1b29f0b5\kAPv.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-47e8a8e6\kCJp.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-30b8fb37\KCSe.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-47e8a8e6\kgAC.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-6ebf85e5\KhPp.ahk
+C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-303ef4fc\khTW.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-550759a\KkPH.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-1194fecc\Kkqd.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-3ff6e0ec\kky0.ahk
@@ -663,6 +685,7 @@ C:\Users\Heavym\Downloads\AutoHotkey_2.0.19\UX\Templates\Minimal for v2.ahk
 C:\Users\Heavym\Desktop\chest\forGames\minecraft\Prominence_II_Hasturian_Era\mining.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\1dee45d6\Mkbu.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-432a25df\MLFI.ahk
+C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-633d1651\mmdn.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-550759a\mney.ahk
 C:\Users\Heavym\Desktop\ahk\MovieOverlay.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\e62eef8\Mp3o.ahk
@@ -686,6 +709,7 @@ C:\Users\Heavym\Desktop\lootPicker\WingmanReloaded-master\lib\ref\Notify.ahk
 C:\Users\Heavym\Downloads\WingmanReloaded-v.16.00\WingmanReloaded\lib\ref\Notify.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\11d47f9\o0MR.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\1b29f0b5\O0wT.ahk
+C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-1010b980\o1JN.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-e128a0a\O7m4.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\27e02c38\OaFt.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\1dee45d6\OAWH.ahk
@@ -721,11 +745,9 @@ C:\$Recycle.Bin\S-1-5-21-1910291255-2589405741-3536615778-1001\$RXMQPNS\Lib\UI\P
 C:\Users\Heavym\Desktop\ahk\v30_OOP\Lib\UI\PixelPicker.ahk
 C:\Users\Heavym\Desktop\lootPicker\WingmanReloaded-master\PoE-Wingman.ahk
 C:\Users\Heavym\Downloads\WingmanReloaded-v.16.00\WingmanReloaded\PoE-Wingman.ahk
-C:\Users\Heavym\Desktop\PoE_AutoPot_Pro.ahk
 C:\Users\Heavym\Desktop\ahk\PoE_AutoPot_Pro.ahk
 C:\Users\Heavym\Downloads\Telegram Desktop\PoE_AutoPot_Pro123123.ahk
 C:\Users\Heavym\Desktop\ahk\PoE_AutoPot_Pro_Debug.ahk
-C:\Users\Heavym\Desktop\PoE_AutoPot_Pro_WEB.ahk
 C:\Users\Heavym\Desktop\ahk\PoE_AutoPot_Pro_WEB.ahk
 C:\Users\Heavym\Desktop\lootPicker\WingmanReloaded-master\lib\POE_Click.ahk
 C:\Users\Heavym\Downloads\WingmanReloaded-v.16.00\WingmanReloaded\lib\POE_Click.ahk
@@ -752,6 +774,7 @@ C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-432a25df\QF2s.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-30b8fb37\QFYq.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\535f220f\QGMT.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\1dee45d6\QH6w.ahk
+C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-633d1651\Qisd.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\1b29f0b5\QIz6.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\1b29f0b5\qjus.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\37300bbe\qJXJ.ahk
@@ -765,6 +788,7 @@ C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-3ff6e0ec\qRRF.ahk
 C:\Users\Heavym\Desktop\lootPicker\WingmanReloaded-master\lib\routine\QuickPortal.ahk
 C:\Users\Heavym\Downloads\WingmanReloaded-v.16.00\WingmanReloaded\lib\routine\QuickPortal.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-4a2cd3b3\QWj8.ahk
+C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-633d1651\QxMs.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-448bfecb\QYUD.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\37300bbe\qyVC.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-5dc1deb9\qZ1Y.ahk
@@ -776,6 +800,7 @@ C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\37300bbe\r8GM.ahk
 C:\Users\Heavym\Desktop\lootPicker\WingmanReloaded-master\lib\ref\RadialMenu.ahk
 C:\Users\Heavym\Downloads\WingmanReloaded-v.16.00\WingmanReloaded\lib\ref\RadialMenu.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\37300bbe\rCc4.ahk
+C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-303ef4fc\RCFY.ahk
 C:\Users\Heavym\Desktop\lootPicker\WingmanReloaded-master\lib\api\RefreshStatsList.ahk
 C:\Users\Heavym\Downloads\WingmanReloaded-v.16.00\WingmanReloaded\lib\api\RefreshStatsList.ahk
 C:\Users\Heavym\AppData\Local\Programs\AutoHotkey\UX\reload-v1.ahk
@@ -845,6 +870,7 @@ C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\1dee45d6\SnKk.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-3ff6e0ec\SNmu.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-432a25df\sqjD.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-550759a\sqts.ahk
+C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-633d1651\SRBW.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\1b29f0b5\sSfn.ahk
 C:\Users\Heavym\Desktop\lootPicker\WingmanReloaded-master\lib\routine\StackRelease.ahk
 C:\Users\Heavym\Downloads\WingmanReloaded-v.16.00\WingmanReloaded\lib\routine\StackRelease.ahk
@@ -866,6 +892,7 @@ C:\Users\Heavym\Desktop\ahk\temp.ahk
 C:\Users\Heavym\Desktop\lootPicker\temp.ahk
 C:\Users\Heavym\Desktop\lootPicker\temp2.ahk
 C:\Users\Heavym\Desktop\ahk\test.ahk
+C:\Users\Heavym\Desktop\chest\code\AutoHotkeys\AHKmanager\test_handles.ahk
 C:\Users\Heavym\Desktop\lootPicker\test_mcode.ahk
 C:\Users\Heavym\Desktop\ahk\test_min.ahk
 C:\Users\Heavym\Downloads\Telegram Desktop\poe-fuck-machine\ahk\test_pixel_search.ahk
@@ -907,6 +934,7 @@ C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\64719e63\tZuI.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-22138b55\TZXu.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-3ff6e0ec\u1O3.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\11d47f9\U6Ok.ahk
+C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-1010b980\u7mU.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-13f42401\U8HS.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-22138b55\UBWv.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\e62eef8\uEZe.ahk
@@ -930,6 +958,7 @@ C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\3207c68f\ulYI.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-550759a\UMNn.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-4dada6d6\UMSO.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\64719e63\Uo3S.ahk
+C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-633d1651\UOkb.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-3ff6e0ec\UOUm.ahk
 C:\Users\Heavym\Desktop\lootPicker\WingmanReloaded-master\lib\api\Update.ahk
 C:\Users\Heavym\Downloads\WingmanReloaded-v.16.00\WingmanReloaded\lib\api\Update.ahk
@@ -945,6 +974,7 @@ C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\e62eef8\uTNO.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\37300bbe\UUdo.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-3ff6e0ec\Uv62.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-550759a\UWoJ.ahk
+C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-633d1651\uXDs.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-3ff6e0ec\uyDu.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-e128a0a\uZHe.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\37300bbe\v1Eq.ahk
@@ -963,9 +993,13 @@ C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\11d47f9\vhhl.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-432a25df\Vj1p.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\1b29f0b5\vmLf.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-550759a\vOH1.ahk
-C:\Users\Heavym\Desktop\ahk\VolumeCOntrol\VolumeControl.ahk
+C:\Users\Heavym\Desktop\chest\code\AutoHotkeys\VolumeControl\VolumeControl.ahk
+C:\$Recycle.Bin\S-1-5-21-1910291255-2589405741-3536615778-1001\$RWF6RMW\VolumeControlV2.ahk
+C:\Users\Heavym\Desktop\chest\code\AutoHotkeys\VolumeControlV2\VolumeControlV2.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\48a1fc9c\vQto.ahk
+C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-303ef4fc\vSjH.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\1dee45d6\vTuz.ahk
+C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-633d1651\VtvI.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\1dee45d6\VVXm.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-550759a\vXfO.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-5dc1deb9\vXRy.ahk
@@ -1015,7 +1049,9 @@ C:\Users\Heavym\Downloads\WingmanReloaded-v.16.00\WingmanReloaded\lib\ref\XInput
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-22138b55\xJRS.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\1dee45d6\XKjh.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-3ff6e0ec\XLvs.ahk
+C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-633d1651\xmWu.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-432a25df\xoB8.ahk
+C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-303ef4fc\XokJ.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-1ee15214\XPlB.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\e62eef8\XS8n.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\37300bbe\xSN7.ahk
@@ -1041,8 +1077,10 @@ C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\251c02a7\YT5b.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-e128a0a\YTKg.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\1b29f0b5\yUbY.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\251c02a7\YudC.ahk
+C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-633d1651\YwsM.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-550759a\YXdS.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-432a25df\yXJc.ahk
+C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-633d1651\yZqG.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\e62eef8\z2Xs.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\1dee45d6\z67s.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-432a25df\z8Nc.ahk
@@ -1053,6 +1091,7 @@ C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-3ff6e0ec\ZCF3.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\e62eef8\zD4Q.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\e002de3\Zh5I.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-633d1651\ZHbS.ahk
+C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-303ef4fc\zHng.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\-3ff6e0ec\ZHuj.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\37300bbe\ZlKd.ahk
 C:\Users\Heavym\AppData\Roaming\Antigravity\User\History\37300bbe\ZlZr.ahk

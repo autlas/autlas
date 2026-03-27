@@ -220,6 +220,32 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
         }
     }, [pendingScripts, stopBurst]);
 
+    const handleRestart = useCallback(async (script: Script) => {
+        if (pendingScripts.has(script.path)) return;
+        setPendingScripts(prev => new Set(prev).add(script.path));
+        try {
+            await invoke("restart_script", { path: script.path });
+            let attempts = 0;
+            const burstInterval = setInterval(async () => {
+                attempts++;
+                try {
+                    const data = await getScripts();
+                    setAllScripts(data);
+                    const updated = data.find(s => s.path === script.path);
+                    if (updated && updated.is_running) {
+                        stopBurst(burstInterval, script.path);
+                    }
+                    if (attempts > 60) stopBurst(burstInterval, script.path);
+                } catch (e) {
+                    stopBurst(burstInterval, script.path);
+                }
+            }, 100);
+        } catch (e) {
+            console.error(e);
+            stopBurst(null, script.path);
+        }
+    }, [pendingScripts, stopBurst]);
+
     const stopEditing = useCallback(() => setEditingScript(null), []);
     const startEditing = useCallback((s: Script) => setEditingScript(s.path), []);
 
@@ -514,7 +540,7 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
         popoverRef, folderRefs,
         setShowHidden, setSearchQuery,
         toggleFolder, toggleAll, setFolderExpansionRecursive,
-        handleToggle, startEditing, stopEditing,
+        handleToggle, handleRestart, startEditing, stopEditing,
         addTag, removeTag, handleCustomMouseDown,
     };
 }

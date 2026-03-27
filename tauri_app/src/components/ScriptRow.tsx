@@ -8,7 +8,7 @@ const ScriptRow = memo(function ScriptRow({
     s, isDragging, draggedScriptPath, isEditing, isPending, isContextMenuOpen, removingTagKeys,
     allUniqueTags, popoverRef, visibilityMode,
     onMouseDown, onDoubleClick, onToggle, onStartEditing, onAddTag, onRemoveTag, onCloseEditing,
-    onScriptContextMenu
+    onScriptContextMenu, onShowUI, onRestart
 }: ScriptRowProps) {
     const { t } = useTranslation();
 
@@ -202,6 +202,34 @@ const ScriptRow = memo(function ScriptRow({
 
             {!isDragging && (
                 <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center space-x-2 pointer-events-auto">
+                    {s.is_running && !isPending && s.has_ui && (
+                        <button
+                            onClick={(e) => { e.stopPropagation(); onShowUI(s); }}
+                            onMouseDown={(e) => e.stopPropagation()}
+                            className="w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-400 border border-indigo-500/10 hover:bg-indigo-500/20 transition-all cursor-pointer pointer-events-auto"
+                            title="Interface"
+                        >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                                <line x1="3" y1="9" x2="21" y2="9" />
+                                <line x1="9" y1="21" x2="9" y2="9" />
+                            </svg>
+                        </button>
+                    )}
+                    {s.is_running && !isPending && (
+                        <button
+                            onClick={(e) => { e.stopPropagation(); onRestart(s); }}
+                            onMouseDown={(e) => e.stopPropagation()}
+                            className="w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-lg bg-white/5 text-tertiary border border-white/5 hover:bg-white/10 hover:text-white transition-all cursor-pointer pointer-events-auto"
+                            title="Restart"
+                        >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M23 4v6h-6"></path>
+                                <path d="M1 20v-6h6"></path>
+                                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                            </svg>
+                        </button>
+                    )}
                     <button
                         onClick={(e) => { e.stopPropagation(); onToggle(s); }}
                         onMouseDown={(e) => e.stopPropagation()}
@@ -221,6 +249,7 @@ const ScriptRow = memo(function ScriptRow({
     return prev.s.path === next.s.path &&
         prev.s.is_running === next.s.is_running &&
         prev.s.is_hidden === next.s.is_hidden &&
+        prev.s.has_ui === next.s.has_ui &&
         prev.s.filename === next.s.filename &&
         prev.s.tags.join(',') === next.s.tags.join(',') &&
         prev.isDragging === next.isDragging &&
@@ -230,7 +259,9 @@ const ScriptRow = memo(function ScriptRow({
         prev.isContextMenuOpen === next.isContextMenuOpen &&
         prev.removingTagKeys.join(',') === next.removingTagKeys.join(',') &&
         prev.allUniqueTags.join(',') === next.allUniqueTags.join(',') &&
-        prev.visibilityMode === next.visibilityMode;
+        prev.visibilityMode === next.visibilityMode &&
+        prev.onShowUI === next.onShowUI &&
+        prev.onRestart === next.onRestart;
 });
 
 export default ScriptRow;

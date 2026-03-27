@@ -25,6 +25,8 @@ export interface ScriptTreeProps {
     onLoadingChange?: (loading: boolean) => void;
     onRunningCountChange?: (count: number) => void;
     contextMenu: { x: number, y: number, type: string, data: any } | null;
+    onShowUI: (s: Script) => void;
+    onRestart: (s: Script) => void;
 }
 
 export interface TagPickerProps {
@@ -56,6 +58,8 @@ export interface ScriptRowProps {
     onRemoveTag: (s: Script, tag: string) => void;
     onCloseEditing: () => void;
     onScriptContextMenu: (e: React.MouseEvent, script: Script) => void;
+    onShowUI: (s: Script) => void;
+    onRestart: (s: Script) => void;
 }
 
 export interface HubScriptCardProps {
@@ -76,4 +80,6 @@ export interface HubScriptCardProps {
     onRemoveTag: (s: Script, tag: string) => void;
     onCloseEditing: () => void;
     onScriptContextMenu: (e: React.MouseEvent, s: Script) => void;
+    onShowUI: (s: Script) => void;
+    onRestart: (s: Script) => void;
 }

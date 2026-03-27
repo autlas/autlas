@@ -37,6 +37,8 @@ interface TreeContextValue {
     folderDurations: Record<string, number>;
     showHidden: 'none' | 'all' | 'only';
     contextMenu: { x: number, y: number, type: string, data: any } | null;
+    onShowUI: (s: Script) => void;
+    onRestart: (s: Script) => void;
 }
 const TreeContext = createContext<TreeContextValue>(null as any);
 
@@ -63,7 +65,7 @@ const TreeNodeRenderer = memo(function TreeNodeRenderer({
         onFolderContextMenu, onScriptContextMenu,
         editingScript, pendingScripts, removingTags, allUniqueTags,
         popoverRef, handleCustomMouseDown, handleToggle,
-        startEditing, stopEditing, addTag, removeTag } = ctx;
+        startEditing, stopEditing, addTag, removeTag, onShowUI } = ctx;
 
     const [childVisible, setChildVisible] = useState(isExpanded);
     const [gridExpanded, setGridExpanded] = useState(isExpanded);
@@ -234,6 +236,8 @@ const TreeNodeRenderer = memo(function TreeNodeRenderer({
                                             onRemoveTag={removeTag}
                                             onCloseEditing={stopEditing}
                                             onScriptContextMenu={onScriptContextMenu}
+                                            onShowUI={onShowUI}
+                                            onRestart={ctx.onRestart}
                                         />
                                     );
                                 })}
@@ -260,7 +264,7 @@ const TreeNodeRenderer = memo(function TreeNodeRenderer({
     return true;
 });
 
-export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, onRunningCountChange, viewMode, onViewModeChange, onCustomDragStart, isDragging, draggedScriptPath, animationsEnabled, onScriptContextMenu, onFolderContextMenu, searchQuery, setSearchQuery, contextMenu }: ScriptTreeProps) {
+export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, onRunningCountChange, viewMode, onViewModeChange, onCustomDragStart, isDragging, draggedScriptPath, animationsEnabled, onScriptContextMenu, onFolderContextMenu, searchQuery, setSearchQuery, contextMenu, onShowUI }: ScriptTreeProps) {
     const { t } = useTranslation();
     const renderStartRef = useRef(0);
     if (PERF) {
@@ -275,7 +279,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
         popoverRef, folderRefs,
         setShowHidden,
         toggleFolder, toggleAll, setFolderExpansionRecursive,
-        handleToggle, startEditing, stopEditing,
+        handleToggle, handleRestart, startEditing, stopEditing,
         addTag, removeTag, handleCustomMouseDown, folderDurations
     } = useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, searchQuery, setSearchQuery, onRunningCountChange });
 
@@ -356,7 +360,9 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
         popoverRef, handleCustomMouseDown, handleToggle,
         startEditing, stopEditing, addTag, removeTag, folderDurations,
         showHidden,
-        contextMenu
+        contextMenu,
+        onShowUI,
+        onRestart: handleRestart
     });
 
     const masonryColumns = useMemo(() => {
@@ -513,6 +519,8 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
                                                                     onRemoveTag={removeTag}
                                                                     onCloseEditing={stopEditing}
                                                                     onScriptContextMenu={onScriptContextMenu}
+                                                                    onShowUI={onShowUI}
+                                                                    onRestart={handleRestart}
                                                                 />
                                                             ))}
                                                         </div>
@@ -548,6 +556,8 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
                                                         onRemoveTag={removeTag}
                                                         onCloseEditing={stopEditing}
                                                         onScriptContextMenu={onScriptContextMenu}
+                                                        onShowUI={onShowUI}
+                                                        onRestart={handleRestart}
                                                     />
                                                 ))}
                                             </div>
@@ -597,6 +607,8 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
                                                                         onScriptContextMenu={onScriptContextMenu}
                                                                         visibilityMode={showHidden}
                                                                         isContextMenuOpen={contextMenu?.type === 'script' && contextMenu?.data?.path === s.path}
+                                                                        onShowUI={onShowUI}
+                                                                        onRestart={handleRestart}
                                                                     />
                                                                 );
                                                             })}
@@ -636,6 +648,8 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
                                                             onScriptContextMenu={onScriptContextMenu}
                                                             visibilityMode={showHidden}
                                                             isContextMenuOpen={contextMenu?.type === 'script' && contextMenu?.data?.path === s.path}
+                                                            onShowUI={onShowUI}
+                                                            onRestart={handleRestart}
                                                         />
                                                     );
                                                 })}

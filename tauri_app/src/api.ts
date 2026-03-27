@@ -7,6 +7,7 @@ export interface Script {
     tags: string[];
     is_hidden: boolean;
     is_running: boolean;
+    has_ui?: boolean;
 }
 
 export async function getScripts(): Promise<Script[]> {
