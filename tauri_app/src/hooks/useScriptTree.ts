@@ -5,6 +5,23 @@ import { getScripts, Script, runScript, killScript } from "../api";
 import { invoke } from "@tauri-apps/api/core";
 import { TreeNode } from "../types/script";
 
+const smoothScrollTo = (container: HTMLElement, target: number, duration: number) => {
+    const start = container.scrollTop;
+    const change = target - start;
+    const startTime = performance.now();
+
+    const animate = (currentTime: number) => {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const t = progress * (2 - progress); // easeOutQuad
+        container.scrollTop = start + change * t;
+        if (progress < 1) {
+            requestAnimationFrame(animate);
+        }
+    };
+    requestAnimationFrame(animate);
+};
+
 interface UseScriptTreeOptions {
     filterTag: string;
     onTagsLoaded: (tags: string[]) => void;
@@ -117,7 +134,10 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
                     const rect = header.getBoundingClientRect();
                     const containerRect = container.getBoundingClientRect();
                     if (rect.top < containerRect.top) {
-                        header.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        const target = container.scrollTop + (rect.top - containerRect.top);
+                        if (container instanceof HTMLElement) {
+                            smoothScrollTo(container, target, 150);
+                        }
                     }
                 }
             }
