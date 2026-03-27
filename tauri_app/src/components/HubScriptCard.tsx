@@ -130,7 +130,7 @@ const HubScriptCard = memo(function HubScriptCard({
                                 <button
                                     onClick={(e) => { e.stopPropagation(); onShowUI(s); }}
                                     onMouseDown={(e) => e.stopPropagation()}
-                                    className="flex-1 h-[42px] rounded-2xl flex items-center justify-center bg-white/5 text-tertiary border border-white/5 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-500/30 transition-all cursor-pointer pointer-events-auto"
+                                    className="flex-1 h-[42px] rounded-2xl flex items-center justify-center bg-white/5 text-[#71717a] border border-white/5 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-500/30 transition-all cursor-pointer pointer-events-auto"
                                     title="Interface"
                                 >
                                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -143,7 +143,7 @@ const HubScriptCard = memo(function HubScriptCard({
                             <button
                                 onClick={(e) => { e.stopPropagation(); onToggle(s); }}
                                 onMouseDown={(e) => e.stopPropagation()}
-                                className={`flex-1 h-[42px] rounded-2xl flex items-center justify-center transition-all transform cursor-pointer active:scale-95 pointer-events-auto shadow-xl bg-white/5 text-tertiary border border-white/5 hover:bg-red-500/15 hover:text-red-500 hover:border-red-500/30 active:bg-red-600/25 active:text-red-500`}
+                                className="flex-1 h-[42px] rounded-2xl flex items-center justify-center transition-all transform cursor-pointer active:scale-95 pointer-events-auto shadow-xl bg-white/5 text-[#71717a] border border-white/5 hover:bg-red-500/15 hover:text-red-500 hover:border-red-500/30"
                                 title="Kill Script"
                             >
                                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
@@ -154,7 +154,7 @@ const HubScriptCard = memo(function HubScriptCard({
                             <button
                                 onClick={(e) => { e.stopPropagation(); onRestart(s); }}
                                 onMouseDown={(e) => e.stopPropagation()}
-                                className="flex-1 h-[42px] rounded-2xl flex items-center justify-center bg-white/5 text-tertiary border border-white/5 hover:bg-yellow-500/10 hover:text-yellow-500 hover:border-yellow-500/30 transition-all cursor-pointer pointer-events-auto"
+                                className="flex-1 h-[42px] rounded-2xl flex items-center justify-center bg-white/5 text-[#71717a] border border-white/5 hover:bg-yellow-500/10 hover:text-yellow-500 hover:border-yellow-500/30 transition-all cursor-pointer pointer-events-auto"
                                 title="Restart Script"
                             >
                                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -174,15 +174,20 @@ const HubScriptCard = memo(function HubScriptCard({
                                         pendingType === 'kill' ? 'bg-red-500/10 text-red-500 border border-red-500/30 animate-pulse' :
                                             'bg-green-500/10 text-green-500 border border-green-500/30 animate-pulse'
                                 ) :
-                                    s.is_running ? "bg-white/5 text-tertiary border border-white/5 hover:bg-red-600/15 hover:text-red-500 hover:border-red-500/30 transition-all" :
-                                        "bg-white/5 text-tertiary border border-white/5 hover:bg-green-600/15 hover:text-green-500 hover:border-green-500/30 transition-all text-secondary hover:text-green-500"
+                                    "bg-white/5 text-secondary border border-white/5 hover:bg-green-600/15 hover:text-green-500 hover:border-green-500/30 transition-all"
                                 }
                             `}
                         >
                             {isPending ? (
                                 pendingType === 'restart' ? "RESTARTING..." :
                                     pendingType === 'kill' ? "KILLING..." : "IGNITING..."
-                            ) : (s.is_running ? "Kill" : "Run")}
+                            ) : (
+                                <div className="flex items-center justify-center">
+                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                        <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                                    </svg>
+                                </div>
+                            )}
                         </button>
                     )}
                 </div>
@@ -198,9 +203,9 @@ const HubScriptCard = memo(function HubScriptCard({
         prev.draggedScriptPath === next.draggedScriptPath &&
         prev.editingScript === next.editingScript &&
         prev.pendingScripts === next.pendingScripts &&
+        prev.onRestart === next.onRestart &&
         prev.isContextMenuOpen === next.isContextMenuOpen &&
-        prev.visibilityMode === next.visibilityMode &&
-        prev.onRestart === next.onRestart;
+        prev.visibilityMode === next.visibilityMode;
 });
 
 export default HubScriptCard;

@@ -384,24 +384,52 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
                 <div className="flex-1 flex items-center space-x-1">
                     <div className="flex bg-white/[0.03] p-1 rounded-xl border border-white/5 h-[42px] items-center">
                         {[
-                            { id: "tree", icon: "M3 9h18M3 15h18 M3 6h18M3 18h18 M7 6v12M17 6v12" },
-                            { id: "tiles", icon: "M3 3h7v7H3z M14 3h7v7h-7z M14 14h7v7h-7z M3 14h7v7H3z" },
-                            { id: "list", icon: "M3 6h7M3 12h7M3 18h7M14 6h7M14 12h7M14 18h7" }
-                        ].map((m) => (
-                            <button
-                                key={m.id}
-                                onClick={() => !isDragging && onViewModeChange(m.id as any)}
-                                className={`px-4 h-full rounded-lg transition-all cursor-pointer flex items-center justify-center ${viewMode === m.id
-                                    ? "bg-white/10 text-white shadow-lg shadow-white/5"
-                                    : "text-tertiary hover:text-secondary hover:bg-white/5"
-                                    } ${isDragging ? 'opacity-20 pointer-events-none' : ''}`}
-                                title={t("search.mode", { mode: m.id })}
-                            >
-                                <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d={m.icon} />
-                                </svg>
-                            </button>
-                        ))}
+                            {
+                                id: "tree",
+                                icon: (isCurrent: boolean) => (
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={`transition-opacity duration-200 ${isCurrent ? 'opacity-100' : 'opacity-25'}`}>
+                                        <circle cx="6" cy="6" r="2" />
+                                        <path d="M6 8v12h8M6 13h8" />
+                                        <circle cx="16" cy="13" r="2" />
+                                        <circle cx="16" cy="20" r="2" />
+                                    </svg>
+                                )
+                            },
+                            {
+                                id: "tiles",
+                                icon: (isCurrent: boolean) => (
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={`transition-opacity duration-200 ${isCurrent ? 'opacity-100' : 'opacity-25'}`}>
+                                        <rect x="3" y="3" width="7" height="7" rx="1" ry="1" />
+                                        <rect x="14" y="3" width="7" height="7" rx="1" ry="1" />
+                                        <rect x="14" y="14" width="7" height="7" rx="1" ry="1" />
+                                        <rect x="3" y="14" width="7" height="7" rx="1" ry="1" />
+                                    </svg>
+                                )
+                            },
+                            {
+                                id: "list",
+                                icon: (isCurrent: boolean) => (
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={`transition-opacity duration-200 ${isCurrent ? 'opacity-100' : 'opacity-25'}`}>
+                                        <line x1="3" y1="6" x2="10" y2="6" /><line x1="3" y1="12" x2="10" y2="12" /><line x1="3" y1="18" x2="10" y2="18" />
+                                        <line x1="14" y1="6" x2="21" y2="6" /><line x1="14" y1="12" x2="21" y2="12" /><line x1="14" y1="18" x2="21" y2="18" />
+                                    </svg>
+                                )
+                            }
+                        ].map((m) => {
+                            const isCurrent = viewMode === m.id;
+                            return (
+                                <button
+                                    key={m.id}
+                                    onClick={() => !isDragging && onViewModeChange(m.id as any)}
+                                    className={`px-4 h-full rounded-lg transition-all cursor-pointer flex items-center justify-center 
+                                        ${isCurrent ? "bg-white/10 shadow-lg shadow-white/5" : "hover:bg-white/5"} 
+                                        ${isDragging ? 'opacity-20 pointer-events-none' : ''}`}
+                                    title={t("search.mode", { mode: m.id })}
+                                >
+                                    {m.icon(isCurrent)}
+                                </button>
+                            );
+                        })}
                     </div>
 
                     <div className={`flex items-center overflow-hidden transition-all duration-[150ms] ease-in-out ${viewMode === "tree" ? 'w-[52px] opacity-100' : 'w-0 opacity-0 pointer-events-none'}`}>

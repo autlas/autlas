@@ -206,7 +206,7 @@ const ScriptRow = memo(function ScriptRow({
                         <button
                             onClick={(e) => { e.stopPropagation(); onShowUI(s); }}
                             onMouseDown={(e) => e.stopPropagation()}
-                            className="w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-lg bg-white/5 text-tertiary border border-white/5 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-500/20 transition-all cursor-pointer pointer-events-auto"
+                            className="w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-lg bg-white/5 text-[#71717a] border border-white/5 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-500/20 transition-all cursor-pointer pointer-events-auto"
                             title="Interface"
                         >
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -220,7 +220,7 @@ const ScriptRow = memo(function ScriptRow({
                         <button
                             onClick={(e) => { e.stopPropagation(); onRestart(s); }}
                             onMouseDown={(e) => e.stopPropagation()}
-                            className="w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-lg bg-white/5 text-tertiary border border-white/5 hover:bg-yellow-500/10 hover:text-yellow-500 hover:border-yellow-500/20 transition-all cursor-pointer pointer-events-auto"
+                            className="w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-lg bg-white/5 text-[#71717a] border border-white/5 hover:bg-yellow-500/10 hover:text-yellow-500 hover:border-yellow-500/20 transition-all cursor-pointer pointer-events-auto"
                             title="Restart"
                         >
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -238,7 +238,7 @@ const ScriptRow = memo(function ScriptRow({
                                 pendingType === 'restart' ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20 animate-pulse' :
                                     pendingType === 'kill' ? 'bg-red-500/10 text-red-500 border-red-500/20 animate-pulse' :
                                         'bg-green-500/10 text-green-500 border-green-500/20 animate-pulse'
-                            ) : s.is_running ? 'bg-white/5 text-tertiary border-white/5 hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/20' : 'bg-white/5 text-tertiary border-white/5 hover:bg-green-500/10 hover:text-green-500 hover:border-green-500/20'}
+                            ) : s.is_running ? 'bg-white/5 text-[#71717a] border-white/5 hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/20' : 'bg-white/5 text-[#71717a] border-white/5 hover:bg-green-500/10 hover:text-green-500 hover:border-green-500/20'}
                         `}
                         title={isPending ? (pendingType === 'restart' ? "Restarting..." : "Toggling...") : (s.is_running ? "Kill" : "Run")}
                     >
