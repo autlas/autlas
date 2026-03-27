@@ -8,9 +8,18 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
-dist
-dist-ssr
-*.local
+# Tauri / Rust build
+src-tauri/target/
+src-tauri/gen/
+dist/
+dist-ssr/
+
+# Builds archive
+../builds/
+
+# Local settings
+../manager_data.ini
+../manager_cache.txt
 
 # Editor directories and files
 .vscode/*

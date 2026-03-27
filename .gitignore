@@ -1,0 +1,31 @@
+# Build artifacts
+builds/
+tauri_app/src-tauri/target/
+tauri_app/dist/
+tauri_app/node_modules/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Local settings / Personal data
+manager_data.ini
+manager_cache.txt
+ahk_windows.txt
+
+# Rust logs
+tauri_app/src-tauri/*.log
+
+# Environment
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local

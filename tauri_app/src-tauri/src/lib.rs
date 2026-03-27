@@ -28,20 +28,17 @@ struct ManagerMetadata {
     hidden_folders: Vec<String>,
 }
 
-fn get_ini_path() -> String {
-    let target = "manager_data.ini";
-    if std::path::Path::new(target).exists() {
-        return target.to_string();
+fn get_ini_path() -> std::path::PathBuf {
+    use directories::ProjectDirs;
+    
+    // Attempt to get persistent AppData location
+    if let Some(proj_dirs) = ProjectDirs::from("com", "heavym", "ahkmanager") {
+        let config_dir = proj_dirs.config_dir(); // C:\Users\<Usr>\AppData\Roaming\heavym\ahkmanager\config on Win
+        let _ = std::fs::create_dir_all(config_dir);
+        config_dir.join("manager_data.ini")
+    } else {
+        std::path::PathBuf::from("manager_data.ini")
     }
-    let p1 = format!("../{}", target);
-    if std::path::Path::new(&p1).exists() {
-        return p1;
-    }
-    let p2 = format!("../../{}", target);
-    if std::path::Path::new(&p2).exists() {
-        return p2;
-    }
-    p2
 }
 
 fn load_metadata() -> ManagerMetadata {

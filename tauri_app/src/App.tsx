@@ -42,7 +42,6 @@ function App() {
   const [contextMenu, setContextMenu] = useState<{ x: number, y: number, type: 'script' | 'tag' | 'folder' | 'general', data: any } | null>(null);
   const [activeTabPressed, setActiveTabPressed] = useState<string | null>(null);
   const [runningCount, setRunningCount] = useState(0);
-  const [pendingScripts, setPendingScripts] = useState<Set<string>>(new Set());
 
   const ghostRef = useRef<HTMLDivElement>(null);
 
@@ -393,24 +392,6 @@ function App() {
     }
   }, []);
 
-  const handleRestart = useCallback(async (s: any) => {
-    console.log("[frontend] Requesting Restart for script:", s.path);
-    setPendingScripts(prev => new Set(prev).add(s.path));
-    try {
-      await invoke("restart_script", { path: s.path });
-    } catch (err) {
-      console.error("[frontend] Failed to restart:", err);
-    } finally {
-      setTimeout(() => {
-        setPendingScripts(prev => {
-          const next = new Set(prev);
-          next.delete(s.path);
-          return next;
-        });
-        setRefreshKey(p => p + 1);
-      }, 500);
-    }
-  }, []);
 
   // Web Animations API for the refresh icon (Hardware Accelerated & Smooth Finish)
   useEffect(() => {
@@ -1008,7 +989,6 @@ function App() {
                 setContextMenu({ x: e.clientX, y: e.clientY, type: 'folder', data: folderData });
               }}
               onShowUI={handleShowUI}
-              onRestart={handleRestart}
             />
           )}
         </div>
