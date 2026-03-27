@@ -40,7 +40,7 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
     const [showHidden, setShowHidden] = useState(false);
     const [pendingScripts, setPendingScripts] = useState<Set<string>>(new Set());
     const [removingTags, setRemovingTags] = useState<Set<string>>(new Set());
-    const [slowFolders, setSlowFolders] = useState<Set<string>>(new Set());
+    const [folderDurations, setFolderDurations] = useState<Record<string, number>>({});
 
     const pendingDragRef = useRef<{ script: Script, x: number, y: number } | null>(null);
     const dragTimerRef = useRef<number | null>(null);
@@ -122,28 +122,33 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
     }, []);
 
     const toggleFolder = useCallback((path: string) => {
-        let isSlow = false;
+        let collapseDuration = 150;
+        let scrollDuration = 150;
         const header = folderRefs.current.get(path);
+
         if (header) {
             const container = header.closest('.overflow-y-auto');
             if (container instanceof HTMLElement) {
                 const rect = header.getBoundingClientRect();
                 const containerRect = container.getBoundingClientRect();
                 if (rect.top < containerRect.top) {
-                    isSlow = true;
+                    const distance = containerRect.top - rect.top;
+                    const screens = distance / containerRect.height;
+                    collapseDuration = Math.min(1000, 300 + screens * 300);
+                    scrollDuration = collapseDuration * 0.3;
                 }
             }
         }
 
-        if (isSlow) {
-            setSlowFolders(prev => new Set(prev).add(path));
+        if (collapseDuration > 150) {
+            setFolderDurations(prev => ({ ...prev, [path]: collapseDuration }));
             setTimeout(() => {
-                setSlowFolders(prev => {
-                    const next = new Set(prev);
-                    next.delete(path);
+                setFolderDurations(prev => {
+                    const next = { ...prev };
+                    delete next[path];
                     return next;
                 });
-            }, 600);
+            }, collapseDuration + 100);
         }
 
         setExpandedFolders(prev => {
@@ -151,20 +156,22 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
             return { ...prev, [path]: !isCurrentlyExpanded };
         });
 
-        requestAnimationFrame(() => {
-            const h = folderRefs.current.get(path);
-            if (h) {
-                const container = h.closest('.overflow-y-auto');
-                if (container instanceof HTMLElement) {
-                    const rect = h.getBoundingClientRect();
-                    const containerRect = container.getBoundingClientRect();
-                    if (rect.top < containerRect.top) {
-                        const target = container.scrollTop + (rect.top - containerRect.top);
-                        smoothScrollTo(container, target, isSlow ? 500 : 150);
+        if (collapseDuration > 150) {
+            requestAnimationFrame(() => {
+                const h = folderRefs.current.get(path);
+                if (h) {
+                    const container = h.closest('.overflow-y-auto');
+                    if (container instanceof HTMLElement) {
+                        const rect = h.getBoundingClientRect();
+                        const containerRect = container.getBoundingClientRect();
+                        if (rect.top < containerRect.top) {
+                            const target = container.scrollTop + (rect.top - containerRect.top);
+                            smoothScrollTo(container, target, scrollDuration);
+                        }
                     }
                 }
-            }
-        });
+            });
+        }
     }, []);
 
     const stopBurst = useCallback((interval: any, path: string) => {
@@ -480,7 +487,7 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
 
     return {
         loading, allScripts, filtered, tree, groupedHub,
-        expandedFolders, isAllExpanded, slowFolders,
+        expandedFolders, isAllExpanded, folderDurations,
         editingScript, pendingScripts, removingTags,
         showHidden, allUniqueTags, searchQuery,
         popoverRef, folderRefs,
