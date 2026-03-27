@@ -79,7 +79,7 @@ const HubScriptCard = memo(function HubScriptCard({
                                     onDoubleClick={(e) => e.stopPropagation()}
                                 >
                                     <div className={isRemoving ? 'animate-tag-out' : 'animate-tag-in'}>
-                                        <span className={`text-xs px-5 py-3 bg-white/5 border border-white/5 text-secondary font-bold rounded-xl shadow-lg leading-none flex items-center transition-opacity ${isDragging ? 'opacity-20' : ''}`}>{tag}</span>
+                                        <span className={`h-[42px] text-xs px-5 py-3 bg-white/5 border border-white/5 text-secondary font-bold rounded-xl shadow-lg leading-none flex items-center transition-opacity ${isDragging ? 'opacity-20' : ''}`}>{tag}</span>
                                     </div>
                                     {!isDragging && (
                                         <button
@@ -109,7 +109,7 @@ const HubScriptCard = memo(function HubScriptCard({
                                 }}
                                 onMouseDown={(e) => e.stopPropagation()}
                                 onDoubleClick={(e) => e.stopPropagation()}
-                                className="w-[42px] h-[36px] flex items-center justify-center border border-dashed border-white/10 rounded-xl text-tertiary hover:text-secondary hover:border-white/20 transition-all cursor-pointer pointer-events-auto opacity-0 group-hover:opacity-100"
+                                className="w-[42px] h-[42px] flex items-center justify-center border border-dashed border-white/10 rounded-xl text-tertiary hover:text-secondary hover:border-white/20 transition-all cursor-pointer pointer-events-auto opacity-0 group-hover:opacity-100"
                             >
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                                     <line x1="12" y1="5" x2="12" y2="19" />
