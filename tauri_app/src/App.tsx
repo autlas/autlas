@@ -42,6 +42,9 @@ function App() {
   const [contextMenu, setContextMenu] = useState<{ x: number, y: number, type: 'script' | 'tag' | 'folder' | 'general', data: any } | null>(null);
   const [activeTabPressed, setActiveTabPressed] = useState<string | null>(null);
   const [runningCount, setRunningCount] = useState(0);
+  const [lastScanTimestamp, setLastScanTimestamp] = useState<number>(Date.now());
+  const [currentTime, setCurrentTime] = useState<number>(Date.now());
+  const [isHoveringRefresh, setIsHoveringRefresh] = useState(false);
 
   const ghostRef = useRef<HTMLDivElement>(null);
 
@@ -138,6 +141,46 @@ function App() {
     document.documentElement.style.setProperty("--font-scale", fontScale.toFixed(2));
     localStorage.setItem("font-scale", fontScale.toString());
   }, [fontScale]);
+
+  useEffect(() => {
+    const ticker = setInterval(() => setCurrentTime(Date.now()), 1000);
+    return () => clearInterval(ticker);
+  }, []);
+
+  const handleLoadingChange = useCallback((loading: boolean) => {
+    setIsRefreshing(loading);
+    if (!loading) {
+      setLastScanTimestamp(Date.now());
+    }
+  }, []);
+
+  const formatLastScan = (ts: number, now: number) => {
+    const diff = Math.floor((now - ts) / 1000);
+    const agoText = t("sidebar.ago", "ago");
+    const justNowText = t("sidebar.just_now", "Just now");
+
+    if (diff < 5) return <span className="font-normal opacity-80 lowercase">{justNowText}</span>;
+
+    let timeText = "";
+    if (diff < 3600) {
+      const m = Math.floor(diff / 60);
+      const s = diff % 60;
+      timeText = `${m}m ${s}s`;
+    } else if (diff < 172800) {
+      const h = Math.floor(diff / 3600);
+      timeText = `${h}h`;
+    } else {
+      const d = Math.floor(diff / 86400);
+      timeText = `${d}d`;
+    }
+
+    return (
+      <>
+        <span className="font-bold">{timeText}</span>
+        <span className="font-normal opacity-80 lowercase ml-1.5">{agoText}</span>
+      </>
+    );
+  };
 
   useEffect(() => {
     let animationFrameId: number;
@@ -521,7 +564,7 @@ function App() {
     >
       {/* Sidebar - Balanced padding for Symmetric Gutter */}
       <div
-        className="w-72 flex flex-col py-6 border-r overflow-y-auto custom-scrollbar transition-colors duration-300 relative z-[100]"
+        className="w-72 flex flex-col pt-6 pb-2 border-r overflow-y-auto custom-scrollbar transition-colors duration-300 relative z-[100]"
         style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-color)', paddingLeft: '16px', paddingRight: '0' }}
       >
         <div className="flex flex-col space-y-10 flex-1 pr-[6px]">
@@ -819,6 +862,8 @@ function App() {
               setRefreshKey(p => p + 1);
               setIsRefreshing(true);
             }}
+            onMouseEnter={() => setIsHoveringRefresh(true)}
+            onMouseLeave={() => setIsHoveringRefresh(false)}
             className={`flex-1 h-12 rounded-xl flex items-center justify-center transition-all border group cursor-pointer ${draggedScript ? 'opacity-20 blur-[1px]' : ''
               } text-tertiary border-transparent hover:text-secondary tag-hover active:scale-95`}
             title={t("sidebar.refresh", "Refresh List")}
@@ -834,6 +879,18 @@ function App() {
               </div>
             </div>
           </button>
+        </div>
+        <div className={`pr-[14px] flex justify-end h-4 transition-all duration-300 ${isHoveringRefresh ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-1'}`}>
+          <span className="text-[12px] uppercase tracking-[0.1em] text-quaternary select-none flex items-center whitespace-nowrap">
+            {isRefreshing ? (
+              <span className="font-bold">{t("sidebar.scanning", "Scanning...")}</span>
+            ) : (
+              <>
+                <span className="font-normal opacity-80 lowercase mr-1.5">{t("sidebar.last_scan", "Last Scan")}:</span>
+                {formatLastScan(lastScanTimestamp, currentTime)}
+              </>
+            )}
+          </span>
         </div>
       </div>
 
@@ -969,7 +1026,7 @@ function App() {
               key={`script-tree-${refreshKey}`}
               filterTag={activeTab}
               onTagsLoaded={handleTagsLoaded}
-              onLoadingChange={setIsRefreshing}
+              onLoadingChange={handleLoadingChange}
               onRunningCountChange={setRunningCount}
               viewMode={displayMode}
               onViewModeChange={toggleDisplayMode}
@@ -992,7 +1049,7 @@ function App() {
             />
           )}
         </div>
-      </div >
+      </div>
 
       {/* Ghost Drag Element */}
       <div

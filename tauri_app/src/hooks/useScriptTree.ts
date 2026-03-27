@@ -107,8 +107,9 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
     }, [allScripts, onTagsLoaded, onRunningCountChange]);
 
     useEffect(() => {
+        // fetchData(); // Removed mount-time fetch if user wants NO automatic refresh at start? 
+        // Actually, let's keep the INITIAL fetch so it's not empty, but remove the INTERVAL.
         fetchData();
-        const interval = setInterval(fetchData, 3000);
 
         let unlisten: (() => void) | null = null;
         import('@tauri-apps/api/event').then(({ listen }) => {
@@ -121,7 +122,6 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
         });
 
         return () => {
-            clearInterval(interval);
             if (unlisten) unlisten();
         };
     }, []);

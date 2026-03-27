@@ -12,18 +12,21 @@
     --text-opacity-primary: 1.0;
     --text-opacity-secondary: 0.7;
     --text-opacity-tertiary: 0.45;
+    --text-opacity-quaternary: 0.15;
     --contrast-factor: 1.0;
     --font-scale: 1.0;
 
     --text-primary: rgba(255, 255, 255, calc(1 - (1 - var(--text-opacity-primary)) / var(--contrast-factor)));
     --text-secondary: rgba(255, 255, 255, calc(1 - (1 - var(--text-opacity-secondary)) / var(--contrast-factor)));
     --text-tertiary: rgba(255, 255, 255, calc(1 - (1 - var(--text-opacity-tertiary)) / var(--contrast-factor)));
+    --text-quaternary: rgba(255, 255, 255, calc(1 - (1 - var(--text-opacity-quaternary)) / var(--contrast-factor)));
 }
 
 @theme {
     --color-primary: var(--text-primary);
     --color-secondary: var(--text-secondary);
     --color-tertiary: var(--text-tertiary);
+    --color-quaternary: var(--text-quaternary);
 }
 
 /* Standard Semantic Scaled Font Utilities (Minimum 14px floor) */
