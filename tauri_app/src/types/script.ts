@@ -4,6 +4,7 @@ import React from "react";
 export interface TreeNode {
     name: string;
     fullName: string;
+    is_hidden?: boolean;
     scripts: Script[];
     children: Record<string, TreeNode>;
 }
@@ -18,10 +19,11 @@ export interface ScriptTreeProps {
     draggedScriptPath: string | null;
     animationsEnabled: boolean;
     onScriptContextMenu: (e: React.MouseEvent, script: Script) => void;
-    onFolderContextMenu: (e: React.MouseEvent, folderData: { name: string, fullName: string, onExpandAll: () => void }) => void;
+    onFolderContextMenu: (e: React.MouseEvent, folderData: { name: string, fullName: string, is_hidden: boolean, onExpandAll: () => void }) => void;
     searchQuery: string;
     setSearchQuery: (query: string) => void;
     onLoadingChange?: (loading: boolean) => void;
+    onRunningCountChange?: (count: number) => void;
 }
 
 export interface TagPickerProps {
@@ -43,6 +45,7 @@ export interface ScriptRowProps {
     removingTagKeys: string[];
     allUniqueTags: string[];
     popoverRef: React.RefObject<HTMLDivElement | null>;
+    visibilityMode: 'none' | 'all' | 'only';
     onMouseDown: (e: React.MouseEvent, s: Script) => void;
     onDoubleClick: (s: Script) => void;
     onToggle: (s: Script) => void;
@@ -62,6 +65,7 @@ export interface HubScriptCardProps {
     removingTags: Set<string>;
     allUniqueTags: string[];
     popoverRef: React.RefObject<HTMLDivElement | null>;
+    visibilityMode: 'none' | 'all' | 'only';
     onMouseDown: (e: React.MouseEvent, s: Script) => void;
     onToggle: (s: Script, force?: boolean) => void;
     onStartEditing: (s: Script) => void;

@@ -7,7 +7,7 @@ import { useTranslation } from "react-i18next";
 
 const HubScriptCard = memo(function HubScriptCard({
     s, isDragging, draggedScriptPath, editingScript, pendingScripts, removingTags,
-    allUniqueTags, popoverRef, onMouseDown, onToggle, onStartEditing, onAddTag, onRemoveTag, onCloseEditing,
+    allUniqueTags, popoverRef, visibilityMode, onMouseDown, onToggle, onStartEditing, onAddTag, onRemoveTag, onCloseEditing,
     onScriptContextMenu
 }: HubScriptCardProps) {
     const { t } = useTranslation();
@@ -38,29 +38,27 @@ const HubScriptCard = memo(function HubScriptCard({
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseLeave}
             onDoubleClick={() => !isDragging && onToggle(s, true)}
-            className={`p-6 rounded-[24px] border transition-all duration-300 flex flex-col min-h-[220px] select-none relative ${isEditing ? 'z-[200]' : 'z-10'}
+            className={`p-6 rounded-[24px] border transition-all duration-300 flex flex-col select-none relative ${isEditing ? 'z-[200]' : 'z-10'}
                 ${!draggedScriptPath
-                    ? `group hover:z-[100] ${isEditing ? 'shadow-2xl' : 'hover:shadow-2xl cursor-grab active:cursor-grabbing long-press-shrink'}`
+                    ? `group hover:z-[100] hover:bg-white/[0.06] ${isEditing ? 'shadow-2xl bg-white/[0.05]' : 'bg-white/[0.03] hover:shadow-2xl cursor-grab active:cursor-grabbing long-press-shrink'}`
 
                     : (s.path === draggedScriptPath ? 'opacity-0 pointer-events-none' : 'z-10')}
                 ${s.is_running && !isDragging ? '' : ''}
+                ${s.is_hidden && visibilityMode !== 'only' ? 'opacity-40 grayscale-[0.5]' : ''}
                 ${isLeftPressed && !isEditing ? 'active-left' : ''}
             `}
-            style={{ backgroundColor: 'var(--bg-tertiary)', borderColor: 'var(--border-color)' }}
+            style={{ borderColor: 'var(--border-color)' }}
         >
             <div className="flex justify-between items-start pointer-events-none">
-                <div className="flex flex-col overflow-hidden flex-1">
-                    <span className={`text-xl font-black truncate pr-4 transition-colors tracking-tight stabilize-text ${!isDragging ? (isEditing ? 'text-indigo-400' : 'text-secondary group-hover:text-indigo-400') : 'text-secondary'}`}>
+                <div className="flex flex-col overflow-hidden flex-1 -mt-[8px]">
+                    <span className={`text-xl font-black truncate pr-4 transition-colors tracking-tight stabilize-text ${!isDragging ? (isEditing ? 'text-indigo-400' : 'text-secondary') : 'text-secondary'}`}>
                         <HighlightText text={s.filename.replace(/\.ahk$/i, '')} variant="file" />
-                    </span>
-                    <span className="text-xs text-tertiary font-bold tracking-[0.15em] mt-1 opacity-70">
-                        <HighlightText text={s.parent} variant="path" />
                     </span>
                 </div>
                 <div className={`w-4 h-4 rounded-full transition-all duration-500 ${s.is_running ? 'bg-green-500 animate-status-glow shadow-[0_0_12px_rgba(34,197,94,0.8)]' : 'bg-white/5 border border-white/10'} ${isDragging ? 'opacity-20' : ''}`}></div>
             </div>
 
-            <div className="mt-4 mb-6">
+            <div className="mt-4 mb-4">
                 {isEditing && !isDragging ? (
                     <TagPickerPopover
                         script={s}
@@ -146,7 +144,8 @@ const HubScriptCard = memo(function HubScriptCard({
         prev.isDragging === next.isDragging &&
         prev.draggedScriptPath === next.draggedScriptPath &&
         prev.editingScript === next.editingScript &&
-        prev.pendingScripts === next.pendingScripts;
+        prev.pendingScripts === next.pendingScripts &&
+        prev.visibilityMode === next.visibilityMode;
 });
 
 export default HubScriptCard;

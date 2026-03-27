@@ -41,6 +41,7 @@ function App() {
   });
   const [contextMenu, setContextMenu] = useState<{ x: number, y: number, type: 'script' | 'tag' | 'folder' | 'general', data: any } | null>(null);
   const [activeTabPressed, setActiveTabPressed] = useState<string | null>(null);
+  const [runningCount, setRunningCount] = useState(0);
 
   const ghostRef = useRef<HTMLDivElement>(null);
 
@@ -552,7 +553,11 @@ function App() {
                 <div className="flex items-center space-x-4 pointer-events-none">
                   <span className="text-lg tracking-tight">{tab.label}</span>
                 </div>
-                {activeTab !== "hub" && <div className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(79,70,229,0.5)]"></div>}
+                {activeTab !== "hub" && (
+                  <div className={`flex items-center justify-center rounded-full bg-indigo-500 transition-all duration-500 ${runningCount > 0 ? 'w-5 h-5 shadow-[0_0_12px_rgba(99,102,241,0.6)]' : 'w-2 h-2 animate-pulse shadow-[0_0_8px_rgba(79,70,229,0.5)]'}`}>
+                    {runningCount > 0 && <span className="text-[15px] font-bold leading-none mt-[1px]" style={{ color: 'var(--bg-secondary)' }}>{runningCount}</span>}
+                  </div>
+                )}
               </li>
             ))}
           </ul>
@@ -955,6 +960,7 @@ function App() {
               filterTag={activeTab}
               onTagsLoaded={handleTagsLoaded}
               onLoadingChange={setIsRefreshing}
+              onRunningCountChange={setRunningCount}
               viewMode={displayMode}
               onViewModeChange={toggleDisplayMode}
               onCustomDragStart={startCustomDrag}
@@ -1130,6 +1136,15 @@ function App() {
                 onClick={() => {
                   contextMenu.data.onExpandAll();
                   setContextMenu(null);
+                }}
+              />
+              <ContextMenuItem
+                label={contextMenu.data.is_hidden ? t("context.show_hidden") : t("context.hide_folder")}
+                icon={contextMenu.data.is_hidden ? "👁️" : "👁️‍🗨️"}
+                onClick={async () => {
+                  await invoke("toggle_hide_folder", { path: contextMenu.data.fullName });
+                  setContextMenu(null);
+                  setRefreshKey(p => p + 1);
                 }}
               />
               <div className="h-[1px] bg-white/5 my-1" />

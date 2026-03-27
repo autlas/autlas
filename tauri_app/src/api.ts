@@ -20,3 +20,7 @@ export async function runScript(path: string): Promise<void> {
 export async function killScript(path: string): Promise<void> {
     return await invoke("kill_script", { path });
 }
+
+export async function toggleHideFolder(path: string): Promise<void> {
+    return await invoke("toggle_hide_folder", { path });
+}

@@ -35,6 +35,7 @@ interface TreeContextValue {
     addTag: (script: Script, tag: string) => void;
     removeTag: (script: Script, tag: string) => void;
     folderDurations: Record<string, number>;
+    showHidden: 'none' | 'all' | 'only';
 }
 const TreeContext = createContext<TreeContextValue>(null as any);
 
@@ -100,6 +101,7 @@ const TreeNodeRenderer = memo(function TreeNodeRenderer({
                         e.preventDefault();
                         onFolderContextMenu(e, {
                             ...node,
+                            is_hidden: !!node.is_hidden,
                             onExpandAll: () => setFolderExpansionRecursive(node, true),
                             onCollapseAll: () => setFolderExpansionRecursive(node, false),
                         } as any);
@@ -170,6 +172,7 @@ const TreeNodeRenderer = memo(function TreeNodeRenderer({
                                             removingTagKeys={removingTagKeys}
                                             allUniqueTags={allUniqueTags}
                                             popoverRef={popoverRef}
+                                            visibilityMode={ctx.showHidden}
                                             onMouseDown={handleCustomMouseDown}
                                             onDoubleClick={(s) => handleToggle(s, true)}
                                             onToggle={handleToggle}
@@ -204,7 +207,7 @@ const TreeNodeRenderer = memo(function TreeNodeRenderer({
     return true;
 });
 
-export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, viewMode, onViewModeChange, onCustomDragStart, isDragging, draggedScriptPath, animationsEnabled, onScriptContextMenu, onFolderContextMenu, searchQuery, setSearchQuery }: ScriptTreeProps) {
+export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, onRunningCountChange, viewMode, onViewModeChange, onCustomDragStart, isDragging, draggedScriptPath, animationsEnabled, onScriptContextMenu, onFolderContextMenu, searchQuery, setSearchQuery }: ScriptTreeProps) {
     const { t } = useTranslation();
     const renderStartRef = useRef(0);
     if (PERF) {
@@ -221,7 +224,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, v
         toggleFolder, toggleAll, setFolderExpansionRecursive,
         handleToggle, startEditing, stopEditing,
         addTag, removeTag, handleCustomMouseDown, folderDurations
-    } = useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, searchQuery, setSearchQuery });
+    } = useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, searchQuery, setSearchQuery, onRunningCountChange });
 
     useEffect(() => {
         if (onLoadingChange) {
@@ -298,7 +301,8 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, v
         onFolderContextMenu, onScriptContextMenu,
         editingScript, pendingScripts, removingTags, allUniqueTags,
         popoverRef, handleCustomMouseDown, handleToggle,
-        startEditing, stopEditing, addTag, removeTag, folderDurations
+        startEditing, stopEditing, addTag, removeTag, folderDurations,
+        showHidden
     });
 
     const masonryColumns = useMemo(() => {
@@ -380,15 +384,26 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, v
 
                 <div className="flex items-center space-x-3">
                     <button
-                        onClick={() => !isDragging && setShowHidden(!showHidden)}
-                        className={`h-[42px] w-[42px] flex items-center justify-center rounded-xl transition-all cursor-pointer border ${showHidden ? "bg-white/10 border-white/20 text-white shadow-lg" : "bg-white/[0.03] border-white/5 text-tertiary hover:text-secondary hover:bg-white/[0.05]"} ${isDragging ? 'opacity-20 pointer-events-none' : ''}`}
-                        title={t(showHidden ? "context.hide_hidden" : "context.show_hidden")}
+                        onClick={() => {
+                            if (isDragging) return;
+                            if (showHidden === 'none') setShowHidden('all');
+                            else if (showHidden === 'all') setShowHidden('only');
+                            else setShowHidden('none');
+                        }}
+                        className={`h-[42px] w-[42px] flex items-center justify-center rounded-xl transition-all cursor-pointer border 
+                            ${showHidden === 'none' ? "bg-white/[0.03] border-white/5 text-tertiary hover:text-secondary hover:bg-white/[0.05]" :
+                                showHidden === 'all' ? "bg-white/10 border-white/20 text-white shadow-lg" :
+                                    "bg-white/10 border-white/20 text-indigo-400 shadow-lg"} 
+                            ${isDragging ? 'opacity-20 pointer-events-none' : ''}`}
+                        title={showHidden === 'none' ? t("context.show_hidden") : showHidden === 'all' ? t("context.hide_hidden") : t("context.show_only_hidden", "Show Only Hidden")}
                     >
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                            {showHidden ? (
+                            {showHidden === 'none' ? (
+                                <><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" /><line x1="1" y1="1" x2="23" y2="23" /></>
+                            ) : showHidden === 'all' ? (
                                 <><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></>
                             ) : (
-                                <><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" /><line x1="1" y1="1" x2="23" y2="23" /></>
+                                <><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" fill="currentColor" /></>
                             )}
                         </svg>
                     </button>
@@ -435,6 +450,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, v
                                                                     removingTags={removingTags}
                                                                     allUniqueTags={allUniqueTags}
                                                                     popoverRef={popoverRef}
+                                                                    visibilityMode={showHidden}
                                                                     onMouseDown={handleCustomMouseDown}
                                                                     onToggle={handleToggle}
                                                                     onStartEditing={startEditing}
@@ -468,6 +484,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, v
                                                         removingTags={removingTags}
                                                         allUniqueTags={allUniqueTags}
                                                         popoverRef={popoverRef}
+                                                        visibilityMode={showHidden}
                                                         onMouseDown={handleCustomMouseDown}
                                                         onToggle={handleToggle}
                                                         onStartEditing={startEditing}
@@ -522,6 +539,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, v
                                                                         onRemoveTag={removeTag}
                                                                         onCloseEditing={stopEditing}
                                                                         onScriptContextMenu={onScriptContextMenu}
+                                                                        visibilityMode={showHidden}
                                                                     />
                                                                 );
                                                             })}
@@ -559,6 +577,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, v
                                                             onRemoveTag={removeTag}
                                                             onCloseEditing={stopEditing}
                                                             onScriptContextMenu={onScriptContextMenu}
+                                                            visibilityMode={showHidden}
                                                         />
                                                     );
                                                 })}

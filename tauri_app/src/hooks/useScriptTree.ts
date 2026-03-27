@@ -28,16 +28,17 @@ interface UseScriptTreeOptions {
     onCustomDragStart: (script: { path: string, filename: string, tags: string[], x: number, y: number }) => void;
     searchQuery: string;
     setSearchQuery: (query: string) => void;
+    onRunningCountChange?: (count: number) => void;
 }
 
-export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, searchQuery, setSearchQuery }: UseScriptTreeOptions) {
+export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, searchQuery, setSearchQuery, onRunningCountChange }: UseScriptTreeOptions) {
     const { t } = useTranslation();
     const [allScripts, setAllScripts] = useState<Script[]>([]);
     const [loading, setLoading] = useState(true);
     const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({});
     const [editingScript, setEditingScript] = useState<string | null>(null);
     const popoverRef = useRef<HTMLDivElement>(null);
-    const [showHidden, setShowHidden] = useState(false);
+    const [showHidden, setShowHidden] = useState<'none' | 'all' | 'only'>('none');
     const [pendingScripts, setPendingScripts] = useState<Set<string>>(new Set());
     const [removingTags, setRemovingTags] = useState<Set<string>>(new Set());
     const [folderDurations, setFolderDurations] = useState<Record<string, number>>({});
@@ -99,7 +100,11 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
             filteredScripts.forEach(s => s.tags.forEach(t => tags.add(t)));
             onTagsLoaded(Array.from(tags).sort());
         }
-    }, [allScripts, onTagsLoaded]);
+
+        if (onRunningCountChange) {
+            onRunningCountChange(allScripts.filter(s => s.is_running).length);
+        }
+    }, [allScripts, onTagsLoaded, onRunningCountChange]);
 
     useEffect(() => {
         fetchData();
@@ -335,7 +340,8 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
                 if (!s.tags.includes(filterTag)) return false;
             }
 
-            if (!showHidden && s.is_hidden) return false;
+            if (showHidden === 'none' && s.is_hidden) return false;
+            if (showHidden === 'only' && !s.is_hidden) return false;
 
             const rawQuery = searchQuery.trim().toLowerCase();
             if (rawQuery) {
@@ -394,6 +400,21 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
             for (const key of childKeys) {
                 node.children[key] = compact(node.children[key]);
             }
+
+            // Calculate is_hidden: true if all scripts and all children are is_hidden
+            const scriptsHidden = node.scripts.length > 0 && node.scripts.every(s => s.is_hidden);
+            const childrenHidden = childKeys.length > 0 && Object.values(node.children).every(c => c.is_hidden);
+
+            if (node.scripts.length > 0 && childKeys.length > 0) {
+                node.is_hidden = scriptsHidden && childrenHidden;
+            } else if (node.scripts.length > 0) {
+                node.is_hidden = scriptsHidden;
+            } else if (childKeys.length > 0) {
+                node.is_hidden = childrenHidden;
+            } else {
+                node.is_hidden = false;
+            }
+
             if (node.name !== "Root" && childKeys.length === 1 && node.scripts.length === 0) {
                 const child = node.children[childKeys[0]];
                 return {
@@ -405,7 +426,7 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
         };
 
         return compact(root);
-    }, [filtered]);
+    }, [filtered, showHidden]);
 
     const groupedHub = useMemo(() => {
         if (filterTag !== "hub") return null;
@@ -430,7 +451,7 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
         }));
         if (scriptsWithoutTags.length > 0) {
             result.push({
-                tag: t("hub.general", "General"),
+                tag: t("hub.other", "other"),
                 scripts: scriptsWithoutTags.sort((a, b) => a.filename.localeCompare(b.filename))
             });
         }

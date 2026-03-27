@@ -449,6 +449,76 @@ async fn get_tag_order() -> Vec<String> {
 }
 
 #[tauri::command]
+async fn toggle_hide_folder(path: String) -> Result<(), String> {
+    let ini_path = get_ini_path();
+    let bytes = fs::read(&ini_path).unwrap_or_default();
+    let content = if bytes.len() >= 2 && bytes[0] == 0xFF && bytes[1] == 0xFE {
+        let utf16: Vec<u16> = bytes[2..].chunks_exact(2).map(|a| u16::from_le_bytes([a[0], a[1]])).collect();
+        String::from_utf16_lossy(&utf16)
+    } else {
+        String::from_utf8_lossy(&bytes).to_string()
+    };
+
+    let mut lines: Vec<String> = content.lines().map(|s| s.to_string()).collect();
+    let mut in_hidden = false;
+    let mut found = false;
+    let path_lower = path.to_lowercase();
+
+    // Try to find if it exists and remove it
+    let mut new_lines = Vec::new();
+    for line in lines.iter() {
+        let trimmed = line.trim();
+        let trimmed_lower = trimmed.to_lowercase();
+        
+        if trimmed_lower == "[hiddenfolders]" {
+            in_hidden = true;
+            new_lines.push(line.clone());
+            continue;
+        }
+        if trimmed.starts_with('[') {
+            in_hidden = false;
+            new_lines.push(line.clone());
+            continue;
+        }
+
+        if in_hidden {
+            if let Some(pos) = trimmed.find('=') {
+                if trimmed[..pos].trim().to_lowercase() == path_lower {
+                    found = true;
+                    continue; // Remove it
+                }
+            } else if trimmed_lower == path_lower {
+                found = true;
+                continue; // Remove it (key-only style)
+            }
+        }
+        new_lines.push(line.clone());
+    }
+
+    if !found {
+        // Add it
+        let mut final_lines = Vec::new();
+        let mut added = false;
+        for line in new_lines.iter() {
+            final_lines.push(line.clone());
+            if line.trim().to_lowercase() == "[hiddenfolders]" {
+                final_lines.push(format!("{}=hidden", path));
+                added = true;
+            }
+        }
+        if !added {
+            final_lines.push("[hiddenfolders]".to_string());
+            final_lines.push(format!("{}=hidden", path));
+        }
+        fs::write(&ini_path, final_lines.join("\r\n")).map_err(|e| e.to_string())?;
+    } else {
+        fs::write(&ini_path, new_lines.join("\r\n")).map_err(|e| e.to_string())?;
+    }
+
+    Ok(())
+}
+
+#[tauri::command]
 async fn delete_tag(tag: String) -> Result<(), String> {
     let ini_path = get_ini_path();
     let bytes = fs::read(&ini_path).unwrap_or_default();
@@ -531,7 +601,8 @@ pub fn run() {
             get_tag_order,
             open_in_explorer,
             edit_script,
-            delete_tag
+            delete_tag,
+            toggle_hide_folder
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -57,11 +57,13 @@
         "expand_all": "Expand all nested",
         "collapse_all": "Collapse all",
         "hide_hidden": "Hide 'Hidden'",
-        "show_hidden": "Show 'Hidden'"
+        "show_hidden": "Show 'Hidden'",
+        "hide_folder": "Hide Folder"
     },
     "hub": {
         "empty_channel": "Empty channel...",
-        "empty_tree": "Empty tree section..."
+        "empty_tree": "Empty tree section...",
+        "other": "other"
     },
     "search": {
         "placeholder": "Search scripts...",

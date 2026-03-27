@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 
 const ScriptRow = memo(function ScriptRow({
     s, isDragging, draggedScriptPath, isEditing, isPending, removingTagKeys,
-    allUniqueTags, popoverRef,
+    allUniqueTags, popoverRef, visibilityMode,
     onMouseDown, onDoubleClick, onToggle, onStartEditing, onAddTag, onRemoveTag, onCloseEditing,
     onScriptContextMenu
 }: ScriptRowProps) {
@@ -112,12 +112,12 @@ const ScriptRow = memo(function ScriptRow({
                 long-press-shrink has-[button:active]:scale-100
 
                 ${s.path === draggedScriptPath ? 'opacity-0 pointer-events-none' : ''}
-                ${s.is_hidden ? 'opacity-40 grayscale-[0.5]' : ''}
+                ${s.is_hidden && visibilityMode !== 'only' ? 'opacity-40 grayscale-[0.5]' : ''}
                 ${s.is_running ? 'border-green-500/10' : ''}
                 ${isLeftPressed ? 'active-left' : ''}
             `}
         >
-            <div className="flex items-center space-x-4 overflow-visible flex-1 mr-4 pointer-events-none">
+            <div className="flex items-center space-x-4 overflow-visible flex-1 mr-4">
                 <div className={`w-2 h-2 rounded-full flex-shrink-0 transition-all duration-500
                     ${isPending ? 'bg-yellow-500 animate-pulse shadow-[0_0_10px_rgba(234,179,8,0.6)]' :
                         s.is_running ? 'bg-green-500 animate-status-glow shadow-[0_0_12px_rgba(34,197,94,0.8)]' : 'bg-white/10'}
@@ -128,7 +128,7 @@ const ScriptRow = memo(function ScriptRow({
                 </span>
 
                 {!isDragging && (
-                    <div ref={containerRef} className="flex-1 flex items-center pr-2 pointer-events-none min-w-[130px] w-0">
+                    <div ref={containerRef} className="flex-1 flex items-center pr-2 min-w-[130px] w-0">
                         {/* Hidden measuring container */}
                         <div ref={measureRef} className="absolute opacity-0 pointer-events-none flex whitespace-nowrap -z-50">
                             {displayedTags.map(t => (
@@ -179,7 +179,7 @@ const ScriptRow = memo(function ScriptRow({
                             }}
                             onMouseDown={(e) => e.stopPropagation()}
                             onDoubleClick={(e) => e.stopPropagation()}
-                            className={`w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-lg bg-white/5 text-tertiary border border-white/5 hover:text-indigo-400 hover:bg-white/10 transition-all shadow-lg group/plus cursor-pointer pointer-events-auto ${isEditing ? 'opacity-100' : 'opacity-0 group-hover/opacity-100'}`}
+                            className={`w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-lg bg-white/5 text-tertiary border border-white/5 hover:text-indigo-400 hover:bg-white/10 transition-all shadow-lg group/plus cursor-pointer pointer-events-auto ${isEditing ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
                         >
                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                         </button>
