@@ -24,8 +24,8 @@ function App() {
   const [isRenamingTag, setIsRenamingTag] = useState<string | null>(null);
   const [editTagName, setEditTagName] = useState("");
   const [refreshKey, setRefreshKey] = useState(0);
-  const [fps, setFps] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [debugMomentum, setDebugMomentum] = useState(0);
   const refreshIconRef = useRef<HTMLDivElement>(null);
   const settingsIconRef = useRef<HTMLDivElement>(null);
   const activeAnimRef = useRef<Animation | null>(null);
@@ -46,6 +46,36 @@ function App() {
   const [brightness, setBrightness] = useState(() => {
     return parseInt(localStorage.getItem("app-brightness") || "20");
   });
+
+  // --- Kinetic Tuning States (easter egg - values finalized) ---
+  const [motionDecay, setMotionDecay] = useState(() => parseFloat(localStorage.getItem("motion-decay") || "4.0"));
+  const [motionImpulse, setMotionImpulse] = useState(() => parseFloat(localStorage.getItem("motion-impulse") || "1.5"));
+  const [motionImpulseInitial, setMotionImpulseInitial] = useState(() => parseFloat(localStorage.getItem("motion-impulse-initial") || "2.5"));
+  const [motionSpeedBase, setMotionSpeedBase] = useState(() => parseFloat(localStorage.getItem("motion-speed-base") || "0.14"));
+  const [motionSpeedScale, setMotionSpeedScale] = useState(() => parseFloat(localStorage.getItem("motion-speed-scale") || "0.23"));
+  const [motionScaleFactor, setMotionScaleFactor] = useState(() => parseFloat(localStorage.getItem("motion-scale-factor") || "0.14"));
+  const [motionScaleDeadzone, setMotionScaleDeadzone] = useState(() => parseFloat(localStorage.getItem("motion-scale-deadzone") || "1.5"));
+  const [motionImpulseMax, setMotionImpulseMax] = useState(() => parseFloat(localStorage.getItem("motion-impulse-max") || "100.0"));
+
+  // Refs for high-speed access in requestAnimationFrame (no stale closures)
+  const motionDecayRef = useRef(motionDecay);
+  const motionImpulseRef = useRef(motionImpulse);
+  const motionImpulseInitialRef = useRef(motionImpulseInitial);
+  const motionSpeedBaseRef = useRef(motionSpeedBase);
+  const motionSpeedScaleRef = useRef(motionSpeedScale);
+  const motionScaleFactorRef = useRef(motionScaleFactor);
+  const motionScaleDeadzoneRef = useRef(motionScaleDeadzone);
+  const motionImpulseMaxRef = useRef(motionImpulseMax);
+
+  const momentumRef = useRef(0);
+  const lastMomentumUpdateRef = useRef(performance.now());
+  const settingsRotationRef = useRef(0);
+
+  // Refs for Direct DOM updates (Performance)
+  const debugLabelRef = useRef<HTMLSpanElement>(null);
+  const debugBarRef = useRef<HTMLDivElement>(null);
+  const settleTargetRef = useRef<number | null>(null);
+  const pendingImpulseRef = useRef(0);
 
   const [animationsEnabled, setAnimationsEnabled] = useState(() => {
     return localStorage.getItem("animations-enabled") !== "false";
@@ -185,7 +215,7 @@ function App() {
     };
   }, []);
 
-  // FPS Counter Effect
+  // FPS Counter & Momentum Debug Effect
   useEffect(() => {
     let frameCount = 0;
     let lastTime = performance.now();
@@ -193,14 +223,73 @@ function App() {
 
     const measureFPS = () => {
       const now = performance.now();
+      const dt = Math.min((now - lastTime) / 1000, 0.1); // Cap dt to avoid teleporting
       frameCount++;
-      if (now - lastTime >= 1000) {
-        setFps(Math.round((frameCount * 1000) / (now - lastTime)));
-        frameCount = 0;
-        lastTime = now;
+
+      // Physics Loop: Gradual Impulse Injection (Smoothing)
+      if (pendingImpulseRef.current > 0) {
+        // Inject energy over ~100ms (rate = 1/0.1 = 10x per second)
+        const injectAmount = Math.min(pendingImpulseRef.current, (pendingImpulseRef.current * 10) * dt);
+        momentumRef.current = Math.min(motionImpulseMaxRef.current, momentumRef.current + injectAmount);
+        pendingImpulseRef.current -= injectAmount;
       }
+
+      // Physics Loop: Non-Linear Hybrid Decay (Exponential + Static Friction)
+      const expLoss = momentumRef.current * (motionDecayRef.current * 0.5) * dt;
+      const friction = 0.05 * dt;
+      momentumRef.current = Math.max(0, momentumRef.current - expLoss - friction);
+
+      // HIGH PERFORMANCE: Direct DOM updates instead of React state
+      if (debugLabelRef.current) {
+        debugLabelRef.current.innerText = momentumRef.current.toFixed(1);
+      }
+      if (debugBarRef.current) {
+        const pct = Math.min(100, (momentumRef.current / motionImpulseMaxRef.current) * 100);
+        debugBarRef.current.style.width = `${pct}%`;
+      }
+
+      // We update debugMomentum state for visibility
+      // Stay visible if energy > 0 OR if we are still settling to a target
+      const isVisible = momentumRef.current > 0 || (settleTargetRef.current !== null && Math.abs(settingsRotationRef.current - settleTargetRef.current) > 0.1);
+      if (isVisible && debugMomentum <= 0) setDebugMomentum(1);
+      else if (!isVisible && debugMomentum > 0) setDebugMomentum(0);
+
+      // --- Gear Animation Physics (Pure Physics) ---
+      if (settingsIconRef.current) {
+        const energy = momentumRef.current;
+        // 1. Calculate Velocity (Restored Base Speed influence)
+        // If energy > 0, we use BaseSpeed + Energy-Scaled speed
+        const velocity = energy > 0.001 ? (motionSpeedBaseRef.current + energy * motionSpeedScaleRef.current) : 0;
+
+        if (velocity > 0) {
+          settingsRotationRef.current += velocity * 360 * dt;
+
+          // Scale based on energy with DEADZONE
+          const effectiveEnergy = Math.max(0, energy - motionScaleDeadzoneRef.current);
+          const scale = 1 + (effectiveEnergy * motionScaleFactorRef.current);
+          const brightness = 1 + (energy * 0.05);
+          settingsIconRef.current.style.transform = `rotate(${settingsRotationRef.current}deg) scale(${scale})`;
+          settingsIconRef.current.style.filter = `brightness(${brightness})`;
+        }
+
+        // Update debug visibility
+        if (energy > 0 && debugMomentum <= 0) setDebugMomentum(1);
+        else if (energy <= 0 && debugMomentum > 0) setDebugMomentum(0);
+      }
+
+      // Update actual FPS every 1000ms
+      if (now - lastFPSTime >= 1000) {
+        frameCount = 0;
+        lastFPSTime = now;
+      }
+
+      // CRITICAL: Update lastTime EVERY FRAME for accurate dt
+      lastTime = now;
       animFrame = requestAnimationFrame(measureFPS);
     };
+
+    let lastFPSTime = performance.now();
+
     animFrame = requestAnimationFrame(measureFPS);
     return () => cancelAnimationFrame(animFrame);
   }, []);
@@ -220,19 +309,13 @@ function App() {
     }
     else if (tab === "Настройки") {
       setViewMode("settings");
-      if (settingsIconRef.current) {
-        settingsIconRef.current.animate(
-          [{ transform: 'rotate(0deg)' }, { transform: 'rotate(180deg)' }],
-          {
-            duration: 700,
-            easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
-            fill: 'forwards'
-          }
-        ).onfinish = () => {
-          if (settingsIconRef.current) settingsIconRef.current.style.transform = 'rotate(0deg)';
-        };
-      }
+      // Use initial impulse if we are currently stopped
+      const kick = (momentumRef.current + pendingImpulseRef.current) <= 0.05 ? motionImpulseInitialRef.current : motionImpulseRef.current;
+
+      // Add to pending buffer instead of instant jump
+      pendingImpulseRef.current += kick;
     }
+
     else {
       setViewMode("tree");
       const savedMode = (localStorage.getItem("ahk_tree_display_mode") as any) || "tree";
@@ -680,16 +763,16 @@ function App() {
             style={viewMode === "settings" ? { backgroundColor: 'var(--bg-tag-active)' } : {}}
 
           >
-            <div className="transition-transform duration-500 group-hover:rotate-45">
-              <div ref={settingsIconRef} className="flex items-center justify-center will-change-transform">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
-                  className={viewMode === "settings" ? 'stroke-white' : 'stroke-current'}
-                  strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 15a3 3 0 100-6 3 3 0 000 6z" />
-                  <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" />
-                </svg>
-              </div>
+            {/* <div className="transition-transform duration-500 group-hover:rotate-45"> */}
+            <div ref={settingsIconRef} className="flex items-center justify-center will-change-transform">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                className={viewMode === "settings" ? 'stroke-white' : 'stroke-current'}
+                strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 15a3 3 0 100-6 3 3 0 000 6z" />
+                <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" />
+              </svg>
             </div>
+            {/* </div> */}
           </button>
 
           <button
@@ -713,12 +796,13 @@ function App() {
             </div>
           </button>
         </div>
-      </div>
+      </div >
 
       {/* Main Content */}
-      <div
+      < div
         className="flex-1 px-8 flex flex-col overflow-hidden transition-all duration-300 relative z-10"
-        style={{ background: viewMode === "settings" ? 'var(--bg-primary)' : 'linear-gradient(to bottom right, var(--bg-primary), var(--bg-secondary))' }}
+        style={{ background: viewMode === "settings" ? 'var(--bg-primary)' : 'linear-gradient(to bottom right, var(--bg-primary), var(--bg-secondary))' }
+        }
       >
 
         <div className={`flex-1 ${viewMode === "settings" ? "overflow-y-auto custom-scrollbar" : "overflow-hidden"}`}>
@@ -787,6 +871,12 @@ function App() {
                 </div>
               </section>
 
+              {/* 
+              <section className="space-y-10 bg-white/[0.02] p-10 rounded-[2.5rem] border border-white/5 shadow-2xl relative overflow-hidden group/kinetics">
+                ... (Kinetics Tuning Block)
+              </section>
+              */}
+
               <section className="space-y-8 bg-white/[0.02] p-10 rounded-[2.5rem] border border-white/5 shadow-2xl">
                 <h3 className="text-sm font-bold tracking-widest text-tertiary uppercase">Интерфейс</h3>
                 <div className="flex justify-between items-center px-2">
@@ -850,7 +940,8 @@ function App() {
             />
           )}
         </div>
-      </div>
+      </div >
+
       {/* Ghost Drag Element */}
       <div
         ref={ghostRef}
@@ -882,10 +973,12 @@ function App() {
             <span className="text-xs font-semibold text-white tracking-wide">{draggedScript.filename}</span>
           </>
         )}
-        {draggedTag && (
-          <span className="text-sm font-bold truncate flex-1">{draggedTag}</span>
-        )}
-      </div>
+        {
+          draggedTag && (
+            <span className="text-sm font-bold truncate flex-1">{draggedTag}</span>
+          )
+        }
+      </div >
 
       {/* Context Menu */}
       {
@@ -995,13 +1088,17 @@ function App() {
               </>
             )}
           </div>
-        )
-      }
-      <div className="fixed bottom-2 right-2 text-[10px] font-mono font-black text-white/30 bg-black/40 px-2 py-1 rounded backdrop-blur-md z-[9999] pointer-events-none border border-white/5">FPS: {fps}</div>
+        )}
+      {/* Debug Overlay - Finalized
+        {debugMomentum > 0 && (
+          <div className="flex flex-col items-center space-y-4">
+            ...
+          </div>
+        )}
+      */}
     </div >
   );
 }
-
 
 function ContextMenuItem({ label, icon, onClick, danger = false }: { label: string, icon: string, onClick: () => void, danger?: boolean }) {
   return (
@@ -1019,3 +1116,4 @@ function ContextMenuItem({ label, icon, onClick, danger = false }: { label: stri
 }
 
 export default App;
+
