@@ -18,7 +18,6 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
     const [allScripts, setAllScripts] = useState<Script[]>([]);
     const [loading, setLoading] = useState(true);
     const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({});
-    const [isAllExpanded, setIsAllExpanded] = useState(true);
     const [editingScript, setEditingScript] = useState<string | null>(null);
     const popoverRef = useRef<HTMLDivElement>(null);
     const [showHidden, setShowHidden] = useState(false);
@@ -388,9 +387,23 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
         return result;
     }, [filtered, filterTag]);
 
+    const allFolderPaths = useMemo(() => {
+        const paths: string[] = [];
+        const traverse = (node: TreeNode) => {
+            if (node.name !== "Root") paths.push(node.fullName);
+            Object.values(node.children).forEach(traverse);
+        };
+        traverse(tree);
+        return paths;
+    }, [tree]);
+
+    const isAllExpanded = useMemo(() => {
+        if (allFolderPaths.length === 0) return true;
+        return allFolderPaths.every(path => expandedFolders[path] !== false);
+    }, [allFolderPaths, expandedFolders]);
+
     useEffect(() => {
         if (searchQuery.trim().length > 0) {
-            setIsAllExpanded(true);
             const next: Record<string, boolean> = {};
             const traverse = (node: TreeNode) => {
                 if (node.name !== "Root") next[node.fullName] = true;
@@ -404,14 +417,11 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
     const toggleAll = useCallback(() => {
         const nextState = !isAllExpanded;
         const next: Record<string, boolean> = {};
-        const traverse = (node: TreeNode) => {
-            if (node.name !== "Root") next[node.fullName] = nextState;
-            Object.values(node.children).forEach(traverse);
-        };
-        traverse(tree);
+        allFolderPaths.forEach(path => {
+            next[path] = nextState;
+        });
         setExpandedFolders(next);
-        setIsAllExpanded(nextState);
-    }, [isAllExpanded, tree]);
+    }, [isAllExpanded, allFolderPaths]);
 
     const setFolderExpansionRecursive = useCallback((node: TreeNode, expanded: boolean) => {
         setExpandedFolders(prev => {
