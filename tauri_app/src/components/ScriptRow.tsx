@@ -20,6 +20,7 @@ const ScriptRow = memo(function ScriptRow({
     // Track previous tags to only animate NEWLY ADDED tags (not on initial render)
     const prevTagsRef = useRef<string[]>(s.tags);
     const newTagsSet = new Set(s.tags.filter(t => !prevTagsRef.current.includes(t)));
+    const addBtnRef = useRef<HTMLButtonElement>(null);
 
     // Async measurement — useEffect (not useLayoutEffect) to avoid blocking initial paint
     // useLayoutEffect with 172 instances blocks the JS thread for seconds in production
@@ -168,7 +169,15 @@ const ScriptRow = memo(function ScriptRow({
                         )}
 
                         <button
-                            onClick={(e) => { e.stopPropagation(); onStartEditing(s); }}
+                            ref={addBtnRef}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                if (isEditing) {
+                                    onCloseEditing();
+                                } else {
+                                    onStartEditing(s);
+                                }
+                            }}
                             onMouseDown={(e) => e.stopPropagation()}
                             onDoubleClick={(e) => e.stopPropagation()}
                             className={`w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-lg bg-white/5 text-tertiary border border-white/5 hover:text-indigo-400 hover:bg-white/10 transition-all shadow-lg group/plus cursor-pointer pointer-events-auto ${isEditing ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
@@ -184,6 +193,7 @@ const ScriptRow = memo(function ScriptRow({
                                 onAdd={onAddTag}
                                 onClose={onCloseEditing}
                                 variant="tree"
+                                anchorRef={addBtnRef}
                             />
                         )}
                     </div>

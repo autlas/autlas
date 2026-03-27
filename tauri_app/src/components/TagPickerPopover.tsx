@@ -1,12 +1,25 @@
 import React, { useState, useEffect, useMemo, useRef, memo } from "react";
+import { createPortal } from "react-dom";
 import { TagPickerProps } from "../types/script";
 
-const TagPickerPopover = memo(function TagPickerPopover({ script, allUniqueTags, popoverRef, onAdd, onClose, variant }: TagPickerProps) {
+const TagPickerPopover = memo(function TagPickerPopover({ script, allUniqueTags, popoverRef, onAdd, onClose, variant, anchorRef }: TagPickerProps) {
     const [query, setQuery] = useState("");
     const [selectedIndex, setSelectedIndex] = useState(0);
+    const [pos, setPos] = useState({ top: -9999, right: 0 });
     const listRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => { setSelectedIndex(0); }, [query]);
+
+    // Portal coordinate calculation
+    useEffect(() => {
+        if (variant === "tree" && anchorRef?.current) {
+            const rect = anchorRef.current.getBoundingClientRect();
+            setPos({
+                top: rect.bottom + 8,
+                right: window.innerWidth - rect.right
+            });
+        }
+    }, [variant, anchorRef]);
 
     // Auto-scroll logic
     useEffect(() => {
@@ -46,14 +59,15 @@ const TagPickerPopover = memo(function TagPickerPopover({ script, allUniqueTags,
         } else if (e.key === "Escape") { onClose(); }
     };
 
-    if (variant === "tree") return (
+    if (variant === "tree") return createPortal(
         <div
             ref={popoverRef}
             onClick={(e) => e.stopPropagation()}
             onDoubleClick={(e) => e.stopPropagation()}
             onMouseDown={(e) => e.stopPropagation()}
             onMouseUp={(e) => e.stopPropagation()}
-            className="absolute right-0 top-9 w-64 bg-[#1a1a1c] border border-white/10 rounded-2xl shadow-[0_0_40px_rgba(0,0,0,0.9)] z-[1000] overflow-hidden backdrop-blur-3xl pointer-events-auto !cursor-default !opacity-100 flex flex-col"
+            className="fixed w-64 bg-[#1a1a1c] border border-white/10 rounded-2xl shadow-[0_0_40px_rgba(0,0,0,0.9)] z-[99999] overflow-hidden backdrop-blur-3xl pointer-events-auto !cursor-default !opacity-100 flex flex-col"
+            style={{ top: pos.top !== -9999 ? `${pos.top}px` : '-9999px', right: `${pos.right}px` }}
         >
             <div className="p-3 pb-0">
                 <input
@@ -84,7 +98,8 @@ const TagPickerPopover = memo(function TagPickerPopover({ script, allUniqueTags,
                     </button>
                 )}
             </div>
-        </div>
+        </div>,
+        document.body
     );
 
     // hub variant (compact & scroll fixed)

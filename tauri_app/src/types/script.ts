@@ -31,6 +31,7 @@ export interface TagPickerProps {
     onAdd: (script: Script, tag: string) => void;
     onClose: () => void;
     variant: "tree" | "hub";
+    anchorRef?: React.RefObject<HTMLButtonElement | null>;
 }
 
 export interface ScriptRowProps {

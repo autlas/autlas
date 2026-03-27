@@ -98,7 +98,14 @@ const HubScriptCard = memo(function HubScriptCard({
                         })}
                         {!isDragging && (
                             <button
-                                onClick={(e) => { e.stopPropagation(); onStartEditing(s); }}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (isEditing) {
+                                        onCloseEditing();
+                                    } else {
+                                        onStartEditing(s);
+                                    }
+                                }}
                                 onMouseDown={(e) => e.stopPropagation()}
                                 onDoubleClick={(e) => e.stopPropagation()}
                                 className="w-[42px] h-[36px] flex items-center justify-center border border-dashed border-white/10 rounded-xl text-tertiary hover:text-secondary hover:border-white/20 transition-all cursor-pointer pointer-events-auto opacity-0 group-hover:opacity-100"
