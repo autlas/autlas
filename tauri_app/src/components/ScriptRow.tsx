@@ -22,8 +22,7 @@ const ScriptRow = memo(function ScriptRow({
     const newTagsSet = new Set(s.tags.filter(t => !prevTagsRef.current.includes(t)));
     const addBtnRef = useRef<HTMLButtonElement>(null);
 
-    // Async measurement — useEffect (not useLayoutEffect) to avoid blocking initial paint
-    // useLayoutEffect with 172 instances blocks the JS thread for seconds in production
+    // Async measurement
     useEffect(() => {
         prevTagsRef.current = s.tags;
         if (measureRef.current) {
@@ -32,13 +31,17 @@ const ScriptRow = memo(function ScriptRow({
         }
     }, [s.tags]);
 
-    // Update visible tags based on container width
+    // Force visibleCount to sync safely without tearing logic
     useEffect(() => {
         if (!containerRef.current) return;
 
-        const update = (width?: number) => {
+        const update = () => {
             if (!containerRef.current) return;
-            const containerWidth = width !== undefined ? width : containerRef.current.offsetWidth;
+            const containerWidth = containerRef.current.offsetWidth;
+
+            // Wait for flexbox to inflate row correctly
+            if (containerWidth < 30) return;
+
             const ADD_BTN_WIDTH = 36;
             const COUNTER_WIDTH = 42;
             const available = containerWidth - ADD_BTN_WIDTH;
@@ -49,40 +52,39 @@ const ScriptRow = memo(function ScriptRow({
             }
 
             let totalWidth = 0;
-            let count = tagWidths.length;
+            let count = 0;
 
             for (let i = 0; i < tagWidths.length; i++) {
-                const nextWidth = totalWidth + tagWidths[i];
+                // If it's the absolute last tag, we don't need room for a counter!
+                const isLast = (i === tagWidths.length - 1);
+                const reqSpace = totalWidth + tagWidths[i] + (isLast ? 0 : COUNTER_WIDTH);
 
-                if (nextWidth > available) {
-                    // We need a counter. How many fit with the counter?
-                    let fitWithCounter = 0;
-                    let widthWithCounter = 0;
-                    for (let j = 0; j < i; j++) {
-                        if (widthWithCounter + tagWidths[j] + COUNTER_WIDTH <= available) {
-                            widthWithCounter += tagWidths[j];
-                            fitWithCounter++;
-                        } else {
-                            break;
-                        }
-                    }
-                    count = fitWithCounter;
+                if (reqSpace > available) {
                     break;
                 }
-                totalWidth = nextWidth;
+                totalWidth += tagWidths[i];
+                count++;
             }
+
+            // Always gracefully show at least 1 tag if we have ANY space, CSS flex will compress text
+            if (count === 0 && tagWidths.length > 0) {
+                count = 1;
+            }
+
+            console.log(`[ScriptRow ${s.filename}] tagsLength=${s.tags.length}, finalCount=${count}, containerWidth=${containerWidth}, available=${available}, tagWidths=[${tagWidths.join(',')}]`);
+
             setVisibleCount(count);
         };
 
-        const observer = new ResizeObserver((entries) => {
-            for (const entry of entries) {
-                update(entry.contentRect.width);
-            }
+        const observer = new ResizeObserver(() => {
+            requestAnimationFrame(update);
         });
+
         observer.observe(containerRef.current);
-        update();
+        requestAnimationFrame(update);
+
         return () => observer.disconnect();
-    }, [s.tags, tagWidths]);
+    }, [s.tags, tagWidths, isDragging]);
 
     const handleMouseDown = (e: React.MouseEvent) => {
         if (e.button === 2) {
@@ -121,13 +123,13 @@ const ScriptRow = memo(function ScriptRow({
                     ${isPending ? 'bg-yellow-500 animate-pulse shadow-[0_0_10px_rgba(234,179,8,0.6)]' :
                         s.is_running ? 'bg-green-500 animate-status-glow shadow-[0_0_12px_rgba(34,197,94,0.8)]' : 'bg-white/10'}
                 `}></div>
-                <span className={`text-base font-medium tracking-tight truncate transition-colors stabilize-text ${!isDragging ? (isEditing ? 'text-indigo-400' : 'text-secondary/90 group-hover:text-white') : 'text-secondary/50'
+                <span className={`text-base font-medium tracking-tight truncate min-w-0 transition-colors stabilize-text ${!isDragging ? (isEditing ? 'text-indigo-400' : 'text-secondary/90 group-hover:text-white') : 'text-secondary/50'
                     }`}>
                     <HighlightText text={s.filename.replace(/\.ahk$/i, '')} variant="file" />
                 </span>
 
                 {!isDragging && (
-                    <div ref={containerRef} className="flex-1 flex items-center pr-2 pointer-events-none min-w-0 w-0">
+                    <div ref={containerRef} className="flex-1 flex items-center pr-2 pointer-events-none min-w-[130px] w-0">
                         {/* Hidden measuring container */}
                         <div ref={measureRef} className="absolute opacity-0 pointer-events-none flex whitespace-nowrap -z-50">
                             {s.tags.map(t => (

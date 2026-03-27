@@ -347,6 +347,9 @@ function App() {
   const handleCustomDrop = async (path: string, tag: string) => {
     setDragOverTag(null);
     if (path && tag) {
+      // Optimistic UI update for immediate visual feedback in the ScriptTree
+      window.dispatchEvent(new CustomEvent('ahk-tag-added', { detail: { path, tag } }));
+
       try {
         await invoke("add_script_tag", { path, tag });
       } catch (err) {

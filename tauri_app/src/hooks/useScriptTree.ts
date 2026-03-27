@@ -75,7 +75,23 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
     useEffect(() => {
         fetchData();
         const interval = setInterval(fetchData, 3000);
-        return () => clearInterval(interval);
+
+        // Listen for global optimistic tag additions from drag & drop
+        const handleTagAdded = (e: CustomEvent) => {
+            const { path, tag } = e.detail;
+            setAllScripts(prev => prev.map(s => {
+                if (s.path === path && !s.tags.includes(tag)) {
+                    return { ...s, tags: [...s.tags, tag] };
+                }
+                return s;
+            }));
+        };
+        window.addEventListener('ahk-tag-added', handleTagAdded as EventListener);
+
+        return () => {
+            clearInterval(interval);
+            window.removeEventListener('ahk-tag-added', handleTagAdded as EventListener);
+        };
     }, []);
 
 
