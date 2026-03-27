@@ -149,7 +149,8 @@ function App() {
       if (ghostRef.current && isDragging) {
         const type = ghostRef.current.getAttribute("data-drag-type");
         if (type === "tag") {
-          ghostRef.current.style.transform = `translate3d(${tagDragOffsetXRef.current}px, ${latestY - tagDragOffsetYRef.current}px, 0) translate(-50%, 0) scale(1)`;
+          // Subtle increase: 2px height, 12px width. Y Offset -1px.
+          ghostRef.current.style.transform = `translate3d(${tagDragOffsetXRef.current}px, ${latestY - tagDragOffsetYRef.current - 1}px, 0) translate(-50%, 0) scale(1)`;
         } else {
           ghostRef.current.style.transform = `translate3d(${latestX}px, ${latestY}px, 0) translate(-50%, -50%) scale(1.05)`;
         }
@@ -627,7 +628,7 @@ function App() {
                           setDraggedTag(tagToDrag);
                           if (ghostRef.current) {
                             ghostRef.current.setAttribute("data-dragging", "true");
-                            ghostRef.current.style.transform = `translate3d(${tagDragOffsetXRef.current}px, ${startY - tagDragOffsetYRef.current}px, 0) translate(-50%, 0) scale(1)`;
+                            ghostRef.current.style.transform = `translate3d(${tagDragOffsetXRef.current}px, ${startY - tagDragOffsetYRef.current - 1}px, 0) translate(-50%, 0) scale(1)`;
                           }
                         }
                       }, 300);
@@ -643,7 +644,7 @@ function App() {
                           setDraggedTag(pendingTagDragRef.current.tag);
                           if (ghostRef.current) {
                             ghostRef.current.setAttribute("data-dragging", "true");
-                            ghostRef.current.style.transform = `translate3d(${tagDragOffsetXRef.current}px, ${moveEv.clientY - tagDragOffsetYRef.current}px, 0) translate(-50%, 0) scale(1)`;
+                            ghostRef.current.style.transform = `translate3d(${tagDragOffsetXRef.current}px, ${moveEv.clientY - tagDragOffsetYRef.current - 1}px, 0) translate(-50%, 0) scale(1)`;
                           }
                           cleanup();
                         }
@@ -980,11 +981,11 @@ function App() {
         ref={ghostRef}
         data-dragging="false"
         data-drag-type={draggedTag ? "tag" : (draggedScript ? "script" : "none")}
-        className={`drag-ghost-container fixed z-[99999] flex items-center ${draggedScript || draggedTag ? 'opacity-100' : 'opacity-0 hidden'}
+        className={`drag-ghost-container fixed z-[99999] flex items-center justify-between ${draggedScript || draggedTag ? 'opacity-100' : 'opacity-0 hidden'}
           ${draggedTag
             ? (draggedTag === activeTab
               ? 'w-[240px] px-6 h-11 rounded-2xl border-b-2 border-indigo-500 shadow-xl text-indigo-400 font-bold'
-              : 'w-[240px] px-6 h-11 rounded-2xl border-transparent shadow-2xl text-secondary font-bold'
+              : 'w-[240px] px-6 h-11 rounded-2xl border-b-2 border-transparent shadow-2xl text-secondary font-bold'
             )
             : (draggedScript ? 'bg-white/10 border border-white/20 shadow-2xl backdrop-blur-xl rounded-2xl px-6 py-3 text-white font-bold whitespace-nowrap space-x-3' : '')
           }
@@ -992,8 +993,10 @@ function App() {
         style={{
           left: 0,
           top: 0,
-          width: draggedTag ? `${dragGhostSize.w}px` : 'auto',
-          height: draggedTag ? `${dragGhostSize.h}px` : 'auto',
+          width: draggedTag ? `${dragGhostSize.w + 12}px` : 'auto',
+          height: draggedTag ? `${dragGhostSize.h + 2}px` : 'auto',
+          paddingLeft: draggedTag ? '30px' : undefined,
+          paddingRight: draggedTag ? '30px' : undefined,
           willChange: 'transform, opacity',
           backgroundColor: draggedTag ? (draggedTag === activeTab ? 'var(--bg-tag-active-hover)' : 'var(--bg-tag-drag)') : 'transparent',
           viewTransitionName: 'drag-ghost'
