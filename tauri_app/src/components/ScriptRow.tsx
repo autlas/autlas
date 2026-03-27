@@ -5,7 +5,7 @@ import { HighlightText } from "./HighlightText";
 import { useTranslation } from "react-i18next";
 
 const ScriptRow = memo(function ScriptRow({
-    s, isDragging, draggedScriptPath, isEditing, isPending, removingTagKeys,
+    s, isDragging, draggedScriptPath, isEditing, isPending, isContextMenuOpen, removingTagKeys,
     allUniqueTags, popoverRef, visibilityMode,
     onMouseDown, onDoubleClick, onToggle, onStartEditing, onAddTag, onRemoveTag, onCloseEditing,
     onScriptContextMenu
@@ -115,6 +115,7 @@ const ScriptRow = memo(function ScriptRow({
                 ${s.is_hidden && visibilityMode !== 'only' ? 'opacity-40 grayscale-[0.5]' : ''}
                 ${s.is_running ? 'border-green-500/10' : ''}
                 ${isLeftPressed ? 'active-left' : ''}
+                ${isContextMenuOpen ? 'bg-white/5 shadow-xl' : ''}
             `}
         >
             <div className="flex items-center space-x-4 overflow-visible flex-1 mr-4">
@@ -122,7 +123,7 @@ const ScriptRow = memo(function ScriptRow({
                     ${isPending ? 'bg-yellow-500 animate-pulse shadow-[0_0_10px_rgba(234,179,8,0.6)]' :
                         s.is_running ? 'bg-green-500 animate-status-glow shadow-[0_0_12px_rgba(34,197,94,0.8)]' : 'bg-white/10'}
                 `}></div>
-                <span className={`text-base font-medium tracking-tight truncate min-w-0 transition-colors stabilize-text ${!isDragging ? (isEditing ? 'text-indigo-400' : 'text-secondary/90 group-hover:text-white') : 'text-secondary/50'
+                <span className={`text-base font-medium tracking-tight truncate min-w-0 transition-colors stabilize-text ${!isDragging ? (isEditing || isContextMenuOpen ? 'text-indigo-400' : 'text-secondary/90 group-hover:text-white') : 'text-secondary/50'
                     }`}>
                     <HighlightText text={s.filename.replace(/\.ahk$/i, '')} variant="file" />
                 </span>
@@ -226,8 +227,10 @@ const ScriptRow = memo(function ScriptRow({
         prev.draggedScriptPath === next.draggedScriptPath &&
         prev.isEditing === next.isEditing &&
         prev.isPending === next.isPending &&
+        prev.isContextMenuOpen === next.isContextMenuOpen &&
         prev.removingTagKeys.join(',') === next.removingTagKeys.join(',') &&
-        prev.allUniqueTags.join(',') === next.allUniqueTags.join(',');
+        prev.allUniqueTags.join(',') === next.allUniqueTags.join(',') &&
+        prev.visibilityMode === next.visibilityMode;
 });
 
 export default ScriptRow;

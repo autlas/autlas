@@ -24,6 +24,7 @@ export interface ScriptTreeProps {
     setSearchQuery: (query: string) => void;
     onLoadingChange?: (loading: boolean) => void;
     onRunningCountChange?: (count: number) => void;
+    contextMenu: { x: number, y: number, type: string, data: any } | null;
 }
 
 export interface TagPickerProps {
@@ -42,6 +43,7 @@ export interface ScriptRowProps {
     draggedScriptPath: string | null;
     isEditing: boolean;
     isPending: boolean;
+    isContextMenuOpen: boolean;
     removingTagKeys: string[];
     allUniqueTags: string[];
     popoverRef: React.RefObject<HTMLDivElement | null>;
@@ -61,6 +63,7 @@ export interface HubScriptCardProps {
     isDragging: boolean;
     draggedScriptPath: string | null;
     editingScript: string | null;
+    isContextMenuOpen: boolean;
     pendingScripts: Set<string>;
     removingTags: Set<string>;
     allUniqueTags: string[];

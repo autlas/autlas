@@ -969,6 +969,7 @@ function App() {
               animationsEnabled={animationsEnabled}
               searchQuery={searchQuery}
               setSearchQuery={setSearchQuery}
+              contextMenu={contextMenu}
               onScriptContextMenu={(e, s) => {
                 e.preventDefault();
                 setContextMenu({ x: e.clientX, y: e.clientY, type: 'script', data: s });

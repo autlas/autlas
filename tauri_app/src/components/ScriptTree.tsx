@@ -36,6 +36,7 @@ interface TreeContextValue {
     removeTag: (script: Script, tag: string) => void;
     folderDurations: Record<string, number>;
     showHidden: 'none' | 'all' | 'only';
+    contextMenu: { x: number, y: number, type: string, data: any } | null;
 }
 const TreeContext = createContext<TreeContextValue>(null as any);
 
@@ -108,6 +109,7 @@ const TreeNodeRenderer = memo(function TreeNodeRenderer({
                     }}
                     className={`flex items-center space-x-2 h-[38px] pl-[4px] rounded-lg z-10 relative transition-all duration-300 mb-0.5 border border-transparent hover:z-[50]
                         ${!draggedScriptPath ? 'bg-transparent hover:bg-white/[0.05] cursor-pointer group' : 'bg-transparent text-tertiary cursor-default pointer-events-none'}
+                        ${ctx.contextMenu?.type === 'folder' && ctx.contextMenu?.data?.fullName === node.fullName ? 'bg-white/5' : ''}
                     `}
                 >
                     <div className={`w-4 h-4 flex items-center justify-center transition-transform duration-300 ${isExpanded ? 'rotate-90' : ''}`}>
@@ -123,7 +125,8 @@ const TreeNodeRenderer = memo(function TreeNodeRenderer({
                         {node.name.split('|').map((part, i) => (
                             <React.Fragment key={part + i}>
                                 {i > 0 && <div className="w-[5px] h-[5px] rounded-full bg-white/10 mx-3 flex-shrink-0" />}
-                                <span className={`text-base font-medium tracking-tight transition-colors truncate stabilize-text ${!isDragging ? 'text-secondary group-hover:text-primary' : 'text-tertiary'} `}>
+                                <span className={`text-base font-medium tracking-tight transition-colors truncate stabilize-text 
+                                    ${!isDragging ? (ctx.contextMenu?.type === 'folder' && ctx.contextMenu?.data?.fullName === node.fullName ? 'text-indigo-400' : 'text-secondary group-hover:text-primary') : 'text-tertiary'} `}>
                                     <HighlightText text={part} variant="path" />
                                 </span>
                             </React.Fragment>
@@ -173,6 +176,7 @@ const TreeNodeRenderer = memo(function TreeNodeRenderer({
                                             allUniqueTags={allUniqueTags}
                                             popoverRef={popoverRef}
                                             visibilityMode={ctx.showHidden}
+                                            isContextMenuOpen={ctx.contextMenu?.type === 'script' && ctx.contextMenu?.data?.path === s.path}
                                             onMouseDown={handleCustomMouseDown}
                                             onDoubleClick={(s) => handleToggle(s, true)}
                                             onToggle={handleToggle}
@@ -207,7 +211,7 @@ const TreeNodeRenderer = memo(function TreeNodeRenderer({
     return true;
 });
 
-export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, onRunningCountChange, viewMode, onViewModeChange, onCustomDragStart, isDragging, draggedScriptPath, animationsEnabled, onScriptContextMenu, onFolderContextMenu, searchQuery, setSearchQuery }: ScriptTreeProps) {
+export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, onRunningCountChange, viewMode, onViewModeChange, onCustomDragStart, isDragging, draggedScriptPath, animationsEnabled, onScriptContextMenu, onFolderContextMenu, searchQuery, setSearchQuery, contextMenu }: ScriptTreeProps) {
     const { t } = useTranslation();
     const renderStartRef = useRef(0);
     if (PERF) {
@@ -302,7 +306,8 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
         editingScript, pendingScripts, removingTags, allUniqueTags,
         popoverRef, handleCustomMouseDown, handleToggle,
         startEditing, stopEditing, addTag, removeTag, folderDurations,
-        showHidden
+        showHidden,
+        contextMenu
     });
 
     const masonryColumns = useMemo(() => {
@@ -451,6 +456,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
                                                                     allUniqueTags={allUniqueTags}
                                                                     popoverRef={popoverRef}
                                                                     visibilityMode={showHidden}
+                                                                    isContextMenuOpen={contextMenu?.type === 'script' && contextMenu?.data?.path === s.path}
                                                                     onMouseDown={handleCustomMouseDown}
                                                                     onToggle={handleToggle}
                                                                     onStartEditing={startEditing}
@@ -540,6 +546,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
                                                                         onCloseEditing={stopEditing}
                                                                         onScriptContextMenu={onScriptContextMenu}
                                                                         visibilityMode={showHidden}
+                                                                        isContextMenuOpen={contextMenu?.type === 'script' && contextMenu?.data?.path === s.path}
                                                                     />
                                                                 );
                                                             })}
@@ -578,6 +585,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
                                                             onCloseEditing={stopEditing}
                                                             onScriptContextMenu={onScriptContextMenu}
                                                             visibilityMode={showHidden}
+                                                            isContextMenuOpen={contextMenu?.type === 'script' && contextMenu?.data?.path === s.path}
                                                         />
                                                     );
                                                 })}
