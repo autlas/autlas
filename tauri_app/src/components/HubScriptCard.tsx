@@ -11,12 +11,14 @@ const HubScriptCard = memo(function HubScriptCard({
     onScriptContextMenu, onShowUI, onRestart
 }: HubScriptCardProps) {
     const { t } = useTranslation();
+    const cardRef = React.useRef<HTMLDivElement>(null);
 
     const [isLeftPressed, setIsLeftPressed] = useState(false);
 
     const handleMouseDown = (e: React.MouseEvent) => {
         if (e.button === 2) {
             e.preventDefault();
+            e.stopPropagation();
             onScriptContextMenu(e, s);
             return;
         }
@@ -35,6 +37,7 @@ const HubScriptCard = memo(function HubScriptCard({
 
     return (
         <div
+            ref={cardRef}
             onMouseDown={handleMouseDown}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseLeave}
@@ -61,7 +64,7 @@ const HubScriptCard = memo(function HubScriptCard({
             </div>
 
             <div className="mt-4 mb-4">
-                {isEditing && !isDragging ? (
+                {isEditing && !isDragging && (
                     <TagPickerPopover
                         script={s}
                         allUniqueTags={allUniqueTags}
@@ -69,57 +72,57 @@ const HubScriptCard = memo(function HubScriptCard({
                         onAdd={(script, tag) => onAddTag(script, tag)}
                         onClose={onCloseEditing}
                         variant="hub"
+                        anchorRef={cardRef}
                     />
-                ) : (
-                    <div className="flex flex-wrap gap-2 pointer-events-none">
-                        {s.tags.filter(tag => !["hub", "fav", "favourites"].includes(tag.toLowerCase())).map(tag => {
-                            const isRemoving = removingTags.has(`${s.path}-${tag}`);
-                            return (
-                                <div key={tag}
-                                    className="relative group/tag inline-flex items-center pointer-events-auto"
-                                    onDoubleClick={(e) => e.stopPropagation()}
-                                >
-                                    <div className={isRemoving ? 'animate-tag-out' : 'animate-tag-in'}>
-                                        <span className={`h-[42px] text-xs px-5 py-3 bg-white/5 border border-white/5 text-secondary font-bold rounded-xl shadow-lg leading-none flex items-center transition-opacity ${isDragging ? 'opacity-20' : ''}`}>{tag}</span>
-                                    </div>
-                                    {!isDragging && (
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); onRemoveTag(s, tag); }}
-                                            onMouseDown={(e) => e.stopPropagation()}
-                                            onDoubleClick={(e) => e.stopPropagation()}
-                                            className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover/tag:opacity-100 transition-all shadow-xl hover:scale-125 active:scale-90 cursor-pointer z-50 border-none"
-                                            title={t("context.delete_tag_simple", { tag: tag })}
-                                        >
-                                            <svg width="10" height="2" viewBox="0 0 10 2" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                                                <path d="M1 1h8" />
-                                            </svg>
-                                        </button>
-                                    )}
-                                </div>
-                            );
-                        })}
-                        {!isDragging && (
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (isEditing) {
-                                        onCloseEditing();
-                                    } else {
-                                        onStartEditing(s);
-                                    }
-                                }}
-                                onMouseDown={(e) => e.stopPropagation()}
-                                onDoubleClick={(e) => e.stopPropagation()}
-                                className="w-[42px] h-[42px] flex items-center justify-center border border-dashed border-white/10 rounded-xl text-tertiary hover:text-secondary hover:border-white/20 transition-all cursor-pointer pointer-events-auto opacity-0 group-hover:opacity-100"
-                            >
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                                    <line x1="12" y1="5" x2="12" y2="19" />
-                                    <line x1="5" y1="12" x2="19" y2="12" />
-                                </svg>
-                            </button>
-                        )}
-                    </div>
                 )}
+                <div className="flex flex-wrap gap-2 pointer-events-none">
+                    {s.tags.filter(tag => !["hub", "fav", "favourites"].includes(tag.toLowerCase())).map(tag => {
+                        const isRemoving = removingTags.has(`${s.path}-${tag}`);
+                        return (
+                            <div key={tag}
+                                className="relative group/tag inline-flex items-center pointer-events-auto"
+                                onDoubleClick={(e) => e.stopPropagation()}
+                            >
+                                <div className={isRemoving ? 'animate-tag-out' : 'animate-tag-in'}>
+                                    <span className={`h-[42px] text-xs px-5 bg-white/5 border border-white/5 text-secondary font-bold rounded-xl shadow-lg leading-none flex items-center transition-opacity ${isDragging ? 'opacity-20' : ''}`}>{tag}</span>
+                                </div>
+                                {!isDragging && (
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); onRemoveTag(s, tag); }}
+                                        onMouseDown={(e) => e.stopPropagation()}
+                                        onDoubleClick={(e) => e.stopPropagation()}
+                                        className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover/tag:opacity-100 transition-all shadow-xl hover:scale-125 active:scale-90 cursor-pointer z-50 border-none"
+                                        title={t("context.delete_tag_simple", { tag: tag })}
+                                    >
+                                        <svg width="10" height="2" viewBox="0 0 10 2" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                                            <path d="M1 1h8" />
+                                        </svg>
+                                    </button>
+                                )}
+                            </div>
+                        );
+                    })}
+                    {!isDragging && (
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                if (isEditing) {
+                                    onCloseEditing();
+                                } else {
+                                    onStartEditing(s);
+                                }
+                            }}
+                            onMouseDown={(e) => e.stopPropagation()}
+                            onDoubleClick={(e) => e.stopPropagation()}
+                            className="w-[42px] h-[42px] flex items-center justify-center border border-dashed border-white/10 rounded-xl text-tertiary hover:text-secondary hover:border-white/20 transition-all cursor-pointer pointer-events-auto opacity-0 group-hover:opacity-100"
+                        >
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                <line x1="12" y1="5" x2="12" y2="19" />
+                                <line x1="5" y1="12" x2="19" y2="12" />
+                            </svg>
+                        </button>
+                    )}
+                </div>
             </div>
 
             {!isDragging && (
@@ -133,7 +136,7 @@ const HubScriptCard = memo(function HubScriptCard({
                                     className="flex-1 h-[42px] rounded-2xl flex items-center justify-center bg-white/5 text-[#71717a] border border-white/5 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-500/30 transition-all cursor-pointer pointer-events-auto"
                                     title="Interface"
                                 >
-                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                                         <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
                                         <line x1="3" y1="9" x2="21" y2="9" />
                                         <line x1="9" y1="21" x2="9" y2="9" />
@@ -146,7 +149,7 @@ const HubScriptCard = memo(function HubScriptCard({
                                 className="flex-1 h-[42px] rounded-2xl flex items-center justify-center transition-all transform cursor-pointer active:scale-95 pointer-events-auto shadow-xl bg-white/5 text-[#71717a] border border-white/5 hover:bg-red-500/15 hover:text-red-500 hover:border-red-500/30"
                                 title="Kill Script"
                             >
-                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                                     <line x1="18" y1="6" x2="6" y2="18"></line>
                                     <line x1="6" y1="6" x2="18" y2="18"></line>
                                 </svg>
@@ -157,7 +160,7 @@ const HubScriptCard = memo(function HubScriptCard({
                                 className="flex-1 h-[42px] rounded-2xl flex items-center justify-center bg-white/5 text-[#71717a] border border-white/5 hover:bg-yellow-500/10 hover:text-yellow-500 hover:border-yellow-500/30 transition-all cursor-pointer pointer-events-auto"
                                 title="Restart Script"
                             >
-                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                                     <path d="M23 4v6h-6"></path>
                                     <path d="M1 20v-6h6"></path>
                                     <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
@@ -174,7 +177,7 @@ const HubScriptCard = memo(function HubScriptCard({
                                         pendingType === 'kill' ? 'bg-red-500/10 text-red-500 border border-red-500/30 animate-pulse' :
                                             'bg-green-500/10 text-green-500 border border-green-500/30 animate-pulse'
                                 ) :
-                                    "bg-white/5 text-secondary border border-white/5 hover:bg-green-600/15 hover:text-green-500 hover:border-green-500/30 transition-all"
+                                    "bg-white/5 text-[#71717a] border border-white/5 hover:bg-green-600/15 hover:text-green-500 hover:border-green-500/30 transition-all"
                                 }
                             `}
                         >
@@ -183,7 +186,7 @@ const HubScriptCard = memo(function HubScriptCard({
                                     pendingType === 'kill' ? "KILLING..." : "IGNITING..."
                             ) : (
                                 <div className="flex items-center justify-center">
-                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                                         <polygon points="5 3 19 12 5 21 5 3"></polygon>
                                     </svg>
                                 </div>

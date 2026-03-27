@@ -386,6 +386,16 @@ async fn edit_script(path: String) -> Result<(), String> {
 }
 
 #[tauri::command]
+async fn open_with(path: String) -> Result<(), String> {
+    Command::new("rundll32.exe")
+        .arg("shell32.dll,OpenAs_RunDLL")
+        .arg(&path)
+        .spawn()
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
 async fn add_script_tag(
     app: tauri::AppHandle,
     state: tauri::State<'_, TagsState>,
@@ -712,7 +722,8 @@ pub fn run() {
             delete_tag,
             toggle_hide_folder,
             show_script_ui,
-            restart_script
+            restart_script,
+            open_with
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

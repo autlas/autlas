@@ -88,6 +88,7 @@ const ScriptRow = memo(function ScriptRow({
     const handleMouseDown = (e: React.MouseEvent) => {
         if (e.button === 2) {
             e.preventDefault();
+            e.stopPropagation();
             onScriptContextMenu(e, s);
             return;
         }
@@ -108,14 +109,13 @@ const ScriptRow = memo(function ScriptRow({
             onDoubleClick={() => !isDragging && onDoubleClick(s)}
             className={`flex items-center justify-between h-[42px] px-3 rounded-lg transition-all duration-300 border border-transparent select-none relative
                 ${isEditing ? 'z-[200] !opacity-100' : 'z-10'}
-                ${!draggedScriptPath ? 'hover:z-[100] group hover:bg-white/5 cursor-grab active:cursor-grabbing' : ''}
+                ${!draggedScriptPath ? (isContextMenuOpen ? 'hover:z-[100] group bg-white/5 shadow-xl border-indigo-500/20' : 'hover:z-[100] group hover:bg-white/5 cursor-grab active:cursor-grabbing') : ''}
                 long-press-shrink has-[button:active]:scale-100
 
                 ${s.path === draggedScriptPath ? 'opacity-0 pointer-events-none' : ''}
                 ${s.is_hidden && visibilityMode !== 'only' ? 'opacity-40 grayscale-[0.5]' : ''}
                 ${s.is_running ? 'border-green-500/10' : ''}
                 ${isLeftPressed ? 'active-left' : ''}
-                ${isContextMenuOpen ? 'bg-white/5 shadow-xl' : ''}
             `}
         >
             <div className="flex items-center space-x-4 overflow-visible flex-1 mr-4">

@@ -1088,156 +1088,150 @@ function App() {
         )}
       </div>
 
-      {/* Context Menu */}
+      {/* Context Menu Overlay & Panel */}
       {contextMenu && (
-        <div
-          className="fixed z-[100000] min-w-[200px] bg-[#1a1a1c]/80 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] py-2 animate-scale-in overflow-hidden"
-          style={{
-            left: Math.min(contextMenu.x, window.innerWidth - 220),
-            top: Math.min(contextMenu.y, window.innerHeight - 300),
-          }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          {contextMenu.type === 'script' && contextMenu.data && (
-            <>
-              <ContextMenuItem
-                label={contextMenu.data.is_running ? t("context.stop") : t("context.run")}
-                icon={contextMenu.data.is_running ? "⏹" : "▶"}
-                onClick={() => {
-                  if (contextMenu.data.is_running) invoke("kill_script", { path: contextMenu.data.path });
-                  else invoke("run_script", { path: contextMenu.data.path });
-                  setContextMenu(null);
-                  setRefreshKey(p => p + 1);
-                }}
-              />
-              {contextMenu.data.is_running && contextMenu.data.has_ui && (
+        <>
+          {/* Overlay to catch click-out and block underlying interaction */}
+          <div
+            className="fixed inset-0 z-[99999]"
+            onMouseDown={() => setContextMenu(null)}
+          />
+          <div
+            className="fixed z-[100000] min-w-[200px] bg-[#1a1a1c]/80 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] py-2 animate-scale-in overflow-hidden"
+            style={{
+              left: Math.min(contextMenu.x + 15, window.innerWidth - 220),
+              top: Math.min(contextMenu.y + 15, window.innerHeight - 300),
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {contextMenu.type === 'script' && contextMenu.data && (
+              <>
+                {contextMenu.data.tags.some((t: string) => ["hub", "fav", "favourites"].includes(t.toLowerCase())) ? (
+                  <ContextMenuItem
+                    label={t("context.unpin")}
+                    icon="✖"
+                    onClick={async () => {
+                      const tagToRemove = contextMenu.data.tags.find((t: string) => ["hub", "fav", "favourites"].includes(t.toLowerCase()));
+                      if (tagToRemove) {
+                        await invoke("remove_script_tag", { path: contextMenu.data.path, tag: tagToRemove });
+                      }
+                      setContextMenu(null);
+                    }}
+                  />
+                ) : (
+                  <ContextMenuItem
+                    label={t("context.pin")}
+                    icon="📌"
+                    onClick={async () => {
+                      await invoke("add_script_tag", { path: contextMenu.data.path, tag: "hub" });
+                      setContextMenu(null);
+                    }}
+                  />
+                )}
+                <div className="h-[1px] bg-white/5 my-1" />
                 <ContextMenuItem
-                  label={t("context.show_ui", "Interface")}
-                  icon="🎛️"
+                  label={t("context.edit")}
+                  icon="📝"
                   onClick={() => {
-                    handleShowUI(contextMenu.data);
+                    invoke("edit_script", { path: contextMenu.data.path });
                     setContextMenu(null);
                   }}
                 />
-              )}
-              <div className="h-[1px] bg-white/5 my-1" />
-              {contextMenu.data.tags.some((t: string) => ["hub", "fav", "favourites"].includes(t.toLowerCase())) ? (
                 <ContextMenuItem
-                  label={t("context.unpin")}
-                  icon="✖"
-                  onClick={async () => {
-                    const tagToRemove = contextMenu.data.tags.find((t: string) => ["hub", "fav", "favourites"].includes(t.toLowerCase()));
-                    if (tagToRemove) {
-                      await invoke("remove_script_tag", { path: contextMenu.data.path, tag: tagToRemove });
-                    }
+                  label={t("context.show_in_folder")}
+                  icon="📂"
+                  onClick={() => {
+                    invoke("open_in_explorer", { path: contextMenu.data.path });
                     setContextMenu(null);
                   }}
                 />
-              ) : (
                 <ContextMenuItem
-                  label={t("context.pin")}
-                  icon="📌"
-                  onClick={async () => {
-                    await invoke("add_script_tag", { path: contextMenu.data.path, tag: "hub" });
+                  label={t("context.open_with")}
+                  icon="🪄"
+                  onClick={() => {
+                    invoke("open_with", { path: contextMenu.data.path });
                     setContextMenu(null);
                   }}
                 />
-              )}
-              <div className="h-[1px] bg-white/5 my-1" />
-              <ContextMenuItem
-                label={t("context.edit")}
-                icon="📝"
-                onClick={() => {
-                  invoke("edit_script", { path: contextMenu.data.path });
-                  setContextMenu(null);
-                }}
-              />
-              <ContextMenuItem
-                label={t("context.show_in_folder")}
-                icon="📂"
-                onClick={() => {
-                  invoke("open_in_explorer", { path: contextMenu.data.path });
-                  setContextMenu(null);
-                }}
-              />
-              <div className="h-[1px] bg-white/5 my-1" />
-              <ContextMenuItem
-                label={t("context.copy_path")}
-                icon="🔗"
-                onClick={() => {
-                  navigator.clipboard.writeText(contextMenu.data.path);
-                  setContextMenu(null);
-                }}
-              />
-            </>
-          )}
+                <div className="h-[1px] bg-white/5 my-1" />
+                <ContextMenuItem
+                  label={t("context.copy_path")}
+                  icon="🔗"
+                  onClick={() => {
+                    navigator.clipboard.writeText(contextMenu.data.path);
+                    setContextMenu(null);
+                  }}
+                />
+              </>
+            )}
 
-          {contextMenu.type === 'tag' && (
-            <>
-              <ContextMenuItem
-                label={t("context.rename")}
-                icon="✏️"
-                onClick={() => {
-                  setIsRenamingTag(contextMenu.data);
-                  setEditTagName(contextMenu.data);
-                  setContextMenu(null);
-                }}
-              />
-              <ContextMenuItem
-                label={t("context.delete_tag")}
-                icon="🗑️"
-                danger
-                onClick={async () => {
-                  if (confirm(t("context.delete_tag_confirm", { tag: contextMenu.data }))) {
-                    await invoke("delete_tag", { tag: contextMenu.data });
+            {contextMenu.type === 'tag' && (
+              <>
+                <ContextMenuItem
+                  label={t("context.rename")}
+                  icon="✏️"
+                  onClick={() => {
+                    setIsRenamingTag(contextMenu.data);
+                    setEditTagName(contextMenu.data);
+                    setContextMenu(null);
+                  }}
+                />
+                <ContextMenuItem
+                  label={t("context.delete_tag")}
+                  icon="🗑️"
+                  danger
+                  onClick={async () => {
+                    if (confirm(t("context.delete_tag_confirm", { tag: contextMenu.data }))) {
+                      await invoke("delete_tag", { tag: contextMenu.data });
+                      setContextMenu(null);
+                      setRefreshKey(p => p + 1);
+                    }
+                  }}
+                />
+              </>
+            )}
+
+            {contextMenu.type === 'folder' && (
+              <>
+                <ContextMenuItem
+                  label={t("context.show_in_folder")}
+                  icon="📂"
+                  onClick={() => {
+                    invoke("open_in_explorer", { path: contextMenu.data.fullName });
+                    setContextMenu(null);
+                  }}
+                />
+                <div className="h-[1px] bg-white/5 my-1" />
+                <ContextMenuItem
+                  label={t("context.expand_all")}
+                  icon="➕"
+                  onClick={() => {
+                    contextMenu.data.onExpandAll();
+                    setContextMenu(null);
+                  }}
+                />
+                <ContextMenuItem
+                  label={contextMenu.data.is_hidden ? t("context.show_hidden") : t("context.hide_folder")}
+                  icon={contextMenu.data.is_hidden ? "👁️" : "👁️‍🗨️"}
+                  onClick={async () => {
+                    await invoke("toggle_hide_folder", { path: contextMenu.data.fullName });
                     setContextMenu(null);
                     setRefreshKey(p => p + 1);
-                  }
-                }}
-              />
-            </>
-          )}
-
-          {contextMenu.type === 'folder' && (
-            <>
-              <ContextMenuItem
-                label={t("context.show_in_folder")}
-                icon="📂"
-                onClick={() => {
-                  invoke("open_in_explorer", { path: contextMenu.data.fullName });
-                  setContextMenu(null);
-                }}
-              />
-              <div className="h-[1px] bg-white/5 my-1" />
-              <ContextMenuItem
-                label={t("context.expand_all")}
-                icon="➕"
-                onClick={() => {
-                  contextMenu.data.onExpandAll();
-                  setContextMenu(null);
-                }}
-              />
-              <ContextMenuItem
-                label={contextMenu.data.is_hidden ? t("context.show_hidden") : t("context.hide_folder")}
-                icon={contextMenu.data.is_hidden ? "👁️" : "👁️‍🗨️"}
-                onClick={async () => {
-                  await invoke("toggle_hide_folder", { path: contextMenu.data.fullName });
-                  setContextMenu(null);
-                  setRefreshKey(p => p + 1);
-                }}
-              />
-              <div className="h-[1px] bg-white/5 my-1" />
-              <ContextMenuItem
-                label={t("context.copy_path")}
-                icon="🔗"
-                onClick={() => {
-                  navigator.clipboard.writeText(contextMenu.data.fullName);
-                  setContextMenu(null);
-                }}
-              />
-            </>
-          )}
-        </div>
+                  }}
+                />
+                <div className="h-[1px] bg-white/5 my-1" />
+                <ContextMenuItem
+                  label={t("context.copy_path")}
+                  icon="🔗"
+                  onClick={() => {
+                    navigator.clipboard.writeText(contextMenu.data.fullName);
+                    setContextMenu(null);
+                  }}
+                />
+              </>
+            )}
+          </div>
+        </>
       )}
 
       {/* Debug Overlay - Finalized

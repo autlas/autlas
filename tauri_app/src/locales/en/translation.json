@@ -49,6 +49,7 @@
         "pin": "Pin to Hub",
         "edit": "Edit",
         "show_in_folder": "Show in folder",
+        "open_with": "Open with...",
         "copy_path": "Copy Path",
         "rename": "Rename",
         "delete_tag": "Delete Tag",
