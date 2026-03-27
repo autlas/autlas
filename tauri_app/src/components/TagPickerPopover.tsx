@@ -48,7 +48,7 @@ const TagPickerPopover = memo(function TagPickerPopover({ script, allUniqueTags,
         }
         else if (e.key === "ArrowUp") {
             e.preventDefault();
-            setSelectedIndex(p => totalCount > 0 ? (p - 1 + totalCount) : 0);
+            setSelectedIndex(p => totalCount > 0 ? (p - 1 + totalCount) % totalCount : 0);
         }
         else if (e.key === "Enter") {
             e.preventDefault();
@@ -85,16 +85,26 @@ const TagPickerPopover = memo(function TagPickerPopover({ script, allUniqueTags,
             >
                 {availableTags.map((tag, index) => (
                     <button key={tag} onClick={(e) => { e.stopPropagation(); onAdd(script, tag); }} onMouseDown={(e) => e.stopPropagation()}
-                        className={`cursor-pointer w-full text-left px-4 py-2.5 rounded-xl transition-all flex items-center justify-between group/suggest ${selectedIndex === index ? 'bg-white/10 text-primary' : 'hover:bg-white/5 text-xs text-secondary hover:text-primary'}`}>
-                        <span className="font-medium">{tag}</span>
-                        <span className={`text-indigo-400 font-bold ${selectedIndex === index ? 'opacity-100' : 'opacity-0 group-hover/suggest:opacity-100'}`}>+</span>
+                        className={`cursor-pointer w-full text-left px-4 rounded-xl transition-all flex items-center justify-between group/suggest ${selectedIndex === index ? 'bg-white/10 text-primary h-[44px]' : 'hover:bg-white/5 text-xs text-secondary hover:text-primary h-[38px]'}`}>
+                        <span className="font-bold">{tag}</span>
+                        <div className={`text-indigo-400 transition-opacity ${selectedIndex === index ? 'opacity-100' : 'opacity-0 group-hover/suggest:opacity-100'}`}>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                            </svg>
+                        </div>
                     </button>
                 ))}
                 {showCreate && (
                     <button onClick={(e) => { e.stopPropagation(); onAdd(script, query); }} onMouseDown={(e) => e.stopPropagation()}
-                        className={`cursor-pointer w-full text-left px-4 py-3 rounded-xl transition-all flex items-center justify-between ${selectedIndex === availableTags.length ? 'bg-indigo-500/30 text-indigo-300 font-bold' : 'bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 font-bold'}`}>
-                        <span className="text-xs font-bold">Создать "{query}"</span>
-                        <span className="text-xl leading-none">+</span>
+                        className={`cursor-pointer w-full text-left px-4 rounded-xl transition-all flex items-center justify-between ${selectedIndex === availableTags.length ? 'bg-indigo-500/30 text-indigo-300 h-[44px]' : 'bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 text-xs h-[38px]'}`}>
+                        <span className="font-bold">Создать "{query}"</span>
+                        <div className="font-bold">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                            </svg>
+                        </div>
                     </button>
                 )}
             </div>
@@ -128,16 +138,26 @@ const TagPickerPopover = memo(function TagPickerPopover({ script, allUniqueTags,
             >
                 {availableTags.map((tag, index) => (
                     <button key={tag} onClick={(e) => { e.stopPropagation(); onAdd(script, tag); }} onMouseDown={(e) => e.stopPropagation()}
-                        className={`cursor-pointer w-full text-left px-5 py-2.5 rounded-xl transition-all flex items-center justify-between group/suggest ${selectedIndex === index ? 'bg-white/10 text-primary' : 'hover:bg-white/5 text-xs text-secondary hover:text-primary'}`}>
+                        className={`cursor-pointer w-full text-left px-5 rounded-xl transition-all flex items-center justify-between group/suggest ${selectedIndex === index ? 'bg-white/10 text-primary h-[44px]' : 'hover:bg-white/5 text-xs text-secondary hover:text-primary h-[38px]'}`}>
                         <span className="font-bold">{tag}</span>
-                        <span className={`text-indigo-400 font-bold ${selectedIndex === index ? 'opacity-100' : 'opacity-0 group-hover/suggest:opacity-100'}`}>+</span>
+                        <div className={`text-indigo-400 transition-opacity ${selectedIndex === index ? 'opacity-100' : 'opacity-0 group-hover/suggest:opacity-100'}`}>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                            </svg>
+                        </div>
                     </button>
                 ))}
                 {showCreate && (
                     <button onClick={(e) => { e.stopPropagation(); onAdd(script, query); }} onMouseDown={(e) => e.stopPropagation()}
-                        className={`cursor-pointer w-full text-left px-5 py-2.5 rounded-xl transition-all flex items-center justify-between ${selectedIndex === availableTags.length ? 'bg-indigo-500/30 text-indigo-300 font-bold' : 'bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 font-bold'}`}>
-                        <span className="text-xs font-bold">Создать "{query}"</span>
-                        <span className="text-xl leading-none">+</span>
+                        className={`cursor-pointer w-full text-left px-5 rounded-xl transition-all flex items-center justify-between ${selectedIndex === availableTags.length ? 'bg-indigo-500/30 text-indigo-300 h-[44px]' : 'bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 text-xs h-[38px]'}`}>
+                        <span className="font-bold">Создать "{query}"</span>
+                        <div className="font-bold">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                            </svg>
+                        </div>
                     </button>
                 )}
             </div>
