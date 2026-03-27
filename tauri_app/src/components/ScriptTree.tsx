@@ -3,6 +3,7 @@ import { HighlightText } from "./HighlightText";
 import { SearchContext } from "../context/SearchContext";
 import { ScriptTreeProps, TreeNode } from "../types/script";
 import { useScriptTree } from "../hooks/useScriptTree";
+import { useTranslation } from "react-i18next";
 import ScriptRow from "./ScriptRow";
 import HubScriptCard from "./HubScriptCard";
 import { Script } from "../api";
@@ -203,6 +204,7 @@ const TreeNodeRenderer = memo(function TreeNodeRenderer({
 });
 
 export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, viewMode, onViewModeChange, onCustomDragStart, isDragging, draggedScriptPath, animationsEnabled, onScriptContextMenu, onFolderContextMenu, searchQuery, setSearchQuery }: ScriptTreeProps) {
+    const { t } = useTranslation();
     const renderStartRef = useRef(0);
     if (PERF) {
         renderStartRef.current = performance.now();
@@ -406,7 +408,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, v
                     {viewMode === "tiles" ? (
                         <div className="flex flex-col pb-10">
                             {filtered.length === 0 ? (
-                                <div className="text-tertiary w-full text-center py-40 italic tracking-[0.3em] text-sm font-bold">Пустой канал...</div>
+                                <div className="text-tertiary w-full text-center py-40 italic tracking-[0.3em] text-sm font-bold">{t("hub.empty_channel")}</div>
                             ) : (
                                 (filterTag === "Хаб" && groupedHub) ? (
                                     groupedHub.map(({ tag, scripts }) => {
@@ -483,7 +485,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, v
                     ) : viewMode === "list" ? (
                         <div className="flex flex-col pb-10">
                             {filtered.length === 0 ? (
-                                <div className="text-tertiary w-full text-center py-40 italic tracking-[0.3em] text-sm font-bold">Пустой раздел...</div>
+                                <div className="text-tertiary w-full text-center py-40 italic tracking-[0.3em] text-sm font-bold">{t("hub.empty_channel")}</div>
                             ) : (
                                 (filterTag === "Хаб" && groupedHub) ? (
                                     groupedHub.map(({ tag, scripts }) => {
@@ -569,7 +571,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, v
                         <div className="flex flex-col space-y-0.5 select-none">
                             <TreeContext.Provider value={stableCtxRef.current}>
                                 {!hasContent ? (
-                                    <div className="text-tertiary text-center py-40 italic tracking-[0.3em] text-sm font-bold">Пустой раздел дерева...</div>
+                                    <div className="text-tertiary text-center py-40 italic tracking-[0.3em] text-sm font-bold">{t("hub.empty_tree")}</div>
                                 ) : (
                                     <TreeNodeRenderer
                                         node={tree}

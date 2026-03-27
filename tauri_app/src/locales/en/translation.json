@@ -1,0 +1,53 @@
+{
+    "sidebar": {
+        "title": "AHK MANAGER",
+        "dashboard": "Dashboard",
+        "hub": "Hub",
+        "all": "All",
+        "no_tags": "Untagged",
+        "tags": "TAGS",
+        "settings": "Settings",
+        "refresh": "Refresh List",
+        "scripts": "Scripts"
+    },
+    "settings": {
+        "title": "Settings",
+        "language": "Language",
+        "language_desc": "Select application language",
+        "startup": "Autostart",
+        "startup_desc": "Start application on system boot",
+        "minimize": "Minimize to Tray",
+        "minimize_desc": "Minimize window instead of closing",
+        "animations": "Kinetic UI",
+        "animations_desc": "Fluid animations and momentum effects",
+        "font_scale": "Font Scale",
+        "font_scale_desc": "Adjust the base font size for the interface",
+        "brightness": "Brightness",
+        "brightness_desc": "Adjust overall interface brightness",
+        "oled_black": "OLED Black",
+        "light_gray": "Light Gray",
+        "contrast": "Text Contrast",
+        "contrast_desc": "Adjust text contrast against background",
+        "standard": "Standard",
+        "maximum": "Maximum (100%)",
+        "theme_settings": "Theme Settings",
+        "interface": "Interface",
+        "animations_ui": "Animations",
+        "animations_ui_sub": "Smooth transitions in script tree",
+        "script_paths": "Script Paths",
+        "root_folder": "Root Folder",
+        "browse": "Browse",
+        "folder_picker_dev": "Folder selection UI is under development",
+        "devtools": "Open DevTools",
+        "devtools_desc": "Open developer tools console",
+        "close": "Close"
+    },
+    "hub": {
+        "empty_channel": "Empty channel...",
+        "empty_tree": "Empty tree section..."
+    },
+    "actions": {
+        "run": "Run",
+        "running": "Running"
+    }
+}

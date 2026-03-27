@@ -2,11 +2,14 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import ScriptTree from "./components/ScriptTree";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
+import { useTranslation } from "react-i18next";
+import LanguageSelector from "./components/LanguageSelector";
 import "./App.css";
 
 const MemoizedScriptTree = React.memo(ScriptTree);
 
 function App() {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState(() => localStorage.getItem("ahk_active_tab") || "Хаб");
   const [userTags, setUserTags] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<"tree" | "hub" | "settings">(() => {
@@ -512,7 +515,7 @@ function App() {
           {/* Group 1: Hub */}
           <ul className="space-y-1.5">
             {[
-              { id: "Хаб", label: "Хаб", icon: "" }
+              { id: "Хаб", label: t("sidebar.hub", "Hub"), icon: "" }
             ].map((tab) => (
               <li
                 key={tab.id}
@@ -557,8 +560,8 @@ function App() {
           {/* Group 2: Global Filters */}
           <ul className="space-y-1.5">
             {[
-              { id: "Все", label: "Все", icon: "" },
-              { id: "Без тегов", label: "Без тегов", icon: "" }
+              { id: "Все", label: t("sidebar.all", "All"), icon: "" },
+              { id: "Без тегов", label: t("sidebar.no_tags", "Untagged"), icon: "" }
             ].map((tab) => (
               <li
                 key={tab.id}
@@ -587,7 +590,7 @@ function App() {
               className={`px-6 flex items-center justify-between group cursor-pointer ${activeTab === "ТЕГИ" ? "text-indigo-400" : "text-tertiary"}`}
               onClick={() => handleTabClick("ТЕГИ")}
             >
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-50 group-hover:opacity-100 transition-opacity">ТЕГИ</span>
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-50 group-hover:opacity-100 transition-opacity">{t("sidebar.tags", "TAGS")}</span>
             </div>
 
             <ul className="flex flex-col space-y-1.5 px-0 w-full">
@@ -777,7 +780,7 @@ function App() {
                 ? "text-indigo-400 border-indigo-500 shadow-lg tag-active bg-white/5"
                 : "text-tertiary border-transparent hover:text-secondary tag-hover"
               }`}
-            title="Настройки"
+            title={t("sidebar.settings", "Settings")}
             style={viewMode === "settings" ? { backgroundColor: 'var(--bg-tag-active)' } : {}}
 
           >
@@ -827,10 +830,21 @@ function App() {
           {viewMode === "settings" ? (
             <div className="max-w-[1200px] mx-auto w-full space-y-12 py-8">
               <section className="space-y-8 bg-white/[0.02] p-10 rounded-[2.5rem] border border-white/5 shadow-2xl">
-                <h3 className="text-sm font-bold tracking-widest text-tertiary uppercase">Настройки темы</h3>
+                <h3 className="text-sm font-bold tracking-widest text-tertiary uppercase">{t("settings.language", "Language")}</h3>
+                <div className="flex justify-between items-center px-2">
+                  <div className="flex flex-col">
+                    <span className="text-base font-bold text-secondary">{t("settings.language", "Language")}</span>
+                    <span className="text-xs text-tertiary mt-1">{t("settings.language_desc", "Select application language")}</span>
+                  </div>
+                  <LanguageSelector />
+                </div>
+              </section>
+
+              <section className="space-y-8 bg-white/[0.02] p-10 rounded-[2.5rem] border border-white/5 shadow-2xl">
+                <h3 className="text-sm font-bold tracking-widest text-tertiary uppercase">{t("settings.theme_settings")}</h3>
                 <div className="space-y-6">
                   <div className="flex justify-between items-center px-2">
-                    <span className="text-base font-bold text-secondary">Яркость интерфейса</span>
+                    <span className="text-base font-bold text-secondary">{t("settings.brightness")}</span>
                     <span className="text-xs font-mono text-indigo-400 font-bold bg-indigo-400/10 px-4 py-1.5 rounded-full tracking-widest uppercase">{brightness}%</span>
                   </div>
                   <input
@@ -841,16 +855,16 @@ function App() {
                     className="w-full h-2 bg-white/5 rounded-lg appearance-none cursor-pointer accent-indigo-500 hover:accent-indigo-400 transition-all opacity-80 hover:opacity-100"
                   />
                   <div className="flex justify-between text-xs text-tertiary font-bold uppercase tracking-[0.3em] pt-2 px-1">
-                    <span>OLED черный</span>
-                    <span>Светло-серый</span>
+                    <span>{t("settings.oled_black")}</span>
+                    <span>{t("settings.light_gray")}</span>
                   </div>
                 </div>
 
                 <div className="space-y-6 pt-4 border-t border-white/5">
                   <div className="flex justify-between items-center px-2">
                     <div className="flex flex-col">
-                      <span className="text-base font-bold text-secondary">Контраст текста</span>
-                      <span className="text-xs text-tertiary mt-1">Яркость второстепенных текстов</span>
+                      <span className="text-base font-bold text-secondary">{t("settings.contrast")}</span>
+                      <span className="text-xs text-tertiary mt-1">{t("settings.contrast_desc")}</span>
                     </div>
                     <span className="text-xs font-mono text-indigo-400 font-bold bg-indigo-400/10 px-4 py-1.5 rounded-full tracking-widest uppercase">{textContrast.toFixed(1)}x</span>
                   </div>
@@ -862,16 +876,16 @@ function App() {
                     className="w-full h-2 bg-white/5 rounded-lg appearance-none cursor-pointer accent-indigo-500 hover:accent-indigo-400 transition-all opacity-80 hover:opacity-100"
                   />
                   <div className="flex justify-between text-xs text-tertiary font-bold uppercase tracking-[0.3em] pt-2 px-1">
-                    <span>Стандарт</span>
-                    <span>Максимум (100%)</span>
+                    <span>{t("settings.standard")}</span>
+                    <span>{t("settings.maximum")}</span>
                   </div>
                 </div>
 
                 <div className="space-y-6 pt-4 border-t border-white/5">
                   <div className="flex justify-between items-center px-2">
                     <div className="flex flex-col">
-                      <span className="text-base font-bold text-secondary">Размер текста</span>
-                      <span className="text-xs text-tertiary mt-1">Глобальное масштабирование шрифтов</span>
+                      <span className="text-base font-bold text-secondary">{t("settings.font_scale")}</span>
+                      <span className="text-xs text-tertiary mt-1">{t("settings.font_scale_desc")}</span>
                     </div>
                     <span className="text-xs font-mono text-indigo-400 font-bold bg-indigo-400/10 px-4 py-1.5 rounded-full tracking-widest uppercase">{fontScale.toFixed(2)}x</span>
                   </div>
@@ -883,7 +897,7 @@ function App() {
                     className="w-full h-2 bg-white/5 rounded-lg appearance-none cursor-pointer accent-indigo-500 hover:accent-indigo-400 transition-all opacity-80 hover:opacity-100"
                   />
                   <div className="flex justify-between text-xs text-tertiary font-bold uppercase tracking-[0.3em] pt-2 px-1">
-                    <span>1.0x</span>
+                    <span>0.75x</span>
                     <span>1.5x</span>
                   </div>
                 </div>
@@ -896,11 +910,11 @@ function App() {
               */}
 
               <section className="space-y-8 bg-white/[0.02] p-10 rounded-[2.5rem] border border-white/5 shadow-2xl">
-                <h3 className="text-sm font-bold tracking-widest text-tertiary uppercase">Интерфейс</h3>
+                <h3 className="text-sm font-bold tracking-widest text-tertiary uppercase">{t("settings.interface")}</h3>
                 <div className="flex justify-between items-center px-2">
                   <div className="flex flex-col">
-                    <span className="text-base font-bold text-secondary">Анимации</span>
-                    <span className="text-xs text-tertiary mt-1">Плавные переходы в дереве скриптов</span>
+                    <span className="text-base font-bold text-secondary">{t("settings.animations_ui")}</span>
+                    <span className="text-xs text-tertiary mt-1">{t("settings.animations_ui_sub")}</span>
                   </div>
                   <button
                     onClick={toggleAnimations}
@@ -918,16 +932,16 @@ function App() {
               </section>
 
               <section className="space-y-8 bg-white/[0.02] p-10 rounded-[2.5rem] border border-white/5 shadow-2xl">
-                <h3 className="text-sm font-bold tracking-widest text-tertiary uppercase">Пути к скриптам</h3>
+                <h3 className="text-sm font-bold tracking-widest text-tertiary uppercase">{t("settings.script_paths")}</h3>
                 <div className="flex flex-col space-y-6">
-                  <span className="text-base font-bold text-secondary pl-2">Корневая папка</span>
+                  <span className="text-base font-bold text-secondary pl-2">{t("settings.root_folder")}</span>
                   <div className="flex items-center space-x-4 p-5 bg-white/[0.03] border border-white/5 rounded-2xl">
                     <span className="flex-1 text-xs font-bold text-tertiary truncate font-mono italic tracking-tight">{rootPath}</span>
                     <button
-                      onClick={() => alert("Интерфейс выбора папки - в разработке")}
+                      onClick={() => alert(t("settings.folder_picker_dev"))}
                       className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-xs font-bold tracking-widest transition-all shadow-xl shadow-indigo-900/20 active:scale-95 border border-transparent"
                     >
-                      Обзор
+                      {t("settings.browse")}
                     </button>
                   </div>
                 </div>

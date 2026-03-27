@@ -1,0 +1,53 @@
+{
+    "sidebar": {
+        "title": "AHK MANAGER",
+        "dashboard": "Дашборд",
+        "hub": "Хаб",
+        "all": "Все",
+        "no_tags": "Без тегов",
+        "tags": "ТЕГИ",
+        "settings": "Настройки",
+        "refresh": "Обновить список",
+        "scripts": "Скрипты"
+    },
+    "settings": {
+        "title": "Настройки",
+        "language": "Язык",
+        "language_desc": "Выберите язык интерфейса",
+        "startup": "Автозапуск",
+        "startup_desc": "Запускать приложение при старте системы",
+        "minimize": "Сворачивать в трей",
+        "minimize_desc": "Сворачивать вместо закрытия приложения",
+        "animations": "Кинетический UI",
+        "animations_desc": "Плавные анимации и эффекты инерции",
+        "font_scale": "Размер шрифта",
+        "font_scale_desc": "Изменение базового размера текста",
+        "brightness": "Яркость интерфейса",
+        "brightness_desc": "Настройка общей яркости интерфейса",
+        "oled_black": "OLED черный",
+        "light_gray": "Светло-серый",
+        "contrast": "Контраст текста",
+        "contrast_desc": "Яркость второстепенных текстов",
+        "standard": "Стандарт",
+        "maximum": "Максимум (100%)",
+        "theme_settings": "Настройки темы",
+        "interface": "Интерфейс",
+        "animations_ui": "Анимации",
+        "animations_ui_sub": "Плавные переходы в дереве скриптов",
+        "script_paths": "Пути к скриптам",
+        "root_folder": "Корневая папка",
+        "browse": "Обзор",
+        "folder_picker_dev": "Интерфейс выбора папки - в разработке",
+        "devtools": "DevTools",
+        "devtools_desc": "Открыть консоль разработчика",
+        "close": "Закрыть"
+    },
+    "hub": {
+        "empty_channel": "Пустой канал...",
+        "empty_tree": "Пустой раздел дерева..."
+    },
+    "actions": {
+        "run": "Запустить",
+        "running": "Работает"
+    }
+}
