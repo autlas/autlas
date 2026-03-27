@@ -30,7 +30,8 @@ const HubScriptCard = memo(function HubScriptCard({
     const handleMouseLeave = () => setIsLeftPressed(false);
 
     const isEditing = editingScript === s.path;
-    const isPending = pendingScripts.has(s.path);
+    const pendingType = pendingScripts[s.path];
+    const isPending = !!pendingType;
 
     return (
         <div
@@ -123,41 +124,65 @@ const HubScriptCard = memo(function HubScriptCard({
 
             {!isDragging && (
                 <div className="mt-auto">
-                    {s.is_running ? (
+                    {s.is_running && !isPending ? (
                         <div className="flex items-center gap-2">
                             {s.has_ui && (
                                 <button
                                     onClick={(e) => { e.stopPropagation(); onShowUI(s); }}
                                     onMouseDown={(e) => e.stopPropagation()}
-                                    className="flex-1 py-3 rounded-2xl text-[10px] font-bold tracking-[0.1em] bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 hover:bg-indigo-500/20 transition-all cursor-pointer pointer-events-auto uppercase"
-                                    title="Show Interface"
+                                    className="flex-1 h-[42px] rounded-2xl flex items-center justify-center bg-white/5 text-tertiary border border-white/5 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-500/30 transition-all cursor-pointer pointer-events-auto"
+                                    title="Interface"
                                 >
-                                    UI
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                                        <line x1="3" y1="9" x2="21" y2="9" />
+                                        <line x1="9" y1="21" x2="9" y2="9" />
+                                    </svg>
                                 </button>
                             )}
                             <button
                                 onClick={(e) => { e.stopPropagation(); onToggle(s); }}
                                 onMouseDown={(e) => e.stopPropagation()}
-                                className={`flex-1 py-3 rounded-2xl text-[10px] font-bold tracking-[0.1em] transition-all transform cursor-pointer active:scale-95 pointer-events-auto shadow-xl bg-white/5 text-tertiary border border-white/5 hover:bg-red-600/15 hover:text-red-500 hover:border-red-500/30 active:bg-red-600/25 active:text-red-500 uppercase`}
+                                className={`flex-1 h-[42px] rounded-2xl flex items-center justify-center transition-all transform cursor-pointer active:scale-95 pointer-events-auto shadow-xl bg-white/5 text-tertiary border border-white/5 hover:bg-red-500/15 hover:text-red-500 hover:border-red-500/30 active:bg-red-600/25 active:text-red-500`}
+                                title="Kill Script"
                             >
-                                {isPending ? "..." : "Kill"}
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                </svg>
                             </button>
                             <button
                                 onClick={(e) => { e.stopPropagation(); onRestart(s); }}
                                 onMouseDown={(e) => e.stopPropagation()}
-                                className="flex-1 py-3 rounded-2xl text-[10px] font-bold tracking-[0.1em] bg-white/5 text-tertiary border border-white/5 hover:bg-white/10 hover:text-secondary transition-all cursor-pointer pointer-events-auto uppercase"
+                                className="flex-1 h-[42px] rounded-2xl flex items-center justify-center bg-white/5 text-tertiary border border-white/5 hover:bg-yellow-500/10 hover:text-yellow-500 hover:border-yellow-500/30 transition-all cursor-pointer pointer-events-auto"
                                 title="Restart Script"
                             >
-                                {isPending ? "..." : "Reset"}
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M23 4v6h-6"></path>
+                                    <path d="M1 20v-6h6"></path>
+                                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                                </svg>
                             </button>
                         </div>
                     ) : (
                         <button
-                            onClick={(e) => { e.stopPropagation(); onToggle(s); }}
+                            onClick={(e) => { e.stopPropagation(); !isPending && onToggle(s); }}
                             onMouseDown={(e) => e.stopPropagation()}
-                            className={`w-full py-4 rounded-2xl text-xs font-bold tracking-[0.1em] transition-all transform cursor-pointer active:scale-95 pointer-events-auto shadow-xl bg-white/5 text-tertiary border border-white/5 hover:bg-green-600/15 hover:text-green-500 hover:border-green-500/30 active:bg-green-600/25 transition-all text-secondary hover:text-green-500`}
+                            className={`w-full h-[42px] rounded-2xl text-[14px] font-bold tracking-[0.1em] transition-all transform cursor-pointer active:scale-95 pointer-events-auto shadow-xl 
+                                ${isPending ? (
+                                    pendingType === 'restart' ? 'bg-yellow-500/10 text-yellow-500 border border-yellow-500/30 animate-pulse' :
+                                        pendingType === 'kill' ? 'bg-red-500/10 text-red-500 border border-red-500/30 animate-pulse' :
+                                            'bg-green-500/10 text-green-500 border border-green-500/30 animate-pulse'
+                                ) :
+                                    s.is_running ? "bg-white/5 text-tertiary border border-white/5 hover:bg-red-600/15 hover:text-red-500 hover:border-red-500/30 transition-all" :
+                                        "bg-white/5 text-tertiary border border-white/5 hover:bg-green-600/15 hover:text-green-500 hover:border-green-500/30 transition-all text-secondary hover:text-green-500"
+                                }
+                            `}
                         >
-                            {isPending ? "IGNITING..." : "Run"}
+                            {isPending ? (
+                                pendingType === 'restart' ? "RESTARTING..." :
+                                    pendingType === 'kill' ? "KILLING..." : "IGNITING..."
+                            ) : (s.is_running ? "Kill" : "Run")}
                         </button>
                     )}
                 </div>

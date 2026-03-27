@@ -5,7 +5,7 @@ import { HighlightText } from "./HighlightText";
 import { useTranslation } from "react-i18next";
 
 const ScriptRow = memo(function ScriptRow({
-    s, isDragging, draggedScriptPath, isEditing, isPending, isContextMenuOpen, removingTagKeys,
+    s, isDragging, draggedScriptPath, isEditing, isPending, pendingType, isContextMenuOpen, removingTagKeys,
     allUniqueTags, popoverRef, visibilityMode,
     onMouseDown, onDoubleClick, onToggle, onStartEditing, onAddTag, onRemoveTag, onCloseEditing,
     onScriptContextMenu, onShowUI, onRestart
@@ -206,7 +206,7 @@ const ScriptRow = memo(function ScriptRow({
                         <button
                             onClick={(e) => { e.stopPropagation(); onShowUI(s); }}
                             onMouseDown={(e) => e.stopPropagation()}
-                            className="w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-400 border border-indigo-500/10 hover:bg-indigo-500/20 transition-all cursor-pointer pointer-events-auto"
+                            className="w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-lg bg-white/5 text-tertiary border border-white/5 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-500/20 transition-all cursor-pointer pointer-events-auto"
                             title="Interface"
                         >
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -220,7 +220,7 @@ const ScriptRow = memo(function ScriptRow({
                         <button
                             onClick={(e) => { e.stopPropagation(); onRestart(s); }}
                             onMouseDown={(e) => e.stopPropagation()}
-                            className="w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-lg bg-white/5 text-tertiary border border-white/5 hover:bg-white/10 hover:text-white transition-all cursor-pointer pointer-events-auto"
+                            className="w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-lg bg-white/5 text-tertiary border border-white/5 hover:bg-yellow-500/10 hover:text-yellow-500 hover:border-yellow-500/20 transition-all cursor-pointer pointer-events-auto"
                             title="Restart"
                         >
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -231,15 +231,29 @@ const ScriptRow = memo(function ScriptRow({
                         </button>
                     )}
                     <button
-                        onClick={(e) => { e.stopPropagation(); onToggle(s); }}
+                        onClick={(e) => { e.stopPropagation(); !isPending && onToggle(s); }}
                         onMouseDown={(e) => e.stopPropagation()}
-                        onDoubleClick={(e) => e.stopPropagation()}
-                        className={`text-xs font-bold px-4 h-7 rounded-lg bg-white/5 border border-white/5 shadow-xl transition-all cursor-pointer active:scale-95 flex items-center justify-center
-                            ${isPending ? 'text-white/20 animate-pulse cursor-wait' :
-                                s.is_running ? 'text-red-500 hover:bg-red-500 hover:text-white' : 'text-indigo-400 hover:bg-indigo-500 hover:text-white'}
+                        className={`w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-lg transition-all transform cursor-pointer active:scale-95 pointer-events-auto border 
+                            ${isPending ? (
+                                pendingType === 'restart' ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20 animate-pulse' :
+                                    pendingType === 'kill' ? 'bg-red-500/10 text-red-500 border-red-500/20 animate-pulse' :
+                                        'bg-green-500/10 text-green-500 border-green-500/20 animate-pulse'
+                            ) : s.is_running ? 'bg-white/5 text-tertiary border-white/5 hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/20' : 'bg-white/5 text-tertiary border-white/5 hover:bg-green-500/10 hover:text-green-500 hover:border-green-500/20'}
                         `}
+                        title={isPending ? (pendingType === 'restart' ? "Restarting..." : "Toggling...") : (s.is_running ? "Kill" : "Run")}
                     >
-                        {isPending ? "Wait..." : s.is_running ? "Kill" : "Run"}
+                        {isPending ? (
+                            <div className="text-[10px] items-center justify-center flex font-bold h-full">...</div>
+                        ) : s.is_running ? (
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        ) : (
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                            </svg>
+                        )}
                     </button>
                 </div>
             )}

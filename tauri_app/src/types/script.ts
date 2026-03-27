@@ -45,6 +45,7 @@ export interface ScriptRowProps {
     draggedScriptPath: string | null;
     isEditing: boolean;
     isPending: boolean;
+    pendingType?: "run" | "kill" | "restart" | null;
     isContextMenuOpen: boolean;
     removingTagKeys: string[];
     allUniqueTags: string[];
@@ -68,7 +69,7 @@ export interface HubScriptCardProps {
     draggedScriptPath: string | null;
     editingScript: string | null;
     isContextMenuOpen: boolean;
-    pendingScripts: Set<string>;
+    pendingScripts: Record<string, "run" | "kill" | "restart">;
     removingTags: Set<string>;
     allUniqueTags: string[];
     popoverRef: React.RefObject<HTMLDivElement | null>;

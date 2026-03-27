@@ -24,7 +24,7 @@ interface TreeContextValue {
     onFolderContextMenu: (e: React.MouseEvent, data: any) => void;
     onScriptContextMenu: (e: React.MouseEvent, s: Script) => void;
     editingScript: string | null;
-    pendingScripts: Set<string>;
+    pendingScripts: Record<string, "run" | "kill" | "restart">;
     removingTags: Set<string>;
     allUniqueTags: string[];
     popoverRef: React.MutableRefObject<HTMLDivElement | null>;
@@ -222,7 +222,8 @@ const TreeNodeRenderer = memo(function TreeNodeRenderer({
                                             isDragging={isDragging}
                                             draggedScriptPath={draggedScriptPath}
                                             isEditing={editingScript === s.path}
-                                            isPending={pendingScripts.has(s.path)}
+                                            isPending={!!pendingScripts[s.path]}
+                                            pendingType={pendingScripts[s.path]}
                                             removingTagKeys={removingTagKeys}
                                             allUniqueTags={allUniqueTags}
                                             popoverRef={popoverRef}
@@ -593,7 +594,8 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
                                                                         isDragging={isDragging}
                                                                         draggedScriptPath={draggedScriptPath}
                                                                         isEditing={editingScript === s.path}
-                                                                        isPending={pendingScripts.has(s.path)}
+                                                                        isPending={!!pendingScripts[s.path]}
+                                                                        pendingType={pendingScripts[s.path]}
                                                                         removingTagKeys={removingTagKeys}
                                                                         allUniqueTags={allUniqueTags}
                                                                         popoverRef={popoverRef}
@@ -634,7 +636,8 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
                                                             isDragging={isDragging}
                                                             draggedScriptPath={draggedScriptPath}
                                                             isEditing={editingScript === s.path}
-                                                            isPending={pendingScripts.has(s.path)}
+                                                            isPending={!!pendingScripts[s.path]}
+                                                            pendingType={pendingScripts[s.path]}
                                                             removingTagKeys={removingTagKeys}
                                                             allUniqueTags={allUniqueTags}
                                                             popoverRef={popoverRef}

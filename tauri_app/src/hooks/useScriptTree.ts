@@ -39,7 +39,7 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
     const [editingScript, setEditingScript] = useState<string | null>(null);
     const popoverRef = useRef<HTMLDivElement>(null);
     const [showHidden, setShowHidden] = useState<'none' | 'all' | 'only'>('none');
-    const [pendingScripts, setPendingScripts] = useState<Set<string>>(new Set());
+    const [pendingScripts, setPendingScripts] = useState<Record<string, "run" | "kill" | "restart">>({});
     const [removingTags, setRemovingTags] = useState<Set<string>>(new Set());
     const [folderDurations, setFolderDurations] = useState<Record<string, number>>({});
 
@@ -182,23 +182,24 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
     const stopBurst = useCallback((interval: any, path: string) => {
         if (interval) clearInterval(interval);
         setPendingScripts(prev => {
-            const next = new Set(prev);
-            next.delete(path);
+            const next = { ...prev };
+            delete next[path];
             return next;
         });
     }, []);
 
-    const handleToggle = useCallback(async (script: Script, forceStart = false) => {
-        if (pendingScripts.has(script.path)) return;
-        const wasRunning = script.is_running;
-        if (forceStart && wasRunning) return;
-        setPendingScripts(prev => new Set(prev).add(script.path));
+    const handleToggle = useCallback(async (script: Script, force?: boolean) => {
+        if (pendingScripts[script.path]) return;
+        const type = script.is_running ? "kill" : "run";
+        setPendingScripts(prev => ({ ...prev, [script.path]: type }));
+
         try {
-            if (wasRunning) {
+            if (script.is_running && !force) {
                 await killScript(script.path);
             } else {
                 await runScript(script.path);
             }
+
             let attempts = 0;
             const burstInterval = setInterval(async () => {
                 attempts++;
@@ -206,7 +207,7 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
                     const data = await getScripts();
                     setAllScripts(data);
                     const updated = data.find(s => s.path === script.path);
-                    if (updated && updated.is_running !== wasRunning) {
+                    if (updated && updated.is_running !== script.is_running) {
                         stopBurst(burstInterval, script.path);
                     }
                     if (attempts > 60) stopBurst(burstInterval, script.path);
@@ -221,8 +222,8 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
     }, [pendingScripts, stopBurst]);
 
     const handleRestart = useCallback(async (script: Script) => {
-        if (pendingScripts.has(script.path)) return;
-        setPendingScripts(prev => new Set(prev).add(script.path));
+        if (pendingScripts[script.path]) return;
+        setPendingScripts(prev => ({ ...prev, [script.path]: "restart" }));
         try {
             await invoke("restart_script", { path: script.path });
             let attempts = 0;
