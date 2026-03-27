@@ -52,14 +52,14 @@ function App() {
   });
 
   // --- Kinetic Tuning States (easter egg - values finalized) ---
-  const [motionDecay, setMotionDecay] = useState(() => parseFloat(localStorage.getItem("motion-decay") || "4.0"));
-  const [motionImpulse, setMotionImpulse] = useState(() => parseFloat(localStorage.getItem("motion-impulse") || "1.5"));
-  const [motionImpulseInitial, setMotionImpulseInitial] = useState(() => parseFloat(localStorage.getItem("motion-impulse-initial") || "2.5"));
-  const [motionSpeedBase, setMotionSpeedBase] = useState(() => parseFloat(localStorage.getItem("motion-speed-base") || "0.14"));
-  const [motionSpeedScale, setMotionSpeedScale] = useState(() => parseFloat(localStorage.getItem("motion-speed-scale") || "0.23"));
-  const [motionScaleFactor, setMotionScaleFactor] = useState(() => parseFloat(localStorage.getItem("motion-scale-factor") || "0.14"));
-  const [motionScaleDeadzone, setMotionScaleDeadzone] = useState(() => parseFloat(localStorage.getItem("motion-scale-deadzone") || "1.5"));
-  const [motionImpulseMax, setMotionImpulseMax] = useState(() => parseFloat(localStorage.getItem("motion-impulse-max") || "100.0"));
+  const [motionDecay] = useState(() => parseFloat(localStorage.getItem("motion-decay") || "4.0"));
+  const [motionImpulse] = useState(() => parseFloat(localStorage.getItem("motion-impulse") || "1.5"));
+  const [motionImpulseInitial] = useState(() => parseFloat(localStorage.getItem("motion-impulse-initial") || "2.5"));
+  const [motionSpeedBase] = useState(() => parseFloat(localStorage.getItem("motion-speed-base") || "0.14"));
+  const [motionSpeedScale] = useState(() => parseFloat(localStorage.getItem("motion-speed-scale") || "0.23"));
+  const [motionScaleFactor] = useState(() => parseFloat(localStorage.getItem("motion-scale-factor") || "0.14"));
+  const [motionScaleDeadzone] = useState(() => parseFloat(localStorage.getItem("motion-scale-deadzone") || "1.5"));
+  const [motionImpulseMax] = useState(() => parseFloat(localStorage.getItem("motion-impulse-max") || "100.0"));
 
   // Refs for high-speed access in requestAnimationFrame (no stale closures)
   const motionDecayRef = useRef(motionDecay);
@@ -72,7 +72,6 @@ function App() {
   const motionImpulseMaxRef = useRef(motionImpulseMax);
 
   const momentumRef = useRef(0);
-  const lastMomentumUpdateRef = useRef(performance.now());
   const settingsRotationRef = useRef(0);
 
   // Refs for Direct DOM updates (Performance)

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
 const LanguageSelector = () => {
@@ -28,8 +28,8 @@ const LanguageSelector = () => {
             <button
                 onClick={() => setIsOpen(!isOpen)}
                 className={`group flex items-center space-x-3 px-4 py-2.5 rounded-xl border transition-all duration-300 ${isOpen
-                        ? "bg-white/10 border-indigo-500/50 shadow-[0_0_20px_rgba(99,102,241,0.2)]"
-                        : "bg-white/[0.03] border-white/5 hover:bg-white/5 hover:border-white/10"
+                    ? "bg-white/10 border-indigo-500/50 shadow-[0_0_20px_rgba(99,102,241,0.2)]"
+                    : "bg-white/[0.03] border-white/5 hover:bg-white/5 hover:border-white/10"
                     }`}
             >
                 <span className="text-lg leading-none">{currentLang.flag}</span>
@@ -69,8 +69,8 @@ const LanguageSelector = () => {
                                 setIsOpen(false);
                             }}
                             className={`w-full px-4 py-3 flex items-center justify-between transition-all group ${lang.code === currentLang.code
-                                    ? "bg-indigo-500/10 text-indigo-400"
-                                    : "text-secondary hover:bg-white/5 hover:text-white"
+                                ? "bg-indigo-500/10 text-indigo-400"
+                                : "text-secondary hover:bg-white/5 hover:text-white"
                                 }`}
                         >
                             <div className="flex items-center space-x-3">

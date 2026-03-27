@@ -540,6 +540,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
                                                         allUniqueTags={allUniqueTags}
                                                         popoverRef={popoverRef}
                                                         visibilityMode={showHidden}
+                                                        isContextMenuOpen={contextMenu?.type === 'script' && contextMenu?.data?.path === s.path}
                                                         onMouseDown={handleCustomMouseDown}
                                                         onToggle={handleToggle}
                                                         onStartEditing={startEditing}
