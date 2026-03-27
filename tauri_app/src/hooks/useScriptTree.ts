@@ -43,7 +43,7 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
             const data = await getScripts();
             startTransition(() => {
                 setAllScripts(prev => {
-                    if (prev.length !== data.length) return data; // new scripts added/removed
+                    if (prev.length !== data.length) return data;
 
                     const prevMap = new Map(prev.map(s => [s.path, s]));
                     let anyChanged = false;
@@ -51,13 +51,9 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
                     const merged = data.map(d => {
                         const p = prevMap.get(d.path);
                         if (!p) return d;
-
-                        // Tags are owned by the Tauri event listener — NEVER overwrite from poll
-                        // Poll only carries process status (is_running) and visibility (is_hidden)
                         if (p.is_running === d.is_running && p.is_hidden === d.is_hidden) return p;
-
                         anyChanged = true;
-                        return { ...d, tags: p.tags }; // keep local tags, take new status
+                        return { ...d, tags: p.tags };
                     });
 
                     return anyChanged ? merged : prev;
@@ -70,13 +66,18 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
         }
     };
 
-    // Keep sidebar tags up-to-date instantly based on local allScripts state
     useEffect(() => {
-        const tagsKey = allScripts.flatMap(s => s.tags).sort().join(',');
+        const systemTagNames = ["hub", "fav", "favourites"];
+        const filteredScripts = allScripts.map(s => ({
+            ...s,
+            tags: s.tags.filter(t => !systemTagNames.includes(t.toLowerCase()))
+        }));
+
+        const tagsKey = filteredScripts.flatMap(s => s.tags).sort().join(',');
         if (tagsKey !== lastTagsKeyRef.current) {
             lastTagsKeyRef.current = tagsKey;
             const tags = new Set<string>();
-            allScripts.forEach(s => s.tags.forEach(t => tags.add(t)));
+            filteredScripts.forEach(s => s.tags.forEach(t => tags.add(t)));
             onTagsLoaded(Array.from(tags).sort());
         }
     }, [allScripts, onTagsLoaded]);
@@ -85,8 +86,6 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
         fetchData();
         const interval = setInterval(fetchData, 3000);
 
-        // Listen to Tauri events pushed from Rust after each atomic tag write
-        // This is guaranteed to be correct (post-save), replacing the fragile DOM event approach
         let unlisten: (() => void) | null = null;
         import('@tauri-apps/api/event').then(({ listen }) => {
             listen<{ path: string; tags: string[] }>('script-tags-changed', (event) => {
@@ -103,14 +102,12 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
         };
     }, []);
 
-
     const toggleFolder = useCallback((path: string) => {
         setExpandedFolders(prev => {
             const isCurrentlyExpanded = prev[path] !== false;
             return { ...prev, [path]: !isCurrentlyExpanded };
         });
 
-        // Scroll to folder header when collapsing (if it went out of view)
         requestAnimationFrame(() => {
             const header = folderRefs.current.get(path);
             if (header) {
@@ -124,10 +121,7 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
                 }
             }
         });
-    }, []); // ← no deps: reads prev state via functional setState
-
-
-
+    }, []);
 
     const stopBurst = useCallback((interval: any, path: string) => {
         if (interval) clearInterval(interval);
@@ -168,8 +162,7 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
             console.error(e);
             stopBurst(null, script.path);
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [pendingScripts]);
+    }, [pendingScripts, stopBurst]);
 
     const stopEditing = useCallback(() => setEditingScript(null), []);
     const startEditing = useCallback((s: Script) => setEditingScript(s.path), []);
@@ -216,7 +209,6 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
             console.error(e);
             setAllScripts(prev => prev.map(s => s.path === script.path ? { ...s, tags: script.tags } : s));
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [removingTags]);
 
     const handleCustomMouseDown = useCallback((e: React.MouseEvent, script: Script) => {
@@ -292,10 +284,8 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
                 if (!s.tags.includes(filterTag)) return false;
             }
 
-            // Common visibility logic
             if (!showHidden && s.is_hidden) return false;
 
-            // Advanced Search Prefix logic
             const rawQuery = searchQuery.trim().toLowerCase();
             if (rawQuery) {
                 if (rawQuery.startsWith("file:")) {
@@ -307,13 +297,10 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
                 } else if (rawQuery.startsWith("path:")) {
                     const q = rawQuery.replace("path:", "").trim();
                     if (q) {
-                        // Match only the folder part (parent directory)
-                        // This excludes the filename itself from the path match
                         const folderPath = s.path.toLowerCase().replace(s.filename.toLowerCase(), "");
                         if (!folderPath.includes(q)) return false;
                     }
                 } else {
-                    // Default logic (name OR path)
                     const matchesName = s.filename.toLowerCase().includes(rawQuery);
                     const matchesPath = s.path.toLowerCase().includes(rawQuery);
                     if (!matchesName && !matchesPath) return false;
@@ -350,12 +337,12 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
             }
             current.scripts.push(script);
         });
+
         const compact = (node: TreeNode): TreeNode => {
             const childKeys = Object.keys(node.children);
             for (const key of childKeys) {
                 node.children[key] = compact(node.children[key]);
             }
-
             if (node.name !== "Root" && childKeys.length === 1 && node.scripts.length === 0) {
                 const child = node.children[childKeys[0]];
                 return {
@@ -369,7 +356,36 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
         return compact(root);
     }, [filtered]);
 
-    // Auto-expand everything when searching
+    const groupedHub = useMemo(() => {
+        if (filterTag !== "Хаб") return null;
+        const systemTags = ["hub", "fav", "favourites"];
+        const groups: Record<string, Script[]> = {};
+        const scriptsWithoutTags: Script[] = [];
+        filtered.forEach(s => {
+            const userTags = s.tags.filter(t => !systemTags.includes(t.toLowerCase()));
+            if (userTags.length === 0) {
+                scriptsWithoutTags.push(s);
+            } else {
+                userTags.forEach(tag => {
+                    if (!groups[tag]) groups[tag] = [];
+                    groups[tag].push(s);
+                });
+            }
+        });
+        const sortedTags = Object.keys(groups).sort((a, b) => a.localeCompare(b));
+        const result: { tag: string; scripts: Script[] }[] = sortedTags.map(tag => ({
+            tag,
+            scripts: groups[tag].sort((a, b) => a.filename.localeCompare(b.filename))
+        }));
+        if (scriptsWithoutTags.length > 0) {
+            result.push({
+                tag: "Общие",
+                scripts: scriptsWithoutTags.sort((a, b) => a.filename.localeCompare(b.filename))
+            });
+        }
+        return result;
+    }, [filtered, filterTag]);
+
     useEffect(() => {
         if (searchQuery.trim().length > 0) {
             setIsAllExpanded(true);
@@ -408,13 +424,11 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
     }, []);
 
     return {
-        // state
-        loading, allScripts, filtered, tree,
+        loading, allScripts, filtered, tree, groupedHub,
         expandedFolders, isAllExpanded,
         editingScript, pendingScripts, removingTags,
         showHidden, allUniqueTags, searchQuery,
         popoverRef, folderRefs,
-        // actions
         setShowHidden, setSearchQuery,
         toggleFolder, toggleAll, setFolderExpansionRecursive,
         handleToggle, startEditing, stopEditing,

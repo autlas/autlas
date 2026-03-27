@@ -70,7 +70,7 @@ const HubScriptCard = memo(function HubScriptCard({
                     />
                 ) : (
                     <div className="flex flex-wrap gap-2 pointer-events-none">
-                        {s.tags.map(t => {
+                        {s.tags.filter(t => !["hub", "fav", "favourites"].includes(t.toLowerCase())).map(t => {
                             const isRemoving = removingTags.has(`${s.path}-${t}`);
                             return (
                                 <div key={t}

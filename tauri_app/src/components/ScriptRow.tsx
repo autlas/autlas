@@ -1,9 +1,7 @@
 import React, { useState, memo, useRef, useEffect } from "react";
-
 import { ScriptRowProps } from "../types/script";
 import TagPickerPopover from "./TagPickerPopover";
 import { HighlightText } from "./HighlightText";
-
 
 const ScriptRow = memo(function ScriptRow({
     s, isDragging, draggedScriptPath, isEditing, isPending, removingTagKeys,
@@ -17,12 +15,13 @@ const ScriptRow = memo(function ScriptRow({
     const containerRef = useRef<HTMLDivElement>(null);
     const measureRef = useRef<HTMLDivElement>(null);
     const [tagWidths, setTagWidths] = useState<number[]>([]);
-    // Track previous tags to only animate NEWLY ADDED tags (not on initial render)
     const prevTagsRef = useRef<string[]>(s.tags);
     const newTagsSet = new Set(s.tags.filter(t => !prevTagsRef.current.includes(t)));
     const addBtnRef = useRef<HTMLButtonElement>(null);
 
-    // Async measurement
+    // Filtered tags for display (hide system tags)
+    const displayedTags = s.tags.filter(t => !["hub", "fav", "favourites"].includes(t.toLowerCase()));
+
     useEffect(() => {
         prevTagsRef.current = s.tags;
         if (measureRef.current) {
@@ -31,15 +30,12 @@ const ScriptRow = memo(function ScriptRow({
         }
     }, [s.tags]);
 
-    // Force visibleCount to sync safely without tearing logic
     useEffect(() => {
         if (!containerRef.current) return;
 
         const update = () => {
             if (!containerRef.current) return;
             const containerWidth = containerRef.current.offsetWidth;
-
-            // Wait for flexbox to inflate row correctly
             if (containerWidth < 30) return;
 
             const ADD_BTN_WIDTH = 36;
@@ -47,14 +43,12 @@ const ScriptRow = memo(function ScriptRow({
             const available = containerWidth - ADD_BTN_WIDTH;
 
             if (tagWidths.length === 0) {
-                setVisibleCount(s.tags.length);
+                setVisibleCount(displayedTags.length);
                 return;
             }
 
-            // tagWidths is stale (measurement hasn't run yet for new tags)
-            // Show all tags and wait — measurement effect will trigger a re-run
-            if (tagWidths.length < s.tags.length) {
-                setVisibleCount(s.tags.length);
+            if (tagWidths.length < displayedTags.length) {
+                setVisibleCount(displayedTags.length);
                 return;
             }
 
@@ -62,7 +56,6 @@ const ScriptRow = memo(function ScriptRow({
             let count = 0;
 
             for (let i = 0; i < tagWidths.length; i++) {
-                // If it's the absolute last tag, we don't need room for a counter!
                 const isLast = (i === tagWidths.length - 1);
                 const reqSpace = totalWidth + tagWidths[i] + (isLast ? 0 : COUNTER_WIDTH);
 
@@ -73,7 +66,6 @@ const ScriptRow = memo(function ScriptRow({
                 count++;
             }
 
-            // Always gracefully show at least 1 tag if we have ANY space, CSS flex will compress text
             if (count === 0 && tagWidths.length > 0) {
                 count = 1;
             }
@@ -89,7 +81,7 @@ const ScriptRow = memo(function ScriptRow({
         requestAnimationFrame(update);
 
         return () => observer.disconnect();
-    }, [s.tags, tagWidths, isDragging]);
+    }, [displayedTags, tagWidths, isDragging]);
 
     const handleMouseDown = (e: React.MouseEvent) => {
         if (e.button === 2) {
@@ -137,13 +129,13 @@ const ScriptRow = memo(function ScriptRow({
                     <div ref={containerRef} className="flex-1 flex items-center pr-2 pointer-events-none min-w-[130px] w-0">
                         {/* Hidden measuring container */}
                         <div ref={measureRef} className="absolute opacity-0 pointer-events-none flex whitespace-nowrap -z-50">
-                            {s.tags.map(t => (
+                            {displayedTags.map(t => (
                                 <span key={t} className="text-xs font-bold px-3 h-7 rounded-lg mr-2 leading-none flex items-center bg-white/5 border border-white/5">{t}</span>
                             ))}
                         </div>
 
                         {/* Visible tags */}
-                        {s.tags.slice(0, visibleCount).map(t => {
+                        {displayedTags.slice(0, visibleCount).map(t => {
                             const isRemoving = removingTagKeys.includes(`${s.path}-${t}`);
                             return (
                                 <div key={t}
@@ -167,12 +159,10 @@ const ScriptRow = memo(function ScriptRow({
                                 </div>
                             );
                         })}
-
-                        {/* Counter pill */}
-                        {visibleCount < s.tags.length && (
-                            <div className="h-7 px-2 rounded-lg bg-white/5 border border-white/10 text-[10px] font-black text-indigo-400 flex items-center justify-center mr-2 flex-shrink-0 cursor-default shadow-xl" title={s.tags.slice(visibleCount).join(", ")}>
-                                +{s.tags.length - visibleCount}
-                            </div>
+                        {displayedTags.length > visibleCount && (
+                            <span className="h-7 px-2 rounded-lg bg-white/5 border border-white/10 text-[10px] font-black text-indigo-400 flex items-center justify-center mr-2 flex-shrink-0 cursor-default shadow-xl">
+                                +{displayedTags.length - visibleCount}
+                            </span>
                         )}
 
                         <button
@@ -187,7 +177,7 @@ const ScriptRow = memo(function ScriptRow({
                             }}
                             onMouseDown={(e) => e.stopPropagation()}
                             onDoubleClick={(e) => e.stopPropagation()}
-                            className={`w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-lg bg-white/5 text-tertiary border border-white/5 hover:text-indigo-400 hover:bg-white/10 transition-all shadow-lg group/plus cursor-pointer pointer-events-auto ${isEditing ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+                            className={`w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-lg bg-white/5 text-tertiary border border-white/5 hover:text-indigo-400 hover:bg-white/10 transition-all shadow-lg group/plus cursor-pointer pointer-events-auto ${isEditing ? 'opacity-100' : 'opacity-0 group-hover/opacity-100'}`}
                         >
                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                         </button>
@@ -207,24 +197,22 @@ const ScriptRow = memo(function ScriptRow({
                 )}
             </div>
 
-            {
-                !isDragging && (
-                    <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center space-x-2 pointer-events-auto">
-                        <button
-                            onClick={(e) => { e.stopPropagation(); onToggle(s); }}
-                            onMouseDown={(e) => e.stopPropagation()}
-                            onDoubleClick={(e) => e.stopPropagation()}
-                            className={`text-xs font-bold px-4 h-7 rounded-lg bg-white/5 border border-white/5 shadow-xl transition-all cursor-pointer active:scale-95 flex items-center justify-center
+            {!isDragging && (
+                <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center space-x-2 pointer-events-auto">
+                    <button
+                        onClick={(e) => { e.stopPropagation(); onToggle(s); }}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onDoubleClick={(e) => e.stopPropagation()}
+                        className={`text-xs font-bold px-4 h-7 rounded-lg bg-white/5 border border-white/5 shadow-xl transition-all cursor-pointer active:scale-95 flex items-center justify-center
                             ${isPending ? 'text-white/20 animate-pulse cursor-wait' :
-                                    s.is_running ? 'text-red-500 hover:bg-red-500 hover:text-white' : 'text-indigo-400 hover:bg-indigo-500 hover:text-white'}
+                                s.is_running ? 'text-red-500 hover:bg-red-500 hover:text-white' : 'text-indigo-400 hover:bg-indigo-500 hover:text-white'}
                         `}
-                        >
-                            {isPending ? "Wait..." : s.is_running ? "Kill" : "Run"}
-                        </button>
-                    </div>
-                )
-            }
-        </div >
+                    >
+                        {isPending ? "Wait..." : s.is_running ? "Kill" : "Run"}
+                    </button>
+                </div>
+            )}
+        </div>
     );
 }, (prev, next) => {
     return prev.s.path === next.s.path &&

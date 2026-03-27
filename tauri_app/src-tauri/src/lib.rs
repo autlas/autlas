@@ -300,6 +300,26 @@ async fn add_script_tag(
 }
 
 #[tauri::command]
+async fn remove_script_tag(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, TagsState>,
+    path: String,
+    tag: String,
+) -> Result<(), String> {
+    let current_tags = {
+        let map = state.0.lock().map_err(|e| e.to_string())?;
+        map.get(&path.to_lowercase()).cloned().unwrap_or_default()
+    };
+
+    let tag_lower = tag.to_lowercase();
+    let new_tags: Vec<String> = current_tags.into_iter()
+        .filter(|t| t.to_lowercase() != tag_lower)
+        .collect();
+
+    save_tags_and_emit(&app, &state, path, new_tags)
+}
+
+#[tauri::command]
 async fn rename_tag(old_tag: String, new_tag: String) -> Result<(), String> {
     let _metadata = load_metadata();
     let ini_path = get_ini_path();
@@ -505,6 +525,7 @@ pub fn run() {
             kill_script,
             save_script_tags,
             add_script_tag,
+            remove_script_tag,
             rename_tag,
             save_tag_order,
             get_tag_order,

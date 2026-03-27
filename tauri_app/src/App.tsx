@@ -347,8 +347,9 @@ function App() {
   const handleCustomDrop = async (path: string, tag: string) => {
     setDragOverTag(null);
     if (path && tag) {
+      const tagToSave = tag === "Хаб" ? "hub" : tag;
       try {
-        await invoke("add_script_tag", { path, tag });
+        await invoke("add_script_tag", { path, tag: tagToSave });
         // Rust emits 'script-tags-changed' after saving — useScriptTree listens and updates instantly
       } catch (err) {
         console.warn("[App] FAIL: Backend refused custom engine update", err);
@@ -515,15 +516,31 @@ function App() {
             ].map((tab) => (
               <li
                 key={tab.id}
-                className={`px-6 h-[62px] rounded-2xl cursor-pointer text-sm font-bold border-b-2 flex items-center justify-between ${draggedScript && tab.id !== dragOverTag ? 'opacity-20 blur-[1px]' : ''
-                  } ${activeTab === tab.id && viewMode !== "settings"
-                    ? "bg-gradient-to-r from-indigo-500 to-purple-500 border-indigo-400 shadow-xl shadow-indigo-900/40 text-white"
-                    : "text-tertiary border-transparent hover:text-secondary tag-hover"
+                onMouseEnter={() => {
+                  if (draggedScript && !draggedScript.tags.includes("hub")) {
+                    setDragOverTag(tab.id);
+                  }
+                }}
+                onMouseLeave={() => {
+                  if (draggedScript && dragOverTag === tab.id) {
+                    setDragOverTag(null);
+                  }
+                }}
+                className={`px-6 h-[62px] rounded-2xl cursor-pointer text-sm font-bold border-b-2 transition-all flex items-center justify-between
+                  ${draggedScript
+                    ? (draggedScript.tags.includes("hub")
+                      ? "opacity-20 blur-[1px] border-transparent"
+                      : `text-indigo-400 border-indigo-500/20 tag-pulse-target ${dragOverTag === tab.id ? "tag-drop-hover" : ""}`)
+                    : (activeTab === tab.id && viewMode !== "settings"
+                      ? "bg-gradient-to-r from-indigo-500 to-purple-500 border-indigo-400 shadow-xl shadow-indigo-900/40 text-white"
+                      : "text-tertiary border-transparent hover:text-secondary tag-hover")
                   }`}
                 style={{
                   backgroundColor: (activeTab === tab.id && viewMode !== "settings")
                     ? 'transparent'
-                    : 'var(--bg-tag)'
+                    : (draggedScript && dragOverTag === tab.id)
+                      ? undefined
+                      : 'var(--bg-tag)'
                 }}
                 onClick={() => !draggedScript && handleTabClick(tab.id)}
               >
@@ -1004,6 +1021,30 @@ function App() {
                     setRefreshKey(p => p + 1);
                   }}
                 />
+                <div className="h-[1px] bg-white/5 my-1" />
+                {contextMenu.data.tags.some((t: string) => ["hub", "fav", "favourites"].includes(t.toLowerCase())) ? (
+                  <ContextMenuItem
+                    label="Открепить из Хаба"
+                    icon="✖"
+                    onClick={async () => {
+                      const tagToRemove = contextMenu.data.tags.find((t: string) => ["hub", "fav", "favourites"].includes(t.toLowerCase()));
+                      if (tagToRemove) {
+                        await invoke("remove_script_tag", { path: contextMenu.data.path, tag: tagToRemove });
+                      }
+                      setContextMenu(null);
+                    }}
+                  />
+                ) : (
+                  <ContextMenuItem
+                    label="Закрепить в Хабе"
+                    icon="📌"
+                    onClick={async () => {
+                      await invoke("add_script_tag", { path: contextMenu.data.path, tag: "hub" });
+                      setContextMenu(null);
+                    }}
+                  />
+                )}
+                <div className="h-[1px] bg-white/5 my-1" />
                 <ContextMenuItem
                   label="Редактировать"
                   icon="📝"
