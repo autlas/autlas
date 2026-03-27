@@ -2,6 +2,7 @@ import React, { useState, memo } from "react";
 import { HubScriptCardProps } from "../types/script";
 import TagPickerPopover from "./TagPickerPopover";
 import { HighlightText } from "./HighlightText";
+import { useTranslation } from "react-i18next";
 
 
 const HubScriptCard = memo(function HubScriptCard({
@@ -9,6 +10,7 @@ const HubScriptCard = memo(function HubScriptCard({
     allUniqueTags, popoverRef, onMouseDown, onToggle, onStartEditing, onAddTag, onRemoveTag, onCloseEditing,
     onScriptContextMenu
 }: HubScriptCardProps) {
+    const { t } = useTranslation();
 
     const [isLeftPressed, setIsLeftPressed] = useState(false);
 
@@ -70,23 +72,23 @@ const HubScriptCard = memo(function HubScriptCard({
                     />
                 ) : (
                     <div className="flex flex-wrap gap-2 pointer-events-none">
-                        {s.tags.filter(t => !["hub", "fav", "favourites"].includes(t.toLowerCase())).map(t => {
-                            const isRemoving = removingTags.has(`${s.path}-${t}`);
+                        {s.tags.filter(tag => !["hub", "fav", "favourites"].includes(tag.toLowerCase())).map(tag => {
+                            const isRemoving = removingTags.has(`${s.path}-${tag}`);
                             return (
-                                <div key={t}
+                                <div key={tag}
                                     className="relative group/tag inline-flex items-center pointer-events-auto"
                                     onDoubleClick={(e) => e.stopPropagation()}
                                 >
                                     <div className={isRemoving ? 'animate-tag-out' : 'animate-tag-in'}>
-                                        <span className={`text-xs px-5 py-3 bg-white/5 border border-white/5 text-secondary font-bold rounded-xl shadow-lg leading-none flex items-center transition-opacity ${isDragging ? 'opacity-20' : ''}`}>{t}</span>
+                                        <span className={`text-xs px-5 py-3 bg-white/5 border border-white/5 text-secondary font-bold rounded-xl shadow-lg leading-none flex items-center transition-opacity ${isDragging ? 'opacity-20' : ''}`}>{tag}</span>
                                     </div>
                                     {!isDragging && (
                                         <button
-                                            onClick={(e) => { e.stopPropagation(); onRemoveTag(s, t); }}
+                                            onClick={(e) => { e.stopPropagation(); onRemoveTag(s, tag); }}
                                             onMouseDown={(e) => e.stopPropagation()}
                                             onDoubleClick={(e) => e.stopPropagation()}
                                             className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover/tag:opacity-100 transition-all shadow-xl hover:scale-125 active:scale-90 cursor-pointer z-50 border-none"
-                                            title={`Удалить тег ${t}`}
+                                            title={t("context.delete_tag_simple", { tag: tag })}
                                         >
                                             <svg width="10" height="2" viewBox="0 0 10 2" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                                                 <path d="M1 1h8" />

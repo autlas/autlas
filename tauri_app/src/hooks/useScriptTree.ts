@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef, useCallback, startTransition } from "react";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { getScripts, Script, runScript, killScript } from "../api";
 import { invoke } from "@tauri-apps/api/core";
 import { TreeNode } from "../types/script";
@@ -13,6 +14,7 @@ interface UseScriptTreeOptions {
 }
 
 export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, searchQuery, setSearchQuery }: UseScriptTreeOptions) {
+    const { t } = useTranslation();
     const [allScripts, setAllScripts] = useState<Script[]>([]);
     const [loading, setLoading] = useState(true);
     const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({});
@@ -267,20 +269,20 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
 
     const filtered = useMemo(() => {
         let list = [...allScripts];
-        if (filterTag === "Хаб") {
+        if (filterTag === "hub") {
             return list.filter(s => s.is_running || s.tags.some(t => t.toLowerCase() === "hub" || t.toLowerCase() === "fav" || t.toLowerCase() === "favourites"));
         }
 
         list = list.filter(s => {
-            if (filterTag === "Запущенные") {
+            if (filterTag === "running") {
                 if (!s.is_running) return false;
-            } else if (filterTag === "Без тегов") {
+            } else if (filterTag === "no_tags") {
                 if (s.tags.length > 0) return false;
-            } else if (filterTag === "Скрытые") {
+            } else if (filterTag === "hidden") {
                 if (!s.is_hidden) return false;
-            } else if (filterTag === "ТЕГИ") {
+            } else if (filterTag === "tags") {
                 if (s.tags.length === 0) return false;
-            } else if (filterTag !== "Все" && filterTag !== "Все скрипты" && filterTag !== "Дерево" && filterTag !== "Хаб" && filterTag !== "") {
+            } else if (filterTag !== "all" && filterTag !== "all_scripts" && filterTag !== "tree" && filterTag !== "hub" && filterTag !== "") {
                 if (!s.tags.includes(filterTag)) return false;
             }
 
@@ -357,7 +359,7 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
     }, [filtered]);
 
     const groupedHub = useMemo(() => {
-        if (filterTag !== "Хаб") return null;
+        if (filterTag !== "hub") return null;
         const systemTags = ["hub", "fav", "favourites"];
         const groups: Record<string, Script[]> = {};
         const scriptsWithoutTags: Script[] = [];
@@ -379,7 +381,7 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
         }));
         if (scriptsWithoutTags.length > 0) {
             result.push({
-                tag: "Общие",
+                tag: t("hub.general", "General"),
                 scripts: scriptsWithoutTags.sort((a, b) => a.filename.localeCompare(b.filename))
             });
         }

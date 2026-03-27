@@ -2,6 +2,7 @@ import React, { useState, memo, useRef, useEffect } from "react";
 import { ScriptRowProps } from "../types/script";
 import TagPickerPopover from "./TagPickerPopover";
 import { HighlightText } from "./HighlightText";
+import { useTranslation } from "react-i18next";
 
 const ScriptRow = memo(function ScriptRow({
     s, isDragging, draggedScriptPath, isEditing, isPending, removingTagKeys,
@@ -9,6 +10,7 @@ const ScriptRow = memo(function ScriptRow({
     onMouseDown, onDoubleClick, onToggle, onStartEditing, onAddTag, onRemoveTag, onCloseEditing,
     onScriptContextMenu
 }: ScriptRowProps) {
+    const { t } = useTranslation();
 
     const [isLeftPressed, setIsLeftPressed] = useState(false);
     const [visibleCount, setVisibleCount] = useState(s.tags.length);
@@ -135,24 +137,24 @@ const ScriptRow = memo(function ScriptRow({
                         </div>
 
                         {/* Visible tags */}
-                        {displayedTags.slice(0, visibleCount).map(t => {
-                            const isRemoving = removingTagKeys.includes(`${s.path}-${t}`);
+                        {displayedTags.slice(0, visibleCount).map(tag => {
+                            const isRemoving = removingTagKeys.includes(`${s.path}-${tag}`);
                             return (
-                                <div key={t}
+                                <div key={tag}
                                     className="relative group/tag inline-flex items-center h-7 mr-2 flex-shrink-0 pointer-events-auto"
                                     onDoubleClick={(e) => e.stopPropagation()}
                                 >
-                                    <div className={isRemoving ? 'animate-tag-out' : (newTagsSet.has(t) ? 'animate-tag-in' : '')}>
+                                    <div className={isRemoving ? 'animate-tag-out' : (newTagsSet.has(tag) ? 'animate-tag-in' : '')}>
                                         <span className="text-xs font-bold px-3 h-7 rounded-lg bg-white/[0.03] text-tertiary border border-white/10 cursor-default shadow-lg flex items-center justify-center">
-                                            {t}
+                                            {tag}
                                         </span>
                                     </div>
                                     <button
-                                        onClick={(e) => { e.stopPropagation(); onRemoveTag(s, t); }}
+                                        onClick={(e) => { e.stopPropagation(); onRemoveTag(s, tag); }}
                                         onMouseDown={(e) => e.stopPropagation()}
                                         onDoubleClick={(e) => e.stopPropagation()}
                                         className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover/tag:opacity-100 transition-all shadow-lg hover:scale-125 active:scale-90 cursor-pointer z-50 pointer-events-auto border-none"
-                                        title={`Удалить тег ${t}`}
+                                        title={t("context.delete_tag_simple", { tag: tag })}
                                     >
                                         <svg width="8" height="2" viewBox="0 0 8 2" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M1 1h6" /></svg>
                                     </button>

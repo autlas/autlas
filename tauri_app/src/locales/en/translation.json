@@ -42,9 +42,33 @@
         "devtools_desc": "Open developer tools console",
         "close": "Close"
     },
+    "context": {
+        "stop": "Stop",
+        "run": "Run",
+        "unpin": "Unpin from Hub",
+        "pin": "Pin to Hub",
+        "edit": "Edit",
+        "show_in_folder": "Show in folder",
+        "copy_path": "Copy Path",
+        "rename": "Rename",
+        "delete_tag": "Delete Tag",
+        "delete_tag_simple": "Remove tag \"{{tag}}\"",
+        "delete_tag_confirm": "Are you sure you want to delete tag \"{{tag}}\" from all scripts and database?",
+        "expand_all": "Expand all nested",
+        "collapse_all": "Collapse all",
+        "hide_hidden": "Hide 'Hidden'",
+        "show_hidden": "Show 'Hidden'"
+    },
     "hub": {
         "empty_channel": "Empty channel...",
         "empty_tree": "Empty tree section..."
+    },
+    "search": {
+        "placeholder": "Search scripts...",
+        "tag_name": "Tag name...",
+        "new_tag": "Search or new tag...",
+        "create": "Create \"{{query}}\"",
+        "mode": "Mode: {{mode}}"
     },
     "actions": {
         "run": "Run",

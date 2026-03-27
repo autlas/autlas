@@ -10,12 +10,12 @@ const MemoizedScriptTree = React.memo(ScriptTree);
 
 function App() {
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState(() => localStorage.getItem("ahk_active_tab") || "Хаб");
+  const [activeTab, setActiveTab] = useState(() => localStorage.getItem("ahk_active_tab") || "hub");
   const [userTags, setUserTags] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<"tree" | "hub" | "settings">(() => {
-    const tab = localStorage.getItem("ahk_active_tab") || "Хаб";
-    if (tab === "Настройки") return "settings";
-    if (tab === "Хаб") return "hub";
+    const tab = localStorage.getItem("ahk_active_tab") || "hub";
+    if (tab === "settings") return "settings";
+    if (tab === "hub") return "hub";
     return "tree";
   });
 
@@ -35,7 +35,7 @@ function App() {
   const [searchQuery, setSearchQuery] = useState("");
   const [displayMode, setDisplayMode] = useState<"tree" | "tiles" | "list">(() => {
     // Determine which mode to load based on where we are starting
-    const isHub = (localStorage.getItem("ahk_active_tab") || "Хаб") === "Хаб";
+    const isHub = (localStorage.getItem("ahk_active_tab") || "hub") === "hub";
     const key = isHub ? "ahk_hub_display_mode" : "ahk_tree_display_mode";
     return (localStorage.getItem(key) as "tree" | "tiles" | "list") || (isHub ? "tiles" : "tree");
   });
@@ -301,16 +301,16 @@ function App() {
     setActiveTab(tab);
     localStorage.setItem("ahk_active_tab", tab);
 
-    if (tab === "Хаб") {
+    if (tab === "hub") {
       setViewMode("hub");
       const savedMode = (localStorage.getItem("ahk_hub_display_mode") as any) || "tiles";
       setDisplayMode(savedMode);
-    } else if (tab === "Все" || tab === "ТЕГИ" || tab === "Без тегов") {
+    } else if (tab === "all" || tab === "tags" || tab === "no_tags") {
       setViewMode("tree");
       const savedMode = (localStorage.getItem("ahk_tree_display_mode") as any) || "tree";
       setDisplayMode(savedMode);
     }
-    else if (tab === "Настройки") {
+    else if (tab === "settings") {
       setViewMode("settings");
       // Use initial impulse if we are currently stopped
       const kick = (momentumRef.current + pendingImpulseRef.current) <= 0.05 ? motionImpulseInitialRef.current : motionImpulseRef.current;
@@ -328,7 +328,7 @@ function App() {
 
   const toggleDisplayMode = (mode: "tree" | "tiles" | "list") => {
     setDisplayMode(mode);
-    const key = activeTab === "Хаб" ? "ahk_hub_display_mode" : "ahk_tree_display_mode";
+    const key = activeTab === "hub" ? "ahk_hub_display_mode" : "ahk_tree_display_mode";
     localStorage.setItem(key, mode);
   };
 
@@ -350,7 +350,7 @@ function App() {
   const handleCustomDrop = async (path: string, tag: string) => {
     setDragOverTag(null);
     if (path && tag) {
-      const tagToSave = tag === "Хаб" ? "hub" : tag;
+      const tagToSave = tag === "hub" ? "hub" : tag;
       try {
         await invoke("add_script_tag", { path, tag: tagToSave });
         // Rust emits 'script-tags-changed' after saving — useScriptTree listens and updates instantly
@@ -515,7 +515,7 @@ function App() {
           {/* Group 1: Hub */}
           <ul className="space-y-1.5">
             {[
-              { id: "Хаб", label: t("sidebar.hub", "Hub"), icon: "" }
+              { id: "hub", label: t("sidebar.hub", "Hub"), icon: "" }
             ].map((tab) => (
               <li
                 key={tab.id}
@@ -550,7 +550,7 @@ function App() {
                 <div className="flex items-center space-x-4 pointer-events-none">
                   <span className="text-lg tracking-tight">{tab.label}</span>
                 </div>
-                {activeTab !== "Хаб" && <div className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(79,70,229,0.5)]"></div>}
+                {activeTab !== "hub" && <div className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(79,70,229,0.5)]"></div>}
               </li>
             ))}
           </ul>
@@ -560,8 +560,8 @@ function App() {
           {/* Group 2: Global Filters */}
           <ul className="space-y-1.5">
             {[
-              { id: "Все", label: t("sidebar.all", "All"), icon: "" },
-              { id: "Без тегов", label: t("sidebar.no_tags", "Untagged"), icon: "" }
+              { id: "all", label: t("sidebar.all", "All"), icon: "" },
+              { id: "no_tags", label: t("sidebar.no_tags", "Untagged"), icon: "" }
             ].map((tab) => (
               <li
                 key={tab.id}
@@ -587,8 +587,8 @@ function App() {
           {/* Group 3: Tags Header */}
           <div className="flex flex-col space-y-4">
             <div
-              className={`px-6 flex items-center justify-between group cursor-pointer ${activeTab === "ТЕГИ" ? "text-indigo-400" : "text-tertiary"}`}
-              onClick={() => handleTabClick("ТЕГИ")}
+              className={`px-6 flex items-center justify-between group cursor-pointer ${activeTab === "tags" ? "text-indigo-400" : "text-tertiary"}`}
+              onClick={() => handleTabClick("tags")}
             >
               <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-50 group-hover:opacity-100 transition-opacity">{t("sidebar.tags", "TAGS")}</span>
             </div>
@@ -752,7 +752,7 @@ function App() {
                     autoFocus
                     type="text"
                     className="w-full bg-transparent border-none outline-none text-sm font-bold text-white placeholder:text-white/20"
-                    placeholder="Имя тега..."
+                    placeholder={t("search.tag_name")}
                     value={newTagName}
                     onChange={(e) => setNewTagName(e.target.value)}
                     onBlur={() => setIsCreatingTagFor(null)}
@@ -774,7 +774,7 @@ function App() {
 
         <div className="flex items-center space-x-3 w-full">
           <button
-            onClick={() => handleTabClick("Настройки")}
+            onClick={() => handleTabClick("settings")}
             className={`flex-1 h-12 rounded-xl flex items-center justify-center transition-all border-b-2 group cursor-pointer ${draggedScript ? 'opacity-20 blur-[1px]' : ''
               } ${viewMode === "settings"
                 ? "text-indigo-400 border-indigo-500 shadow-lg tag-active bg-white/5"
@@ -803,7 +803,7 @@ function App() {
             }}
             className={`flex-1 h-12 rounded-xl flex items-center justify-center transition-all border group cursor-pointer ${draggedScript ? 'opacity-20 blur-[1px]' : ''
               } text-tertiary border-transparent hover:text-secondary tag-hover active:scale-95`}
-            title="Обновить список"
+            title={t("sidebar.refresh", "Refresh List")}
           >
             <div className="transition-transform duration-500 group-hover:-rotate-45">
               <div
@@ -817,13 +817,12 @@ function App() {
             </div>
           </button>
         </div>
-      </div >
+      </div>
 
       {/* Main Content */}
-      < div
+      <div
         className="flex-1 px-8 flex flex-col overflow-hidden transition-all duration-300 relative z-10"
-        style={{ background: viewMode === "settings" ? 'var(--bg-primary)' : 'linear-gradient(to bottom right, var(--bg-primary), var(--bg-secondary))' }
-        }
+        style={{ background: viewMode === "settings" ? 'var(--bg-primary)' : 'linear-gradient(to bottom right, var(--bg-primary), var(--bg-secondary))' }}
       >
 
         <div className={`flex-1 flex flex-col min-h-0 ${viewMode === "settings" ? "overflow-y-auto custom-scrollbar" : ""}`}>
@@ -995,9 +994,8 @@ function App() {
           height: draggedTag ? `${dragGhostSize.h}px` : 'auto',
           willChange: 'transform, opacity',
           backgroundColor: draggedTag ? (draggedTag === activeTab ? 'var(--bg-tag-active-hover)' : 'var(--bg-tag-drag)') : 'transparent',
-          // @ts-ignore
           viewTransitionName: 'drag-ghost'
-        }}
+        } as React.CSSProperties}
       >
         {draggedScript && (
           <>
@@ -1005,146 +1003,144 @@ function App() {
             <span className="text-xs font-semibold text-white tracking-wide">{draggedScript.filename}</span>
           </>
         )}
-        {
-          draggedTag && (
-            <span className="text-sm font-bold truncate flex-1">{draggedTag}</span>
-          )
-        }
-      </div >
+        {draggedTag && (
+          <span className="text-sm font-bold truncate flex-1">{draggedTag}</span>
+        )}
+      </div>
 
       {/* Context Menu */}
-      {
-        contextMenu && (
-          <div
-            className="fixed z-[100000] min-w-[200px] bg-[#1a1a1c]/80 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] py-2 animate-scale-in overflow-hidden"
-            style={{
-              left: Math.min(contextMenu.x, window.innerWidth - 220),
-              top: Math.min(contextMenu.y, window.innerHeight - 300),
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {contextMenu.type === 'script' && (
-              <>
+      {contextMenu && (
+        <div
+          className="fixed z-[100000] min-w-[200px] bg-[#1a1a1c]/80 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] py-2 animate-scale-in overflow-hidden"
+          style={{
+            left: Math.min(contextMenu.x, window.innerWidth - 220),
+            top: Math.min(contextMenu.y, window.innerHeight - 300),
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {contextMenu.type === 'script' && contextMenu.data && (
+            <>
+              <ContextMenuItem
+                label={contextMenu.data.is_running ? t("context.stop") : t("context.run")}
+                icon={contextMenu.data.is_running ? "⏹" : "▶"}
+                onClick={() => {
+                  if (contextMenu.data.is_running) invoke("kill_script", { path: contextMenu.data.path });
+                  else invoke("run_script", { path: contextMenu.data.path });
+                  setContextMenu(null);
+                  setRefreshKey(p => p + 1);
+                }}
+              />
+              <div className="h-[1px] bg-white/5 my-1" />
+              {contextMenu.data.tags.some((t: string) => ["hub", "fav", "favourites"].includes(t.toLowerCase())) ? (
                 <ContextMenuItem
-                  label={contextMenu.data.is_running ? "Остановить" : "Запустить"}
-                  icon={contextMenu.data.is_running ? "⏹" : "▶"}
-                  onClick={() => {
-                    if (contextMenu.data.is_running) invoke("kill_script", { path: contextMenu.data.path });
-                    else invoke("run_script", { path: contextMenu.data.path });
+                  label={t("context.unpin")}
+                  icon="✖"
+                  onClick={async () => {
+                    const tagToRemove = contextMenu.data.tags.find((t: string) => ["hub", "fav", "favourites"].includes(t.toLowerCase()));
+                    if (tagToRemove) {
+                      await invoke("remove_script_tag", { path: contextMenu.data.path, tag: tagToRemove });
+                    }
+                    setContextMenu(null);
+                  }}
+                />
+              ) : (
+                <ContextMenuItem
+                  label={t("context.pin")}
+                  icon="📌"
+                  onClick={async () => {
+                    await invoke("add_script_tag", { path: contextMenu.data.path, tag: "hub" });
+                    setContextMenu(null);
+                  }}
+                />
+              )}
+              <div className="h-[1px] bg-white/5 my-1" />
+              <ContextMenuItem
+                label={t("context.edit")}
+                icon="📝"
+                onClick={() => {
+                  invoke("edit_script", { path: contextMenu.data.path });
+                  setContextMenu(null);
+                }}
+              />
+              <ContextMenuItem
+                label={t("context.show_in_folder")}
+                icon="📂"
+                onClick={() => {
+                  invoke("open_in_explorer", { path: contextMenu.data.path });
+                  setContextMenu(null);
+                }}
+              />
+              <div className="h-[1px] bg-white/5 my-1" />
+              <ContextMenuItem
+                label={t("context.copy_path")}
+                icon="🔗"
+                onClick={() => {
+                  navigator.clipboard.writeText(contextMenu.data.path);
+                  setContextMenu(null);
+                }}
+              />
+            </>
+          )}
+
+          {contextMenu.type === 'tag' && (
+            <>
+              <ContextMenuItem
+                label={t("context.rename")}
+                icon="✏️"
+                onClick={() => {
+                  setIsRenamingTag(contextMenu.data);
+                  setEditTagName(contextMenu.data);
+                  setContextMenu(null);
+                }}
+              />
+              <ContextMenuItem
+                label={t("context.delete_tag")}
+                icon="🗑️"
+                danger
+                onClick={async () => {
+                  if (confirm(t("context.delete_tag_confirm", { tag: contextMenu.data }))) {
+                    await invoke("delete_tag", { tag: contextMenu.data });
                     setContextMenu(null);
                     setRefreshKey(p => p + 1);
-                  }}
-                />
-                <div className="h-[1px] bg-white/5 my-1" />
-                {contextMenu.data.tags.some((t: string) => ["hub", "fav", "favourites"].includes(t.toLowerCase())) ? (
-                  <ContextMenuItem
-                    label="Открепить из Хаба"
-                    icon="✖"
-                    onClick={async () => {
-                      const tagToRemove = contextMenu.data.tags.find((t: string) => ["hub", "fav", "favourites"].includes(t.toLowerCase()));
-                      if (tagToRemove) {
-                        await invoke("remove_script_tag", { path: contextMenu.data.path, tag: tagToRemove });
-                      }
-                      setContextMenu(null);
-                    }}
-                  />
-                ) : (
-                  <ContextMenuItem
-                    label="Закрепить в Хабе"
-                    icon="📌"
-                    onClick={async () => {
-                      await invoke("add_script_tag", { path: contextMenu.data.path, tag: "hub" });
-                      setContextMenu(null);
-                    }}
-                  />
-                )}
-                <div className="h-[1px] bg-white/5 my-1" />
-                <ContextMenuItem
-                  label="Редактировать"
-                  icon="📝"
-                  onClick={() => {
-                    invoke("edit_script", { path: contextMenu.data.path });
-                    setContextMenu(null);
-                  }}
-                />
-                <ContextMenuItem
-                  label="Показать в папке"
-                  icon="📂"
-                  onClick={() => {
-                    invoke("open_in_explorer", { path: contextMenu.data.path });
-                    setContextMenu(null);
-                  }}
-                />
-                <div className="h-[1px] bg-white/5 my-1" />
-                <ContextMenuItem
-                  label="Копировать путь"
-                  icon="🔗"
-                  onClick={() => {
-                    navigator.clipboard.writeText(contextMenu.data.path);
-                    setContextMenu(null);
-                  }}
-                />
-              </>
-            )}
+                  }
+                }}
+              />
+            </>
+          )}
 
-            {contextMenu.type === 'tag' && (
-              <>
-                <ContextMenuItem
-                  label="Переименовать"
-                  icon="✏️"
-                  onClick={() => {
-                    setIsRenamingTag(contextMenu.data);
-                    setEditTagName(contextMenu.data);
-                    setContextMenu(null);
-                  }}
-                />
-                <ContextMenuItem
-                  label="Удалить тег"
-                  icon="🗑️"
-                  danger
-                  onClick={async () => {
-                    if (confirm(`Вы уверены, что хотите удалить тег "${contextMenu.data}" у всех скриптов и из базы?`)) {
-                      await invoke("delete_tag", { tag: contextMenu.data });
-                      setContextMenu(null);
-                      setRefreshKey(p => p + 1);
-                    }
-                  }}
-                />
-              </>
-            )}
+          {contextMenu.type === 'folder' && (
+            <>
+              <ContextMenuItem
+                label={t("context.show_in_folder")}
+                icon="📂"
+                onClick={() => {
+                  invoke("open_in_explorer", { path: contextMenu.data.fullName });
+                  setContextMenu(null);
+                }}
+              />
+              <div className="h-[1px] bg-white/5 my-1" />
+              <ContextMenuItem
+                label={t("context.expand_all")}
+                icon="➕"
+                onClick={() => {
+                  contextMenu.data.onExpandAll();
+                  setContextMenu(null);
+                }}
+              />
+              <div className="h-[1px] bg-white/5 my-1" />
+              <ContextMenuItem
+                label={t("context.copy_path")}
+                icon="🔗"
+                onClick={() => {
+                  navigator.clipboard.writeText(contextMenu.data.fullName);
+                  setContextMenu(null);
+                }}
+              />
+            </>
+          )}
+        </div>
+      )}
 
-            {contextMenu.type === 'folder' && (
-              <>
-                <ContextMenuItem
-                  label="Показать в проводнике"
-                  icon="📂"
-                  onClick={() => {
-                    invoke("open_in_explorer", { path: contextMenu.data.fullName });
-                    setContextMenu(null);
-                  }}
-                />
-                <div className="h-[1px] bg-white/5 my-1" />
-                <ContextMenuItem
-                  label="Развернуть все вложенные"
-                  icon="➕"
-                  onClick={() => {
-                    contextMenu.data.onExpandAll();
-                    setContextMenu(null);
-                  }}
-                />
-                <div className="h-[1px] bg-white/5 my-1" />
-                <ContextMenuItem
-                  label="Копировать путь"
-                  icon="🔗"
-                  onClick={() => {
-                    navigator.clipboard.writeText(contextMenu.data.fullName);
-                    setContextMenu(null);
-                  }}
-                />
-              </>
-            )}
-          </div>
-        )}
       {/* Debug Overlay - Finalized
         {debugMomentum > 0 && (
           <div className="flex flex-col items-center space-y-4">

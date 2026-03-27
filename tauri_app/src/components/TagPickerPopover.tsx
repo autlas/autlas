@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useMemo, useRef, memo } from "react";
 import { createPortal } from "react-dom";
 import { TagPickerProps } from "../types/script";
+import { useTranslation } from "react-i18next";
 
 const TagPickerPopover = memo(function TagPickerPopover({ script, allUniqueTags, popoverRef, onAdd, onClose, variant, anchorRef }: TagPickerProps) {
+    const { t } = useTranslation();
     const [query, setQuery] = useState("");
     const [selectedIndex, setSelectedIndex] = useState(0);
     const [pos, setPos] = useState({ top: -9999, right: 0 });
@@ -72,7 +74,7 @@ const TagPickerPopover = memo(function TagPickerPopover({ script, allUniqueTags,
             <div className="p-3 pb-0">
                 <input
                     className="w-full bg-white/5 border border-white/5 rounded-xl px-4 py-2.5 text-xs text-white outline-none focus:border-indigo-500/50 transition-all font-bold mb-3 flex-shrink-0"
-                    placeholder="Имя нового тега..."
+                    placeholder={t("search.tag_name")}
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     autoFocus
@@ -98,7 +100,7 @@ const TagPickerPopover = memo(function TagPickerPopover({ script, allUniqueTags,
                 {showCreate && (
                     <button onClick={(e) => { e.stopPropagation(); onAdd(script, query); }} onMouseDown={(e) => e.stopPropagation()}
                         className={`cursor-pointer w-full text-left px-4 rounded-xl transition-all flex items-center justify-between ${selectedIndex === availableTags.length ? 'bg-indigo-500/30 text-indigo-300 h-[44px]' : 'bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 text-xs h-[38px]'}`}>
-                        <span className="font-bold">Создать "{query}"</span>
+                        <span className="font-bold">{t("search.create", { query })}</span>
                         <div className="font-bold">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                                 <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -125,7 +127,7 @@ const TagPickerPopover = memo(function TagPickerPopover({ script, allUniqueTags,
             <div className="p-4 pb-0">
                 <input
                     className="w-full bg-white/5 border border-white/5 rounded-xl px-5 py-3 text-xs text-white outline-none focus:border-indigo-500/50 transition-all font-bold mb-3 flex-shrink-0"
-                    placeholder="Поиск или новый тег..."
+                    placeholder={t("search.new_tag")}
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     autoFocus
@@ -151,7 +153,7 @@ const TagPickerPopover = memo(function TagPickerPopover({ script, allUniqueTags,
                 {showCreate && (
                     <button onClick={(e) => { e.stopPropagation(); onAdd(script, query); }} onMouseDown={(e) => e.stopPropagation()}
                         className={`cursor-pointer w-full text-left px-5 rounded-xl transition-all flex items-center justify-between ${selectedIndex === availableTags.length ? 'bg-indigo-500/30 text-indigo-300 h-[44px]' : 'bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 text-xs h-[38px]'}`}>
-                        <span className="font-bold">Создать "{query}"</span>
+                        <span className="font-bold">{t("search.create", { query })}</span>
                         <div className="font-bold">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                                 <line x1="12" y1="5" x2="12" y2="19"></line>

@@ -329,7 +329,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, v
                                     ? "bg-white/10 text-white shadow-lg shadow-white/5"
                                     : "text-tertiary hover:text-secondary hover:bg-white/5"
                                     } ${isDragging ? 'opacity-20 pointer-events-none' : ''}`}
-                                title={`Режим: ${m.id}`}
+                                title={t("search.mode", { mode: m.id })}
                             >
                                 <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                                     <path d={m.icon} />
@@ -343,7 +343,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, v
                         <button
                             onClick={toggleAll}
                             className={`p-2 transition-all h-10 w-10 flex flex-shrink-0 flex-col items-center justify-center border-none shadow-none bg-transparent focus:outline-none relative cursor-pointer ${!isDragging ? 'group/toggle' : 'opacity-10 cursor-default'} text-white/20 hover:text-indigo-400`}
-                            title={isAllExpanded ? "Свернуть все" : "Развернуть все"}
+                            title={t(isAllExpanded ? "context.collapse_all" : "context.expand_all")}
                         >
                             <div className="flex flex-col items-center space-y-[3px]">
                                 <svg width="14" height="6" viewBox="0 0 24 10" fill="none" className={`transition-all duration-300 ease-in-out stroke-current ${isAllExpanded ? 'rotate-180' : ''}`} strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 8l7-7 7 7" /></svg>
@@ -363,7 +363,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, v
                             type="text"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            placeholder="Поиск скриптов..."
+                            placeholder={t("search.placeholder")}
                             className="w-full bg-white/[0.03] border border-white/5 rounded-xl h-[42px] pl-10 pr-10 text-xs font-medium transition-all focus:outline-none focus:border-indigo-500/50 focus:bg-white/[0.05] placeholder:text-tertiary/50"
                         />
                         {searchQuery && (
@@ -381,7 +381,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, v
                     <button
                         onClick={() => !isDragging && setShowHidden(!showHidden)}
                         className={`h-[42px] w-[42px] flex items-center justify-center rounded-xl transition-all cursor-pointer border ${showHidden ? "bg-white/10 border-white/20 text-white shadow-lg" : "bg-white/[0.03] border-white/5 text-tertiary hover:text-secondary hover:bg-white/[0.05]"} ${isDragging ? 'opacity-20 pointer-events-none' : ''}`}
-                        title={showHidden ? "Скрыть 'Скрытые'" : "Показать 'Скрытые'"}
+                        title={t(showHidden ? "context.hide_hidden" : "context.show_hidden")}
                     >
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                             {showHidden ? (
@@ -410,7 +410,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, v
                             {filtered.length === 0 ? (
                                 <div className="text-tertiary w-full text-center py-40 italic tracking-[0.3em] text-sm font-bold">{t("hub.empty_channel")}</div>
                             ) : (
-                                (filterTag === "Хаб" && groupedHub) ? (
+                                (filterTag === "hub" && groupedHub) ? (
                                     groupedHub.map(({ tag, scripts }) => {
                                         const sectionMasonry = Array.from({ length: columnsCount }, () => [] as Script[]);
                                         scripts.forEach((s, i) => sectionMasonry[i % columnsCount].push(s));
@@ -487,7 +487,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, v
                             {filtered.length === 0 ? (
                                 <div className="text-tertiary w-full text-center py-40 italic tracking-[0.3em] text-sm font-bold">{t("hub.empty_channel")}</div>
                             ) : (
-                                (filterTag === "Хаб" && groupedHub) ? (
+                                (filterTag === "hub" && groupedHub) ? (
                                     groupedHub.map(({ tag, scripts }) => {
                                         const sectionMasonry = Array.from({ length: columnsCount }, () => [] as Script[]);
                                         scripts.forEach((s, i) => sectionMasonry[i % columnsCount].push(s));
