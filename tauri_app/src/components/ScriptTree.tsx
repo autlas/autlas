@@ -373,7 +373,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, v
     const hasContent = Object.keys(tree.children).length > 0 || tree.scripts.length > 0;
 
     return (
-        <div className="flex flex-col h-full overflow-hidden">
+        <div className="flex flex-col h-full min-h-0">
             <div className={`flex items-center justify-between pt-6 pb-2 border-b transition-all duration-300 ${draggedScriptPath ? 'opacity-20 blur-[1px] pointer-events-none' : ''}`} style={{ borderColor: 'var(--border-color)' }}>
                 <div className="flex-1 flex items-center space-x-1">
                     {/* VIEW MODE SWITCHER (First on the left) */}
@@ -490,10 +490,10 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, v
                 <div
                     ref={containerRef}
                     onScroll={handleScroll}
-                    className={`flex-1 overflow-y-auto custom-scrollbar mt-2 transition-all duration-300 ${draggedScriptPath ? 'opacity-30 blur-[1px]' : ''}`}
+                    className={`flex-1 overflow-y-auto custom-scrollbar mt-4 -mr-8 pr-6 transition-all duration-300 ${draggedScriptPath ? 'opacity-30 blur-[1px]' : ''}`}
                 >
                     {viewMode === "tiles" ? (
-                        <div className="flex flex-row gap-6 pb-10 pr-6 items-start">
+                        <div className="flex flex-row gap-6 pb-10 items-start">
                             {filtered.length === 0 ? (
                                 <div className="text-tertiary w-full text-center py-40 italic tracking-[0.3em] text-sm font-bold">Пустой канал...</div>
                             ) : (
@@ -524,7 +524,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, v
                             )}
                         </div>
                     ) : viewMode === "list" ? (
-                        <div className="flex flex-row gap-x-8 gap-y-1 pb-10 pr-6 items-start">
+                        <div className="flex flex-row gap-x-8 gap-y-1 pb-10 items-start">
                             {filtered.length === 0 ? (
                                 <div className="text-tertiary w-full text-center py-40 italic tracking-[0.3em] text-sm font-bold">Пустой раздел...</div>
                             ) : (
@@ -559,7 +559,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, v
                             )}
                         </div>
                     ) : (
-                        <div className="flex flex-col space-y-0.5 select-none pr-6">
+                        <div className="flex flex-col space-y-0.5 select-none">
                             <TreeContext.Provider value={stableCtxRef.current}>
                                 {!hasContent ? (
                                     <div className="text-tertiary text-center py-40 italic tracking-[0.3em] text-sm font-bold">Пустой раздел дерева...</div>

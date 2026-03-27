@@ -805,7 +805,7 @@ function App() {
         }
       >
 
-        <div className={`flex-1 ${viewMode === "settings" ? "overflow-y-auto custom-scrollbar" : "overflow-hidden"}`}>
+        <div className={`flex-1 flex flex-col min-h-0 ${viewMode === "settings" ? "overflow-y-auto custom-scrollbar" : ""}`}>
           {viewMode === "settings" ? (
             <div className="max-w-[1200px] mx-auto w-full space-y-12 py-8">
               <section className="space-y-8 bg-white/[0.02] p-10 rounded-[2.5rem] border border-white/5 shadow-2xl">
