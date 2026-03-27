@@ -63,20 +63,23 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
                     return anyChanged ? merged : prev;
                 });
             });
-            // Still update sidebar tag list from backend (tag added from another device etc.)
-            const tagsKey = data.flatMap(s => s.tags).sort().join(',');
-            if (tagsKey !== lastTagsKeyRef.current) {
-                lastTagsKeyRef.current = tagsKey;
-                const tags = new Set<string>();
-                data.forEach(s => s.tags.forEach(t => tags.add(t)));
-                onTagsLoaded(Array.from(tags).sort());
-            }
         } catch (e) {
             // silence
         } finally {
             setLoading(false);
         }
     };
+
+    // Keep sidebar tags up-to-date instantly based on local allScripts state
+    useEffect(() => {
+        const tagsKey = allScripts.flatMap(s => s.tags).sort().join(',');
+        if (tagsKey !== lastTagsKeyRef.current) {
+            lastTagsKeyRef.current = tagsKey;
+            const tags = new Set<string>();
+            allScripts.forEach(s => s.tags.forEach(t => tags.add(t)));
+            onTagsLoaded(Array.from(tags).sort());
+        }
+    }, [allScripts, onTagsLoaded]);
 
     useEffect(() => {
         fetchData();
