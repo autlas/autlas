@@ -149,7 +149,7 @@ function App() {
       if (ghostRef.current && isDragging) {
         const type = ghostRef.current.getAttribute("data-drag-type");
         if (type === "tag") {
-          ghostRef.current.style.transform = `translate3d(144px, ${latestY - tagDragOffsetYRef.current}px, 0) translate(-50%, 0) scale(1.05)`;
+          ghostRef.current.style.transform = `translate3d(${tagDragOffsetXRef.current}px, ${latestY - tagDragOffsetYRef.current}px, 0) translate(-50%, 0) scale(1)`;
         } else {
           ghostRef.current.style.transform = `translate3d(${latestX}px, ${latestY}px, 0) translate(-50%, -50%) scale(1.05)`;
         }
@@ -438,6 +438,7 @@ function App() {
 
   const pendingTagDragRef = useRef<{ tag: string, x: number, y: number } | null>(null);
   const tagDragOffsetYRef = useRef<number>(0);
+  const tagDragOffsetXRef = useRef<number>(0);
 
   const handleGlobalMouseUp = useCallback(async () => {
     if (draggedScript) {
@@ -618,6 +619,7 @@ function App() {
                       const startX = e.clientX;
                       const startY = e.clientY;
                       tagDragOffsetYRef.current = startY - rect.top;
+                      tagDragOffsetXRef.current = rect.left + rect.width / 2;
                       pendingTagDragRef.current = { tag: tagToDrag, x: startX, y: startY };
 
                       const dragTimer = setTimeout(() => {
@@ -625,7 +627,7 @@ function App() {
                           setDraggedTag(tagToDrag);
                           if (ghostRef.current) {
                             ghostRef.current.setAttribute("data-dragging", "true");
-                            ghostRef.current.style.transform = `translate3d(144px, ${startY - tagDragOffsetYRef.current}px, 0) translate(-50%, 0) scale(1.05)`;
+                            ghostRef.current.style.transform = `translate3d(${tagDragOffsetXRef.current}px, ${startY - tagDragOffsetYRef.current}px, 0) translate(-50%, 0) scale(1)`;
                           }
                         }
                       }, 300);
@@ -641,7 +643,7 @@ function App() {
                           setDraggedTag(pendingTagDragRef.current.tag);
                           if (ghostRef.current) {
                             ghostRef.current.setAttribute("data-dragging", "true");
-                            ghostRef.current.style.transform = `translate3d(144px, ${moveEv.clientY - tagDragOffsetYRef.current}px, 0) translate(-50%, 0) scale(1.05)`;
+                            ghostRef.current.style.transform = `translate3d(${tagDragOffsetXRef.current}px, ${moveEv.clientY - tagDragOffsetYRef.current}px, 0) translate(-50%, 0) scale(1)`;
                           }
                           cleanup();
                         }
