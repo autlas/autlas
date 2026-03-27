@@ -271,7 +271,7 @@ body {
 }
 
 .tree-expand {
-    animation: tree-expand 0.18s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    animation: tree-expand 0.15s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 @keyframes tree-collapse {

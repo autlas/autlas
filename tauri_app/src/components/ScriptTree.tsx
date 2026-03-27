@@ -34,6 +34,7 @@ interface TreeContextValue {
     stopEditing: () => void;
     addTag: (script: Script, tag: string) => void;
     removeTag: (script: Script, tag: string) => void;
+    slowFolders: Set<string>;
 }
 const TreeContext = createContext<TreeContextValue>(null as any);
 
@@ -134,7 +135,7 @@ const TreeNodeRenderer = memo(function TreeNodeRenderer({
                     style={{
                         display: 'grid',
                         gridTemplateRows: gridExpanded ? '1fr' : '0fr',
-                        transition: ctx.animationsEnabled ? 'grid-template-rows 0.22s cubic-bezier(0.33, 1, 0.68, 1)' : 'none',
+                        transition: ctx.animationsEnabled ? `grid-template-rows ${ctx.slowFolders.has(node.fullName) ? '0.5s' : '0.15s'} cubic-bezier(0.33, 1, 0.68, 1)` : 'none',
                     }}
                 >
                     <div style={{ minHeight: 0, overflow: 'hidden' }}>
@@ -219,7 +220,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, v
         setShowHidden,
         toggleFolder, toggleAll, setFolderExpansionRecursive,
         handleToggle, startEditing, stopEditing,
-        addTag, removeTag, handleCustomMouseDown,
+        addTag, removeTag, handleCustomMouseDown, slowFolders
     } = useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, searchQuery, setSearchQuery });
 
     useEffect(() => {
@@ -297,7 +298,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, v
         onFolderContextMenu, onScriptContextMenu,
         editingScript, pendingScripts, removingTags, allUniqueTags,
         popoverRef, handleCustomMouseDown, handleToggle,
-        startEditing, stopEditing, addTag, removeTag,
+        startEditing, stopEditing, addTag, removeTag, slowFolders
     });
 
     const masonryColumns = useMemo(() => {
