@@ -592,7 +592,7 @@ function App() {
               className={`px-6 flex items-center justify-between group cursor-pointer ${activeTab === "tags" ? "text-indigo-400" : "text-tertiary"}`}
               onClick={() => handleTabClick("tags")}
             >
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-50 group-hover:opacity-100 transition-opacity">{t("sidebar.tags", "TAGS")}</span>
+              <span className={`text-[14px] font-bold uppercase tracking-[0.1em] group-hover:opacity-100 ${activeTab === "tags" ? "opacity-80" : "opacity-50"} transition-opacity`}>{t("sidebar.tags", "TAGS")}</span>
             </div>
 
             <ul className="flex flex-col space-y-1.5 px-0 w-full">
