@@ -43,21 +43,27 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
             const data = await getScripts();
             startTransition(() => {
                 setAllScripts(prev => {
-                    if (prev.length !== data.length) return data;
+                    if (prev.length !== data.length) return data; // new scripts added/removed
+
                     const prevMap = new Map(prev.map(s => [s.path, s]));
-                    for (const d of data) {
+                    let anyChanged = false;
+
+                    const merged = data.map(d => {
                         const p = prevMap.get(d.path);
-                        if (!p ||
-                            p.is_running !== d.is_running ||
-                            p.is_hidden !== d.is_hidden ||
-                            p.tags.length !== d.tags.length ||
-                            p.tags.some((t, j) => t !== d.tags[j])) {
-                            return data;
-                        }
-                    }
-                    return prev;
+                        if (!p) return d;
+
+                        // Tags are owned by the Tauri event listener — NEVER overwrite from poll
+                        // Poll only carries process status (is_running) and visibility (is_hidden)
+                        if (p.is_running === d.is_running && p.is_hidden === d.is_hidden) return p;
+
+                        anyChanged = true;
+                        return { ...d, tags: p.tags }; // keep local tags, take new status
+                    });
+
+                    return anyChanged ? merged : prev;
                 });
             });
+            // Still update sidebar tag list from backend (tag added from another device etc.)
             const tagsKey = data.flatMap(s => s.tags).sort().join(',');
             if (tagsKey !== lastTagsKeyRef.current) {
                 lastTagsKeyRef.current = tagsKey;
@@ -76,21 +82,21 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
         fetchData();
         const interval = setInterval(fetchData, 3000);
 
-        // Listen for global optimistic tag additions from drag & drop
-        const handleTagAdded = (e: CustomEvent) => {
-            const { path, tag } = e.detail;
-            setAllScripts(prev => prev.map(s => {
-                if (s.path === path && !s.tags.includes(tag)) {
-                    return { ...s, tags: [...s.tags, tag] };
-                }
-                return s;
-            }));
-        };
-        window.addEventListener('ahk-tag-added', handleTagAdded as EventListener);
+        // Listen to Tauri events pushed from Rust after each atomic tag write
+        // This is guaranteed to be correct (post-save), replacing the fragile DOM event approach
+        let unlisten: (() => void) | null = null;
+        import('@tauri-apps/api/event').then(({ listen }) => {
+            listen<{ path: string; tags: string[] }>('script-tags-changed', (event) => {
+                const { path, tags } = event.payload;
+                setAllScripts(prev => prev.map(s =>
+                    s.path === path ? { ...s, tags } : s
+                ));
+            }).then(fn => { unlisten = fn; });
+        });
 
         return () => {
             clearInterval(interval);
-            window.removeEventListener('ahk-tag-added', handleTagAdded as EventListener);
+            if (unlisten) unlisten();
         };
     }, []);
 

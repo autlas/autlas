@@ -347,11 +347,9 @@ function App() {
   const handleCustomDrop = async (path: string, tag: string) => {
     setDragOverTag(null);
     if (path && tag) {
-      // Optimistic UI update for immediate visual feedback in the ScriptTree
-      window.dispatchEvent(new CustomEvent('ahk-tag-added', { detail: { path, tag } }));
-
       try {
         await invoke("add_script_tag", { path, tag });
+        // Rust emits 'script-tags-changed' after saving — useScriptTree listens and updates instantly
       } catch (err) {
         console.warn("[App] FAIL: Backend refused custom engine update", err);
       }

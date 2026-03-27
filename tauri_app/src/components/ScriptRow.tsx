@@ -51,6 +51,13 @@ const ScriptRow = memo(function ScriptRow({
                 return;
             }
 
+            // tagWidths is stale (measurement hasn't run yet for new tags)
+            // Show all tags and wait — measurement effect will trigger a re-run
+            if (tagWidths.length < s.tags.length) {
+                setVisibleCount(s.tags.length);
+                return;
+            }
+
             let totalWidth = 0;
             let count = 0;
 
@@ -70,8 +77,6 @@ const ScriptRow = memo(function ScriptRow({
             if (count === 0 && tagWidths.length > 0) {
                 count = 1;
             }
-
-            console.log(`[ScriptRow ${s.filename}] tagsLength=${s.tags.length}, finalCount=${count}, containerWidth=${containerWidth}, available=${available}, tagWidths=[${tagWidths.join(',')}]`);
 
             setVisibleCount(count);
         };

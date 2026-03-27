@@ -3,8 +3,13 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
 use std::process::Command;
+use std::sync::Mutex;
 use sysinfo::System;
+use tauri::Emitter;
 use walkdir::WalkDir;
+
+// ── Managed state: single source of truth for tags, prevents race conditions ──
+pub struct TagsState(pub Mutex<HashMap<String, Vec<String>>>);
 
 #[derive(Serialize, Deserialize, Clone)]
 struct Script {
@@ -88,8 +93,31 @@ fn load_metadata() -> ManagerMetadata {
 }
 
 #[tauri::command]
-async fn save_script_tags(path: String, tags: Vec<String>) -> Result<(), String> {
-    save_script_tags_internal(path, tags)
+async fn save_script_tags(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, TagsState>,
+    path: String,
+    tags: Vec<String>,
+) -> Result<(), String> {
+    save_tags_and_emit(&app, &state, path, tags)
+}
+
+fn save_tags_and_emit(
+    app: &tauri::AppHandle,
+    state: &tauri::State<'_, TagsState>,
+    path: String,
+    tags: Vec<String>,
+) -> Result<(), String> {
+    // Lock mutex: prevents concurrent writes from racing on the INI file
+    let mut map = state.0.lock().map_err(|e| e.to_string())?;
+    map.insert(path.to_lowercase(), tags.clone());
+    drop(map); // release lock before doing I/O
+
+    save_script_tags_internal(path.clone(), tags.clone())?;
+
+    // Push event to frontend — instant update, no polling needed
+    let _ = app.emit("script-tags-changed", serde_json::json!({ "path": path, "tags": tags }));
+    Ok(())
 }
 
 fn save_script_tags_internal(path: String, tags: Vec<String>) -> Result<(), String> {
@@ -250,21 +278,30 @@ async fn edit_script(path: String) -> Result<(), String> {
 }
 
 #[tauri::command]
-async fn add_script_tag(path: String, tag: String) -> Result<(), String> {
-    let metadata = load_metadata();
-    let key = path.to_lowercase();
-    let mut tags = metadata.tags.get(&key).cloned().unwrap_or_default();
-    
-    if !tags.iter().any(|t| t.to_lowercase() == tag.to_lowercase()) {
-        tags.push(tag);
-        return save_script_tags_internal(path, tags);
+async fn add_script_tag(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, TagsState>,
+    path: String,
+    tag: String,
+) -> Result<(), String> {
+    // Read current tags from managed state (no disk read needed)
+    let current_tags = {
+        let map = state.0.lock().map_err(|e| e.to_string())?;
+        map.get(&path.to_lowercase()).cloned().unwrap_or_default()
+    };
+
+    if current_tags.iter().any(|t| t.to_lowercase() == tag.to_lowercase()) {
+        return Ok(()); // already has this tag
     }
-    Ok(())
+
+    let mut new_tags = current_tags;
+    new_tags.push(tag);
+    save_tags_and_emit(&app, &state, path, new_tags)
 }
 
 #[tauri::command]
 async fn rename_tag(old_tag: String, new_tag: String) -> Result<(), String> {
-    let metadata = load_metadata();
+    let _metadata = load_metadata();
     let ini_path = get_ini_path();
     let bytes = fs::read(&ini_path).unwrap_or_default();
     let content = if bytes.len() >= 2 && bytes[0] == 0xFF && bytes[1] == 0xFE {
@@ -456,8 +493,12 @@ async fn delete_tag(tag: String) -> Result<(), String> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // Seed the tags state from disk on startup
+    let initial_tags = load_metadata().tags;
+
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .manage(TagsState(Mutex::new(initial_tags)))
         .invoke_handler(tauri::generate_handler![
             get_scripts,
             run_script,
