@@ -428,6 +428,14 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
         }
     }, { preventDefault: true });
 
+    useHotkeys('r', () => {
+        if (!focusedPath) return;
+        const item = visibleItems.find(i => i.path === focusedPath);
+        if (item && item.type === 'script' && item.data.is_running) {
+            handleRestart(item.data);
+        }
+    }, { preventDefault: true });
+
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             // Check for '?' character (logical) OR physical key combo Shift+/ (layout-independent)
@@ -492,6 +500,16 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
     useHotkeys('s', () => setSortBy(prev => prev === 'name' ? 'path' : 'name'));
 
     useHotkeys('i', (e) => {
+        // First priority: If focusing a running script with UI, open UI
+        if (focusedPath) {
+            const item = visibleItems.find(it => it.path === focusedPath);
+            if (item && item.type === 'script' && item.data.is_running && item.data.has_ui) {
+                onShowUI(item.data);
+                return;
+            }
+        }
+
+        // Second priority: Existing search logic
         const now = performance.now();
         const fDiff = now - lastFTimeRef.current;
         const gDiff = now - lastGTimeRef.current;
