@@ -191,7 +191,7 @@ const ScriptRow = memo(function ScriptRow({
                             }}
                             onMouseDown={(e) => e.stopPropagation()}
                             onDoubleClick={(e) => e.stopPropagation()}
-                            className={`w-[28px] h-[28px] flex-shrink-0 flex items-center justify-center border border-dashed border-white/10 rounded-lg transition-all cursor-pointer pointer-events-auto text-[#666] hover:text-[#aaa] hover:border-white/20 ${isEditing ? 'opacity-100 bg-white/5' : 'opacity-0 group-hover:opacity-100'}`}
+                            className={`w-[28px] h-[28px] flex-shrink-0 flex items-center justify-center border border-dashed border-white/10 rounded-lg transition-all cursor-pointer pointer-events-auto text-[#666] hover:text-[#aaa] hover:border-white/20 ${isEditing || (isFocused && isVimMode) ? 'opacity-100 bg-white/5' : 'opacity-0 group-hover:opacity-100'}`}
                         >
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
                                 <line x1="12" y1="5" x2="12" y2="19" />
@@ -216,7 +216,7 @@ const ScriptRow = memo(function ScriptRow({
 
             {
                 !isDragging && (
-                    <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center space-x-2 pointer-events-auto">
+                    <div className={`transition-opacity flex items-center space-x-2 pointer-events-auto ${isFocused && isVimMode ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
                         {s.is_running && !isPending && s.has_ui && (
                             <button
                                 onClick={(e) => { e.stopPropagation(); onShowUI(s); }}
