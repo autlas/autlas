@@ -821,7 +821,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
                 <div
                     ref={containerRef}
                     onScroll={handleScroll}
-                    className={`flex-1 overflow-y-auto custom-scrollbar mt-4 -mr-8 pr-6 transition-all duration-300 ${draggedScriptPath ? 'opacity-30 blur-[1px]' : ''}`}
+                    className={`flex-1 overflow-y-auto custom-scrollbar mt-4 -mx-8 px-8 transition-all duration-300 ${draggedScriptPath ? 'opacity-30 blur-[1px]' : ''}`}
                     id="script-list-container"
                 >
                     {viewMode === "tiles" ? (
