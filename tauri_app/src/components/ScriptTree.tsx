@@ -395,10 +395,27 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
     const [isCheatSheetOpen, setIsCheatSheetOpen] = useState(false);
 
     // ─── VIM HOTKEYS ───────────────────────────────────────────────
-    useHotkeys('j', () => moveFocus('down', viewMode === 'tree' ? 1 : columnsCount), { preventDefault: true });
-    useHotkeys('k', () => moveFocus('up', viewMode === 'tree' ? 1 : columnsCount), { preventDefault: true });
-    useHotkeys('h', () => moveFocus('left', 1), { preventDefault: true });
-    useHotkeys('l', () => moveFocus('right', 1), { preventDefault: true });
+    useHotkeys('j', () => {
+        const vimNav = localStorage.getItem("ahk_vim_mode_nav") || "hjkl";
+        moveFocus('down', vimNav === 'jk' || viewMode === 'tree' ? 1 : columnsCount);
+    }, { preventDefault: true });
+
+    useHotkeys('k', () => {
+        const vimNav = localStorage.getItem("ahk_vim_mode_nav") || "hjkl";
+        moveFocus('up', vimNav === 'jk' || viewMode === 'tree' ? 1 : columnsCount);
+    }, { preventDefault: true });
+
+    useHotkeys('h', () => {
+        const vimNav = localStorage.getItem("ahk_vim_mode_nav") || "hjkl";
+        if (vimNav === 'jk' && viewMode !== 'tree') return;
+        moveFocus('left', 1);
+    }, { preventDefault: true });
+
+    useHotkeys('l', () => {
+        const vimNav = localStorage.getItem("ahk_vim_mode_nav") || "hjkl";
+        if (vimNav === 'jk' && viewMode !== 'tree') return;
+        moveFocus('right', 1);
+    }, { preventDefault: true });
     useHotkeys('enter, space', () => {
         if (!focusedPath) return;
         const item = visibleItems.find(i => i.path === focusedPath);

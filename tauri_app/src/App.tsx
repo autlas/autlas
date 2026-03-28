@@ -106,6 +106,10 @@ function App() {
     return localStorage.getItem("animations-enabled") !== "false";
   });
 
+  const [vimModeNav, setVimModeNav] = useState<"hjkl" | "jk">(() => {
+    return (localStorage.getItem("ahk_vim_mode_nav") as "hjkl" | "jk") || "hjkl";
+  });
+
   const [textContrast, setTextContrast] = useState(() => {
     return parseFloat(localStorage.getItem("text-contrast") || "1.0");
   });
@@ -1021,6 +1025,33 @@ function App() {
                       : 'left-[3px] bg-white/30'
                       }`} />
                   </button>
+                </div>
+
+                <div className="flex justify-between items-center px-2 mt-8">
+                  <div className="flex flex-col">
+                    <span className="text-base font-bold text-secondary">Vim Navigation Style</span>
+                    <span className="text-xs text-tertiary mt-1">hjkl (2D grid) vs jk (1D list)</span>
+                  </div>
+                  <div className="flex bg-white/[0.03] border border-white/5 rounded-xl p-1 gap-1 h-[42px] flex-shrink-0 w-[145px]">
+                    <button
+                      onClick={() => {
+                        setVimModeNav("hjkl");
+                        localStorage.setItem("ahk_vim_mode_nav", "hjkl");
+                      }}
+                      className={`flex-1 h-full rounded-lg text-[10px] font-black tracking-widest uppercase transition-all flex items-center justify-center cursor-pointer ${vimModeNav === "hjkl" ? "bg-white/10 text-white shadow-lg shadow-white/5" : "text-tertiary hover:text-white hover:bg-white/5"}`}
+                    >
+                      hjkl
+                    </button>
+                    <button
+                      onClick={() => {
+                        setVimModeNav("jk");
+                        localStorage.setItem("ahk_vim_mode_nav", "jk");
+                      }}
+                      className={`flex-1 h-full rounded-lg text-[10px] font-black tracking-widest uppercase transition-all flex items-center justify-center cursor-pointer ${vimModeNav === "jk" ? "bg-white/10 text-white shadow-lg shadow-white/5" : "text-tertiary hover:text-white hover:bg-white/5"}`}
+                    >
+                      jk
+                    </button>
+                  </div>
                 </div>
               </section>
 
