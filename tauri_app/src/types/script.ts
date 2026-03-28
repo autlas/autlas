@@ -27,6 +27,8 @@ export interface ScriptTreeProps {
     contextMenu: { x: number, y: number, type: string, data: any } | null;
     onShowUI: (s: Script) => void;
     onRestart?: (s: Script) => void;
+    manualRefresh?: boolean;
+    onScanComplete?: (timestamp: number) => void;
 }
 
 export interface TagPickerProps {

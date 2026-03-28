@@ -42,9 +42,27 @@ function App() {
   const [contextMenu, setContextMenu] = useState<{ x: number, y: number, type: 'script' | 'tag' | 'folder' | 'general', data: any } | null>(null);
   const [activeTabPressed, setActiveTabPressed] = useState<string | null>(null);
   const [runningCount, setRunningCount] = useState(0);
-  const [lastScanTimestamp, setLastScanTimestamp] = useState<number>(Date.now());
+  const [lastScanTimestamp, setLastScanTimestamp] = useState<number>(() => {
+    const saved = localStorage.getItem("ahk_last_scan_timestamp");
+    if (saved) {
+      console.log("[App] Initializing lastScanTimestamp from localStorage:", new Date(parseInt(saved)).toLocaleTimeString());
+      return parseInt(saved);
+    }
+
+    // If no saved timestamp, initialize it once and save immediately
+    const now = Date.now();
+    console.log("[App] No saved timestamp. Initializing as just now:", new Date(now).toLocaleTimeString());
+    localStorage.setItem("ahk_last_scan_timestamp", now.toString());
+    return now;
+  });
   const [currentTime, setCurrentTime] = useState<number>(Date.now());
   const [isHoveringRefresh, setIsHoveringRefresh] = useState(false);
+
+  const handleScanComplete = useCallback((timestamp: number) => {
+    console.log("[App] MANUAL SCAN COMPLETE. Updating timestamp:", new Date(timestamp).toLocaleTimeString());
+    setLastScanTimestamp(timestamp);
+    localStorage.setItem("ahk_last_scan_timestamp", timestamp.toString());
+  }, []);
 
   const ghostRef = useRef<HTMLDivElement>(null);
 
@@ -149,9 +167,6 @@ function App() {
 
   const handleLoadingChange = useCallback((loading: boolean) => {
     setIsRefreshing(loading);
-    if (!loading) {
-      setLastScanTimestamp(Date.now());
-    }
   }, []);
 
   const formatLastScan = (ts: number, now: number) => {
@@ -376,20 +391,7 @@ function App() {
     localStorage.setItem(key, mode);
   };
 
-  useEffect(() => {
-    const loadTags = async () => {
-      setIsRefreshing(true);
-      try {
-        const tags = await invoke<string[]>("get_all_tags");
-        setUserTags(tags);
-      } catch (err) {
-        console.error("Failed to load tags:", err);
-      } finally {
-        // We'll let ScriptTree handle the final isRefreshing = false if it's also loading
-      }
-    };
-    loadTags();
-  }, [refreshKey]);
+  // Remove the faulty loadTags useEffect that called non-existent get_all_tags
 
   const handleCustomDrop = async (path: string, tag: string) => {
     setDragOverTag(null);
@@ -901,7 +903,7 @@ function App() {
       >
 
         <div className={`flex-1 flex flex-col min-h-0 ${viewMode === "settings" ? "overflow-y-auto custom-scrollbar" : ""}`}>
-          {viewMode === "settings" ? (
+          <div className={viewMode === 'settings' ? 'block' : 'hidden'}>
             <div className="max-w-[1200px] mx-auto w-full space-y-12 py-8">
               <section className="space-y-8 bg-white/[0.02] p-10 rounded-[2.5rem] border border-white/5 shadow-2xl">
                 <h3 className="text-sm font-bold tracking-widest text-tertiary uppercase">{t("settings.language", "Language")}</h3>
@@ -1021,7 +1023,9 @@ function App() {
                 </div>
               </section>
             </div>
-          ) : (
+          </div>
+
+          <div className={viewMode !== 'settings' ? 'flex-1 flex flex-col min-h-0' : 'hidden'}>
             <MemoizedScriptTree
               key={`script-tree-${refreshKey}`}
               filterTag={activeTab}
@@ -1046,8 +1050,10 @@ function App() {
                 setContextMenu({ x: e.clientX, y: e.clientY, type: 'folder', data: folderData });
               }}
               onShowUI={handleShowUI}
+              manualRefresh={refreshKey > 0}
+              onScanComplete={handleScanComplete}
             />
-          )}
+          </div>
         </div>
       </div>
 
@@ -1241,7 +1247,7 @@ function App() {
           </div>
         )}
       */}
-    </div >
+    </div>
   );
 }
 

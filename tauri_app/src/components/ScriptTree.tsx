@@ -255,7 +255,7 @@ const TreeNodeRenderer = memo(function TreeNodeRenderer({
     return true;
 });
 
-export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, onRunningCountChange, viewMode, onViewModeChange, onCustomDragStart, isDragging, draggedScriptPath, animationsEnabled, onScriptContextMenu, onFolderContextMenu, searchQuery, setSearchQuery, contextMenu, onShowUI }: ScriptTreeProps) {
+export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, onRunningCountChange, viewMode, onViewModeChange, onCustomDragStart, isDragging, draggedScriptPath, animationsEnabled, onScriptContextMenu, onFolderContextMenu, searchQuery, setSearchQuery, contextMenu, onShowUI, manualRefresh, onScanComplete }: ScriptTreeProps) {
     const { t } = useTranslation();
     const renderStartRef = useRef(0);
     if (PERF) {
@@ -272,7 +272,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
         toggleFolder, toggleAll, setFolderExpansionRecursive,
         handleToggle, handleRestart, startEditing, stopEditing,
         addTag, removeTag, handleCustomMouseDown, folderDurations
-    } = useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, searchQuery, setSearchQuery, onRunningCountChange });
+    } = useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, searchQuery, setSearchQuery, onRunningCountChange, manualRefresh, onScanComplete });
 
     useEffect(() => {
         if (onLoadingChange) {

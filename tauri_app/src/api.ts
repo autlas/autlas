@@ -10,8 +10,8 @@ export interface Script {
     has_ui?: boolean;
 }
 
-export async function getScripts(): Promise<Script[]> {
-    return await invoke("get_scripts");
+export async function getScripts(forceScan: boolean = false): Promise<Script[]> {
+    return await invoke("get_scripts", { forceScan });
 }
 
 export async function runScript(path: string): Promise<void> {

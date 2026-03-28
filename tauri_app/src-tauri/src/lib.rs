@@ -170,8 +170,32 @@ fn save_script_tags_internal(path: String, tags: Vec<String>) -> Result<(), Stri
     Ok(())
 }
 
+fn get_cache_path() -> std::path::PathBuf {
+    get_ini_path().with_file_name("scripts_cache.txt")
+}
+
+fn load_cache() -> Option<Vec<String>> {
+    let cache_path = get_cache_path();
+    if let Ok(content) = fs::read_to_string(cache_path) {
+        let paths: Vec<String> = content.lines()
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty())
+            .collect();
+        if !paths.is_empty() {
+            return Some(paths);
+        }
+    }
+    None
+}
+
+fn save_cache(paths: &[String]) {
+    let cache_path = get_cache_path();
+    let content = paths.join("\n");
+    let _ = fs::write(cache_path, content);
+}
+
 #[tauri::command]
-async fn get_scripts() -> Vec<Script> {
+async fn get_scripts(force_scan: bool) -> Vec<Script> {
     let mut sys = System::new_all();
     sys.refresh_all();
     
@@ -186,54 +210,75 @@ async fn get_scripts() -> Vec<Script> {
     }
 
     let mut scripts = Vec::new();
-    let mut scan_dirs = Vec::new();
-    
-    if let Some(user_dirs) = UserDirs::new() {
-        if let Some(desktop) = user_dirs.desktop_dir() {
-            scan_dirs.push(desktop.to_path_buf());
+    let mut script_paths = Vec::new();
+
+    // Strategy: If not forcing scan, try to use the cache
+    if !force_scan {
+        if let Some(cached) = load_cache() {
+            println!("[Rust] Loading scripts from cache ({} paths found)", cached.len());
+            script_paths = cached;
+        } else {
+            println!("[Rust] Cache file missing. Proceeding to scan.");
         }
+    } else {
+        println!("[Rust] Manual refresh requested (force_scan=true). Starting full disk scan...");
     }
-    scan_dirs.push(std::path::PathBuf::from(".."));
 
-    for dir in scan_dirs {
-        for entry in WalkDir::new(&dir).into_iter().filter_map(|e| e.ok()) {
-            if entry.path().extension().map_or(false, |ext| ext == "ahk") {
-                let path_buf = entry.path().to_path_buf();
-                let path_str = path_buf.to_string_lossy().to_string();
-                let path_lower = path_str.to_lowercase();
-                
-                let filename = entry.file_name().to_string_lossy().to_string();
-                let parent = entry.path().parent().map_or("".to_string(), |p| p.file_name().map_or("".to_string(), |f| f.to_string_lossy().to_string()));
-                
-                let tags = metadata.tags.get(&path_lower).cloned().unwrap_or_default();
-                let is_hidden = metadata.hidden_folders.iter().any(|h| path_lower.contains(&h.to_lowercase()));
-                let is_running = running_cmds.iter().any(|cmd| cmd.contains(&path_lower));
-
-                // Super fast static scan to see if the script supports AHK Manager UI triggers
-                // ONLY DO THIS FOR RUNNING SCRIPTS to avoid slowing down the directory scan!
-                let has_ui = if is_running {
-                    if let Ok(content) = fs::read_to_string(&path_buf) {
-                        let text = content.to_lowercase();
-                        text.contains("0x0401") || text.contains("0x401")
-                    } else {
-                        false
-                    }
-                } else {
-                    false
-                };
-
-                scripts.push(Script {
-                    path: path_str,
-                    filename,
-                    parent,
-                    tags,
-                    is_hidden,
-                    is_running,
-                    has_ui,
-                });
+    // If cache is empty or we are forcing a full scan, go to disk
+    if script_paths.is_empty() {
+        if !force_scan {
+             println!("[Rust] No cached data available. Starting initial disk scan...");
+        }
+        let mut scan_dirs = Vec::new();
+        if let Some(user_dirs) = UserDirs::new() {
+            if let Some(desktop) = user_dirs.desktop_dir() {
+                scan_dirs.push(desktop.to_path_buf());
             }
         }
+        scan_dirs.push(std::path::PathBuf::from(".."));
+
+        for dir in scan_dirs {
+            for entry in WalkDir::new(&dir).into_iter().filter_map(|e| e.ok()) {
+                if entry.path().extension().map_or(false, |ext| ext == "ahk") {
+                    script_paths.push(entry.path().to_string_lossy().to_string());
+                }
+            }
+        }
+        // Save the result to cache for next time
+        save_cache(&script_paths);
     }
+
+    // Now enrich paths with metadata (this part is ALWAYS fresh)
+    for path_str in script_paths {
+        let path_buf = std::path::PathBuf::from(&path_str);
+        if !path_buf.exists() { continue; }
+
+        let path_lower = path_str.to_lowercase();
+        let filename = path_buf.file_name().map_or("".to_string(), |f| f.to_string_lossy().to_string());
+        let parent = path_buf.parent().map_or("".to_string(), |p| p.file_name().map_or("".to_string(), |f| f.to_string_lossy().to_string()));
+        
+        let tags = metadata.tags.get(&path_lower).cloned().unwrap_or_default();
+        let is_hidden = metadata.hidden_folders.iter().any(|h| path_lower.contains(&h.to_lowercase()));
+        let is_running = running_cmds.iter().any(|cmd| cmd.contains(&path_lower));
+
+        let has_ui = if is_running {
+            if let Ok(content) = fs::read_to_string(&path_buf) {
+                let text = content.to_lowercase();
+                text.contains("0x0401") || text.contains("0x401")
+            } else { false }
+        } else { false };
+
+        scripts.push(Script {
+            path: path_str,
+            filename,
+            parent,
+            tags,
+            is_hidden,
+            is_running,
+            has_ui,
+        });
+    }
+
     scripts.sort_by(|a, b| a.path.cmp(&b.path));
     scripts.dedup_by(|a, b| a.path == b.path);
     scripts

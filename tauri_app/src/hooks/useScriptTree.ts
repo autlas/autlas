@@ -29,9 +29,11 @@ interface UseScriptTreeOptions {
     searchQuery: string;
     setSearchQuery: (query: string) => void;
     onRunningCountChange?: (count: number) => void;
+    manualRefresh?: boolean;
+    onScanComplete?: (timestamp: number) => void;
 }
 
-export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, searchQuery, setSearchQuery, onRunningCountChange }: UseScriptTreeOptions) {
+export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, searchQuery, setSearchQuery, onRunningCountChange, manualRefresh, onScanComplete }: UseScriptTreeOptions) {
     const { t } = useTranslation();
     const [allScripts, setAllScripts] = useState<Script[]>([]);
     const [loading, setLoading] = useState(true);
@@ -60,7 +62,12 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
 
     const fetchData = async () => {
         try {
-            const data = await getScripts();
+            console.log(`[useScriptTree] Fetching scripts (manualRefresh: ${manualRefresh})`);
+            const data = await getScripts(manualRefresh);
+            if (manualRefresh && onScanComplete) {
+                onScanComplete(Date.now());
+            }
+            console.log(`[useScriptTree] Received ${data.length} scripts`);
             startTransition(() => {
                 setAllScripts(prev => {
                     if (prev.length !== data.length) return data;
