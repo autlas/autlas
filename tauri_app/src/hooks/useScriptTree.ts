@@ -540,6 +540,60 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
         });
     }, []);
 
+    const [focusedPath, setFocusedPath] = useState<string | null>(null);
+
+    const visibleItems = useMemo(() => {
+        const items: { path: string, type: 'folder' | 'script', data?: any }[] = [];
+
+        if (filterTag === "hub" && groupedHub) {
+            groupedHub.forEach(group => {
+                group.scripts.forEach(s => {
+                    items.push({ path: s.path, type: 'script', data: s });
+                });
+            });
+        } else {
+            const traverse = (node: TreeNode) => {
+                if (node.name !== "Root") {
+                    items.push({ path: node.fullName, type: 'folder', data: node });
+                }
+                const isExpanded = node.name === "Root" || expandedFolders[node.fullName] !== false;
+                if (isExpanded) {
+                    // First traverse children folders to match ScriptTree.tsx rendering order
+                    Object.values(node.children)
+                        .sort((a, b) => a.name.localeCompare(b.name))
+                        .forEach(traverse);
+
+                    // Then add scripts in current folder
+                    [...node.scripts]
+                        .sort((a, b) => a.filename.localeCompare(b.filename))
+                        .forEach(s => {
+                            items.push({ path: s.path, type: 'script', data: s });
+                        });
+                }
+            };
+            traverse(tree);
+        }
+        return items;
+    }, [tree, expandedFolders, groupedHub, filterTag]);
+
+    const moveFocus = useCallback((direction: 'up' | 'down') => {
+        setFocusedPath(prev => {
+            if (visibleItems.length === 0) return null;
+            if (!prev) return visibleItems[0].path;
+
+            const idx = visibleItems.findIndex(item => item.path === prev);
+            if (idx === -1) return visibleItems[0].path;
+
+            if (direction === 'down') {
+                const nextIdx = Math.min(idx + 1, visibleItems.length - 1);
+                return visibleItems[nextIdx].path;
+            } else {
+                const nextIdx = Math.max(idx - 1, 0);
+                return visibleItems[nextIdx].path;
+            }
+        });
+    }, [visibleItems]);
+
     return {
         loading, allScripts, filtered, tree, groupedHub,
         expandedFolders, isAllExpanded, folderDurations,
@@ -550,5 +604,6 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
         toggleFolder, toggleAll, setFolderExpansionRecursive,
         handleToggle, handleRestart, startEditing, stopEditing,
         addTag, removeTag, handleCustomMouseDown,
+        focusedPath, setFocusedPath, visibleItems, moveFocus
     };
 }

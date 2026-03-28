@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next";
 import ScriptRow from "./ScriptRow";
 import HubScriptCard from "./HubScriptCard";
 import { Script } from "../api";
+import { useHotkeys } from "react-hotkeys-hook";
 
 // ─── PERF LOGGING ──────────────────────────────────────────────
 const PERF = false;
@@ -39,6 +40,8 @@ interface TreeContextValue {
     contextMenu: { x: number, y: number, type: string, data: any } | null;
     onShowUI: (s: Script) => void;
     onRestart: (s: Script) => void;
+    focusedPath: string | null;
+    setFocusedPath: (path: string | null) => void;
 }
 const TreeContext = createContext<TreeContextValue>(null as any);
 
@@ -65,7 +68,8 @@ const TreeNodeRenderer = memo(function TreeNodeRenderer({
         onFolderContextMenu, onScriptContextMenu,
         editingScript, pendingScripts, removingTags, allUniqueTags,
         popoverRef, handleCustomMouseDown, handleToggle,
-        startEditing, stopEditing, addTag, removeTag, onShowUI } = ctx;
+        startEditing, stopEditing, addTag, removeTag, onShowUI,
+        focusedPath, setFocusedPath } = ctx;
 
     const [childVisible, setChildVisible] = useState(isExpanded);
     const [gridExpanded, setGridExpanded] = useState(isExpanded);
@@ -100,6 +104,7 @@ const TreeNodeRenderer = memo(function TreeNodeRenderer({
                 <div
                     ref={el => { if (el) folderRefs.current!.set(node.fullName, el); }}
                     onClick={() => !isDragging && toggleFolder(node.fullName)}
+                    onMouseEnter={() => !isDragging && setFocusedPath(node.fullName)}
                     onContextMenu={(e) => {
                         e.preventDefault();
                         onFolderContextMenu(e, {
@@ -109,9 +114,11 @@ const TreeNodeRenderer = memo(function TreeNodeRenderer({
                             onCollapseAll: () => setFolderExpansionRecursive(node, false),
                         } as any);
                     }}
-                    className={`flex items-center space-x-2 h-[38px] pl-[4px] rounded-lg z-10 relative transition-all duration-300 mb-0.5 border border-transparent hover:z-[50]
+                    id={`folder-${node.fullName}`}
+                    className={`flex items-center space-x-2 h-[38px] pl-[4px] rounded-lg z-10 relative transition-all duration-300 mb-0.5 border border-transparent hover:z-[50] scroll-mt-[250px] scroll-mb-[250px]
                         ${!draggedScriptPath ? 'bg-transparent hover:bg-white/[0.05] cursor-pointer group' : 'bg-transparent text-tertiary cursor-default pointer-events-none'}
                         ${ctx.contextMenu?.type === 'folder' && ctx.contextMenu?.data?.fullName === node.fullName ? 'bg-white/5' : ''}
+                        ${focusedPath === node.fullName ? 'bg-indigo-500/10 border-indigo-500/30' : ''}
                     `}
                 >
                     <div className={`w-4 h-4 flex items-center justify-center transition-transform duration-300 ${isExpanded ? 'rotate-90' : ''}`}>
@@ -123,6 +130,9 @@ const TreeNodeRenderer = memo(function TreeNodeRenderer({
                             <path d="M5.5 3.5L5.5 20.5L20.2 12L5.5 3.5Z" />
                         </svg>
                     </div>
+                    {focusedPath === node.fullName && (
+                        <div className="absolute left-0 top-1 bottom-1 w-[3px] bg-indigo-500 rounded-full shadow-[0_0_10px_rgba(99,102,241,0.5)] z-20" />
+                    )}
                     <div className="flex items-center overflow-hidden h-full">
                         {(() => {
                             const rawParts = node.name.split('|').map(p => p.trim());
@@ -229,6 +239,8 @@ const TreeNodeRenderer = memo(function TreeNodeRenderer({
                                             onScriptContextMenu={onScriptContextMenu}
                                             onShowUI={onShowUI}
                                             onRestart={ctx.onRestart}
+                                            focusedPath={ctx.focusedPath}
+                                            setFocusedPath={ctx.setFocusedPath}
                                         />
                                     );
                                 })}
@@ -254,9 +266,9 @@ const TreeNodeRenderer = memo(function TreeNodeRenderer({
     }
     return true;
 });
-
 export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, onRunningCountChange, viewMode, onViewModeChange, onCustomDragStart, isDragging, draggedScriptPath, animationsEnabled, onScriptContextMenu, onFolderContextMenu, searchQuery, setSearchQuery, contextMenu, onShowUI, manualRefresh, onScanComplete }: ScriptTreeProps) {
     const { t } = useTranslation();
+    const searchInputRef = useRef<HTMLInputElement>(null);
     const renderStartRef = useRef(0);
     if (PERF) {
         renderStartRef.current = performance.now();
@@ -271,8 +283,58 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
         setShowHidden,
         toggleFolder, toggleAll, setFolderExpansionRecursive,
         handleToggle, handleRestart, startEditing, stopEditing,
-        addTag, removeTag, handleCustomMouseDown, folderDurations
+        addTag, removeTag, handleCustomMouseDown, folderDurations,
+        focusedPath, setFocusedPath, visibleItems, moveFocus
     } = useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, searchQuery, setSearchQuery, onRunningCountChange, manualRefresh, onScanComplete });
+
+    // ─── VIM HOTKEYS ───────────────────────────────────────────────
+    useHotkeys('j', () => moveFocus('down'), { preventDefault: true });
+    useHotkeys('k', () => moveFocus('up'), { preventDefault: true });
+    useHotkeys('enter, space', () => {
+        if (!focusedPath) return;
+        const item = visibleItems.find(i => i.path === focusedPath);
+        if (item) {
+            if (item.type === 'script') {
+                handleToggle(item.data);
+            } else {
+                toggleFolder(item.path);
+            }
+        }
+    }, { preventDefault: true });
+
+    useHotkeys('g i, i', (e) => {
+        e.preventDefault();
+        if (searchInputRef.current) searchInputRef.current.focus();
+    });
+
+    useHotkeys('ctrl+f', (e) => {
+        e.preventDefault();
+        if (searchInputRef.current) searchInputRef.current.focus();
+    });
+
+    useHotkeys('esc', () => {
+        if (document.activeElement === searchInputRef.current) {
+            searchInputRef.current?.blur();
+        }
+        setFocusedPath(null);
+    }, { enableOnFormTags: true });
+
+    const lastScrollTimeRef = useRef(0);
+
+    useEffect(() => {
+        if (!focusedPath) return;
+        const el = folderRefs.current.get(focusedPath) || document.getElementById(`script-${focusedPath}`);
+        if (el) {
+            const now = performance.now();
+            const diff = now - lastScrollTimeRef.current;
+            lastScrollTimeRef.current = now;
+
+            // If navigating rapidly (held key), use instant 'auto' behavior to avoid smooth-scroll jitter
+            const behavior = (diff < 80 && diff > 0) ? 'auto' : 'smooth';
+
+            el.scrollIntoView({ behavior, block: 'nearest' });
+        }
+    }, [focusedPath]);
 
     useEffect(() => {
         if (onLoadingChange) {
@@ -353,7 +415,9 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
         showHidden,
         contextMenu,
         onShowUI,
-        onRestart: handleRestart
+        onRestart: handleRestart,
+        focusedPath,
+        setFocusedPath
     });
 
     const masonryColumns = useMemo(() => {
@@ -456,6 +520,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
                         )}
 
                         <input
+                            ref={searchInputRef}
                             type="text"
                             value={displayValue}
                             onChange={(e) => {
@@ -463,11 +528,10 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
                                 setSearchQuery(prefixMatch ? prefixMatch + val : val);
                             }}
                             onKeyDown={(e) => {
-                                if (e.key === 'Backspace' && prefixMatch) {
-                                    const target = e.target as HTMLInputElement;
-                                    if (target.selectionStart === 0 && target.selectionEnd === 0) {
-                                        setSearchQuery(displayValue);
-                                    }
+                                if (e.key === 'Escape') {
+                                    searchInputRef.current?.blur();
+                                } else if (e.key === 'Backspace' && prefixMatch && displayValue === "") {
+                                    setSearchQuery("");
                                 } else if (e.key === 'Tab') {
                                     const q = searchQuery.toLowerCase();
                                     if (q === 'p') {
@@ -534,6 +598,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
                     ref={containerRef}
                     onScroll={handleScroll}
                     className={`flex-1 overflow-y-auto custom-scrollbar mt-4 -mr-8 pr-6 transition-all duration-300 ${draggedScriptPath ? 'opacity-30 blur-[1px]' : ''}`}
+                    id="script-list-container"
                 >
                     {viewMode === "tiles" ? (
                         <div className="flex flex-col pb-10">
@@ -575,6 +640,8 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
                                                                     onScriptContextMenu={onScriptContextMenu}
                                                                     onShowUI={onShowUI}
                                                                     onRestart={handleRestart}
+                                                                    focusedPath={focusedPath}
+                                                                    setFocusedPath={setFocusedPath}
                                                                 />
                                                             ))}
                                                         </div>
@@ -612,6 +679,8 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
                                                         onScriptContextMenu={onScriptContextMenu}
                                                         onShowUI={onShowUI}
                                                         onRestart={handleRestart}
+                                                        focusedPath={focusedPath}
+                                                        setFocusedPath={setFocusedPath}
                                                     />
                                                 ))}
                                             </div>
@@ -664,6 +733,8 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
                                                                         isContextMenuOpen={contextMenu?.type === 'script' && contextMenu?.data?.path === s.path}
                                                                         onShowUI={onShowUI}
                                                                         onRestart={handleRestart}
+                                                                        focusedPath={focusedPath}
+                                                                        setFocusedPath={setFocusedPath}
                                                                     />
                                                                 );
                                                             })}
@@ -706,6 +777,8 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
                                                             isContextMenuOpen={contextMenu?.type === 'script' && contextMenu?.data?.path === s.path}
                                                             onShowUI={onShowUI}
                                                             onRestart={handleRestart}
+                                                            focusedPath={focusedPath}
+                                                            setFocusedPath={setFocusedPath}
                                                         />
                                                     );
                                                 })}

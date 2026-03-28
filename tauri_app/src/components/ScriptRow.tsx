@@ -8,7 +8,8 @@ const ScriptRow = memo(function ScriptRow({
     s, isDragging, draggedScriptPath, isEditing, isPending, pendingType, isContextMenuOpen, removingTagKeys,
     allUniqueTags, popoverRef, visibilityMode,
     onMouseDown, onDoubleClick, onToggle, onStartEditing, onAddTag, onRemoveTag, onCloseEditing,
-    onScriptContextMenu, onShowUI, onRestart
+    onScriptContextMenu, onShowUI, onRestart,
+    focusedPath, setFocusedPath
 }: ScriptRowProps) {
     const { t } = useTranslation();
 
@@ -106,9 +107,12 @@ const ScriptRow = memo(function ScriptRow({
             onMouseDown={handleMouseDown}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseLeave}
+            onMouseEnter={() => setFocusedPath(s.path)}
             onDoubleClick={() => !isDragging && onDoubleClick(s)}
-            className={`flex items-center justify-between h-[42px] px-3 rounded-lg transition-all duration-300 border border-transparent select-none relative
+            id={`script-${s.path}`}
+            className={`flex items-center justify-between h-[42px] px-3 rounded-lg transition-all duration-300 border border-transparent select-none relative scroll-mt-[250px] scroll-mb-[250px]
                 ${isEditing ? 'z-[200] !opacity-100' : 'z-10'}
+                ${focusedPath === s.path ? 'bg-indigo-500/10 border-indigo-500/30 shadow-[0_0_15px_rgba(99,102,241,0.1)]' : ''}
                 ${!draggedScriptPath ? (isContextMenuOpen || isEditing ? 'hover:z-[100] group bg-white/5 shadow-xl border-indigo-500/20' : 'hover:z-[100] group hover:bg-white/5 cursor-grab active:cursor-grabbing') : ''}
                 long-press-shrink has-[button:active]:scale-100
 
@@ -119,6 +123,9 @@ const ScriptRow = memo(function ScriptRow({
             `}
         >
             <div className="flex items-center space-x-4 overflow-visible flex-1 mr-4">
+                {focusedPath === s.path && (
+                    <div className="absolute left-0 top-1.5 bottom-1.5 w-1 bg-indigo-500 rounded-full shadow-[0_0_8px_rgba(99,102,241,0.6)] animate-pulse" />
+                )}
                 <div className={`w-2 h-2 rounded-full flex-shrink-0 transition-all duration-500
                     ${isPending ? 'bg-yellow-500 animate-pulse shadow-[0_0_10px_rgba(234,179,8,0.6)]' :
                         s.is_running ? 'bg-green-500 animate-status-glow shadow-[0_0_12px_rgba(34,197,94,0.8)]' : 'bg-white/10'}
@@ -203,64 +210,66 @@ const ScriptRow = memo(function ScriptRow({
                 )}
             </div>
 
-            {!isDragging && (
-                <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center space-x-2 pointer-events-auto">
-                    {s.is_running && !isPending && s.has_ui && (
-                        <button
-                            onClick={(e) => { e.stopPropagation(); onShowUI(s); }}
-                            onMouseDown={(e) => e.stopPropagation()}
-                            className="w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-lg bg-white/5 text-[#71717a] border border-white/5 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-500/20 transition-all cursor-pointer pointer-events-auto"
-                            title="Interface"
-                        >
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                                <line x1="3" y1="9" x2="21" y2="9" />
-                                <line x1="9" y1="21" x2="9" y2="9" />
-                            </svg>
-                        </button>
-                    )}
-                    {s.is_running && !isPending && (
-                        <button
-                            onClick={(e) => { e.stopPropagation(); onRestart(s); }}
-                            onMouseDown={(e) => e.stopPropagation()}
-                            className="w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-lg bg-white/5 text-[#71717a] border border-white/5 hover:bg-yellow-500/10 hover:text-yellow-500 hover:border-yellow-500/20 transition-all cursor-pointer pointer-events-auto"
-                            title="Restart"
-                        >
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M23 4v6h-6"></path>
-                                <path d="M1 20v-6h6"></path>
-                                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-                            </svg>
-                        </button>
-                    )}
-                    <button
-                        onClick={(e) => { e.stopPropagation(); !isPending && onToggle(s); }}
-                        onMouseDown={(e) => e.stopPropagation()}
-                        className={`w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-lg transition-all transform cursor-pointer active:scale-95 pointer-events-auto border 
-                            ${isPending ? (
-                                pendingType === 'restart' ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20 animate-pulse' :
-                                    pendingType === 'kill' ? 'bg-red-500/10 text-red-500 border-red-500/20 animate-pulse' :
-                                        'bg-green-500/10 text-green-500 border-green-500/20 animate-pulse'
-                            ) : s.is_running ? 'bg-white/5 text-[#71717a] border-white/5 hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/20' : 'bg-white/5 text-[#71717a] border-white/5 hover:bg-green-500/10 hover:text-green-500 hover:border-green-500/20'}
-                        `}
-                        title={isPending ? (pendingType === 'restart' ? "Restarting..." : "Toggling...") : (s.is_running ? "Kill" : "Run")}
-                    >
-                        {isPending ? (
-                            <div className="text-[10px] items-center justify-center flex font-bold h-full">...</div>
-                        ) : s.is_running ? (
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                                <line x1="18" y1="6" x2="6" y2="18"></line>
-                                <line x1="6" y1="6" x2="18" y2="18"></line>
-                            </svg>
-                        ) : (
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                <polygon points="5 3 19 12 5 21 5 3"></polygon>
-                            </svg>
+            {
+                !isDragging && (
+                    <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center space-x-2 pointer-events-auto">
+                        {s.is_running && !isPending && s.has_ui && (
+                            <button
+                                onClick={(e) => { e.stopPropagation(); onShowUI(s); }}
+                                onMouseDown={(e) => e.stopPropagation()}
+                                className="w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-lg bg-white/5 text-[#71717a] border border-white/5 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-500/20 transition-all cursor-pointer pointer-events-auto"
+                                title="Interface"
+                            >
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                                    <line x1="3" y1="9" x2="21" y2="9" />
+                                    <line x1="9" y1="21" x2="9" y2="9" />
+                                </svg>
+                            </button>
                         )}
-                    </button>
-                </div>
-            )}
-        </div>
+                        {s.is_running && !isPending && (
+                            <button
+                                onClick={(e) => { e.stopPropagation(); onRestart(s); }}
+                                onMouseDown={(e) => e.stopPropagation()}
+                                className="w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-lg bg-white/5 text-[#71717a] border border-white/5 hover:bg-yellow-500/10 hover:text-yellow-500 hover:border-yellow-500/20 transition-all cursor-pointer pointer-events-auto"
+                                title="Restart"
+                            >
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M23 4v6h-6"></path>
+                                    <path d="M1 20v-6h6"></path>
+                                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                                </svg>
+                            </button>
+                        )}
+                        <button
+                            onClick={(e) => { e.stopPropagation(); !isPending && onToggle(s); }}
+                            onMouseDown={(e) => e.stopPropagation()}
+                            className={`w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-lg transition-all transform cursor-pointer active:scale-95 pointer-events-auto border 
+                            ${isPending ? (
+                                    pendingType === 'restart' ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20 animate-pulse' :
+                                        pendingType === 'kill' ? 'bg-red-500/10 text-red-500 border-red-500/20 animate-pulse' :
+                                            'bg-green-500/10 text-green-500 border-green-500/20 animate-pulse'
+                                ) : s.is_running ? 'bg-white/5 text-[#71717a] border-white/5 hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/20' : 'bg-white/5 text-[#71717a] border-white/5 hover:bg-green-500/10 hover:text-green-500 hover:border-green-500/20'}
+                        `}
+                            title={isPending ? (pendingType === 'restart' ? "Restarting..." : "Toggling...") : (s.is_running ? "Kill" : "Run")}
+                        >
+                            {isPending ? (
+                                <div className="text-[10px] items-center justify-center flex font-bold h-full">...</div>
+                            ) : s.is_running ? (
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                </svg>
+                            ) : (
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                                </svg>
+                            )}
+                        </button>
+                    </div>
+                )
+            }
+        </div >
     );
 }, (prev, next) => {
     return prev.s.path === next.s.path &&
@@ -278,7 +287,8 @@ const ScriptRow = memo(function ScriptRow({
         prev.allUniqueTags.join(',') === next.allUniqueTags.join(',') &&
         prev.visibilityMode === next.visibilityMode &&
         prev.onShowUI === next.onShowUI &&
-        prev.onRestart === next.onRestart;
+        prev.onRestart === next.onRestart &&
+        prev.focusedPath === next.focusedPath;
 });
 
 export default ScriptRow;

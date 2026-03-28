@@ -63,6 +63,8 @@ export interface ScriptRowProps {
     onScriptContextMenu: (e: React.MouseEvent, script: Script) => void;
     onShowUI: (s: Script) => void;
     onRestart: (s: Script) => void;
+    focusedPath: string | null;
+    setFocusedPath: (path: string | null) => void;
 }
 
 export interface HubScriptCardProps {
@@ -85,4 +87,6 @@ export interface HubScriptCardProps {
     onScriptContextMenu: (e: React.MouseEvent, s: Script) => void;
     onShowUI: (s: Script) => void;
     onRestart: (s: Script) => void;
+    focusedPath: string | null;
+    setFocusedPath: (path: string | null) => void;
 }

@@ -5,6 +5,7 @@ import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { useTranslation } from "react-i18next";
 import LanguageSelector from "./components/LanguageSelector";
 import "./App.css";
+import { useHotkeys } from "react-hotkeys-hook";
 
 const MemoizedScriptTree = React.memo(ScriptTree);
 
@@ -164,6 +165,22 @@ function App() {
     const ticker = setInterval(() => setCurrentTime(Date.now()), 1000);
     return () => clearInterval(ticker);
   }, []);
+
+  // ─── SIDEBAR NAVIGATION HOTKEYS ──────────────────────────────────
+  const TABS = ["hub", "all", "no_tags", ...userTags, "settings"];
+  useHotkeys('shift+alt+j', (e) => {
+    e.preventDefault();
+    const currentIndex = TABS.indexOf(activeTab);
+    const nextIndex = (currentIndex + 1) % TABS.length;
+    handleTabClick(TABS[nextIndex]);
+  }, { enableOnFormTags: true });
+
+  useHotkeys('shift+alt+k', (e) => {
+    e.preventDefault();
+    const currentIndex = TABS.indexOf(activeTab);
+    const prevIndex = (currentIndex - 1 + TABS.length) % TABS.length;
+    handleTabClick(TABS[prevIndex]);
+  }, { enableOnFormTags: true });
 
   const handleLoadingChange = useCallback((loading: boolean) => {
     setIsRefreshing(loading);
