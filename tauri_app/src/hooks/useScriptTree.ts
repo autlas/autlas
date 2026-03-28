@@ -591,13 +591,7 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
     const visibleItems = useMemo(() => {
         const items: { path: string, type: 'folder' | 'script', data?: any }[] = [];
 
-        if (filterTag === "hub" && groupedHub) {
-            groupedHub.forEach(group => {
-                group.scripts.forEach(s => {
-                    items.push({ path: s.path, type: 'script', data: s });
-                });
-            });
-        } else if (viewMode === "tree") {
+        if (viewMode === "tree") {
             const traverse = (node: TreeNode) => {
                 if (node.name !== "Root") {
                     items.push({ path: node.fullName, type: 'folder', data: node });
@@ -618,6 +612,15 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
                 }
             };
             traverse(tree);
+        } else if (filterTag === "hub" && groupedHub) {
+            groupedHub.forEach(group => {
+                // Add the tag header as a navigation marker (will be skipped by Vim focus logic)
+                items.push({ path: `tag-${group.tag}`, type: 'folder', data: group.tag });
+
+                group.scripts.forEach(s => {
+                    items.push({ path: s.path, type: 'script', data: s });
+                });
+            });
         } else {
             // list or tiles view for local scripts: use the flat sorted filtered list
             filtered.forEach(s => {
@@ -627,25 +630,104 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
         return items;
     }, [tree, expandedFolders, groupedHub, filterTag, viewMode, filtered]);
 
+    useEffect(() => {
+        console.log("[VimNav] Visible Items Update:", visibleItems.map(item => `(${item.type}) ${item.path}`));
+    }, [visibleItems]);
+
+    useEffect(() => {
+        if (focusedPath) {
+            console.log("[VimNav] Focus Changed to:", focusedPath);
+        }
+    }, [focusedPath]);
+
     const moveFocus = useCallback((direction: 'up' | 'down' | 'left' | 'right', cols: number = 1) => {
         setIsVimMode(true);
         setFocusedPath(prev => {
             if (visibleItems.length === 0) return null;
-            if (!prev) return visibleItems[0].path;
+            if (!prev) {
+                const firstScript = visibleItems.find(i => i.type === 'script');
+                return firstScript ? firstScript.path : (visibleItems[0].path || null);
+            }
 
             const idx = visibleItems.findIndex(item => item.path === prev);
             if (idx === -1) return visibleItems[0].path;
 
             let nextIdx = idx;
             if (direction === 'down') {
-                nextIdx = (cols > 1) ? Math.min(idx + cols, visibleItems.length - 1) : Math.min(idx + 1, visibleItems.length - 1);
+                const effectiveCols = (cols > 1) ? cols : 1;
+
+                if (effectiveCols > 1) {
+                    let targetIdx = Math.min(idx + effectiveCols, visibleItems.length - 1);
+                    for (let i = idx + 1; i <= targetIdx; i++) {
+                        if (visibleItems[i].type === 'folder') {
+                            targetIdx = i;
+                            break;
+                        }
+                    }
+                    nextIdx = targetIdx;
+                } else {
+                    nextIdx = Math.min(idx + 1, visibleItems.length - 1);
+                }
+
+                while (nextIdx < visibleItems.length - 1 && visibleItems[nextIdx].type === 'folder') {
+                    nextIdx++;
+                }
             } else if (direction === 'up') {
-                nextIdx = (cols > 1) ? Math.max(idx - cols, 0) : Math.max(idx - 1, 0);
+                const effectiveCols = (cols > 1) ? cols : 1;
+
+                if (effectiveCols > 1) {
+                    let targetIdx = Math.max(idx - effectiveCols, 0);
+                    for (let i = idx - 1; i >= targetIdx; i--) {
+                        if (visibleItems[i].type === 'folder') {
+                            targetIdx = i;
+                            break;
+                        }
+                    }
+                    nextIdx = targetIdx;
+                } else {
+                    nextIdx = Math.max(idx - 1, 0);
+                }
+
+                while (nextIdx > 0 && visibleItems[nextIdx].type === 'folder') {
+                    nextIdx--;
+                }
+                if (visibleItems[nextIdx].type === 'folder') {
+                    for (let i = nextIdx; i < visibleItems.length; i++) {
+                        if (visibleItems[i].type === 'script') {
+                            nextIdx = i;
+                            break;
+                        }
+                    }
+                }
             } else if (direction === 'right') {
                 nextIdx = Math.min(idx + 1, visibleItems.length - 1);
+                while (nextIdx < visibleItems.length - 1 && visibleItems[nextIdx].type === 'folder') {
+                    nextIdx++;
+                }
             } else if (direction === 'left') {
                 nextIdx = Math.max(idx - 1, 0);
+                while (nextIdx > 0 && visibleItems[nextIdx].type === 'folder') {
+                    nextIdx--;
+                }
+                if (visibleItems[nextIdx].type === 'folder') {
+                    for (let i = nextIdx; i < visibleItems.length; i++) {
+                        if (visibleItems[i].type === 'script') {
+                            nextIdx = i;
+                            break;
+                        }
+                    }
+                }
             }
+
+            if (visibleItems[nextIdx]?.type === 'folder') {
+                for (let i = nextIdx + 1; i < visibleItems.length; i++) {
+                    if (visibleItems[i].type === 'script') {
+                        nextIdx = i;
+                        break;
+                    }
+                }
+            }
+
             return visibleItems[nextIdx].path;
         });
     }, [visibleItems]);
