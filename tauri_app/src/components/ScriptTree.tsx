@@ -456,7 +456,8 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
     useEffect(() => {
         if (visibleItems.length > 0) {
             isInstantScrollRef.current = true;
-            setFocusedPath(visibleItems[0].path);
+            const target = visibleItems.find(i => i.type === 'script') || visibleItems[0];
+            setFocusedPath(target.path);
         }
     }, [sortBy]);
 
@@ -475,7 +476,8 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
             // gg - Scroll to top
             if (visibleItems.length > 0) {
                 isInstantScrollRef.current = true;
-                setFocusedPath(visibleItems[0].path);
+                const target = visibleItems.find(i => i.type === 'script') || visibleItems[0];
+                setFocusedPath(target.path);
                 setIsVimMode(true);
             }
             lastGTimeRef.current = 0;

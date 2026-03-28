@@ -645,13 +645,15 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
         setIsVimMode(true);
         setFocusedPath(prev => {
             if (visibleItems.length === 0) return null;
-            if (!prev) {
+            const getInitial = () => {
                 const firstScript = visibleItems.find(i => i.type === 'script');
                 return firstScript ? firstScript.path : (visibleItems[0].path || null);
-            }
+            };
+
+            if (!prev) return getInitial();
 
             const idx = visibleItems.findIndex(item => item.path === prev);
-            if (idx === -1) return visibleItems[0].path;
+            if (idx === -1) return getInitial();
 
             let nextIdx = idx;
             const len = visibleItems.length;
