@@ -821,7 +821,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
                 <div
                     ref={containerRef}
                     onScroll={handleScroll}
-                    className={`flex-1 overflow-y-auto custom-scrollbar mt-4 -mx-8 px-8 transition-all duration-300 ${draggedScriptPath ? 'opacity-30 blur-[1px]' : ''}`}
+                    className={`flex-1 overflow-y-auto custom-scrollbar -mx-8 px-8 transition-all duration-300 ${draggedScriptPath ? 'opacity-30 blur-[1px]' : ''}`}
                     id="script-list-container"
                 >
                     {viewMode === "tiles" ? (
@@ -878,7 +878,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
                                     })
                                 ) : (
                                     <div
-                                        className="grid gap-6 items-start"
+                                        className="grid gap-6 items-start pt-6"
                                         style={{ gridTemplateColumns: `repeat(${columnsCount}, minmax(0, 1fr))` }}
                                     >
                                         {masonryColumns.map((col, colIdx) => (
@@ -976,7 +976,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
                                     })
                                 ) : (
                                     <div
-                                        className="grid gap-x-8 gap-y-1 items-start"
+                                        className="grid gap-x-8 gap-y-1 items-start pt-6"
                                         style={{ gridTemplateColumns: `repeat(${columnsCount}, minmax(0, 1fr))` }}
                                     >
                                         {masonryColumns.map((col, colIdx) => (
