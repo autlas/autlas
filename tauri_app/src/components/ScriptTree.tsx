@@ -56,15 +56,32 @@ const TagSectionHeader = ({ tag }: { tag: string }) => (
     </div>
 );
 
-const ShortcutItem = ({ keys, desc }: { keys: string[], desc: string }) => (
-    <div className="flex items-center justify-between group/item">
+const ShortcutItem = ({ keys, desc, sets }: { keys?: string[], desc: string, sets?: string[][] }) => (
+    <div className="flex items-center justify-between group/item min-h-[40px]">
         <span className="text-secondary/80 text-sm group-hover/item:text-white transition-colors">{desc}</span>
-        <div className="flex gap-1.5 ml-4">
-            {keys.map(k => (
-                <kbd key={k} className="px-2 py-1 rounded bg-white/5 border border-white/10 text-[14px] font-bold text-white/40 shadow-sm min-w-[24px] text-center">
-                    {k}
-                </kbd>
-            ))}
+        <div className="flex gap-3 ml-4 items-center">
+            {sets ? (
+                sets.map((set, i) => (
+                    <React.Fragment key={i}>
+                        {i > 0 && <span className="text-[10px] text-white/30 font-black uppercase tracking-widest">or</span>}
+                        <div className="flex gap-1.5">
+                            {set.map((k, ki) => (
+                                <kbd key={k + ki} className="px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-[12px] font-bold text-white/50 shadow-sm min-w-[28px] text-center group-hover/item:text-indigo-400 group-hover/item:border-indigo-500/30 transition-all">
+                                    {k}
+                                </kbd>
+                            ))}
+                        </div>
+                    </React.Fragment>
+                ))
+            ) : (
+                <div className="flex gap-1.5">
+                    {keys?.map((k, ki) => (
+                        <kbd key={k + ki} className="px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-[12px] font-bold text-white/50 shadow-sm min-w-[28px] text-center group-hover/item:text-indigo-400 group-hover/item:border-indigo-500/30 transition-all">
+                            {k}
+                        </kbd>
+                    ))}
+                </div>
+            )}
         </div>
     </div>
 );
@@ -77,7 +94,7 @@ const CheatSheet = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void 
             onClick={onClose}
         >
             <div
-                className="bg-[#0a0a0c] border border-white/10 p-8 rounded-[32px] shadow-2xl max-w-2xl w-full mx-4 relative overflow-hidden group"
+                className="bg-[#0a0a0c] border border-white/10 p-10 rounded-[40px] shadow-2xl max-w-4xl w-full mx-4 relative overflow-hidden group"
                 onClick={e => e.stopPropagation()}
             >
                 {/* Decorative glow */}
@@ -97,21 +114,24 @@ const CheatSheet = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void 
                             <span className="w-4 h-[2px] bg-indigo-500/30 mr-2" />
                             Navigation
                         </h3>
-                        <ShortcutItem keys={['j']} desc="Move Focus Down" />
-                        <ShortcutItem keys={['k']} desc="Move Focus Up" />
-                        <ShortcutItem keys={['Enter', 'Space']} desc="Run / Stop Script" />
+                        <ShortcutItem keys={['h', 'j', 'k', 'l']} desc="Navigate (HJKL)" />
+                        <ShortcutItem sets={[['g', 'g'], ['G']]} desc="Scroll Top / Bottom" />
+                        <ShortcutItem sets={[['Enter'], ['Space']]} desc="Run / Stop Script" />
                         <ShortcutItem keys={['Esc']} desc="Clear Focus / Close" />
                     </div>
 
-                    <div className="space-y-4">
-                        <h3 className="text-[10px] font-black text-white/20 uppercase tracking-[0.3em] mb-6 flex items-center">
-                            <span className="w-4 h-[2px] bg-purple-500/30 mr-2" />
-                            Quick Actions
+                    <div className="flex flex-col gap-4">
+                        <h3 className="text-[12px] font-black uppercase tracking-[0.2em] text-indigo-400 flex items-center mb-2">
+                            <span className="w-4 h-[2px] bg-indigo-500/30 mr-2" />
+                            View & Search
                         </h3>
-                        <ShortcutItem keys={['g', 'i']} desc="Focus Search" />
-                        <ShortcutItem keys={['f', 'i']} desc="Filter Files (file:)" />
-                        <ShortcutItem keys={['Ctrl', 'F']} desc="Global Search" />
-                        <ShortcutItem keys={['?']} desc="Toggle this Help" />
+                        <div className="grid grid-cols-2 gap-x-8 gap-y-4">
+                            <ShortcutItem keys={['i']} desc="Focus Search" />
+                            <ShortcutItem keys={['/']} desc="Global Search" />
+                            <ShortcutItem keys={['q', 'w', 'e']} desc="Tree / Tiles / List" />
+                            <ShortcutItem keys={['s']} desc="Toggle Sort (N/P)" />
+                            <ShortcutItem keys={['?']} desc="Show Help" />
+                        </div>
                     </div>
                 </div>
 
@@ -353,6 +373,8 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
     const searchInputRef = useRef<HTMLInputElement>(null);
     const lastGTimeRef = useRef(0);
     const lastFTimeRef = useRef(0);
+    const isInstantScrollRef = useRef(false);
+    const [sortBy, setSortBy] = useState<"name" | "path">("name");
     const renderStartRef = useRef(0);
     if (PERF) {
         renderStartRef.current = performance.now();
@@ -369,12 +391,14 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
         handleToggle, handleRestart, startEditing, stopEditing,
         addTag, removeTag, handleCustomMouseDown, folderDurations,
         focusedPath, setFocusedPath, isVimMode, setIsVimMode, visibleItems, moveFocus
-    } = useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, searchQuery, setSearchQuery, onRunningCountChange, manualRefresh, onScanComplete });
+    } = useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, searchQuery, setSearchQuery, onRunningCountChange, manualRefresh, onScanComplete, viewMode, sortBy });
     const [isCheatSheetOpen, setIsCheatSheetOpen] = useState(false);
 
     // ─── VIM HOTKEYS ───────────────────────────────────────────────
-    useHotkeys('j', () => moveFocus('down'), { preventDefault: true });
-    useHotkeys('k', () => moveFocus('up'), { preventDefault: true });
+    useHotkeys('j', () => moveFocus('down', viewMode === 'tree' ? 1 : columnsCount), { preventDefault: true });
+    useHotkeys('k', () => moveFocus('up', viewMode === 'tree' ? 1 : columnsCount), { preventDefault: true });
+    useHotkeys('h', () => moveFocus('left', 1), { preventDefault: true });
+    useHotkeys('l', () => moveFocus('right', 1), { preventDefault: true });
     useHotkeys('enter, space', () => {
         if (!focusedPath) return;
         const item = visibleItems.find(i => i.path === focusedPath);
@@ -404,6 +428,13 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, []);
 
+    useEffect(() => {
+        if (visibleItems.length > 0) {
+            isInstantScrollRef.current = true;
+            setFocusedPath(visibleItems[0].path);
+        }
+    }, [sortBy]);
+
     useHotkeys('shift+/', () => {
         setIsCheatSheetOpen(prev => !prev);
     });
@@ -413,8 +444,35 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
     });
 
     useHotkeys('g', () => {
-        lastGTimeRef.current = performance.now();
+        const now = performance.now();
+        const diff = now - lastGTimeRef.current;
+        if (diff < 500 && diff > 0) {
+            // gg - Scroll to top
+            if (visibleItems.length > 0) {
+                isInstantScrollRef.current = true;
+                setFocusedPath(visibleItems[0].path);
+                setIsVimMode(true);
+            }
+            lastGTimeRef.current = 0;
+        } else {
+            lastGTimeRef.current = now;
+        }
     });
+
+    useHotkeys('shift+g', (e) => {
+        e.preventDefault();
+        if (visibleItems.length > 0) {
+            isInstantScrollRef.current = true;
+            setFocusedPath(visibleItems[visibleItems.length - 1].path);
+            setIsVimMode(true);
+        }
+    });
+
+    // --- MODE & SORT HOTKEYS ---
+    useHotkeys('q', () => onViewModeChange('tree'));
+    useHotkeys('w', () => onViewModeChange('tiles'));
+    useHotkeys('e', () => onViewModeChange('list'));
+    useHotkeys('s', () => setSortBy(prev => prev === 'name' ? 'path' : 'name'));
 
     useHotkeys('i', (e) => {
         const now = performance.now();
@@ -462,8 +520,9 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
             const diff = now - lastScrollTimeRef.current;
             lastScrollTimeRef.current = now;
 
-            // If navigating rapidly (held key), use instant 'auto' behavior to avoid smooth-scroll jitter
-            const behavior = (diff < 80 && diff > 0) ? 'auto' : 'smooth';
+            // If navigating rapidly (held key) OR specifically requested (gg/G), use instant 'auto' behavior
+            const behavior = isInstantScrollRef.current || (diff < 80 && diff > 0) ? 'auto' : 'smooth';
+            isInstantScrollRef.current = false;
 
             el.scrollIntoView({ behavior, block: 'nearest' });
         }
@@ -628,6 +687,32 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
                                 </button>
                             );
                         })}
+                    </div>
+
+                    {/* SORTING CONTROLS */}
+                    <div className={`flex items-center overflow-hidden transition-all duration-300 ease-in-out ${viewMode !== "tree" ? 'w-[145px] opacity-100 ml-4' : 'w-0 opacity-0 pointer-events-none'}`}>
+                        <div className="flex bg-white/[0.03] border border-white/5 rounded-xl p-1 gap-1 h-[42px] flex-shrink-0 w-[145px]">
+                            <button
+                                onClick={() => !isDragging && setSortBy("name")}
+                                className={`flex-1 h-full rounded-lg text-[10px] font-black tracking-widest uppercase transition-all flex items-center justify-center cursor-pointer
+                                    ${sortBy === "name"
+                                        ? "bg-white/10 text-white shadow-lg shadow-white/5"
+                                        : "text-tertiary hover:text-white hover:bg-white/5"}
+                                    ${isDragging ? 'opacity-20 pointer-events-none' : ''}`}
+                            >
+                                Name
+                            </button>
+                            <button
+                                onClick={() => !isDragging && setSortBy("path")}
+                                className={`flex-1 h-full rounded-lg text-[10px] font-black tracking-widest uppercase transition-all flex items-center justify-center cursor-pointer
+                                    ${sortBy === "path"
+                                        ? "bg-white/10 text-white shadow-lg shadow-white/5"
+                                        : "text-tertiary hover:text-white hover:bg-white/5"}
+                                    ${isDragging ? 'opacity-20 pointer-events-none' : ''}`}
+                            >
+                                Path
+                            </button>
+                        </div>
                     </div>
 
                     <div className={`flex items-center overflow-hidden transition-all duration-[150ms] ease-in-out ${viewMode === "tree" ? 'w-[52px] opacity-100' : 'w-0 opacity-0 pointer-events-none'}`}>

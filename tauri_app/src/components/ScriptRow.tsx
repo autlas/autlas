@@ -113,8 +113,8 @@ const ScriptRow = memo(function ScriptRow({
             }}
             onDoubleClick={() => !isDragging && onDoubleClick(s)}
             id={`script-${s.path}`}
-            className={`flex items-center space-x-3 h-[42px] px-3 rounded-xl z-20 relative mb-1 border border-transparent hover:z-[50] scroll-mt-[250px] scroll-mb-[250px]
-                ${isFocused && isVimMode ? '!transition-none !bg-indigo-500/25 shadow-[0_0_20px_rgba(99,102,241,0.15)]' : 'transition-all duration-300'}
+            className={`flex items-center space-x-3 h-[42px] px-3 rounded-xl z-20 relative mb-1 border border-transparent hover:z-[50] scroll-mt-[250px] scroll-mb-[250px] long-press-shrink
+                ${isFocused && isVimMode ? 'vim-focus-instant bg-indigo-500/25 shadow-[0_0_20px_rgba(99,102,241,0.15)]' : ''}
                 ${!draggedScriptPath ? (isFocused && isVimMode ? '' : 'bg-transparent hover:bg-white/[0.05] cursor-pointer group') : 'bg-transparent text-tertiary cursor-default pointer-events-none'}
                 ${isContextMenuOpen ? 'bg-white/5 border-white/10' : ''}
                 ${s.path === draggedScriptPath ? 'opacity-0 pointer-events-none' : ''}

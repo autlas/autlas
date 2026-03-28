@@ -48,10 +48,10 @@ const HubScriptCard = memo(function HubScriptCard({
             }}
             onDoubleClick={() => !isDragging && onToggle(s, true)}
             id={`script-${s.path}`}
-            className={`p-6 rounded-[24px] border flex flex-col select-none relative ${isEditing ? 'z-[200]' : 'z-10'}
-                ${isFocused && isVimMode ? '!transition-none !bg-indigo-500/20 shadow-[0_0_40px_rgba(99,102,241,0.2)] ring-2 ring-indigo-500/30' : 'transition-all duration-300'}
+            className={`p-6 rounded-[24px] border flex flex-col select-none relative long-press-shrink ${isEditing ? 'z-[200]' : 'z-10'}
+                ${isFocused && isVimMode ? 'vim-focus-instant !bg-indigo-500/20 shadow-[0_0_40px_rgba(99,102,241,0.2)] ring-2 ring-indigo-500/30' : 'transition-all duration-300'}
                 ${!draggedScriptPath
-                    ? `group hover:z-[100] hover:bg-white/[0.06] ${isEditing || isContextMenuOpen ? 'shadow-2xl bg-white/[0.05]' : (isFocused && isVimMode ? '' : 'bg-white/[0.03] hover:shadow-2xl cursor-grab active:cursor-grabbing long-press-shrink')}`
+                    ? `group hover:z-[100] hover:bg-white/[0.06] ${isEditing || isContextMenuOpen ? 'shadow-2xl bg-white/[0.05]' : (isFocused && isVimMode ? '' : 'bg-white/[0.03] hover:shadow-2xl cursor-grab active:cursor-grabbing')}`
 
                     : (s.path === draggedScriptPath ? 'opacity-0 pointer-events-none' : 'z-10')}
                 ${s.is_running && !isDragging ? '' : ''}

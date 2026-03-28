@@ -31,9 +31,11 @@ interface UseScriptTreeOptions {
     onRunningCountChange?: (count: number) => void;
     manualRefresh?: boolean;
     onScanComplete?: (timestamp: number) => void;
+    viewMode: "tree" | "tiles" | "list";
+    sortBy: "name" | "path";
 }
 
-export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, searchQuery, setSearchQuery, onRunningCountChange, manualRefresh, onScanComplete }: UseScriptTreeOptions) {
+export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, searchQuery, setSearchQuery, onRunningCountChange, manualRefresh, onScanComplete, viewMode, sortBy }: UseScriptTreeOptions) {
     const { t } = useTranslation();
     const [allScripts, setAllScripts] = useState<Script[]>([]);
     const [loading, setLoading] = useState(true);
@@ -117,6 +119,11 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
     useEffect(() => {
         fetchData();
 
+        // Background polling for running status - 3 seconds is a good balance
+        const intervalId = setInterval(() => {
+            fetchData();
+        }, 3000);
+
         let unlisten: (() => void) | null = null;
         import('@tauri-apps/api/event').then(({ listen }) => {
             listen<{ path: string; tags: string[] }>('script-tags-changed', (event) => {
@@ -128,6 +135,7 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
         });
 
         return () => {
+            clearInterval(intervalId);
             if (unlisten) unlisten();
         };
     }, []);
@@ -399,8 +407,49 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
 
             return true;
         });
-        return list.sort((a, b) => a.filename.localeCompare(b.filename));
-    }, [allScripts, filterTag, showHidden, searchQuery]);
+        if (sortBy === "name") {
+            return list.sort((a, b) => a.filename.localeCompare(b.filename));
+        }
+
+        // Tree-aware path sorting (DFS order)
+        const result: Script[] = [];
+        const root: TreeNode = { name: "Root", fullName: "Root", scripts: [], children: {} };
+
+        // Temporarily build a tree to compute DFS order
+        list.forEach(script => {
+            const pathParts = script.path.split(/[\\\/]/);
+            const desktopIdx = pathParts.findIndex(p => p === "Desktop");
+            const ahkIdx = pathParts.findIndex(p => p === "AHKmanager");
+            let startIdx = 0;
+            if (desktopIdx !== -1) startIdx = desktopIdx;
+            else if (ahkIdx !== -1) startIdx = ahkIdx;
+
+            let current = root;
+            for (let i = startIdx; i < pathParts.length - 1; i++) {
+                const part = pathParts[i];
+                if (!part) continue;
+                if (!current.children[part]) {
+                    current.children[part] = { name: part, fullName: pathParts.slice(0, i + 1).join("\\"), scripts: [], children: {} };
+                }
+                current = current.children[part];
+            }
+            current.scripts.push(script);
+        });
+
+        const traverse = (node: TreeNode) => {
+            // First traverse children folders (DFS)
+            Object.values(node.children)
+                .sort((a, b) => a.name.localeCompare(b.name))
+                .forEach(traverse);
+
+            // Then add scripts in current folder
+            [...node.scripts]
+                .sort((a, b) => a.filename.localeCompare(b.filename))
+                .forEach(s => result.push(s));
+        };
+        traverse(root);
+        return result;
+    }, [allScripts, filterTag, showHidden, searchQuery, sortBy]);
 
     const tree = useMemo(() => {
         const root: TreeNode = { name: "Root", fullName: "Root", scripts: [], children: {} };
@@ -548,7 +597,7 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
                     items.push({ path: s.path, type: 'script', data: s });
                 });
             });
-        } else {
+        } else if (viewMode === "tree") {
             const traverse = (node: TreeNode) => {
                 if (node.name !== "Root") {
                     items.push({ path: node.fullName, type: 'folder', data: node });
@@ -569,11 +618,16 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
                 }
             };
             traverse(tree);
+        } else {
+            // list or tiles view for local scripts: use the flat sorted filtered list
+            filtered.forEach(s => {
+                items.push({ path: s.path, type: 'script', data: s });
+            });
         }
         return items;
-    }, [tree, expandedFolders, groupedHub, filterTag]);
+    }, [tree, expandedFolders, groupedHub, filterTag, viewMode, filtered]);
 
-    const moveFocus = useCallback((direction: 'up' | 'down') => {
+    const moveFocus = useCallback((direction: 'up' | 'down' | 'left' | 'right', cols: number = 1) => {
         setIsVimMode(true);
         setFocusedPath(prev => {
             if (visibleItems.length === 0) return null;
@@ -582,13 +636,17 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
             const idx = visibleItems.findIndex(item => item.path === prev);
             if (idx === -1) return visibleItems[0].path;
 
+            let nextIdx = idx;
             if (direction === 'down') {
-                const nextIdx = Math.min(idx + 1, visibleItems.length - 1);
-                return visibleItems[nextIdx].path;
-            } else {
-                const nextIdx = Math.max(idx - 1, 0);
-                return visibleItems[nextIdx].path;
+                nextIdx = (cols > 1) ? Math.min(idx + cols, visibleItems.length - 1) : Math.min(idx + 1, visibleItems.length - 1);
+            } else if (direction === 'up') {
+                nextIdx = (cols > 1) ? Math.max(idx - cols, 0) : Math.max(idx - 1, 0);
+            } else if (direction === 'right') {
+                nextIdx = Math.min(idx + 1, visibleItems.length - 1);
+            } else if (direction === 'left') {
+                nextIdx = Math.max(idx - 1, 0);
             }
+            return visibleItems[nextIdx].path;
         });
     }, [visibleItems]);
 

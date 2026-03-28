@@ -70,12 +70,17 @@ body {
 }
 
 .long-press-shrink {
-    transition: transform 0.1s ease-out;
+    transition: transform 0.1s ease-out, background-color 0.3s, border-color 0.3s, box-shadow 0.3s;
 }
 
 .long-press-shrink.active-left {
-    transform: scale(0.98) translateZ(0);
-    transition: transform 0.3s ease-in;
+    transform: scale(0.982) translateZ(0);
+    transition: transform 0.3s ease-in !important;
+}
+
+.vim-focus-instant {
+    transition-duration: 0s !important;
+    transition-property: background-color, border-color, box-shadow, color !important;
 }
 
 .custom-scrollbar {
