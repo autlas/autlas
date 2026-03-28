@@ -48,7 +48,7 @@ const HubScriptCard = memo(function HubScriptCard({
 
                     : (s.path === draggedScriptPath ? 'opacity-0 pointer-events-none' : 'z-10')}
                 ${s.is_running && !isDragging ? '' : ''}
-                ${s.is_hidden && visibilityMode !== 'only' ? 'opacity-40 grayscale-[0.5]' : ''}
+                ${s.is_hidden && visibilityMode === 'only' ? 'ring-2 ring-indigo-500/50' : ''}
                 ${isLeftPressed && !isEditing ? 'active-left' : ''}
                 ${isContextMenuOpen || isEditing ? 'border-indigo-500/30' : ''}
             `}

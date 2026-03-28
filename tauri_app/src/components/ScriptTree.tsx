@@ -43,7 +43,7 @@ interface TreeContextValue {
 const TreeContext = createContext<TreeContextValue>(null as any);
 
 const TagSectionHeader = ({ tag }: { tag: string }) => (
-    <div className="flex items-center mb-4 mt-12 first:mt-2 px-2 sticky top-0 z-40 bg-[#0a0a0c]/80 backdrop-blur-md py-4">
+    <div className="flex items-center mb-4 mt-12 first:mt-2 px-2 sticky top-0 z-40 py-4">
         <span className="text-[22px] font-black uppercase tracking-[0.15em] text-white/30 flex items-center leading-none">
             {tag}
         </span>
@@ -471,32 +471,34 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
                     </div>
                 </div>
 
-                <div className="flex items-center space-x-3">
-                    <button
-                        onClick={() => {
-                            if (isDragging) return;
-                            if (showHidden === 'none') setShowHidden('all');
-                            else if (showHidden === 'all') setShowHidden('only');
-                            else setShowHidden('none');
-                        }}
-                        className={`h-[42px] w-[42px] flex items-center justify-center rounded-xl transition-all cursor-pointer border 
-                            ${showHidden === 'none' ? "bg-white/[0.03] border-white/5 text-tertiary hover:text-secondary hover:bg-white/[0.05]" :
-                                showHidden === 'all' ? "bg-white/10 border-white/20 text-white shadow-lg" :
-                                    "bg-white/10 border-white/20 text-indigo-400 shadow-lg"} 
-                            ${isDragging ? 'opacity-20 pointer-events-none' : ''}`}
-                        title={showHidden === 'none' ? t("context.show_hidden") : showHidden === 'all' ? t("context.hide_hidden") : t("context.show_only_hidden", "Show Only Hidden")}
-                    >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                            {showHidden === 'none' ? (
-                                <><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" /><line x1="1" y1="1" x2="23" y2="23" /></>
-                            ) : showHidden === 'all' ? (
-                                <><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></>
-                            ) : (
-                                <><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" fill="currentColor" /></>
-                            )}
-                        </svg>
-                    </button>
-                </div>
+                {filterTag !== "hub" && (
+                    <div className="flex items-center space-x-3">
+                        <button
+                            onClick={() => {
+                                if (isDragging) return;
+                                if (showHidden === 'none') setShowHidden('all');
+                                else if (showHidden === 'all') setShowHidden('only');
+                                else setShowHidden('none');
+                            }}
+                            className={`h-[42px] w-[42px] flex items-center justify-center rounded-xl transition-all cursor-pointer border 
+                                ${showHidden === 'none' ? "bg-white/[0.03] border-white/5 text-tertiary hover:text-secondary hover:bg-white/[0.05]" :
+                                    showHidden === 'all' ? "bg-white/10 border-white/20 text-white shadow-lg" :
+                                        "bg-white/10 border-white/20 text-indigo-400 shadow-lg"} 
+                                ${isDragging ? 'opacity-20 pointer-events-none' : ''}`}
+                            title={showHidden === 'none' ? t("context.show_hidden") : showHidden === 'all' ? t("context.hide_hidden") : t("context.show_only_hidden", "Show Only Hidden")}
+                        >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                {showHidden === 'none' ? (
+                                    <><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" /><line x1="1" y1="1" x2="23" y2="23" /></>
+                                ) : showHidden === 'all' ? (
+                                    <><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></>
+                                ) : (
+                                    <><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" fill="currentColor" /></>
+                                )}
+                            </svg>
+                        </button>
+                    </div>
+                )}
             </div>
 
             <SearchContext.Provider value={{
