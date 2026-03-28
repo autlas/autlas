@@ -641,6 +641,7 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
     }, [focusedPath]);
 
     const moveFocus = useCallback((direction: 'up' | 'down' | 'left' | 'right', cols: number = 1) => {
+        console.log(`[VimNav] Requested Move: ${direction} | Step: ${cols}`);
         setIsVimMode(true);
         setFocusedPath(prev => {
             if (visibleItems.length === 0) return null;
@@ -653,76 +654,43 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
             if (idx === -1) return visibleItems[0].path;
 
             let nextIdx = idx;
+            const len = visibleItems.length;
+
             if (direction === 'down') {
-                const effectiveCols = (cols > 1) ? cols : 1;
-
-                if (effectiveCols > 1) {
-                    let targetIdx = Math.min(idx + effectiveCols, visibleItems.length - 1);
-                    for (let i = idx + 1; i <= targetIdx; i++) {
-                        if (visibleItems[i].type === 'folder') {
-                            targetIdx = i;
-                            break;
-                        }
+                const step = (cols > 1) ? cols : 1;
+                const startFrom = (idx + step) % len;
+                for (let i = 0; i < len; i++) {
+                    const checkIdx = (startFrom + i) % len;
+                    if (visibleItems[checkIdx].type === 'script' && (checkIdx !== idx || len <= 1)) {
+                        nextIdx = checkIdx;
+                        break;
                     }
-                    nextIdx = targetIdx;
-                } else {
-                    nextIdx = Math.min(idx + 1, visibleItems.length - 1);
-                }
-
-                while (nextIdx < visibleItems.length - 1 && visibleItems[nextIdx].type === 'folder') {
-                    nextIdx++;
                 }
             } else if (direction === 'up') {
-                const effectiveCols = (cols > 1) ? cols : 1;
-
-                if (effectiveCols > 1) {
-                    let targetIdx = Math.max(idx - effectiveCols, 0);
-                    for (let i = idx - 1; i >= targetIdx; i--) {
-                        if (visibleItems[i].type === 'folder') {
-                            targetIdx = i;
-                            break;
-                        }
-                    }
-                    nextIdx = targetIdx;
-                } else {
-                    nextIdx = Math.max(idx - 1, 0);
-                }
-
-                while (nextIdx > 0 && visibleItems[nextIdx].type === 'folder') {
-                    nextIdx--;
-                }
-                if (visibleItems[nextIdx].type === 'folder') {
-                    for (let i = nextIdx; i < visibleItems.length; i++) {
-                        if (visibleItems[i].type === 'script') {
-                            nextIdx = i;
-                            break;
-                        }
+                const step = (cols > 1) ? cols : 1;
+                const startFrom = (idx - step + len) % len;
+                for (let i = 0; i < len; i++) {
+                    const checkIdx = (startFrom - i + len) % len;
+                    if (visibleItems[checkIdx].type === 'script' && (checkIdx !== idx || len <= 1)) {
+                        nextIdx = checkIdx;
+                        break;
                     }
                 }
             } else if (direction === 'right') {
-                nextIdx = Math.min(idx + 1, visibleItems.length - 1);
-                while (nextIdx < visibleItems.length - 1 && visibleItems[nextIdx].type === 'folder') {
-                    nextIdx++;
-                }
-            } else if (direction === 'left') {
-                nextIdx = Math.max(idx - 1, 0);
-                while (nextIdx > 0 && visibleItems[nextIdx].type === 'folder') {
-                    nextIdx--;
-                }
-                if (visibleItems[nextIdx].type === 'folder') {
-                    for (let i = nextIdx; i < visibleItems.length; i++) {
-                        if (visibleItems[i].type === 'script') {
-                            nextIdx = i;
-                            break;
-                        }
+                const startFrom = (idx + 1) % len;
+                for (let i = 0; i < len; i++) {
+                    const checkIdx = (startFrom + i) % len;
+                    if (visibleItems[checkIdx].type === 'script' && (checkIdx !== idx || len <= 1)) {
+                        nextIdx = checkIdx;
+                        break;
                     }
                 }
-            }
-
-            if (visibleItems[nextIdx]?.type === 'folder') {
-                for (let i = nextIdx + 1; i < visibleItems.length; i++) {
-                    if (visibleItems[i].type === 'script') {
-                        nextIdx = i;
+            } else if (direction === 'left') {
+                const startFrom = (idx - 1 + len) % len;
+                for (let i = 0; i < len; i++) {
+                    const checkIdx = (startFrom - i + len) % len;
+                    if (visibleItems[checkIdx].type === 'script' && (checkIdx !== idx || len <= 1)) {
+                        nextIdx = checkIdx;
                         break;
                     }
                 }
