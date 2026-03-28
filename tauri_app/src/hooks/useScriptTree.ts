@@ -45,6 +45,9 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
     const [removingTags, setRemovingTags] = useState<Set<string>>(new Set());
     const [folderDurations, setFolderDurations] = useState<Record<string, number>>({});
 
+    const [focusedPath, setFocusedPath] = useState<string | null>(null);
+    const [isVimMode, setIsVimMode] = useState(false);
+
     const pendingDragRef = useRef<{ script: Script, x: number, y: number } | null>(null);
     const dragTimerRef = useRef<number | null>(null);
     const folderRefs = useRef<Map<string, HTMLDivElement>>(new Map());
@@ -62,12 +65,10 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
 
     const fetchData = async () => {
         try {
-            console.log(`[useScriptTree] Fetching scripts (manualRefresh: ${manualRefresh})`);
             const data = await getScripts(manualRefresh);
             if (manualRefresh && onScanComplete) {
                 onScanComplete(Date.now());
             }
-            console.log(`[useScriptTree] Received ${data.length} scripts`);
             startTransition(() => {
                 setAllScripts(prev => {
                     if (prev.length !== data.length) return data;
@@ -114,8 +115,6 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
     }, [allScripts, onTagsLoaded, onRunningCountChange]);
 
     useEffect(() => {
-        // fetchData(); // Removed mount-time fetch if user wants NO automatic refresh at start? 
-        // Actually, let's keep the INITIAL fetch so it's not empty, but remove the INTERVAL.
         fetchData();
 
         let unlisten: (() => void) | null = null;
@@ -540,8 +539,6 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
         });
     }, []);
 
-    const [focusedPath, setFocusedPath] = useState<string | null>(null);
-
     const visibleItems = useMemo(() => {
         const items: { path: string, type: 'folder' | 'script', data?: any }[] = [];
 
@@ -577,6 +574,7 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
     }, [tree, expandedFolders, groupedHub, filterTag]);
 
     const moveFocus = useCallback((direction: 'up' | 'down') => {
+        setIsVimMode(true);
         setFocusedPath(prev => {
             if (visibleItems.length === 0) return null;
             if (!prev) return visibleItems[0].path;
@@ -604,6 +602,6 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
         toggleFolder, toggleAll, setFolderExpansionRecursive,
         handleToggle, handleRestart, startEditing, stopEditing,
         addTag, removeTag, handleCustomMouseDown,
-        focusedPath, setFocusedPath, visibleItems, moveFocus
+        focusedPath, setFocusedPath, isVimMode, setIsVimMode, visibleItems, moveFocus
     };
 }

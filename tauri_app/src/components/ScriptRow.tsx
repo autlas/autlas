@@ -9,7 +9,7 @@ const ScriptRow = memo(function ScriptRow({
     allUniqueTags, popoverRef, visibilityMode,
     onMouseDown, onDoubleClick, onToggle, onStartEditing, onAddTag, onRemoveTag, onCloseEditing,
     onScriptContextMenu, onShowUI, onRestart,
-    focusedPath, setFocusedPath
+    isFocused, setFocusedPath, isVimMode, setIsVimMode
 }: ScriptRowProps) {
     const { t } = useTranslation();
 
@@ -107,25 +107,29 @@ const ScriptRow = memo(function ScriptRow({
             onMouseDown={handleMouseDown}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseLeave}
-            onMouseEnter={() => setFocusedPath(s.path)}
+            onMouseEnter={() => {
+                setFocusedPath(s.path);
+                setIsVimMode(false);
+            }}
             onDoubleClick={() => !isDragging && onDoubleClick(s)}
             id={`script-${s.path}`}
-            className={`flex items-center justify-between h-[42px] px-3 rounded-lg transition-all duration-300 border border-transparent select-none relative scroll-mt-[250px] scroll-mb-[250px]
-                ${isEditing ? 'z-[200] !opacity-100' : 'z-10'}
-                ${focusedPath === s.path ? 'bg-indigo-500/10 border-indigo-500/30 shadow-[0_0_15px_rgba(99,102,241,0.1)]' : ''}
-                ${!draggedScriptPath ? (isContextMenuOpen || isEditing ? 'hover:z-[100] group bg-white/5 shadow-xl border-indigo-500/20' : 'hover:z-[100] group hover:bg-white/5 cursor-grab active:cursor-grabbing') : ''}
-                long-press-shrink has-[button:active]:scale-100
-
+            className={`flex items-center space-x-3 h-[42px] px-3 rounded-xl z-20 relative mb-1 border border-transparent hover:z-[50] scroll-mt-[250px] scroll-mb-[250px]
+                ${isFocused && isVimMode ? '!transition-none !bg-indigo-500/25 shadow-[0_0_20px_rgba(99,102,241,0.15)]' : 'transition-all duration-300'}
+                ${!draggedScriptPath ? (isFocused && isVimMode ? '' : 'bg-transparent hover:bg-white/[0.05] cursor-pointer group') : 'bg-transparent text-tertiary cursor-default pointer-events-none'}
+                ${isContextMenuOpen ? 'bg-white/5 border-white/10' : ''}
                 ${s.path === draggedScriptPath ? 'opacity-0 pointer-events-none' : ''}
                 ${s.is_hidden && visibilityMode !== 'only' ? 'opacity-40 grayscale-[0.5]' : ''}
                 ${s.is_running ? 'border-green-500/10' : ''}
                 ${isLeftPressed ? 'active-left' : ''}
             `}
+            style={{
+                borderColor: isContextMenuOpen ? 'rgba(255,255,255,0.1)' : 'transparent'
+            }}
         >
+            {isFocused && isVimMode && (
+                <div className="absolute left-0 top-1 bottom-1 w-[3.5px] bg-indigo-500 rounded-full shadow-[0_0_15px_rgba(99,102,241,0.6)] z-20" />
+            )}
             <div className="flex items-center space-x-4 overflow-visible flex-1 mr-4">
-                {focusedPath === s.path && (
-                    <div className="absolute left-0 top-1.5 bottom-1.5 w-1 bg-indigo-500 rounded-full shadow-[0_0_8px_rgba(99,102,241,0.6)] animate-pulse" />
-                )}
                 <div className={`w-2 h-2 rounded-full flex-shrink-0 transition-all duration-500
                     ${isPending ? 'bg-yellow-500 animate-pulse shadow-[0_0_10px_rgba(234,179,8,0.6)]' :
                         s.is_running ? 'bg-green-500 animate-status-glow shadow-[0_0_12px_rgba(34,197,94,0.8)]' : 'bg-white/10'}
@@ -288,7 +292,8 @@ const ScriptRow = memo(function ScriptRow({
         prev.visibilityMode === next.visibilityMode &&
         prev.onShowUI === next.onShowUI &&
         prev.onRestart === next.onRestart &&
-        prev.focusedPath === next.focusedPath;
+        prev.isFocused === next.isFocused &&
+        prev.isVimMode === next.isVimMode;
 });
 
 export default ScriptRow;

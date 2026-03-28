@@ -9,7 +9,7 @@ const HubScriptCard = memo(function HubScriptCard({
     s, isDragging, draggedScriptPath, editingScript, pendingScripts, removingTags,
     isContextMenuOpen, allUniqueTags, popoverRef, visibilityMode, onMouseDown, onToggle, onStartEditing, onAddTag, onRemoveTag, onCloseEditing,
     onScriptContextMenu, onShowUI, onRestart,
-    focusedPath, setFocusedPath
+    isFocused, setFocusedPath, isVimMode, setIsVimMode
 }: HubScriptCardProps) {
     const { t } = useTranslation();
     const cardRef = React.useRef<HTMLDivElement>(null);
@@ -42,21 +42,24 @@ const HubScriptCard = memo(function HubScriptCard({
             onMouseDown={handleMouseDown}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseLeave}
-            onMouseEnter={() => setFocusedPath(s.path)}
+            onMouseEnter={() => {
+                setFocusedPath(s.path);
+                setIsVimMode(false);
+            }}
             onDoubleClick={() => !isDragging && onToggle(s, true)}
             id={`script-${s.path}`}
-            className={`p-6 rounded-[24px] border transition-all duration-300 flex flex-col select-none relative ${isEditing ? 'z-[200]' : 'z-10'}
+            className={`p-6 rounded-[24px] border flex flex-col select-none relative ${isEditing ? 'z-[200]' : 'z-10'}
+                ${isFocused && isVimMode ? '!transition-none !bg-indigo-500/20 shadow-[0_0_40px_rgba(99,102,241,0.2)] ring-2 ring-indigo-500/30' : 'transition-all duration-300'}
                 ${!draggedScriptPath
-                    ? `group hover:z-[100] hover:bg-white/[0.06] ${isEditing || isContextMenuOpen ? 'shadow-2xl bg-white/[0.05]' : 'bg-white/[0.03] hover:shadow-2xl cursor-grab active:cursor-grabbing long-press-shrink'}`
+                    ? `group hover:z-[100] hover:bg-white/[0.06] ${isEditing || isContextMenuOpen ? 'shadow-2xl bg-white/[0.05]' : (isFocused && isVimMode ? '' : 'bg-white/[0.03] hover:shadow-2xl cursor-grab active:cursor-grabbing long-press-shrink')}`
 
                     : (s.path === draggedScriptPath ? 'opacity-0 pointer-events-none' : 'z-10')}
                 ${s.is_running && !isDragging ? '' : ''}
                 ${s.is_hidden && visibilityMode === 'only' ? 'ring-2 ring-indigo-500/50' : ''}
                 ${isLeftPressed && !isEditing ? 'active-left' : ''}
-                ${isContextMenuOpen || isEditing || focusedPath === s.path ? 'border-indigo-500/30' : ''}
-                ${focusedPath === s.path ? 'bg-indigo-500/10 shadow-[0_0_25px_rgba(99,102,241,0.15)] ring-2 ring-indigo-500/20' : ''}
+                ${isContextMenuOpen || isEditing ? 'border-indigo-500/30' : ''}
             `}
-            style={{ borderColor: (isContextMenuOpen || isEditing || focusedPath === s.path) ? 'rgba(99, 102, 241, 0.4)' : 'var(--border-color)' }}
+            style={{ borderColor: (isContextMenuOpen || isEditing) ? 'rgba(99, 102, 241, 0.5)' : 'var(--border-color)' }}
         >
             <div className="flex justify-between items-start pointer-events-none">
                 <div className="flex flex-col overflow-hidden flex-1 -mt-[8px]">
@@ -213,7 +216,8 @@ const HubScriptCard = memo(function HubScriptCard({
         prev.onRestart === next.onRestart &&
         prev.isContextMenuOpen === next.isContextMenuOpen &&
         prev.visibilityMode === next.visibilityMode &&
-        prev.focusedPath === next.focusedPath;
+        prev.isFocused === next.isFocused &&
+        prev.isVimMode === next.isVimMode;
 });
 
 export default HubScriptCard;

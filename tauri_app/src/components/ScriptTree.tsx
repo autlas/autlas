@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, createContext, useContext, memo } from "react";
+import { createPortal } from "react-dom";
 import { HighlightText } from "./HighlightText";
 import { SearchContext } from "../context/SearchContext";
 import { ScriptTreeProps, TreeNode } from "../types/script";
@@ -42,6 +43,8 @@ interface TreeContextValue {
     onRestart: (s: Script) => void;
     focusedPath: string | null;
     setFocusedPath: (path: string | null) => void;
+    isVimMode: boolean;
+    setIsVimMode: (v: boolean) => void;
 }
 const TreeContext = createContext<TreeContextValue>(null as any);
 
@@ -52,6 +55,80 @@ const TagSectionHeader = ({ tag }: { tag: string }) => (
         </span>
     </div>
 );
+
+const ShortcutItem = ({ keys, desc }: { keys: string[], desc: string }) => (
+    <div className="flex items-center justify-between group/item">
+        <span className="text-secondary/80 text-sm group-hover/item:text-white transition-colors">{desc}</span>
+        <div className="flex gap-1.5 ml-4">
+            {keys.map(k => (
+                <kbd key={k} className="px-2 py-1 rounded bg-white/5 border border-white/10 text-[14px] font-bold text-white/40 shadow-sm min-w-[24px] text-center">
+                    {k}
+                </kbd>
+            ))}
+        </div>
+    </div>
+);
+
+const CheatSheet = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) => {
+    if (!isOpen) return null;
+    return createPortal(
+        <div
+            className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/60 backdrop-blur-md animate-in fade-in duration-300"
+            onClick={onClose}
+        >
+            <div
+                className="bg-[#0a0a0c] border border-white/10 p-8 rounded-[32px] shadow-2xl max-w-2xl w-full mx-4 relative overflow-hidden group"
+                onClick={e => e.stopPropagation()}
+            >
+                {/* Decorative glow */}
+                <div className="absolute -top-24 -left-24 w-48 h-48 bg-indigo-500/20 rounded-full blur-[80px] pointer-events-none" />
+                <div className="absolute -bottom-24 -right-24 w-48 h-48 bg-purple-500/20 rounded-full blur-[80px] pointer-events-none" />
+
+                <h2 className="text-3xl font-black mb-8 text-white tracking-tight flex items-center">
+                    <div className="w-10 h-10 rounded-2xl bg-indigo-600 flex items-center justify-center mr-4 text-white shadow-[0_0_20px_rgba(79,70,229,0.4)]">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
+                    </div>
+                    AHK Manager Shortcuts
+                </h2>
+
+                <div className="grid grid-cols-2 gap-x-12 gap-y-10">
+                    <div className="space-y-4">
+                        <h3 className="text-[10px] font-black text-white/20 uppercase tracking-[0.3em] mb-6 flex items-center">
+                            <span className="w-4 h-[2px] bg-indigo-500/30 mr-2" />
+                            Navigation
+                        </h3>
+                        <ShortcutItem keys={['j']} desc="Move Focus Down" />
+                        <ShortcutItem keys={['k']} desc="Move Focus Up" />
+                        <ShortcutItem keys={['Enter', 'Space']} desc="Run / Stop Script" />
+                        <ShortcutItem keys={['Esc']} desc="Clear Focus / Close" />
+                    </div>
+
+                    <div className="space-y-4">
+                        <h3 className="text-[10px] font-black text-white/20 uppercase tracking-[0.3em] mb-6 flex items-center">
+                            <span className="w-4 h-[2px] bg-purple-500/30 mr-2" />
+                            Quick Actions
+                        </h3>
+                        <ShortcutItem keys={['g', 'i']} desc="Focus Search" />
+                        <ShortcutItem keys={['f', 'i']} desc="Filter Files (file:)" />
+                        <ShortcutItem keys={['Ctrl', 'F']} desc="Global Search" />
+                        <ShortcutItem keys={['?']} desc="Toggle this Help" />
+                    </div>
+                </div>
+
+                <div className="mt-12 pt-8 border-t border-white/5 flex justify-between items-center">
+                    <p className="text-white/30 text-xs font-medium italic">Holding navigation keys scales scroll speed.</p>
+                    <button
+                        onClick={onClose}
+                        className="px-6 py-2.5 rounded-2xl bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 text-xs font-black tracking-widest uppercase transition-all border border-indigo-500/20 active:scale-95"
+                    >
+                        Got it
+                    </button>
+                </div>
+            </div>
+        </div>,
+        document.body
+    );
+};
 
 const TreeNodeRenderer = memo(function TreeNodeRenderer({
     node,
@@ -69,7 +146,7 @@ const TreeNodeRenderer = memo(function TreeNodeRenderer({
         editingScript, pendingScripts, removingTags, allUniqueTags,
         popoverRef, handleCustomMouseDown, handleToggle,
         startEditing, stopEditing, addTag, removeTag, onShowUI,
-        focusedPath, setFocusedPath } = ctx;
+        focusedPath, setFocusedPath, isVimMode, setIsVimMode } = ctx;
 
     const [childVisible, setChildVisible] = useState(isExpanded);
     const [gridExpanded, setGridExpanded] = useState(isExpanded);
@@ -104,7 +181,10 @@ const TreeNodeRenderer = memo(function TreeNodeRenderer({
                 <div
                     ref={el => { if (el) folderRefs.current!.set(node.fullName, el); }}
                     onClick={() => !isDragging && toggleFolder(node.fullName)}
-                    onMouseEnter={() => !isDragging && setFocusedPath(node.fullName)}
+                    onMouseEnter={() => {
+                        setFocusedPath(node.fullName);
+                        setIsVimMode(false);
+                    }}
                     onContextMenu={(e) => {
                         e.preventDefault();
                         onFolderContextMenu(e, {
@@ -115,10 +195,10 @@ const TreeNodeRenderer = memo(function TreeNodeRenderer({
                         } as any);
                     }}
                     id={`folder-${node.fullName}`}
-                    className={`flex items-center space-x-2 h-[38px] pl-[4px] rounded-lg z-10 relative transition-all duration-300 mb-0.5 border border-transparent hover:z-[50] scroll-mt-[250px] scroll-mb-[250px]
-                        ${!draggedScriptPath ? 'bg-transparent hover:bg-white/[0.05] cursor-pointer group' : 'bg-transparent text-tertiary cursor-default pointer-events-none'}
-                        ${ctx.contextMenu?.type === 'folder' && ctx.contextMenu?.data?.fullName === node.fullName ? 'bg-white/5' : ''}
-                        ${focusedPath === node.fullName ? 'bg-indigo-500/10 border-indigo-500/30' : ''}
+                    className={`flex items-center space-x-2 h-[38px] pl-[4px] rounded-lg z-10 relative mb-0.5 border border-transparent hover:z-[50] scroll-mt-[250px] scroll-mb-[250px]
+                        ${focusedPath === node.fullName && isVimMode ? '!transition-none !bg-indigo-500/20 shadow-[0_0_15px_rgba(99,102,241,0.15)]' : 'transition-all duration-300'}
+                        ${!draggedScriptPath ? (focusedPath === node.fullName && isVimMode ? '' : 'bg-transparent hover:bg-white/[0.05] cursor-pointer group') : 'bg-transparent text-tertiary cursor-default pointer-events-none'}
+                        ${ctx.contextMenu?.type === 'folder' && ctx.contextMenu?.data?.fullName === node.fullName ? 'bg-white/5 border-white/10' : ''}
                     `}
                 >
                     <div className={`w-4 h-4 flex items-center justify-center transition-transform duration-300 ${isExpanded ? 'rotate-90' : ''}`}>
@@ -130,8 +210,8 @@ const TreeNodeRenderer = memo(function TreeNodeRenderer({
                             <path d="M5.5 3.5L5.5 20.5L20.2 12L5.5 3.5Z" />
                         </svg>
                     </div>
-                    {focusedPath === node.fullName && (
-                        <div className="absolute left-0 top-1 bottom-1 w-[3px] bg-indigo-500 rounded-full shadow-[0_0_10px_rgba(99,102,241,0.5)] z-20" />
+                    {focusedPath === node.fullName && isVimMode && (
+                        <div className="absolute left-0 top-1 bottom-1 w-[3.5px] bg-indigo-500 rounded-full shadow-[0_0_15px_rgba(99,102,241,0.6)] z-20" />
                     )}
                     <div className="flex items-center overflow-hidden h-full">
                         {(() => {
@@ -239,8 +319,10 @@ const TreeNodeRenderer = memo(function TreeNodeRenderer({
                                             onScriptContextMenu={onScriptContextMenu}
                                             onShowUI={onShowUI}
                                             onRestart={ctx.onRestart}
-                                            focusedPath={ctx.focusedPath}
+                                            isFocused={focusedPath === s.path}
                                             setFocusedPath={ctx.setFocusedPath}
+                                            isVimMode={ctx.isVimMode}
+                                            setIsVimMode={ctx.setIsVimMode}
                                         />
                                     );
                                 })}
@@ -269,6 +351,8 @@ const TreeNodeRenderer = memo(function TreeNodeRenderer({
 export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, onRunningCountChange, viewMode, onViewModeChange, onCustomDragStart, isDragging, draggedScriptPath, animationsEnabled, onScriptContextMenu, onFolderContextMenu, searchQuery, setSearchQuery, contextMenu, onShowUI, manualRefresh, onScanComplete }: ScriptTreeProps) {
     const { t } = useTranslation();
     const searchInputRef = useRef<HTMLInputElement>(null);
+    const lastGTimeRef = useRef(0);
+    const lastFTimeRef = useRef(0);
     const renderStartRef = useRef(0);
     if (PERF) {
         renderStartRef.current = performance.now();
@@ -284,8 +368,9 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
         toggleFolder, toggleAll, setFolderExpansionRecursive,
         handleToggle, handleRestart, startEditing, stopEditing,
         addTag, removeTag, handleCustomMouseDown, folderDurations,
-        focusedPath, setFocusedPath, visibleItems, moveFocus
+        focusedPath, setFocusedPath, isVimMode, setIsVimMode, visibleItems, moveFocus
     } = useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, searchQuery, setSearchQuery, onRunningCountChange, manualRefresh, onScanComplete });
+    const [isCheatSheetOpen, setIsCheatSheetOpen] = useState(false);
 
     // ─── VIM HOTKEYS ───────────────────────────────────────────────
     useHotkeys('j', () => moveFocus('down'), { preventDefault: true });
@@ -302,9 +387,52 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
         }
     }, { preventDefault: true });
 
-    useHotkeys('g i, i', (e) => {
-        e.preventDefault();
-        if (searchInputRef.current) searchInputRef.current.focus();
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            // Check for '?' character (logical) OR physical key combo Shift+/ (layout-independent)
+            // Also handle Shift+7 which is '?' on Russian layout
+            const isQuestionMark = e.key === '?' || (e.key === ',' && e.shiftKey && e.code === 'Slash') || (e.key === '7' && e.shiftKey);
+
+            if (isQuestionMark) {
+                // If not in search input, toggle cheatsheet
+                if (document.activeElement !== searchInputRef.current) {
+                    setIsCheatSheetOpen(prev => !prev);
+                }
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, []);
+
+    useHotkeys('shift+/', () => {
+        setIsCheatSheetOpen(prev => !prev);
+    });
+
+    useHotkeys('f', () => {
+        lastFTimeRef.current = performance.now();
+    });
+
+    useHotkeys('g', () => {
+        lastGTimeRef.current = performance.now();
+    });
+
+    useHotkeys('i', (e) => {
+        const now = performance.now();
+        const fDiff = now - lastFTimeRef.current;
+        const gDiff = now - lastGTimeRef.current;
+
+        if (fDiff < 1000) {
+            e.preventDefault();
+            lastFTimeRef.current = 0;
+            lastGTimeRef.current = 0;
+            setSearchQuery('file:');
+            setTimeout(() => searchInputRef.current?.focus(), 10);
+        } else if (gDiff < 1000) {
+            e.preventDefault();
+            lastFTimeRef.current = 0;
+            lastGTimeRef.current = 0;
+            if (searchInputRef.current) searchInputRef.current.focus();
+        }
     });
 
     useHotkeys('ctrl+f', (e) => {
@@ -313,11 +441,16 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
     });
 
     useHotkeys('esc', () => {
+        if (isCheatSheetOpen) {
+            setIsCheatSheetOpen(false);
+            return;
+        }
         if (document.activeElement === searchInputRef.current) {
             searchInputRef.current?.blur();
         }
         setFocusedPath(null);
-    }, { enableOnFormTags: true });
+        setIsVimMode(false);
+    }, { enableOnFormTags: true }, [isCheatSheetOpen]);
 
     const lastScrollTimeRef = useRef(0);
 
@@ -403,8 +536,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
     const expandedFoldersRef = useRef<Record<string, boolean>>(expandedFolders);
     expandedFoldersRef.current = expandedFolders;
 
-    const stableCtxRef = useRef<TreeContextValue>({} as TreeContextValue);
-    Object.assign(stableCtxRef.current, {
+    const treeContextValue = useMemo(() => ({
         expandedFoldersRef,
         toggleFolder, setFolderExpansionRecursive, folderRefs,
         isDragging, draggedScriptPath, animationsEnabled,
@@ -417,8 +549,15 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
         onShowUI,
         onRestart: handleRestart,
         focusedPath,
-        setFocusedPath
-    });
+        setFocusedPath,
+        isVimMode,
+        setIsVimMode
+    }), [
+        expandedFolders, toggleFolder, setFolderExpansionRecursive, isDragging, draggedScriptPath,
+        animationsEnabled, onFolderContextMenu, onScriptContextMenu, editingScript,
+        pendingScripts, removingTags, allUniqueTags, folderDurations, showHidden,
+        contextMenu, onShowUI, handleRestart, focusedPath, isVimMode
+    ]);
 
     const masonryColumns = useMemo(() => {
         const cols: Script[][] = Array.from({ length: columnsCount }, () => [] as Script[]);
@@ -640,8 +779,10 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
                                                                     onScriptContextMenu={onScriptContextMenu}
                                                                     onShowUI={onShowUI}
                                                                     onRestart={handleRestart}
-                                                                    focusedPath={focusedPath}
+                                                                    isFocused={focusedPath === s.path}
                                                                     setFocusedPath={setFocusedPath}
+                                                                    isVimMode={isVimMode}
+                                                                    setIsVimMode={setIsVimMode}
                                                                 />
                                                             ))}
                                                         </div>
@@ -679,8 +820,10 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
                                                         onScriptContextMenu={onScriptContextMenu}
                                                         onShowUI={onShowUI}
                                                         onRestart={handleRestart}
-                                                        focusedPath={focusedPath}
+                                                        isFocused={focusedPath === s.path}
                                                         setFocusedPath={setFocusedPath}
+                                                        isVimMode={isVimMode}
+                                                        setIsVimMode={setIsVimMode}
                                                     />
                                                 ))}
                                             </div>
@@ -733,8 +876,10 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
                                                                         isContextMenuOpen={contextMenu?.type === 'script' && contextMenu?.data?.path === s.path}
                                                                         onShowUI={onShowUI}
                                                                         onRestart={handleRestart}
-                                                                        focusedPath={focusedPath}
+                                                                        isFocused={focusedPath === s.path}
                                                                         setFocusedPath={setFocusedPath}
+                                                                        isVimMode={isVimMode}
+                                                                        setIsVimMode={setIsVimMode}
                                                                     />
                                                                 );
                                                             })}
@@ -777,8 +922,10 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
                                                             isContextMenuOpen={contextMenu?.type === 'script' && contextMenu?.data?.path === s.path}
                                                             onShowUI={onShowUI}
                                                             onRestart={handleRestart}
-                                                            focusedPath={focusedPath}
+                                                            isFocused={focusedPath === s.path}
                                                             setFocusedPath={setFocusedPath}
+                                                            isVimMode={isVimMode}
+                                                            setIsVimMode={setIsVimMode}
                                                         />
                                                     );
                                                 })}
@@ -790,7 +937,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
                         </div>
                     ) : (
                         <div className="flex flex-col space-y-0.5 select-none">
-                            <TreeContext.Provider value={stableCtxRef.current}>
+                            <TreeContext.Provider value={treeContextValue}>
                                 {!hasContent ? (
                                     <div className="text-tertiary text-center py-40 italic tracking-[0.3em] text-sm font-bold">{t("hub.empty_tree")}</div>
                                 ) : (
@@ -805,6 +952,10 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
                     )}
                 </div>
             </SearchContext.Provider>
+            <CheatSheet
+                isOpen={isCheatSheetOpen}
+                onClose={() => setIsCheatSheetOpen(false)}
+            />
         </div >
     );
 }
