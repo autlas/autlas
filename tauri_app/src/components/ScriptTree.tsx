@@ -436,6 +436,14 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
         }
     }, { preventDefault: true });
 
+    useHotkeys('t', () => {
+        if (!focusedPath) return;
+        const item = visibleItems.find(i => i.path === focusedPath);
+        if (item && item.type === 'script') {
+            startEditing(item.data);
+        }
+    }, { preventDefault: true });
+
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             // Check for '?' character (logical) OR physical key combo Shift+/ (layout-independent)
