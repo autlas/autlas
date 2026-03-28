@@ -368,6 +368,11 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
 
     const hasContent = Object.keys(tree.children).length > 0 || tree.scripts.length > 0;
 
+    const lowerSearch = searchQuery.toLowerCase();
+    const prefixMatch = lowerSearch.startsWith("path:") ? "path:" :
+        lowerSearch.startsWith("file:") ? "file:" : null;
+    const displayValue = prefixMatch ? searchQuery.substring(prefixMatch.length) : searchQuery;
+
     return (
         <div className="flex flex-col h-full min-h-0">
             <div className={`flex items-center justify-between pt-6 pb-2 border-b transition-all duration-300 ${draggedScriptPath ? 'opacity-20 blur-[1px] pointer-events-none' : ''}`} style={{ borderColor: 'var(--border-color)' }}>
@@ -436,24 +441,52 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
                         </button>
                     </div>
 
-                    <div className="flex-1 ml-4 mr-4 relative group">
-                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-tertiary group-focus-within:text-indigo-400 transition-colors pointer-events-none">
+                    <div className={`flex-1 ml-4 mr-4 relative group flex items-center bg-white/[0.03] border border-white/5 rounded-xl h-[41px] mb-[1px] transition-all focus-within:border-indigo-500/50 focus-within:bg-white/[0.05]`}>
+                        <div className="pl-3 text-tertiary group-focus-within:text-indigo-400 transition-colors pointer-events-none">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                                 <circle cx="11" cy="11" r="8"></circle>
                                 <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                             </svg>
                         </div>
+
+                        {prefixMatch && (
+                            <div className="ml-2 bg-white/10 text-white/50 px-2 py-0.5 rounded-lg text-[12px] font-bold uppercase tracking-widest border border-white/10 pointer-events-none flex-shrink-0">
+                                {prefixMatch.replace(':', '')}
+                            </div>
+                        )}
+
                         <input
                             type="text"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            placeholder={t("search.placeholder")}
-                            className="w-full bg-white/[0.03] border border-white/5 rounded-xl h-[42px] pl-10 pr-10 text-xs font-medium transition-all focus:outline-none focus:border-indigo-500/50 focus:bg-white/[0.05] placeholder:text-tertiary/50"
+                            value={displayValue}
+                            onChange={(e) => {
+                                const val = e.target.value;
+                                setSearchQuery(prefixMatch ? prefixMatch + val : val);
+                            }}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Backspace' && prefixMatch) {
+                                    const target = e.target as HTMLInputElement;
+                                    if (target.selectionStart === 0 && target.selectionEnd === 0) {
+                                        setSearchQuery(displayValue);
+                                    }
+                                } else if (e.key === 'Tab') {
+                                    const q = searchQuery.toLowerCase();
+                                    if (q === 'p') {
+                                        e.preventDefault();
+                                        setSearchQuery('path:');
+                                    } else if (q === 'f') {
+                                        e.preventDefault();
+                                        setSearchQuery('file:');
+                                    }
+                                }
+                            }}
+                            placeholder={prefixMatch ? "" : t("search.placeholder")}
+                            className={`flex-1 bg-transparent border-none outline-none h-full pr-10 text-[14px] font-normal text-white placeholder:text-tertiary/50 ${prefixMatch ? 'ml-[10px]' : 'ml-2'}`}
                         />
+
                         {searchQuery && (
                             <button
                                 onClick={() => setSearchQuery("")}
-                                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 hover:bg-white/10 rounded-lg text-tertiary hover:text-white transition-all flex items-center justify-center cursor-pointer"
+                                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 hover:bg-white/10 rounded-lg text-tertiary hover:text-white transition-all flex items-center justify-center cursor-pointer z-10"
                             >
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                             </button>
