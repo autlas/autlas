@@ -146,19 +146,9 @@ const TreeNodeRenderer = memo(function TreeNodeRenderer({
                                         {i > 0 && <div className="w-[5px] h-[5px] rounded-full bg-white/10 mx-2 flex-shrink-0" />}
                                         <div
                                             className={`px-2 py-0.5 rounded-md transition-all duration-200 
-                                                ${!isDragging ? 'hover:bg-white/[0.08] cursor-pointer' : ''}
+                                                ${!isDragging ? 'hover:bg-white/[0.08]' : ''}
                                                 ${isActive ? 'bg-white/10' : ''}
                                             `}
-                                            onClick={(e) => {
-                                                if (isDragging) return;
-                                                e.stopPropagation();
-                                                // If it's the terminal folder, toggle expansion as before.
-                                                // If it's a parent folder, maybe we should navigate?
-                                                // User mostly asked for context menu. Let's keep toggle for the terminal one.
-                                                if (i === rawParts.length - 1) {
-                                                    toggleFolder(node.fullName);
-                                                }
-                                            }}
                                             onContextMenu={(e) => {
                                                 if (isDragging) return;
                                                 e.preventDefault();
