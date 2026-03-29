@@ -5,24 +5,18 @@ import SettingsPanel from "./components/SettingsPanel";
 import DragGhost from "./components/DragGhost";
 import { useTheme } from "./hooks/useTheme";
 import { useScanPaths } from "./hooks/useScanPaths";
+import { usePhysicsMotion } from "./hooks/usePhysicsMotion";
+import { useNavigation } from "./hooks/useNavigation";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { useTranslation } from "react-i18next";
 import "./App.css";
-import { useHotkeys } from "react-hotkeys-hook";
 
 const MemoizedScriptTree = React.memo(ScriptTree);
 
 function App() {
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState(() => localStorage.getItem("ahk_active_tab") || "hub");
   const [userTags, setUserTags] = useState<string[]>([]);
-  const [viewMode, setViewMode] = useState<"tree" | "hub" | "settings">(() => {
-    const tab = localStorage.getItem("ahk_active_tab") || "hub";
-    if (tab === "settings") return "settings";
-    if (tab === "hub") return "hub";
-    return "tree";
-  });
 
   const [draggedScript, setDraggedScript] = useState<{ path: string; filename: string; tags: string[] } | null>(null);
   const [dragOverTag, setDragOverTag] = useState<string | null>(null);
@@ -33,16 +27,6 @@ function App() {
   const [editTagName, setEditTagName] = useState("");
   const [refreshKey, setRefreshKey] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [debugMomentum, setDebugMomentum] = useState(0);
-  const refreshIconRef = useRef<HTMLDivElement>(null);
-  const settingsIconRef = useRef<HTMLDivElement>(null);
-  const activeAnimRef = useRef<Animation | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [displayMode, setDisplayMode] = useState<"tree" | "tiles" | "list">(() => {
-    const isHub = (localStorage.getItem("ahk_active_tab") || "hub") === "hub";
-    const key = isHub ? "ahk_hub_display_mode" : "ahk_tree_display_mode";
-    return (localStorage.getItem(key) as "tree" | "tiles" | "list") || (isHub ? "tiles" : "tree");
-  });
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; type: "script" | "tag" | "folder" | "general"; data: any } | null>(null);
   const [activeTabPressed, setActiveTabPressed] = useState<string | null>(null);
   const [runningCount, setRunningCount] = useState(0);
@@ -63,32 +47,12 @@ function App() {
   const { brightness, setBrightness, textContrast, setTextContrast, fontScale, setFontScale, animationsEnabled, toggleAnimations, vimModeNav, setVimModeNav } = useTheme();
   const { scanPaths, handleAddScanPath, handleRemoveScanPath } = useScanPaths(() => setRefreshKey(p => p + 1));
 
-  // --- Kinetic Tuning States (easter egg - values finalized) ---
-  const [motionDecay] = useState(() => parseFloat(localStorage.getItem("motion-decay") || "4.0"));
-  const [motionImpulse] = useState(() => parseFloat(localStorage.getItem("motion-impulse") || "1.5"));
-  const [motionImpulseInitial] = useState(() => parseFloat(localStorage.getItem("motion-impulse-initial") || "2.5"));
-  const [motionSpeedBase] = useState(() => parseFloat(localStorage.getItem("motion-speed-base") || "0.14"));
-  const [motionSpeedScale] = useState(() => parseFloat(localStorage.getItem("motion-speed-scale") || "0.23"));
-  const [motionScaleFactor] = useState(() => parseFloat(localStorage.getItem("motion-scale-factor") || "0.14"));
-  const [motionScaleDeadzone] = useState(() => parseFloat(localStorage.getItem("motion-scale-deadzone") || "1.5"));
-  const [motionImpulseMax] = useState(() => parseFloat(localStorage.getItem("motion-impulse-max") || "100.0"));
+  const { settingsIconRef, pendingImpulseRef, momentumRef, motionImpulseRef, motionImpulseInitialRef } = usePhysicsMotion();
+  const navPhysics = { pendingImpulseRef, momentumRef, motionImpulseRef, motionImpulseInitialRef };
+  const { activeTab, setActiveTab, viewMode, displayMode, searchQuery, setSearchQuery, handleTabClick, toggleDisplayMode } = useNavigation(userTags, navPhysics);
 
-  const motionDecayRef = useRef(motionDecay);
-  const motionImpulseRef = useRef(motionImpulse);
-  const motionImpulseInitialRef = useRef(motionImpulseInitial);
-  const motionSpeedBaseRef = useRef(motionSpeedBase);
-  const motionSpeedScaleRef = useRef(motionSpeedScale);
-  const motionScaleFactorRef = useRef(motionScaleFactor);
-  const motionScaleDeadzoneRef = useRef(motionScaleDeadzone);
-  const motionImpulseMaxRef = useRef(motionImpulseMax);
-
-  const momentumRef = useRef(0);
-  const settingsRotationRef = useRef(0);
-
-  const debugLabelRef = useRef<HTMLSpanElement>(null);
-  const debugBarRef = useRef<HTMLDivElement>(null);
-  const settleTargetRef = useRef<number | null>(null);
-  const pendingImpulseRef = useRef(0);
+  const refreshIconRef = useRef<HTMLDivElement>(null);
+  const activeAnimRef = useRef<Animation | null>(null);
 
   const ghostRef = useRef<HTMLDivElement>(null);
   const [dragGhostSize, setDragGhostSize] = useState({ w: 0, h: 0 });
@@ -98,20 +62,6 @@ function App() {
     setLastScanTimestamp(timestamp);
     localStorage.setItem("ahk_last_scan_timestamp", timestamp.toString());
   }, []);
-
-  // ─── SIDEBAR NAVIGATION HOTKEYS ──────────────────────────────────
-  const TABS = ["hub", "all", "no_tags", ...userTags, "settings"];
-  useHotkeys("shift+alt+j", (e) => {
-    e.preventDefault();
-    const currentIndex = TABS.indexOf(activeTab);
-    handleTabClick(TABS[(currentIndex + 1) % TABS.length]);
-  }, { enableOnFormTags: true });
-
-  useHotkeys("shift+alt+k", (e) => {
-    e.preventDefault();
-    const currentIndex = TABS.indexOf(activeTab);
-    handleTabClick(TABS[(currentIndex - 1 + TABS.length) % TABS.length]);
-  }, { enableOnFormTags: true });
 
   const handleLoadingChange = useCallback((loading: boolean) => {
     setIsRefreshing(loading);
@@ -206,62 +156,6 @@ function App() {
     };
   }, []);
 
-  // Physics loop: settings gear animation
-  useEffect(() => {
-    let animFrame: number;
-    let lastTime = performance.now();
-    let lastFPSTime = performance.now();
-
-    const measureFPS = () => {
-      const now = performance.now();
-      const dt = Math.min((now - lastTime) / 1000, 0.1);
-
-      if (pendingImpulseRef.current > 0) {
-        const injectAmount = Math.min(pendingImpulseRef.current, (pendingImpulseRef.current * 10) * dt);
-        momentumRef.current = Math.min(motionImpulseMaxRef.current, momentumRef.current + injectAmount);
-        pendingImpulseRef.current -= injectAmount;
-      }
-
-      const expLoss = momentumRef.current * (motionDecayRef.current * 0.5) * dt;
-      const friction = 0.05 * dt;
-      momentumRef.current = Math.max(0, momentumRef.current - expLoss - friction);
-
-      if (debugLabelRef.current) debugLabelRef.current.innerText = momentumRef.current.toFixed(1);
-      if (debugBarRef.current) {
-        const pct = Math.min(100, (momentumRef.current / motionImpulseMaxRef.current) * 100);
-        debugBarRef.current.style.width = `${pct}%`;
-      }
-
-      const isVisible = momentumRef.current > 0 || (settleTargetRef.current !== null && Math.abs(settingsRotationRef.current - settleTargetRef.current) > 0.1);
-      if (isVisible && debugMomentum <= 0) setDebugMomentum(1);
-      else if (!isVisible && debugMomentum > 0) setDebugMomentum(0);
-
-      if (settingsIconRef.current) {
-        const energy = momentumRef.current;
-        const velocity = energy > 0.001 ? (motionSpeedBaseRef.current + energy * motionSpeedScaleRef.current) : 0;
-
-        if (velocity > 0) {
-          settingsRotationRef.current += velocity * 360 * dt;
-          const effectiveEnergy = Math.max(0, energy - motionScaleDeadzoneRef.current);
-          const scale = 1 + (effectiveEnergy * motionScaleFactorRef.current);
-          const brightness = 1 + (energy * 0.05);
-          settingsIconRef.current.style.transform = `rotate(${settingsRotationRef.current}deg) scale(${scale})`;
-          settingsIconRef.current.style.filter = `brightness(${brightness})`;
-        }
-
-        if (energy > 0 && debugMomentum <= 0) setDebugMomentum(1);
-        else if (energy <= 0 && debugMomentum > 0) setDebugMomentum(0);
-      }
-
-      if (now - lastFPSTime >= 1000) lastFPSTime = now;
-      lastTime = now;
-      animFrame = requestAnimationFrame(measureFPS);
-    };
-
-    animFrame = requestAnimationFrame(measureFPS);
-    return () => cancelAnimationFrame(animFrame);
-  }, []);
-
   // Current time ticker (for "last scan" display)
   useEffect(() => {
     const ticker = setInterval(() => setCurrentTime(Date.now()), 1000);
@@ -302,29 +196,6 @@ function App() {
   const pendingTagDragRef = useRef<{ tag: string; x: number; y: number } | null>(null);
   const tagDragOffsetYRef = useRef<number>(0);
   const tagDragOffsetXRef = useRef<number>(0);
-
-  const handleTabClick = (tab: string) => {
-    setActiveTab(tab);
-    localStorage.setItem("ahk_active_tab", tab);
-
-    if (tab === "hub") {
-      setViewMode("hub");
-      setDisplayMode((localStorage.getItem("ahk_hub_display_mode") as any) || "tiles");
-    } else if (tab === "settings") {
-      setViewMode("settings");
-      const kick = (momentumRef.current + pendingImpulseRef.current) <= 0.05 ? motionImpulseInitialRef.current : motionImpulseRef.current;
-      pendingImpulseRef.current += kick;
-    } else {
-      setViewMode("tree");
-      setDisplayMode((localStorage.getItem("ahk_tree_display_mode") as any) || "tree");
-    }
-  };
-
-  const toggleDisplayMode = (mode: "tree" | "tiles" | "list") => {
-    setDisplayMode(mode);
-    const key = activeTab === "hub" ? "ahk_hub_display_mode" : "ahk_tree_display_mode";
-    localStorage.setItem(key, mode);
-  };
 
   const handleCustomDrop = async (path: string, tag: string) => {
     setDragOverTag(null);
