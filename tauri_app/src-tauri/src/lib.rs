@@ -15,13 +15,112 @@ mod native_popup {
     use windows_sys::Win32::Graphics::Gdi::*;
     use windows_sys::Win32::System::LibraryLoader::GetModuleHandleW;
     use windows_sys::Win32::UI::WindowsAndMessaging::*;
+    use windows_sys::Win32::UI::Input::KeyboardAndMouse::*;
     use std::sync::atomic::{AtomicPtr, Ordering};
+    use std::sync::Mutex;
     use std::ffi::c_void;
 
     static POPUP_HWND: AtomicPtr<c_void> = AtomicPtr::new(std::ptr::null_mut());
+    // Callback to execute actions (stop script, show window, quit)
+    static ACTION_CB: Mutex<Option<Box<dyn Fn(&str) + Send>>> = Mutex::new(None);
+
+    // Running scripts + hover state
+    struct PopupState {
+        scripts: Vec<RunningScript>,
+        hover_index: i32, // -1 = none, 0..n = script row, 100 = show window, 101 = quit
+        hover_btn: i32,   // -1 = none, 0 = UI, 1 = restart, 2 = stop (within hovered script row)
+    }
+    pub struct RunningScript {
+        pub path: String,
+        pub filename: String,
+        pub has_ui: bool,
+    }
+    static STATE: Mutex<Option<PopupState>> = Mutex::new(None);
+
+    const POPUP_VERSION: &str = "v12";
+    const DEBUG_PALETTE: bool = false;
+    const ITEM_H: i32 = 36;
+    const HEADER_H: i32 = 36;
+    const FOOTER_H: i32 = 70;
+    const WIDTH: i32 = 290;
+    const BTN_SIZE: i32 = 23;
+    const BTN_GAP: i32 = 2;
+    const BTN_RIGHT: i32 = 14;
+    // Format: 0x00BBGGRR (confirmed by v7 test)
+    const BG_COLOR: u32 = 0x001E1A1A;
+    const HOVER_COLOR: u32 = 0x00363030;
+    const TEXT_COLOR: u32 = 0x00C8CCCC;
+    const DIM_COLOR: u32 = 0x00667070;
+    const GREEN_COLOR: u32 = 0x005EC522;     // #22C55E
+    const INDIGO_COLOR: u32 = 0x00F16663;    // #6366F1
+    const RED_COLOR: u32 = 0x005050F0;       // #F05050
+    const YELLOW_COLOR: u32 = 0x000088EE;    // #EE8800 orange
+    const RED_HOVER: u32 = 0x006666FF;       // brighter red
+    const YELLOW_HOVER: u32 = 0x0020AAFF;    // brighter orange
+    const INDIGO_HOVER: u32 = 0x00FF8888;    // brighter indigo
+
+    fn get_y(lparam: LPARAM) -> i32 {
+        ((lparam as u32 >> 16) & 0xFFFF) as i16 as i32
+    }
 
     fn wide(s: &str) -> Vec<u16> {
         s.encode_utf16().chain(std::iter::once(0)).collect()
+    }
+
+    fn items_height(script_count: usize) -> i32 {
+        if script_count == 0 { ITEM_H * 2 } else { script_count as i32 * ITEM_H }
+    }
+
+    // Returns (row_index, btn_index): row -1=none, 0..n=script, 100=show, 101=quit; btn -1=row, 0=ui, 1=restart, 2=stop
+    fn hit_test(x: i32, y: i32, scripts: &[RunningScript]) -> (i32, i32) {
+        if y < HEADER_H { return (-1, -1); }
+        let scripts_area = y - HEADER_H;
+        let script_idx = scripts_area / ITEM_H;
+        if scripts.len() > 0 && (script_idx as usize) < scripts.len() {
+            // Check which button is hit (right side)
+            let btn_x_start = WIDTH - BTN_RIGHT - BTN_SIZE; // stop btn
+            if x >= btn_x_start { return (script_idx, 2); } // stop
+            let btn_x_restart = btn_x_start - BTN_GAP - BTN_SIZE;
+            if x >= btn_x_restart { return (script_idx, 1); } // restart
+            if scripts[script_idx as usize].has_ui {
+                let btn_x_ui = btn_x_restart - BTN_GAP - BTN_SIZE;
+                if x >= btn_x_ui { return (script_idx, 0); } // UI
+            }
+            return (script_idx, -1); // row but no button
+        }
+        let footer_start = HEADER_H + items_height(scripts.len());
+        if y >= footer_start && y < footer_start + ITEM_H { return (100, -1); }
+        if y >= footer_start + ITEM_H { return (101, -1); }
+        (-1, -1)
+    }
+
+    fn get_x(lparam: LPARAM) -> i32 {
+        (lparam as u32 & 0xFFFF) as i16 as i32
+    }
+
+    static FONT: AtomicPtr<c_void> = AtomicPtr::new(std::ptr::null_mut());
+    static FONT_SMALL: AtomicPtr<c_void> = AtomicPtr::new(std::ptr::null_mut());
+    static FONT_ICON: AtomicPtr<c_void> = AtomicPtr::new(std::ptr::null_mut());
+
+    unsafe fn create_fonts() {
+        let name = wide("Segoe UI");
+        let f = CreateFontW(-16, 0, 0, 0, 600, 0, 0, 0, 1, 0, 0, 5 /* CLEARTYPE_QUALITY */, 0, name.as_ptr());
+        FONT.store(f as _, Ordering::SeqCst);
+        let fs = CreateFontW(-13, 0, 0, 0, 700, 0, 0, 0, 1, 0, 0, 5, 0, name.as_ptr());
+        FONT_SMALL.store(fs as _, Ordering::SeqCst);
+        // Segoe MDL2 Assets for icons (Windows 10+ built-in icon font)
+        let icon_name = wide("Segoe MDL2 Assets");
+        let fi = CreateFontW(-14, 0, 0, 0, 400, 0, 0, 0, 1, 0, 0, 5, 0, icon_name.as_ptr());
+        FONT_ICON.store(fi as _, Ordering::SeqCst);
+    }
+
+    unsafe fn draw_icon(hdc: HDC, rc: &RECT, codepoint: u16, color: u32) {
+        let old = SelectObject(hdc, FONT_ICON.load(Ordering::SeqCst));
+        SetTextColor(hdc, color);
+        let ch = [codepoint, 0u16];
+        let mut r = *rc;
+        DrawTextW(hdc, ch.as_ptr(), 1, &mut r, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+        SelectObject(hdc, old);
     }
 
     unsafe extern "system" fn wndproc(
@@ -29,26 +128,352 @@ mod native_popup {
     ) -> LRESULT {
         match msg {
             WM_ACTIVATE => {
-                let activation = (wparam & 0xFFFF) as u32;
-                if activation == 0 {
+                if (wparam & 0xFFFF) as u32 == 0 {
                     ShowWindow(hwnd, SW_HIDE);
+                }
+                0
+            }
+            WM_MOUSEMOVE => {
+                let x = get_x(lparam);
+                let y = get_y(lparam);
+                let mut repaint = false;
+                if let Ok(mut state) = STATE.lock() {
+                    if let Some(s) = state.as_mut() {
+                        let (idx, btn) = hit_test(x, y, &s.scripts);
+                        if idx != s.hover_index || btn != s.hover_btn {
+                            s.hover_index = idx;
+                            s.hover_btn = btn;
+                            repaint = true;
+                        }
+                    }
+                }
+                if repaint {
+                    InvalidateRect(hwnd, std::ptr::null(), 1);
+                }
+                let mut tme: TRACKMOUSEEVENT = std::mem::zeroed();
+                tme.cbSize = std::mem::size_of::<TRACKMOUSEEVENT>() as u32;
+                tme.dwFlags = TME_LEAVE;
+                tme.hwndTrack = hwnd;
+                TrackMouseEvent(&mut tme);
+                0
+            }
+            0x02A3 /* WM_MOUSELEAVE */ => {
+                if let Ok(mut state) = STATE.lock() {
+                    if let Some(s) = state.as_mut() {
+                        s.hover_index = -1;
+                        s.hover_btn = -1;
+                    }
+                }
+                InvalidateRect(hwnd, std::ptr::null(), 1);
+                0
+            }
+            WM_LBUTTONUP => {
+                let x = get_x(lparam);
+                let y = get_y(lparam);
+                let action = {
+                    if let Ok(state) = STATE.lock() {
+                        if let Some(s) = state.as_ref() {
+                            let (idx, btn) = hit_test(x, y, &s.scripts);
+                            if idx >= 0 && (idx as usize) < s.scripts.len() {
+                                let path = &s.scripts[idx as usize].path;
+                                match btn {
+                                    0 => Some(format!("show_ui|{}", path)),
+                                    1 => Some(format!("restart|{}", path)),
+                                    _ => Some(format!("stop|{}", path)),
+                                }
+                            } else if idx == 100 {
+                                Some("show_window".to_string())
+                            } else if idx == 101 {
+                                Some("quit".to_string())
+                            } else { None }
+                        } else { None }
+                    } else { None }
+                };
+                if let Some(action) = action {
+                    ShowWindow(hwnd, SW_HIDE);
+                    if let Ok(cb) = ACTION_CB.lock() {
+                        if let Some(f) = cb.as_ref() { f(&action); }
+                    }
                 }
                 0
             }
             WM_PAINT => {
                 let mut ps: PAINTSTRUCT = std::mem::zeroed();
                 let hdc = BeginPaint(hwnd, &mut ps);
-                let brush = CreateSolidBrush(0x001E1E1E);
-                FillRect(hdc, &ps.rcPaint, brush);
-                DeleteObject(brush as _);
-
+                let bg = CreateSolidBrush(BG_COLOR);
+                FillRect(hdc, &ps.rcPaint, bg);
+                DeleteObject(bg as _);
                 SetBkMode(hdc, 1);
-                SetTextColor(hdc, 0x00AAAAAA);
-                let text = wide("AHK Manager - Tray Popup");
-                let mut rc = ps.rcPaint;
-                DrawTextW(hdc, text.as_ptr(), text.len() as i32 - 1, &mut rc,
-                    DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 
+                if DEBUG_PALETTE {
+                    let font = FONT.load(Ordering::SeqCst);
+                    let font_small = FONT_SMALL.load(Ordering::SeqCst);
+                    SelectObject(hdc, font_small);
+
+                    // DEFINITIVE test: 3 big squares + text icon test
+                    // Square 1: 0x000000FF - if RED = correct, if BLUE = format is BBGGRR
+                    // Square 2: 0x0000FF00 - should be GREEN either way
+                    // Square 3: 0x00FF0000 - if BLUE = correct, if RED = format is RRGGBB
+                    let test_colors: [(u32, &str); 6] = [
+                        (0x000000FF, "0x0000FF"),
+                        (0x0000FF00, "0x00FF00"),
+                        (0x00FF0000, "0xFF0000"),
+                        (0x0000AAEE, "yellow?"),  // test yellow
+                        (0x00EEAA00, "yellow2?"), // test yellow other way
+                        (0x006366F1, "indigo?"),  // test indigo
+                    ];
+                    let labels = ["not used"];
+                    let icon_colors: [u32; 1] = [0];
+                    let icon_codes: [u16; 1] = [0];
+                    let palettes: [[u32; 10]; 1] = [[0; 10]]; // unused
+
+                    SelectObject(hdc, font);
+                    let sq_size = 60;
+                    for (i, (color, label)) in test_colors.iter().enumerate() {
+                        let col = (i % 3) as i32;
+                        let row = (i / 3) as i32;
+                        let x = 10 + col * (sq_size + 10);
+                        let y = 30 + row * (sq_size + 30);
+
+                        // Draw square
+                        let brush = CreateSolidBrush(*color);
+                        let rc = RECT { left: x, top: y, right: x + sq_size, bottom: y + sq_size };
+                        FillRect(hdc, &rc, brush);
+                        DeleteObject(brush as _);
+
+                        // Also draw icon with same color as text
+                        SetTextColor(hdc, *color);
+                        let icon = [0xE711u16, 0]; // X icon
+                        let mut irc = RECT { left: x, top: y, right: x + sq_size, bottom: y + sq_size };
+                        SelectObject(hdc, FONT_ICON.load(Ordering::SeqCst));
+                        DrawTextW(hdc, icon.as_ptr(), 1, &mut irc, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+
+                        // Label below
+                        SelectObject(hdc, font_small);
+                        SetTextColor(hdc, TEXT_COLOR);
+                        let lbl = wide(label);
+                        let mut lrc = RECT { left: x, top: y + sq_size, right: x + sq_size + 20, bottom: y + sq_size + 18 };
+                        DrawTextW(hdc, lbl.as_ptr(), lbl.len() as i32 - 1, &mut lrc, DT_LEFT | DT_SINGLELINE);
+                    }
+
+                    let cell_w = 24;
+                    let cell_h = 24;
+                    let pad_left = 10;
+                    let row_h = 50;
+                    let label_h = 16;
+
+                    // Title
+                    SetTextColor(hdc, TEXT_COLOR);
+                    SelectObject(hdc, font);
+                    let title = wide(&format!("COLOR PICKER {}", POPUP_VERSION));
+                    let mut trc = RECT { left: 10, top: 4, right: WIDTH, bottom: 24 };
+                    DrawTextW(hdc, title.as_ptr(), title.len() as i32 - 1, &mut trc, DT_LEFT | DT_SINGLELINE);
+
+                    // Column numbers
+                    SelectObject(hdc, font_small);
+                    SetTextColor(hdc, DIM_COLOR);
+                    for col in 0..10 {
+                        let x = pad_left + col * (cell_w + 2);
+                        let num = wide(&format!("{}", col + 1));
+                        let mut nrc = RECT { left: x, top: 26, right: x + cell_w, bottom: 40 };
+                        DrawTextW(hdc, num.as_ptr(), num.len() as i32 - 1, &mut nrc, DT_CENTER | DT_SINGLELINE);
+                    }
+
+                    for (row, (label, bg_colors)) in labels.iter().zip(palettes.iter()).enumerate() {
+                        let base_y = 42 + row as i32 * row_h;
+
+                        // Row label
+                        SetTextColor(hdc, DIM_COLOR);
+                        let lbl = wide(label);
+                        let mut lrc = RECT { left: pad_left, top: base_y, right: WIDTH, bottom: base_y + label_h };
+                        DrawTextW(hdc, lbl.as_ptr(), lbl.len() as i32 - 1, &mut lrc, DT_LEFT | DT_SINGLELINE);
+
+                        for col in 0..10 {
+                            let x = pad_left + col * (cell_w + 2);
+                            let y = base_y + label_h + 2;
+
+                            // Draw bg color
+                            let cell_bg = CreateSolidBrush(bg_colors[col as usize]);
+                            let cell_rc = RECT { left: x, top: y, right: x + cell_w, bottom: y + cell_h };
+                            FillRect(hdc, &cell_rc, cell_bg);
+                            DeleteObject(cell_bg as _);
+
+                            // Draw icon on top with fixed color
+                            draw_icon(hdc, &cell_rc, icon_codes[row], icon_colors[row]);
+                        }
+                    }
+
+                    EndPaint(hwnd, &ps);
+                    return 0;
+                }
+
+                let font = FONT.load(Ordering::SeqCst);
+                let font_small = FONT_SMALL.load(Ordering::SeqCst);
+                let old_font = SelectObject(hdc, font_small);
+
+                let state = STATE.lock().ok();
+                let state_ref = state.as_ref().and_then(|s| s.as_ref());
+                let scripts = state_ref.map(|s| &s.scripts).cloned().unwrap_or_default();
+                let hover = state_ref.map(|s| s.hover_index).unwrap_or(-1);
+                let hover_btn = state_ref.map(|s| s.hover_btn).unwrap_or(-1);
+                drop(state);
+
+                // Header
+                SetTextColor(hdc, DIM_COLOR);
+                let header = wide(&format!("AHK MANAGER {}", POPUP_VERSION));
+                let mut rc = RECT { left: 16, top: 0, right: WIDTH, bottom: HEADER_H };
+                DrawTextW(hdc, header.as_ptr(), header.len() as i32 - 1, &mut rc, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
+                if !scripts.is_empty() {
+                    SetTextColor(hdc, GREEN_COLOR);
+                    let cnt = wide(&format!("{} running", scripts.len()));
+                    let mut rc2 = RECT { left: 0, top: 0, right: WIDTH - 16, bottom: HEADER_H };
+                    DrawTextW(hdc, cnt.as_ptr(), cnt.len() as i32 - 1, &mut rc2, DT_RIGHT | DT_VCENTER | DT_SINGLELINE);
+                }
+
+                // Separator
+                let sep = CreateSolidBrush(0x00303038);
+                let sep_rc = RECT { left: 12, top: HEADER_H - 1, right: WIDTH - 12, bottom: HEADER_H };
+                FillRect(hdc, &sep_rc, sep);
+                DeleteObject(sep as _);
+
+                // Switch to main font
+                SelectObject(hdc, font);
+
+                // Scripts
+                if scripts.is_empty() {
+                    SetTextColor(hdc, 0x00444450);
+                    let empty = wide("No running scripts");
+                    let mut rc = RECT { left: 0, top: HEADER_H, right: WIDTH, bottom: HEADER_H + ITEM_H * 2 };
+                    DrawTextW(hdc, empty.as_ptr(), empty.len() as i32 - 1, &mut rc, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+                } else {
+                    for (i, script) in scripts.iter().enumerate() {
+                        let y = HEADER_H + (i as i32) * ITEM_H;
+                        let is_hover = hover == i as i32;
+
+                        // Row hover bg (rounded)
+                        if is_hover {
+                            let hv = CreateSolidBrush(HOVER_COLOR);
+                            let old_brush = SelectObject(hdc, hv as _);
+                            let null_pen = CreatePen(5 /* PS_NULL */, 0, 0);
+                            let old_pen = SelectObject(hdc, null_pen as _);
+                            RoundRect(hdc, 6, y + 2, WIDTH - 6, y + ITEM_H - 2, 8, 8);
+                            SelectObject(hdc, old_brush);
+                            SelectObject(hdc, old_pen);
+                            DeleteObject(hv as _);
+                            DeleteObject(null_pen as _);
+                        }
+
+                        // Green dot (font-rendered for anti-aliasing)
+                        {
+                            let dot_font = CreateFontW(-8, 0, 0, 0, 400, 0, 0, 0, 1, 0, 0, 5, 0, wide("Segoe UI").as_ptr());
+                            let old_f = SelectObject(hdc, dot_font as _);
+                            SetTextColor(hdc, GREEN_COLOR);
+                            let dot_ch = [0x25CF_u16, 0]; // ● solid circle
+                            let mut dot_rc = RECT { left: 12, top: y + 1, right: 24, bottom: y + ITEM_H + 1 };
+                            DrawTextW(hdc, dot_ch.as_ptr(), 1, &mut dot_rc, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+                            SelectObject(hdc, old_f);
+                            DeleteObject(dot_font as _);
+                        }
+
+                        // Filename (shifted 2px up)
+                        SetTextColor(hdc, if is_hover { 0x00FFFFFF } else { TEXT_COLOR });
+                        let btn_area = if script.has_ui { 3 } else { 2 };
+                        let text_right = if is_hover { WIDTH - 16 - btn_area * (BTN_SIZE + BTN_GAP) } else { WIDTH - 16 };
+                        let name = wide(&script.filename.replace(".ahk", "").replace(".AHK", ""));
+                        let mut rc = RECT { left: 30, top: y - 2, right: text_right, bottom: y + ITEM_H - 2 };
+                        DrawTextW(hdc, name.as_ptr(), name.len() as i32 - 1, &mut rc, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
+
+                        // Action buttons (only on hover) — using Segoe MDL2 Assets icons
+                        if is_hover {
+                            let btn_y = y + (ITEM_H - BTN_SIZE) / 2;
+                            // Stop (X) — E711 = Cancel icon
+                            let stop_x = WIDTH - BTN_RIGHT - BTN_SIZE;
+                            let stop_rc = RECT { left: stop_x, top: btn_y, right: stop_x + BTN_SIZE, bottom: btn_y + BTN_SIZE };
+                            if hover_btn == 2 {
+                                let hv = CreateSolidBrush(0x00202040);
+                                let ob = SelectObject(hdc, hv as _);
+                                let np = CreatePen(5, 0, 0);
+                                let op = SelectObject(hdc, np as _);
+                                RoundRect(hdc, stop_rc.left - 1, stop_rc.top - 1, stop_rc.right + 1, stop_rc.bottom + 1, 6, 6);
+                                SelectObject(hdc, ob); SelectObject(hdc, op);
+                                DeleteObject(hv as _); DeleteObject(np as _);
+                            }
+                            draw_icon(hdc, &stop_rc, 0xE711, if hover_btn == 2 { RED_HOVER } else { RED_COLOR });
+
+                            // Restart — E72C = Refresh icon
+                            let restart_x = stop_x - BTN_GAP - BTN_SIZE;
+                            let restart_rc = RECT { left: restart_x, top: btn_y, right: restart_x + BTN_SIZE, bottom: btn_y + BTN_SIZE };
+                            if hover_btn == 1 {
+                                let hv = CreateSolidBrush(0x00102030);
+                                let ob = SelectObject(hdc, hv as _);
+                                let np = CreatePen(5, 0, 0);
+                                let op = SelectObject(hdc, np as _);
+                                RoundRect(hdc, restart_rc.left - 1, restart_rc.top - 1, restart_rc.right + 1, restart_rc.bottom + 1, 6, 6);
+                                SelectObject(hdc, ob); SelectObject(hdc, op);
+                                DeleteObject(hv as _); DeleteObject(np as _);
+                            }
+                            draw_icon(hdc, &restart_rc, 0xE72C, if hover_btn == 1 { YELLOW_HOVER } else { YELLOW_COLOR });
+
+                            // UI — E737 = Page icon
+                            if script.has_ui {
+                                let ui_x = restart_x - BTN_GAP - BTN_SIZE;
+                                let ui_rc = RECT { left: ui_x, top: btn_y, right: ui_x + BTN_SIZE, bottom: btn_y + BTN_SIZE };
+                                if hover_btn == 0 {
+                                    let hv = CreateSolidBrush(0x00381820);
+                                    let ob = SelectObject(hdc, hv as _);
+                                    let np = CreatePen(5, 0, 0);
+                                    let op = SelectObject(hdc, np as _);
+                                    RoundRect(hdc, ui_rc.left - 1, ui_rc.top - 1, ui_rc.right + 1, ui_rc.bottom + 1, 6, 6);
+                                    SelectObject(hdc, ob); SelectObject(hdc, op);
+                                    DeleteObject(hv as _); DeleteObject(np as _);
+                                }
+                                draw_icon(hdc, &ui_rc, 0xE737, if hover_btn == 0 { INDIGO_HOVER } else { INDIGO_COLOR });
+                            }
+                        }
+                    }
+                }
+
+                // Footer separator
+                let footer_y = HEADER_H + items_height(scripts.len());
+                let sep2 = CreateSolidBrush(0x00303038);
+                let sep2_rc = RECT { left: 12, top: footer_y, right: WIDTH - 12, bottom: footer_y + 1 };
+                FillRect(hdc, &sep2_rc, sep2);
+                DeleteObject(sep2 as _);
+
+                // Show Window
+                SelectObject(hdc, font_small);
+                let sw_y = footer_y + 1;
+                if hover == 100 {
+                    let hv = CreateSolidBrush(HOVER_COLOR);
+                    let ob = SelectObject(hdc, hv as _);
+                    let np = CreatePen(5, 0, 0);
+                    let op = SelectObject(hdc, np as _);
+                    RoundRect(hdc, 6, sw_y + 2, WIDTH - 6, sw_y + ITEM_H - 2, 8, 8);
+                    SelectObject(hdc, ob); SelectObject(hdc, op);
+                    DeleteObject(hv as _); DeleteObject(np as _);
+                }
+                SetTextColor(hdc, INDIGO_COLOR);
+                let sw = wide("SHOW WINDOW");
+                let mut sw_rc = RECT { left: 0, top: sw_y, right: WIDTH, bottom: sw_y + ITEM_H };
+                DrawTextW(hdc, sw.as_ptr(), sw.len() as i32 - 1, &mut sw_rc, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+
+                // Quit
+                let q_y = sw_y + ITEM_H;
+                if hover == 101 {
+                    let hv = CreateSolidBrush(HOVER_COLOR);
+                    let ob = SelectObject(hdc, hv as _);
+                    let np = CreatePen(5, 0, 0);
+                    let op = SelectObject(hdc, np as _);
+                    RoundRect(hdc, 6, q_y + 2, WIDTH - 6, q_y + ITEM_H - 2, 8, 8);
+                    SelectObject(hdc, ob); SelectObject(hdc, op);
+                    DeleteObject(hv as _); DeleteObject(np as _);
+                }
+                SetTextColor(hdc, DIM_COLOR);
+                let q = wide("QUIT");
+                let mut q_rc = RECT { left: 0, top: q_y, right: WIDTH, bottom: q_y + ITEM_H };
+                DrawTextW(hdc, q.as_ptr(), q.len() as i32 - 1, &mut q_rc, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+
+                SelectObject(hdc, old_font);
                 EndPaint(hwnd, &ps);
                 0
             }
@@ -57,8 +482,15 @@ mod native_popup {
         }
     }
 
+    impl Clone for RunningScript {
+        fn clone(&self) -> Self {
+            RunningScript { path: self.path.clone(), filename: self.filename.clone(), has_ui: self.has_ui }
+        }
+    }
+
     pub fn create_popup() {
         unsafe {
+            create_fonts();
             let hinstance = GetModuleHandleW(std::ptr::null());
             let class_name = wide("AHKManagerPopup");
 
@@ -81,7 +513,7 @@ mod native_popup {
                 class_name.as_ptr(),
                 wide("").as_ptr(),
                 WS_POPUP,
-                0, 0, 300, 380,
+                0, 0, WIDTH, 200, // height will be adjusted on show
                 std::ptr::null_mut(),
                 std::ptr::null_mut(),
                 hinstance,
@@ -89,13 +521,37 @@ mod native_popup {
             );
             POPUP_HWND.store(hwnd, Ordering::SeqCst);
         }
+        *STATE.lock().unwrap() = Some(PopupState { scripts: vec![], hover_index: -1, hover_btn: -1 });
+    }
+
+    pub fn set_action_callback<F: Fn(&str) + Send + 'static>(f: F) {
+        *ACTION_CB.lock().unwrap() = Some(Box::new(f));
+    }
+
+    pub fn update_scripts(scripts: Vec<RunningScript>) {
+        if let Ok(mut state) = STATE.lock() {
+            if let Some(s) = state.as_mut() {
+                s.scripts = scripts;
+                s.hover_index = -1;
+                s.hover_btn = -1;
+            }
+        }
     }
 
     pub fn show_at(x: i32, y: i32) {
         let hwnd = POPUP_HWND.load(Ordering::SeqCst);
         if hwnd.is_null() { return; }
+
+        // Calculate height based on scripts count
+        let script_count = STATE.lock().ok()
+            .and_then(|s| s.as_ref().map(|s| s.scripts.len()))
+            .unwrap_or(0);
+        let total_h = if DEBUG_PALETTE { 280 } else { HEADER_H + items_height(script_count) + FOOTER_H + 2 };
+
         unsafe {
-            SetWindowPos(hwnd, HWND_TOPMOST, x, y, 0, 0, SWP_NOSIZE | SWP_NOACTIVATE);
+            // Resize and position
+            SetWindowPos(hwnd, HWND_TOPMOST, x, y - total_h, WIDTH, total_h,
+                SWP_NOACTIVATE);
             ShowWindow(hwnd, SW_SHOWNOACTIVATE);
             SetForegroundWindow(hwnd);
         }
@@ -1196,9 +1652,64 @@ pub fn run() {
         .setup(|app| {
             let handle = app.handle().clone();
 
-            // Create native Win32 popup (not WebView — instant, no focus issues)
+            // Create native Win32 popup
             #[cfg(target_os = "windows")]
-            native_popup::create_popup();
+            {
+                native_popup::create_popup();
+                let app_handle = handle.clone();
+                native_popup::set_action_callback(move |action: &str| {
+                    if action == "show_window" {
+                        if let Some(w) = app_handle.get_webview_window("main") {
+                            let _ = w.show();
+                            let _ = w.set_focus();
+                        }
+                    } else if action == "quit" {
+                        app_handle.exit(0);
+                    } else if let Some(path) = action.strip_prefix("stop|").or_else(|| action.strip_prefix("restart|")) {
+                        let is_restart = action.starts_with("restart|");
+                        let mut sys = System::new_all();
+                        sys.refresh_all();
+                        let path_lower = path.to_lowercase().replace('/', "\\");
+                        for (pid, process) in sys.processes() {
+                            let name = process.name().to_string_lossy().to_lowercase();
+                            if name.contains("autohotkey") {
+                                let matched = process.cmd().iter().any(|arg| {
+                                    arg.to_string_lossy().trim_matches('"').replace('/', "\\").to_lowercase() == path_lower
+                                });
+                                if matched {
+                                    let _ = Command::new("taskkill")
+                                        .args(["/F", "/PID", &pid.as_u32().to_string()])
+                                        .output();
+                                }
+                            }
+                        }
+                        if is_restart {
+                            std::thread::sleep(std::time::Duration::from_millis(150));
+                            let _ = Command::new("explorer").arg(path).spawn();
+                        }
+                    } else if let Some(path) = action.strip_prefix("show_ui|") {
+                        // Reuse show_script_ui logic via PowerShell PostMessage
+                        let mut sys = System::new_all();
+                        sys.refresh_all();
+                        let path_lower = path.to_lowercase().replace('/', "\\");
+                        for (pid, process) in sys.processes() {
+                            let name = process.name().to_string_lossy().to_lowercase();
+                            if name.contains("autohotkey") {
+                                let cmd_str = process.cmd().iter().map(|s| s.to_string_lossy().into_owned()).collect::<Vec<_>>().join(" ").to_lowercase().replace('/', "\\");
+                                if cmd_str.contains(&path_lower) {
+                                    let pid_val = pid.as_u32();
+                                    let ps = format!(
+                                        "Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; public class W32 {{ [DllImport(\"user32.dll\")] public static extern bool PostMessage(IntPtr h, uint m, IntPtr w, IntPtr l); [DllImport(\"user32.dll\")] public static extern uint GetWindowThreadProcessId(IntPtr h, out uint p); public delegate bool EP(IntPtr h, IntPtr l); [DllImport(\"user32.dll\")] public static extern bool EnumWindows(EP e, IntPtr l); static uint T; static int C; public static int Go(uint pid) {{ T=pid;C=0; EnumWindows((h,l)=>{{ uint p; GetWindowThreadProcessId(h,out p); if(p==T){{ PostMessage(h,0x0401,IntPtr.Zero,IntPtr.Zero); C++; }} return true; }}, IntPtr.Zero); return C; }} }}'; [W32]::Go({})",
+                                        pid_val
+                                    );
+                                    let _ = Command::new("powershell").arg("-NoProfile").arg("-Command").arg(ps).output();
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                });
+            }
 
             // Build right-click menu
             let empty_running = HashSet::new();
@@ -1222,9 +1733,29 @@ pub fn run() {
                                 if native_popup::is_visible() {
                                     native_popup::hide();
                                 } else {
-                                    let x = position.x as i32 - 150; // center 300px
-                                    let y = position.y as i32 - 380; // above tray
-                                    native_popup::show_at(x, y);
+                                    // Collect running scripts
+                                    let mut sys = System::new_all();
+                                    sys.refresh_all();
+                                    let running: Vec<native_popup::RunningScript> = get_running_ahk_paths(&sys)
+                                        .into_iter()
+                                        .map(|path| {
+                                            // path is lowercased; get real filename from filesystem
+                                            let pb = std::path::PathBuf::from(&path);
+                                            let filename = pb.file_name()
+                                                .and_then(|f| {
+                                                    // Try to get original casing via canonicalize
+                                                    pb.canonicalize().ok()
+                                                        .and_then(|c| c.file_name().map(|n| n.to_string_lossy().to_string()))
+                                                })
+                                                .unwrap_or_else(|| pb.file_name().map(|f| f.to_string_lossy().to_string()).unwrap_or(path.clone()));
+                                            let has_ui = fs::read_to_string(&path)
+                                                .map(|c| { let t = c.to_lowercase(); t.contains("0x0401") || t.contains("0x401") })
+                                                .unwrap_or(false);
+                                            native_popup::RunningScript { path, filename, has_ui }
+                                        })
+                                        .collect();
+                                    native_popup::update_scripts(running);
+                                    native_popup::show_at(position.x as i32, position.y as i32);
                                 }
                             }
                         }
