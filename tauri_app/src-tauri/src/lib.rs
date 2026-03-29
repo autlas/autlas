@@ -22,10 +22,10 @@ struct Script {
     has_ui: bool,
 }
 
-#[derive(Serialize, Deserialize)]
 struct ManagerMetadata {
     tags: HashMap<String, Vec<String>>, // Path -> Tags
     hidden_folders: Vec<String>,
+    scan_paths: Vec<String>,
 }
 
 fn get_ini_path() -> std::path::PathBuf {
@@ -45,6 +45,7 @@ fn load_metadata() -> ManagerMetadata {
     let mut metadata = ManagerMetadata {
         tags: HashMap::new(),
         hidden_folders: Vec::new(),
+        scan_paths: Vec::new(),
     };
 
     let ini_path = get_ini_path();
@@ -83,6 +84,10 @@ fn load_metadata() -> ManagerMetadata {
             } else if current_section == "hiddenfolders" {
                 if !key.is_empty() {
                     metadata.hidden_folders.push(key.to_lowercase());
+                }
+            } else if current_section == "scanpaths" {
+                if !key.is_empty() {
+                    metadata.scan_paths.push(key.to_string());
                 }
             }
         }
@@ -230,12 +235,13 @@ async fn get_scripts(force_scan: bool) -> Vec<Script> {
              println!("[Rust] No cached data available. Starting initial disk scan...");
         }
         let mut scan_dirs = Vec::new();
-        if let Some(user_dirs) = UserDirs::new() {
-            if let Some(desktop) = user_dirs.desktop_dir() {
-                scan_dirs.push(desktop.to_path_buf());
+        
+        for p in &metadata.scan_paths {
+            let pb = std::path::PathBuf::from(p);
+            if pb.exists() && pb.is_dir() {
+                scan_dirs.push(pb);
             }
         }
-        scan_dirs.push(std::path::PathBuf::from(".."));
 
         for dir in scan_dirs {
             for entry in WalkDir::new(&dir).into_iter().filter_map(|e| e.ok()) {
@@ -744,6 +750,47 @@ async fn delete_tag(tag: String) -> Result<(), String> {
     Ok(())
 }
 
+#[tauri::command]
+async fn get_scan_paths() -> Vec<String> {
+    load_metadata().scan_paths
+}
+
+#[tauri::command]
+async fn set_scan_paths(paths: Vec<String>) -> Result<(), String> {
+    let ini_path = get_ini_path();
+    let bytes = fs::read(&ini_path).unwrap_or_default();
+    let content = String::from_utf8_lossy(&bytes).to_string();
+    let mut lines: Vec<String> = content.lines().map(|s| s.to_string()).collect();
+    
+    // Remove existing [ScanPaths] section
+    let mut in_scan_paths = false;
+    lines.retain(|line| {
+        let trimmed = line.trim().to_lowercase();
+        if trimmed == "[scanpaths]" {
+            in_scan_paths = true;
+            false
+        } else if trimmed.starts_with('[') {
+            in_scan_paths = false;
+            true
+        } else {
+            !in_scan_paths
+        }
+    });
+    
+    // Add new section
+    lines.push("[ScanPaths]".to_string());
+    for path in paths {
+        lines.push(format!("{}=1", path));
+    }
+    
+    fs::write(&ini_path, lines.join("\r\n")).map_err(|e| e.to_string())?;
+    
+    // Clear cache to force rescan with new paths
+    let _ = fs::remove_file(get_cache_path());
+    
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     // Seed the tags state from disk on startup
@@ -751,6 +798,7 @@ pub fn run() {
 
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_dialog::init())
         .manage(TagsState(Mutex::new(initial_tags)))
         .invoke_handler(tauri::generate_handler![
             get_scripts,
@@ -768,7 +816,9 @@ pub fn run() {
             toggle_hide_folder,
             show_script_ui,
             restart_script,
-            open_with
+            open_with,
+            get_scan_paths,
+            set_scan_paths
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

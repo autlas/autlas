@@ -35,9 +35,12 @@
         "animations_ui": "Animations",
         "animations_ui_sub": "Smooth transitions in script tree",
         "script_paths": "Script Paths",
-        "root_folder": "Root Folder",
+        "folder_picker_desc": "Configure the list of folders scanned for AHK scripts",
+        "add_path": "Add Folder",
+        "remove_path": "Remove from library",
+        "no_paths": "No folders found. Add one to start scanning scripts.",
+        "select_folder": "Select Script Folder",
         "browse": "Browse",
-        "folder_picker_dev": "Folder selection UI is under development",
         "devtools": "Open DevTools",
         "devtools_desc": "Open developer tools console",
         "close": "Close"
@@ -63,6 +66,12 @@
     },
     "hub": {
         "empty_channel": "Empty channel...",
+        "no_folders_title": "Library is empty",
+        "no_folders_desc": "Select folders to scan for AutoHotkey scripts and manage your collection.",
+        "no_scripts_title": "No Scripts Detected",
+        "no_scripts_desc": "The selected folders don't contain any .ahk files. Try adding scripts or checking your paths.",
+        "not_found_title": "Nothing Found",
+        "not_found_desc": "No scripts in your library match the current search filters.",
         "empty_tree": "Empty tree section...",
         "other": "other"
     },

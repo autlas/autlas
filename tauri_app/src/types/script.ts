@@ -29,6 +29,9 @@ export interface ScriptTreeProps {
     onRestart?: (s: Script) => void;
     manualRefresh?: boolean;
     onScanComplete?: (timestamp: number) => void;
+    isPathsEmpty?: boolean;
+    onAddPath?: () => void;
+    onRefresh?: () => void;
 }
 
 export interface TagPickerProps {

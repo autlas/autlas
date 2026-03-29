@@ -4,6 +4,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { useTranslation } from "react-i18next";
 import LanguageSelector from "./components/LanguageSelector";
+import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import "./App.css";
 import { useHotkeys } from "react-hotkeys-hook";
 
@@ -127,9 +128,37 @@ function App() {
   };
 
 
-  const [rootPath] = useState(() => {
-    return localStorage.getItem("root-path") || "Desktop / Parent folder";
-  });
+  const [scanPaths, setScanPaths] = useState<string[]>([]);
+  useEffect(() => {
+    invoke<string[]>("get_scan_paths").then(setScanPaths);
+  }, []);
+
+  const handleAddScanPath = async () => {
+    try {
+      const selected = await openDialog({
+        directory: true,
+        multiple: false,
+        title: t("settings.select_folder")
+      });
+      if (selected && typeof selected === 'string') {
+        if (!scanPaths.includes(selected)) {
+          const next = [...scanPaths, selected];
+          setScanPaths(next);
+          await invoke("set_scan_paths", { paths: next });
+          setRefreshKey(p => p + 1);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to open dialog:", err);
+    }
+  };
+
+  const handleRemoveScanPath = async (path: string) => {
+    const next = scanPaths.filter(p => p !== path);
+    setScanPaths(next);
+    await invoke("set_scan_paths", { paths: next });
+    setRefreshKey(p => p + 1);
+  };
 
   const updatePalette = (val: number) => {
     const base = Math.floor((31 * val) / 100);
@@ -1056,18 +1085,58 @@ function App() {
               </section>
 
               <section className="space-y-8 bg-white/[0.02] p-10 rounded-[2.5rem] border border-white/5 shadow-2xl">
-                <h3 className="text-sm font-bold tracking-widest text-tertiary uppercase">{t("settings.script_paths")}</h3>
-                <div className="flex flex-col space-y-6">
-                  <span className="text-base font-bold text-secondary pl-2">{t("settings.root_folder")}</span>
-                  <div className="flex items-center space-x-4 p-5 bg-white/[0.03] border border-white/5 rounded-2xl">
-                    <span className="flex-1 text-xs font-bold text-tertiary truncate font-mono italic tracking-tight">{rootPath}</span>
-                    <button
-                      onClick={() => alert(t("settings.folder_picker_dev"))}
-                      className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-xs font-bold tracking-widest transition-all shadow-xl shadow-indigo-900/20 active:scale-95 border border-transparent"
-                    >
-                      {t("settings.browse")}
-                    </button>
+                <div className="flex flex-col">
+                  <h3 className="text-sm font-bold tracking-widest text-tertiary uppercase">{t("settings.script_paths")}</h3>
+                  <span className="text-xs text-tertiary mt-1">{t("settings.folder_picker_desc")}</span>
+                </div>
+
+                <div className="flex flex-col space-y-4">
+                  <div className="space-y-2">
+                    {scanPaths.length === 0 ? (
+                      <div className="p-10 border border-dashed border-white/5 rounded-3xl flex flex-col items-center justify-center text-tertiary">
+                        <span className="text-3xl opacity-20 mb-4">📂</span>
+                        <span className="text-xs font-bold opacity-50 uppercase tracking-widest text-center">{t("settings.no_paths")}</span>
+                      </div>
+                    ) : (
+                      scanPaths.map((path) => (
+                        <div key={path} className="flex items-center space-x-4 p-2.5 px-4 bg-white/[0.03] border border-white/10 rounded-2xl hover:bg-white/[0.05] transition-all group">
+                          <div className="w-1.5 h-1.5 rounded-full bg-indigo-500/50 group-hover:bg-indigo-500 shadow-lg shadow-indigo-500/20" />
+                          <span className="flex-1 text-[16px] font-bold text-secondary truncate font-mono tracking-tight">{path}</span>
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => invoke("open_in_explorer", { path })}
+                              className="p-2 text-tertiary hover:text-white hover:bg-white/10 rounded-xl transition-all border-none bg-transparent cursor-pointer"
+                              title={t("context.show_in_folder")}
+                            >
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+                              </svg>
+                            </button>
+                            <button
+                              onClick={() => handleRemoveScanPath(path)}
+                              className="p-2 text-tertiary hover:text-red-400 hover:bg-red-400/10 rounded-xl transition-all border-none bg-transparent cursor-pointer"
+                              title={t("settings.remove_path")}
+                            >
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M18 6L6 18M6 6l12 12" />
+                              </svg>
+                            </button>
+                          </div>
+                        </div>
+                      ))
+                    )}
                   </div>
+
+                  <button
+                    onClick={handleAddScanPath}
+                    className="w-full h-12 bg-indigo-600/10 hover:bg-indigo-600 text-indigo-400 hover:text-white rounded-2xl text-xs font-bold tracking-widest transition-all shadow-xl hover:shadow-indigo-500/20 active:scale-[0.98] flex items-center justify-center gap-3 group border border-indigo-500/20 hover:border-indigo-500 cursor-pointer"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="group-hover:scale-110 transition-transform">
+                      <line x1="12" y1="5" x2="12" y2="19" />
+                      <line x1="5" y1="12" x2="19" y2="12" />
+                    </svg>
+                    {t("settings.add_path")}
+                  </button>
                 </div>
               </section>
             </div>
@@ -1100,6 +1169,9 @@ function App() {
               onShowUI={handleShowUI}
               manualRefresh={refreshKey > 0}
               onScanComplete={handleScanComplete}
+              isPathsEmpty={scanPaths.length === 0}
+              onAddPath={handleAddScanPath}
+              onRefresh={() => setRefreshKey(p => p + 1)}
             />
           </div>
         </div>
