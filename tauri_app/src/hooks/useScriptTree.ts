@@ -649,24 +649,16 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
         return items;
     }, [tree, expandedFolders, groupedHub, filterTag, viewMode, filtered]);
 
-    useEffect(() => {
-        console.log("[VimNav] Visible Items Update:", visibleItems.map(item => `(${item.type}) ${item.path}`));
-    }, [visibleItems]);
-
-    useEffect(() => {
-        if (focusedPath) {
-            console.log("[VimNav] Focus Changed to:", focusedPath);
-        }
-    }, [focusedPath]);
-
     const moveFocus = useCallback((direction: 'up' | 'down' | 'left' | 'right', cols: number = 1) => {
-        console.log(`[VimNav] Requested Move: ${direction} | Step: ${cols}`);
         setIsVimMode(true);
         setFocusedPath(prev => {
             if (visibleItems.length === 0) return null;
+            // Tag section headers (tag-fav, tag-hub etc) are not navigable
+            const isNavigable = (item: { path: string, type: 'folder' | 'script' }) =>
+                item.type === 'script' || (item.type === 'folder' && !item.path.startsWith('tag-'));
             const getInitial = () => {
-                const firstScript = visibleItems.find(i => i.type === 'script');
-                return firstScript ? firstScript.path : (visibleItems[0].path || null);
+                const first = visibleItems.find(isNavigable);
+                return first ? first.path : null;
             };
 
             if (!prev) return getInitial();
@@ -682,7 +674,7 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
                 const startFrom = (idx + step) % len;
                 for (let i = 0; i < len; i++) {
                     const checkIdx = (startFrom + i) % len;
-                    if (visibleItems[checkIdx].type === 'script' && (checkIdx !== idx || len <= 1)) {
+                    if (isNavigable(visibleItems[checkIdx]) && (checkIdx !== idx || len <= 1)) {
                         nextIdx = checkIdx;
                         break;
                     }
@@ -692,7 +684,7 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
                 const startFrom = (idx - step + len) % len;
                 for (let i = 0; i < len; i++) {
                     const checkIdx = (startFrom - i + len) % len;
-                    if (visibleItems[checkIdx].type === 'script' && (checkIdx !== idx || len <= 1)) {
+                    if (isNavigable(visibleItems[checkIdx]) && (checkIdx !== idx || len <= 1)) {
                         nextIdx = checkIdx;
                         break;
                     }
@@ -701,7 +693,7 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
                 const startFrom = (idx + 1) % len;
                 for (let i = 0; i < len; i++) {
                     const checkIdx = (startFrom + i) % len;
-                    if (visibleItems[checkIdx].type === 'script' && (checkIdx !== idx || len <= 1)) {
+                    if (isNavigable(visibleItems[checkIdx]) && (checkIdx !== idx || len <= 1)) {
                         nextIdx = checkIdx;
                         break;
                     }
@@ -710,7 +702,7 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
                 const startFrom = (idx - 1 + len) % len;
                 for (let i = 0; i < len; i++) {
                     const checkIdx = (startFrom - i + len) % len;
-                    if (visibleItems[checkIdx].type === 'script' && (checkIdx !== idx || len <= 1)) {
+                    if (isNavigable(visibleItems[checkIdx]) && (checkIdx !== idx || len <= 1)) {
                         nextIdx = checkIdx;
                         break;
                     }

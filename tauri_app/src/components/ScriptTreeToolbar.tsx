@@ -16,13 +16,15 @@ interface ScriptTreeToolbarProps {
     setShowHidden: (v: 'none' | 'all' | 'only') => void;
     filterTag: string;
     searchInputRef: React.RefObject<HTMLInputElement | null>;
+    onSearchFocus: () => void;
+    onSearchBlur: () => void;
 }
 
 export default function ScriptTreeToolbar({
     viewMode, onViewModeChange, isDragging, draggedScriptPath,
     sortBy, setSortBy, isAllExpanded, toggleAll,
     searchQuery, setSearchQuery, showHidden, setShowHidden,
-    filterTag, searchInputRef,
+    filterTag, searchInputRef, onSearchFocus, onSearchBlur,
 }: ScriptTreeToolbarProps) {
     const { t } = useTranslation();
 
@@ -142,14 +144,14 @@ export default function ScriptTreeToolbar({
                         ref={searchInputRef}
                         type="text"
                         value={displayValue}
+                        onFocus={onSearchFocus}
+                        onBlur={onSearchBlur}
                         onChange={(e) => {
                             const val = e.target.value;
                             setSearchQuery(prefixMatch ? prefixMatch + val : val);
                         }}
                         onKeyDown={(e) => {
-                            if (e.key === 'Escape') {
-                                searchInputRef.current?.blur();
-                            } else if (e.key === 'Backspace' && prefixMatch && displayValue === "") {
+                            if (e.key === 'Backspace' && prefixMatch && displayValue === "") {
                                 setSearchQuery("");
                             } else if (e.key === 'Tab') {
                                 const q = searchQuery.toLowerCase();

@@ -29,6 +29,13 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
         focusedPath, setFocusedPath, isVimMode, setIsVimMode, visibleItems, moveFocus
     } = useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, searchQuery, setSearchQuery, onRunningCountChange, manualRefresh, onScanComplete, viewMode, sortBy });
     const [isCheatSheetOpen, setIsCheatSheetOpen] = useState(false);
+    const [isSearchActive, setIsSearchActiveState] = useState(false);
+    const isSearchActiveRef = useRef(false);
+    const setIsSearchActive = (v: boolean) => {
+        isSearchActiveRef.current = v;
+        setIsSearchActiveState(v);
+    };
+    const displayFocusedPath = isSearchActive ? null : focusedPath;
 
     // ─── VIM HOTKEYS ───────────────────────────────────────────────
     useHotkeys('j', () => {
@@ -141,13 +148,6 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
     useHotkeys('s', () => setSortBy(prev => prev === 'name' ? 'path' : 'name'));
 
     useHotkeys('i', (e) => {
-        if (focusedPath) {
-            const item = visibleItems.find(it => it.path === focusedPath);
-            if (item && item.type === 'script' && item.data.is_running && item.data.has_ui) {
-                onShowUI(item.data);
-                return;
-            }
-        }
         const now = performance.now();
         const fDiff = now - lastFTimeRef.current;
         const gDiff = now - lastGTimeRef.current;
@@ -157,11 +157,20 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
             lastGTimeRef.current = 0;
             setSearchQuery('file:');
             setTimeout(() => searchInputRef.current?.focus(), 10);
-        } else if (gDiff < 1000) {
+            return;
+        }
+        if (gDiff < 1000) {
             e.preventDefault();
             lastFTimeRef.current = 0;
             lastGTimeRef.current = 0;
             if (searchInputRef.current) searchInputRef.current.focus();
+            return;
+        }
+        if (focusedPath) {
+            const item = visibleItems.find(it => it.path === focusedPath);
+            if (item && item.type === 'script' && item.data.is_running && item.data.has_ui) {
+                onShowUI(item.data);
+            }
         }
     });
 
@@ -175,8 +184,9 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
             setIsCheatSheetOpen(false);
             return;
         }
-        if (document.activeElement === searchInputRef.current) {
+        if (isSearchActiveRef.current) {
             searchInputRef.current?.blur();
+            return;
         }
         setFocusedPath(null);
         setIsVimMode(false);
@@ -185,7 +195,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
     const lastScrollTimeRef = useRef(0);
 
     useEffect(() => {
-        if (!focusedPath) return;
+        if (!focusedPath || !isVimMode) return;
         const el = folderRefs.current.get(focusedPath) || document.getElementById(`script-${focusedPath}`);
         if (el) {
             const now = performance.now();
@@ -195,7 +205,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
             isInstantScrollRef.current = false;
             el.scrollIntoView({ behavior, block: 'nearest' });
         }
-    }, [focusedPath]);
+    }, [focusedPath, isVimMode]);
 
     useEffect(() => {
         if (onLoadingChange) onLoadingChange(loading);
@@ -258,7 +268,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
         contextMenu,
         onShowUI,
         onRestart: handleRestart,
-        focusedPath,
+        focusedPath: displayFocusedPath,
         setFocusedPath,
         isVimMode,
         setIsVimMode
@@ -266,7 +276,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
         expandedFolders, toggleFolder, setFolderExpansionRecursive, isDragging, draggedScriptPath,
         animationsEnabled, onFolderContextMenu, onScriptContextMenu, editingScript,
         pendingScripts, removingTags, allUniqueTags, folderDurations, showHidden,
-        contextMenu, onShowUI, handleRestart, focusedPath, isVimMode
+        contextMenu, onShowUI, handleRestart, displayFocusedPath, isVimMode
     ]);
 
     const masonryColumns = useMemo(() => {
@@ -296,6 +306,8 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
                 setShowHidden={setShowHidden}
                 filterTag={filterTag}
                 searchInputRef={searchInputRef}
+                onSearchFocus={() => setIsSearchActive(true)}
+                onSearchBlur={() => setIsSearchActive(false)}
             />
             <SearchContext.Provider value={{
                 query: searchQuery.toLowerCase().includes("file:") ? searchQuery.replace(/file:/gi, "").trim() :
@@ -306,7 +318,8 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
                 <div
                     ref={containerRef}
                     onScroll={handleScroll}
-                    className={`flex-1 overflow-y-auto custom-scrollbar -mx-8 px-8 transition-all duration-300 ${draggedScriptPath ? 'opacity-30 blur-[1px]' : ''}`}
+                    onMouseMove={() => { if (isVimMode) setIsVimMode(false); }}
+                    className={`flex-1 overflow-y-auto custom-scrollbar -mx-8 px-8 transition-all duration-300 ${draggedScriptPath ? 'opacity-30 blur-[1px]' : ''} ${isVimMode ? 'vim-active' : ''}`}
                     id="script-list-container"
                 >
                     {viewMode !== "tree" ? (
@@ -342,7 +355,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
                             onScriptContextMenu={onScriptContextMenu}
                             onShowUI={onShowUI}
                             onRestart={handleRestart}
-                            focusedPath={focusedPath}
+                            focusedPath={displayFocusedPath}
                             setFocusedPath={setFocusedPath}
                             isVimMode={isVimMode}
                             setIsVimMode={setIsVimMode}

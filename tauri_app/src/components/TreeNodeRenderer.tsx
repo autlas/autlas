@@ -54,7 +54,7 @@ export const TreeNodeRenderer = memo(function TreeNodeRenderer({
         editingScript, pendingScripts, removingTags, allUniqueTags,
         popoverRef, handleCustomMouseDown, handleToggle,
         startEditing, stopEditing, addTag, removeTag, onShowUI,
-        focusedPath, setFocusedPath, isVimMode, setIsVimMode } = ctx;
+        focusedPath, setFocusedPath, isVimMode } = ctx;
 
     const [childVisible, setChildVisible] = useState(isExpanded);
     const [gridExpanded, setGridExpanded] = useState(isExpanded);
@@ -90,8 +90,7 @@ export const TreeNodeRenderer = memo(function TreeNodeRenderer({
                     ref={el => { if (el) folderRefs.current!.set(node.fullName, el); }}
                     onClick={() => !isDragging && toggleFolder(node.fullName)}
                     onMouseEnter={() => {
-                        setFocusedPath(node.fullName);
-                        setIsVimMode(false);
+                        if (!isVimMode) setFocusedPath(node.fullName);
                     }}
                     onContextMenu={(e) => {
                         e.preventDefault();
@@ -105,7 +104,7 @@ export const TreeNodeRenderer = memo(function TreeNodeRenderer({
                     id={`folder-${node.fullName}`}
                     className={`flex items-center space-x-2 h-[38px] pl-[4px] rounded-lg z-10 relative mb-0.5 border border-transparent hover:z-[50] scroll-mt-[250px] scroll-mb-[250px]
                         ${focusedPath === node.fullName && isVimMode ? '!transition-none !bg-indigo-500/20 shadow-[0_0_15px_rgba(99,102,241,0.15)]' : 'transition-all duration-300'}
-                        ${!draggedScriptPath ? (focusedPath === node.fullName && isVimMode ? '' : 'bg-transparent hover:bg-white/[0.05] cursor-pointer group') : 'bg-transparent text-tertiary cursor-default pointer-events-none'}
+                        ${!draggedScriptPath ? (isVimMode ? 'bg-transparent cursor-pointer' : 'bg-transparent hover:bg-white/[0.05] cursor-pointer group') : 'bg-transparent text-tertiary cursor-default pointer-events-none'}
                         ${ctx.contextMenu?.type === 'folder' && ctx.contextMenu?.data?.fullName === node.fullName ? 'bg-white/5 border-white/10' : ''}
                     `}
                 >

@@ -9,7 +9,7 @@ const ScriptRow = memo(function ScriptRow({
     allUniqueTags, popoverRef, visibilityMode,
     onMouseDown, onDoubleClick, onToggle, onStartEditing, onAddTag, onRemoveTag, onCloseEditing,
     onScriptContextMenu, onShowUI, onRestart,
-    isFocused, setFocusedPath, isVimMode, setIsVimMode
+    isFocused, setFocusedPath, isVimMode
 }: ScriptRowProps) {
     const { t } = useTranslation();
 
@@ -108,22 +108,21 @@ const ScriptRow = memo(function ScriptRow({
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseLeave}
             onMouseEnter={() => {
-                setFocusedPath(s.path);
-                setIsVimMode(false);
+                if (!isVimMode) setFocusedPath(s.path);
             }}
             onDoubleClick={() => !isDragging && onDoubleClick(s)}
             id={`script-${s.path}`}
             className={`flex items-center space-x-3 h-[42px] px-3 rounded-xl z-20 relative mb-1 border border-transparent hover:z-[50] scroll-mt-[250px] scroll-mb-[250px] long-press-shrink
                 ${isFocused && isVimMode ? 'vim-focus-instant bg-indigo-500/25 shadow-[0_0_20px_rgba(99,102,241,0.15)]' : ''}
-                ${!draggedScriptPath ? (isFocused && isVimMode ? '' : 'bg-transparent hover:bg-white/[0.05] cursor-pointer group') : 'bg-transparent text-tertiary cursor-default pointer-events-none'}
-                ${isContextMenuOpen ? 'bg-white/5 border-white/10' : ''}
+                ${!draggedScriptPath ? (isVimMode ? (isFocused ? '' : 'bg-transparent') : 'bg-transparent hover:bg-white/[0.05] cursor-pointer group') : 'bg-transparent text-tertiary cursor-default pointer-events-none'}
+                ${(isContextMenuOpen || isEditing) ? 'bg-white/5 border-white/10' : ''}
                 ${s.path === draggedScriptPath ? 'opacity-0 pointer-events-none' : ''}
                 ${s.is_hidden && visibilityMode !== 'only' ? 'opacity-40 grayscale-[0.5]' : ''}
                 ${s.is_running ? 'border-green-500/10' : ''}
                 ${isLeftPressed ? 'active-left' : ''}
             `}
             style={{
-                borderColor: isContextMenuOpen ? 'rgba(255,255,255,0.1)' : 'transparent'
+                borderColor: (isContextMenuOpen || isEditing) ? 'rgba(255,255,255,0.1)' : 'transparent'
             }}
         >
             {isFocused && isVimMode && (

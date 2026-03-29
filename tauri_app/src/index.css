@@ -298,3 +298,9 @@ body {
     animation: tree-collapse 0.15s cubic-bezier(0.4, 0, 1, 1) forwards;
     pointer-events: none;
 }
+
+/* Vim mode: hide cursor everywhere inside the scroll container */
+.vim-active,
+.vim-active * {
+    cursor: none !important;
+}
