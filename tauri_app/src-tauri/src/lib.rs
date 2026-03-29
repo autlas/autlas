@@ -20,8 +20,8 @@ mod native_popup {
         GdipCreateSolidFill, GdipDeleteBrush, GdipFillRectangle, GdipFillEllipse,
         GdipCreatePath, GdipAddPathArc, GdipClosePathFigure, GdipFillPath, GdipDeletePath,
         GdipCreateFontFamilyFromName, GdipCreateFont, GdipDeleteFont, GdipDeleteFontFamily,
-        GdipCreateStringFormat, GdipSetStringFormatAlign, GdipSetStringFormatLineAlign, GdipDeleteStringFormat,
-        GdipDrawString,
+        GdipCreateStringFormat, GdipSetStringFormatAlign, GdipSetStringFormatLineAlign, GdipSetStringFormatFlags, GdipSetStringFormatTrimming, GdipDeleteStringFormat,
+        GdipDrawString, GdipMeasureString,
         GpGraphics, GpSolidFill, GpBrush, GpPath, GpFontFamily, GpFont, GpStringFormat,
         RectF,
     };
@@ -146,6 +146,12 @@ mod native_popup {
     }
 
     unsafe fn gp_draw_text(g: *mut GpGraphics, text: &str, family_name: &str, size: f32, style: i32, color: u32, rect: RectF, h_align: i32, v_align: i32) {
+        gp_draw_text_ex(g, text, family_name, size, style, color, rect, h_align, v_align, false);
+    }
+
+    unsafe fn gp_draw_text_ellipsis(g: *mut GpGraphics, text: &str, family_name: &str, size: f32, style: i32, color: u32, rect: RectF, h_align: i32, v_align: i32) {
+        // Manually truncate text and append "..." if it doesn't fit,
+        // to avoid GDI+ StringTrimming which messes up letter spacing.
         let name_w = wide(family_name);
         let mut family: *mut GpFontFamily = std::ptr::null_mut();
         GdipCreateFontFamilyFromName(name_w.as_ptr(), std::ptr::null_mut(), &mut family);
@@ -155,10 +161,44 @@ mod native_popup {
         GdipCreateStringFormat(0, 0, &mut fmt);
         GdipSetStringFormatAlign(fmt, h_align);
         GdipSetStringFormatLineAlign(fmt, v_align);
+        GdipSetStringFormatFlags(fmt, 0x00001000); // NoWrap
+
+        // Measure full text
+        let layout = RectF { X: 0.0, Y: 0.0, Width: 10000.0, Height: rect.Height };
+        let mut bounds = RectF { X: 0.0, Y: 0.0, Width: 0.0, Height: 0.0 };
+        let text_w = wide(text);
+        GdipMeasureString(g, text_w.as_ptr(), -1, font as _, &layout, fmt as _, &mut bounds, std::ptr::null_mut(), std::ptr::null_mut());
+
+        let display_text = if bounds.Width > rect.Width {
+            // Binary search for max chars that fit with "..."
+            let chars: Vec<char> = text.chars().collect();
+            let ellipsis_w = {
+                let ew = wide("...");
+                let mut eb = RectF { X: 0.0, Y: 0.0, Width: 0.0, Height: 0.0 };
+                GdipMeasureString(g, ew.as_ptr(), -1, font as _, &layout, fmt as _, &mut eb, std::ptr::null_mut(), std::ptr::null_mut());
+                eb.Width
+            };
+            let max_w = rect.Width - ellipsis_w;
+            let mut lo = 0usize;
+            let mut hi = chars.len();
+            while lo < hi {
+                let mid = (lo + hi + 1) / 2;
+                let sub: String = chars[..mid].iter().collect();
+                let sw = wide(&sub);
+                let mut sb = RectF { X: 0.0, Y: 0.0, Width: 0.0, Height: 0.0 };
+                GdipMeasureString(g, sw.as_ptr(), -1, font as _, &layout, fmt as _, &mut sb, std::ptr::null_mut(), std::ptr::null_mut());
+                if sb.Width <= max_w { lo = mid; } else { hi = mid - 1; }
+            }
+            let truncated: String = chars[..lo].iter().collect();
+            format!("{}...", truncated.trim_end())
+        } else {
+            text.to_string()
+        };
+
         let mut brush: *mut GpSolidFill = std::ptr::null_mut();
         GdipCreateSolidFill(color, &mut brush);
-        let text_w = wide(text);
-        GdipDrawString(g, text_w.as_ptr(), -1, font as _, &rect, fmt as _, brush as _);
+        let dw = wide(&display_text);
+        GdipDrawString(g, dw.as_ptr(), -1, font as _, &rect, fmt as _, brush as _);
         GdipDeleteBrush(brush as _);
         GdipDeleteStringFormat(fmt);
         GdipDeleteFont(font);
@@ -263,7 +303,7 @@ mod native_popup {
                 let mut g: *mut GpGraphics = std::ptr::null_mut();
                 GdipCreateFromHDC(mem_dc, &mut g);
                 GdipSetSmoothingMode(g, 4); // SmoothingModeAntiAlias
-                GdipSetTextRenderingHint(g, 5); // TextRenderingHintClearTypeGridFit
+                GdipSetTextRenderingHint(g, 3); // TextRenderingHintAntiAliasGridFit
 
                 let state = STATE.lock().ok();
                 let state_ref = state.as_ref().and_then(|s| s.as_ref());
@@ -283,7 +323,7 @@ mod native_popup {
                     RectF { X: 16.0, Y: 0.0, Width: w, Height: HEADER_H as f32 }, 0, 1);
                 if !scripts.is_empty() {
                     let cnt = format!("{} running", scripts.len());
-                    gp_draw_text(g, &cnt, "Segoe UI", 11.0, 1, GREEN,
+                    gp_draw_text(g, &cnt, "Segoe UI", 13.0, 1, GREEN,
                         RectF { X: 0.0, Y: 0.0, Width: w - 16.0, Height: HEADER_H as f32 }, 2, 1);
                 }
 
@@ -312,8 +352,8 @@ mod native_popup {
                         let btn_count = if script.has_ui { 3 } else { 2 };
                         let text_w = if is_hover { w - 30.0 - (btn_count as f32) * (BTN_SIZE as f32 + BTN_GAP as f32) - BTN_RIGHT as f32 } else { w - 46.0 };
                         let name = script.filename.replace(".ahk", "").replace(".AHK", "");
-                        gp_draw_text(g, &name, "Segoe UI", 15.0, 1, text_clr,
-                            RectF { X: 30.0, Y: y, Width: text_w, Height: ITEM_H as f32 }, 0, 1);
+                        gp_draw_text_ellipsis(g, &name, "Segoe UI", 16.0, 1, text_clr,
+                            RectF { X: 30.0, Y: y + 1.0, Width: text_w, Height: ITEM_H as f32 }, 0, 1);
 
                         // Action buttons on hover
                         if is_hover {
@@ -323,16 +363,19 @@ mod native_popup {
                             // Stop (X)
                             let stop_x = w - BTN_RIGHT as f32 - bs;
                             if hover_btn == 2 { gp_fill_rounded_rect(g, 0xFF402020, stop_x - 1.0, btn_y - 1.0, bs + 2.0, bs + 2.0, 5.0); }
+                            // Icon rects offset -1px left, -1px up to visually center MDL2 glyphs
+                            let ix = |x: f32| -> RectF { RectF { X: x + 1.0, Y: btn_y + 2.0, Width: bs, Height: bs } };
+
                             gp_draw_text(g, "\u{E711}", "Segoe MDL2 Assets", 14.0, 0,
                                 if hover_btn == 2 { 0xFFFF6666 } else { RED },
-                                RectF { X: stop_x, Y: btn_y, Width: bs, Height: bs }, 1, 1);
+                                ix(stop_x), 1, 1);
 
                             // Restart
                             let restart_x = stop_x - BTN_GAP as f32 - bs;
                             if hover_btn == 1 { gp_fill_rounded_rect(g, 0xFF302810, restart_x - 1.0, btn_y - 1.0, bs + 2.0, bs + 2.0, 5.0); }
                             gp_draw_text(g, "\u{E72C}", "Segoe MDL2 Assets", 14.0, 0,
                                 if hover_btn == 1 { 0xFFFFAA30 } else { ORANGE },
-                                RectF { X: restart_x, Y: btn_y, Width: bs, Height: bs }, 1, 1);
+                                ix(restart_x), 1, 1);
 
                             // UI
                             if script.has_ui {
@@ -340,7 +383,7 @@ mod native_popup {
                                 if hover_btn == 0 { gp_fill_rounded_rect(g, 0xFF201838, ui_x - 1.0, btn_y - 1.0, bs + 2.0, bs + 2.0, 5.0); }
                                 gp_draw_text(g, "\u{E737}", "Segoe MDL2 Assets", 14.0, 0,
                                     if hover_btn == 0 { 0xFF8888FF } else { INDIGO },
-                                    RectF { X: ui_x, Y: btn_y, Width: bs, Height: bs }, 1, 1);
+                                    ix(ui_x), 1, 1);
                             }
                         }
                     }
@@ -352,12 +395,12 @@ mod native_popup {
 
                 let sw_y = footer_y + 1.0;
                 if hover == 100 { gp_fill_rounded_rect(g, HOVER_BG, 6.0, sw_y + 2.0, w - 12.0, ITEM_H as f32 - 4.0, 6.0); }
-                gp_draw_text(g, "SHOW WINDOW", "Segoe UI", 11.0, 1, INDIGO,
+                gp_draw_text(g, "SHOW WINDOW", "Segoe UI", 13.0, 1, INDIGO,
                     RectF { X: 0.0, Y: sw_y, Width: w, Height: ITEM_H as f32 }, 1, 1);
 
                 let q_y = sw_y + ITEM_H as f32;
                 if hover == 101 { gp_fill_rounded_rect(g, HOVER_BG, 6.0, q_y + 2.0, w - 12.0, ITEM_H as f32 - 4.0, 6.0); }
-                gp_draw_text(g, "QUIT", "Segoe UI", 11.0, 1, DIM_CLR,
+                gp_draw_text(g, "QUIT", "Segoe UI", 13.0, 1, DIM_CLR,
                     RectF { X: 0.0, Y: q_y, Width: w, Height: ITEM_H as f32 }, 1, 1);
 
                 // Cleanup & blit
