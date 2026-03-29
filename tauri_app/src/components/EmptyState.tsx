@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import { PlusIcon, GearIcon, RefreshIcon } from "./ui/Icons";
 
 interface EmptyStateProps {
     isPathsEmpty: boolean;
@@ -38,10 +39,7 @@ export default function EmptyState({ isPathsEmpty, hasContent, searchQuery, filt
                         onClick={onAddPath}
                         className="h-14 px-8 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl text-[11px] font-black tracking-[0.2em] uppercase transition-all shadow-xl shadow-indigo-600/20 active:scale-95 border-none cursor-pointer flex items-center justify-center gap-3 mx-auto"
                     >
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                            <line x1="12" y1="5" x2="12" y2="19" />
-                            <line x1="5" y1="12" x2="19" y2="12" />
-                        </svg>
+                        <PlusIcon size={18} strokeWidth={3} />
                         {t("settings.add_path")}
                     </button>
                 </div>
@@ -67,20 +65,14 @@ export default function EmptyState({ isPathsEmpty, hasContent, searchQuery, filt
                             onClick={onRefresh}
                             className="h-12 px-6 bg-white/5 hover:bg-white/10 text-white/70 hover:text-white rounded-xl text-[10px] font-black tracking-widest uppercase transition-all border border-white/5 active:scale-95 cursor-pointer flex items-center justify-center gap-2"
                         >
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M23 4v6h-6" />
-                                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
-                            </svg>
+                            <RefreshIcon />
                             {t("settings.manual_scan", "Refresh Scan")}
                         </button>
                         <button
                             onClick={onOpenSettings}
                             className="h-12 px-6 bg-white/5 hover:bg-white/10 text-white/70 hover:text-white rounded-xl text-[10px] font-black tracking-widest uppercase transition-all border border-white/5 active:scale-95 cursor-pointer flex items-center justify-center gap-2"
                         >
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                                <circle cx="12" cy="12" r="3" />
-                                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
-                            </svg>
+                            <GearIcon size={14} strokeWidth={3} />
                             {t("sidebar.settings")}
                         </button>
                     </div>
@@ -105,20 +97,14 @@ export default function EmptyState({ isPathsEmpty, hasContent, searchQuery, filt
                             onClick={onRefresh}
                             className="h-12 px-6 bg-white/5 hover:bg-white/10 text-white/70 hover:text-white rounded-xl text-[10px] font-black tracking-widest uppercase transition-all border border-white/5 active:scale-95 cursor-pointer flex items-center justify-center gap-2"
                         >
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M23 4v6h-6" />
-                                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
-                            </svg>
+                            <RefreshIcon />
                             {t("settings.manual_scan", "Refresh Scan")}
                         </button>
                         <button
                             onClick={onOpenSettings}
                             className="h-12 px-6 bg-white/5 hover:bg-white/10 text-white/70 hover:text-white rounded-xl text-[10px] font-black tracking-widest uppercase transition-all border border-white/5 active:scale-95 cursor-pointer flex items-center justify-center gap-2"
                         >
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                                <circle cx="12" cy="12" r="3" />
-                                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
-                            </svg>
+                            <GearIcon size={14} strokeWidth={3} />
                             {t("sidebar.settings")}
                         </button>
                     </div>

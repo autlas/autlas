@@ -3,6 +3,7 @@ import { HubScriptCardProps } from "../types/script";
 import TagPickerPopover from "./TagPickerPopover";
 import { HighlightText } from "./HighlightText";
 import { useTranslation } from "react-i18next";
+import { PlusIcon, CloseIcon, RestartIcon, PlayIcon, InterfaceIcon } from "./ui/Icons";
 
 
 const HubScriptCard = memo(function HubScriptCard({
@@ -120,10 +121,7 @@ const HubScriptCard = memo(function HubScriptCard({
                         className={`w-[42px] h-[42px] flex items-center justify-center border border-dashed border-white/10 rounded-xl transition-all cursor-pointer pointer-events-auto text-[#666] hover:text-[#aaa] hover:border-white/20 
                                 ${isDragging ? 'opacity-0 pointer-events-none' : (isEditing || (isFocused && isVimMode) ? 'opacity-100 bg-white/5' : 'opacity-0 group-hover:opacity-100')}`}
                     >
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
-                            <line x1="12" y1="5" x2="12" y2="19" />
-                            <line x1="5" y1="12" x2="19" y2="12" />
-                        </svg>
+                        <PlusIcon />
                     </button>
                 </div>
             </div>
@@ -138,11 +136,7 @@ const HubScriptCard = memo(function HubScriptCard({
                                 className="flex-1 h-[42px] rounded-2xl flex items-center justify-center bg-white/5 text-[#71717a] border border-white/5 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-500/30 transition-all cursor-pointer pointer-events-auto"
                                 title="Interface"
                             >
-                                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                                    <line x1="3" y1="9" x2="21" y2="9" />
-                                    <line x1="9" y1="21" x2="9" y2="9" />
-                                </svg>
+                                <InterfaceIcon size={17} />
                             </button>
                         )}
                         <button
@@ -151,10 +145,7 @@ const HubScriptCard = memo(function HubScriptCard({
                             className="flex-1 h-[42px] rounded-2xl flex items-center justify-center transition-all transform cursor-pointer active:scale-95 pointer-events-auto shadow-xl bg-white/5 text-[#71717a] border border-white/5 hover:bg-red-500/15 hover:text-red-500 hover:border-red-500/30"
                             title="Kill Script"
                         >
-                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                                <line x1="18" y1="6" x2="6" y2="18"></line>
-                                <line x1="6" y1="6" x2="18" y2="18"></line>
-                            </svg>
+                            <CloseIcon size={17} />
                         </button>
                         <button
                             onClick={(e) => { e.stopPropagation(); onRestart(s); }}
@@ -162,11 +153,7 @@ const HubScriptCard = memo(function HubScriptCard({
                             className="flex-1 h-[42px] rounded-2xl flex items-center justify-center bg-white/5 text-[#71717a] border border-white/5 hover:bg-yellow-500/10 hover:text-yellow-500 hover:border-yellow-500/30 transition-all cursor-pointer pointer-events-auto"
                             title="Restart Script"
                         >
-                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M23 4v6h-6"></path>
-                                <path d="M1 20v-6h6"></path>
-                                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-                            </svg>
+                            <RestartIcon size={17} />
                         </button>
                     </div>
                 ) : (
@@ -188,9 +175,7 @@ const HubScriptCard = memo(function HubScriptCard({
                                 pendingType === 'kill' ? "KILLING..." : "IGNITING..."
                         ) : (
                             <div className="flex items-center justify-center">
-                                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
-                                </svg>
+                                <PlayIcon size={17} />
                             </div>
                         )}
                     </button>

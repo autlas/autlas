@@ -3,6 +3,7 @@ import { ScriptRowProps } from "../types/script";
 import TagPickerPopover from "./TagPickerPopover";
 import { HighlightText } from "./HighlightText";
 import { useTranslation } from "react-i18next";
+import { PlusIcon, CloseIcon, RestartIcon, PlayIcon, InterfaceIcon } from "./ui/Icons";
 
 const ScriptRow = memo(function ScriptRow({
     s, isDragging, draggedScriptPath, isEditing, isPending, pendingType, isContextMenuOpen, removingTagKeys,
@@ -192,10 +193,7 @@ const ScriptRow = memo(function ScriptRow({
                             onDoubleClick={(e) => e.stopPropagation()}
                             className={`w-[28px] h-[28px] flex-shrink-0 flex items-center justify-center border border-dashed border-white/10 rounded-lg transition-all cursor-pointer pointer-events-auto text-[#666] hover:text-[#aaa] hover:border-white/20 ${isEditing || (isFocused && isVimMode) ? 'opacity-100 bg-white/5' : 'opacity-0 group-hover:opacity-100'}`}
                         >
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
-                                <line x1="12" y1="5" x2="12" y2="19" />
-                                <line x1="5" y1="12" x2="19" y2="12" />
-                            </svg>
+                            <PlusIcon />
                         </button>
 
                         {isEditing && (
@@ -223,11 +221,7 @@ const ScriptRow = memo(function ScriptRow({
                                 className="w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-lg bg-white/5 text-[#71717a] border border-white/5 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-500/20 transition-all cursor-pointer pointer-events-auto"
                                 title="Interface"
                             >
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                                    <line x1="3" y1="9" x2="21" y2="9" />
-                                    <line x1="9" y1="21" x2="9" y2="9" />
-                                </svg>
+                                <InterfaceIcon />
                             </button>
                         )}
                         {s.is_running && !isPending && (
@@ -237,11 +231,7 @@ const ScriptRow = memo(function ScriptRow({
                                 className="w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-lg bg-white/5 text-[#71717a] border border-white/5 hover:bg-yellow-500/10 hover:text-yellow-500 hover:border-yellow-500/20 transition-all cursor-pointer pointer-events-auto"
                                 title="Restart"
                             >
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M23 4v6h-6"></path>
-                                    <path d="M1 20v-6h6"></path>
-                                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-                                </svg>
+                                <RestartIcon />
                             </button>
                         )}
                         <button
@@ -259,14 +249,9 @@ const ScriptRow = memo(function ScriptRow({
                             {isPending ? (
                                 <div className="text-[10px] items-center justify-center flex font-bold h-full">...</div>
                             ) : s.is_running ? (
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                                </svg>
+                                <CloseIcon />
                             ) : (
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
-                                </svg>
+                                <PlayIcon />
                             )}
                         </button>
                     </div>

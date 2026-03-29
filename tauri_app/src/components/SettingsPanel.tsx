@@ -3,6 +3,7 @@ import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import LanguageSelector from "./LanguageSelector";
 import ToggleGroup from "./ui/ToggleGroup";
+import { PlusIcon, CloseIcon, FolderIcon } from "./ui/Icons";
 
 interface SettingsPanelProps {
   brightness: number;
@@ -161,18 +162,14 @@ export default function SettingsPanel({
                       className="p-2 text-tertiary hover:text-white hover:bg-white/10 rounded-xl transition-all border-none bg-transparent cursor-pointer"
                       title={t("context.show_in_folder")}
                     >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
-                      </svg>
+                      <FolderIcon />
                     </button>
                     <button
                       onClick={() => onRemovePath(path)}
                       className="p-2 text-tertiary hover:text-red-400 hover:bg-red-400/10 rounded-xl transition-all border-none bg-transparent cursor-pointer"
                       title={t("settings.remove_path")}
                     >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M18 6L6 18M6 6l12 12" />
-                      </svg>
+                      <CloseIcon />
                     </button>
                   </div>
                 </div>
@@ -185,10 +182,7 @@ export default function SettingsPanel({
             onClick={onAddPath}
             className="w-full h-12 bg-indigo-600/10 hover:bg-indigo-600 text-indigo-400 hover:text-white rounded-2xl text-xs font-bold tracking-widest transition-all shadow-xl hover:shadow-indigo-500/20 active:scale-[0.98] flex items-center justify-center gap-3 group border border-indigo-500/20 hover:border-indigo-500 cursor-pointer"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="group-hover:scale-110 transition-transform">
-              <line x1="12" y1="5" x2="12" y2="19" />
-              <line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
+            <PlusIcon size={16} strokeWidth={3} className="group-hover:scale-110 transition-transform" />
             {t("settings.add_path")}
           </button>
         </div>

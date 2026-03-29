@@ -1,6 +1,7 @@
 import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import ToggleGroup from "./ui/ToggleGroup";
+import { SearchIcon, CloseIcon } from "./ui/Icons";
 
 interface ScriptTreeToolbarProps {
     viewMode: "tree" | "tiles" | "list";
@@ -117,10 +118,7 @@ export default function ScriptTreeToolbar({
 
                 <div className={`flex-1 ml-2 mr-4 relative group flex items-center bg-white/[0.03] border border-white/5 rounded-xl h-[41px] mb-[1px] transition-all focus-within:border-indigo-500/50 focus-within:bg-white/[0.05]`}>
                     <div className="pl-3 text-tertiary group-focus-within:text-indigo-400 transition-colors pointer-events-none">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                            <circle cx="11" cy="11" r="8"></circle>
-                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                        </svg>
+                        <SearchIcon />
                     </div>
 
                     {prefixMatch && (
@@ -162,7 +160,7 @@ export default function ScriptTreeToolbar({
                             onClick={() => setSearchQuery("")}
                             className="absolute right-2 top-1/2 -translate-y-1/2 p-2 hover:bg-white/10 rounded-lg text-tertiary hover:text-white transition-all flex items-center justify-center cursor-pointer z-10"
                         >
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                            <CloseIcon />
                         </button>
                     )}
                 </div>

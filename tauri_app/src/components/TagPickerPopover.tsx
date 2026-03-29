@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useRef, memo } from "react";
 import { createPortal } from "react-dom";
 import { TagPickerProps } from "../types/script";
 import { useTranslation } from "react-i18next";
+import { PlusIcon } from "./ui/Icons";
 
 const TagPickerPopover = memo(function TagPickerPopover({ script, allUniqueTags, popoverRef, onAdd, onClose, variant, anchorRef }: TagPickerProps) {
     const { t } = useTranslation();
@@ -109,10 +110,7 @@ const TagPickerPopover = memo(function TagPickerPopover({ script, allUniqueTags,
                             className={`cursor-pointer w-full text-left px-4 rounded-xl transition-all flex items-center justify-between group/suggest ${selectedIndex === index ? 'bg-white/10 text-primary h-[44px]' : 'hover:bg-white/5 text-xs text-secondary hover:text-primary h-[38px]'}`}>
                             <span className="font-bold">{tag}</span>
                             <div className={`text-indigo-400 transition-opacity ${selectedIndex === index ? 'opacity-100' : 'opacity-0 group-hover/suggest:opacity-100'}`}>
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                                </svg>
+                                <PlusIcon size={18} strokeWidth={3} />
                             </div>
                         </button>
                     ))}
@@ -121,10 +119,7 @@ const TagPickerPopover = memo(function TagPickerPopover({ script, allUniqueTags,
                             className={`cursor-pointer w-full text-left px-4 rounded-xl transition-all flex items-center justify-between ${selectedIndex === availableTags.length ? 'bg-indigo-500/30 text-indigo-300 h-[44px]' : 'bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 text-xs h-[38px]'}`}>
                             <span className="font-bold">{t("search.create", { query })}</span>
                             <div className="font-bold">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                                </svg>
+                                <PlusIcon size={20} strokeWidth={3} />
                             </div>
                         </button>
                     )}
@@ -177,10 +172,7 @@ const TagPickerPopover = memo(function TagPickerPopover({ script, allUniqueTags,
                             className={`cursor-pointer w-full text-left px-5 rounded-xl transition-all flex items-center justify-between group/suggest ${selectedIndex === index ? 'bg-white/10 text-primary h-[44px]' : 'hover:bg-white/5 text-xs text-secondary hover:text-primary h-[38px]'}`}>
                             <span className="font-bold">{tag}</span>
                             <div className={`text-indigo-400 transition-opacity ${selectedIndex === index ? 'opacity-100' : 'opacity-0 group-hover/suggest:opacity-100'}`}>
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                                </svg>
+                                <PlusIcon size={18} strokeWidth={3} />
                             </div>
                         </button>
                     ))}
@@ -189,10 +181,7 @@ const TagPickerPopover = memo(function TagPickerPopover({ script, allUniqueTags,
                             className={`cursor-pointer w-full text-left px-5 rounded-xl transition-all flex items-center justify-between ${selectedIndex === availableTags.length ? 'bg-indigo-500/30 text-indigo-300 h-[44px]' : 'bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 text-xs h-[38px]'}`}>
                             <span className="font-bold">{t("search.create", { query })}</span>
                             <div className="font-bold">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                                </svg>
+                                <PlusIcon size={20} strokeWidth={3} />
                             </div>
                         </button>
                     )}
