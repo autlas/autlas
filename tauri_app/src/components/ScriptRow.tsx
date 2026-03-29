@@ -4,6 +4,7 @@ import TagPickerPopover from "./TagPickerPopover";
 import { HighlightText } from "./HighlightText";
 import { useTranslation } from "react-i18next";
 import { PlusIcon, CloseIcon, RestartIcon, PlayIcon, InterfaceIcon } from "./ui/Icons";
+import ActionButton from "./ui/ActionButton";
 
 const ScriptRow = memo(function ScriptRow({
     s, isDragging, draggedScriptPath, isEditing, isPending, pendingType, isContextMenuOpen, removingTagKeys,
@@ -215,24 +216,14 @@ const ScriptRow = memo(function ScriptRow({
                 !isDragging && (
                     <div className={`transition-opacity flex items-center space-x-2 pointer-events-auto ${isFocused && isVimMode ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
                         {s.is_running && !isPending && s.has_ui && (
-                            <button
-                                onClick={(e) => { e.stopPropagation(); onShowUI(s); }}
-                                onMouseDown={(e) => e.stopPropagation()}
-                                className="w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-lg bg-white/5 text-[#71717a] border border-white/5 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-500/20 transition-all cursor-pointer pointer-events-auto"
-                                title="Interface"
-                            >
+                            <ActionButton color="indigo" onClick={() => onShowUI(s)} title="Interface">
                                 <InterfaceIcon />
-                            </button>
+                            </ActionButton>
                         )}
                         {s.is_running && !isPending && (
-                            <button
-                                onClick={(e) => { e.stopPropagation(); onRestart(s); }}
-                                onMouseDown={(e) => e.stopPropagation()}
-                                className="w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-lg bg-white/5 text-[#71717a] border border-white/5 hover:bg-yellow-500/10 hover:text-yellow-500 hover:border-yellow-500/20 transition-all cursor-pointer pointer-events-auto"
-                                title="Restart"
-                            >
+                            <ActionButton color="yellow" onClick={() => onRestart(s)} title="Restart">
                                 <RestartIcon />
-                            </button>
+                            </ActionButton>
                         )}
                         <button
                             onClick={(e) => { e.stopPropagation(); !isPending && onToggle(s); }}

@@ -2,6 +2,7 @@ import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import ToggleGroup from "./ui/ToggleGroup";
 import { SearchIcon, CloseIcon } from "./ui/Icons";
+import SectionLabel from "./ui/SectionLabel";
 
 interface ScriptTreeToolbarProps {
     viewMode: "tree" | "tiles" | "list";
@@ -81,7 +82,7 @@ export default function ScriptTreeToolbar({
         <div className={`flex items-end justify-between pt-3 pb-2 border-b transition-all duration-300 ${draggedScriptPath ? 'opacity-20 blur-[1px] pointer-events-none' : ''}`} style={{ borderColor: 'var(--border-color)' }}>
             <div className="flex-1 flex items-end">
                 <div className="flex flex-col">
-                    <span className="text-[11px] font-bold text-tertiary/50 uppercase tracking-widest ml-3 mb-0.5">{t("toolbar.view", "View")}</span>
+                    <SectionLabel className="ml-3 mb-0.5">{t("toolbar.view", "View")}</SectionLabel>
                     <ToggleGroup
                         options={viewOptions}
                         value={viewMode}
@@ -92,7 +93,7 @@ export default function ScriptTreeToolbar({
 
                 {/* SORTING CONTROLS */}
                 <div className={`flex flex-col overflow-hidden transition-all duration-300 ease-in-out ${viewMode !== "tree" ? 'w-[145px] opacity-100 ml-2' : 'w-0 opacity-0 pointer-events-none ml-0'}`}>
-                    <span className="text-[11px] font-bold text-tertiary/50 uppercase tracking-widest ml-3 mb-0.5">{t("toolbar.sort", "Sort")}</span>
+                    <SectionLabel className="ml-3 mb-0.5">{t("toolbar.sort", "Sort")}</SectionLabel>
                     <ToggleGroup
                         options={sortOptions}
                         value={sortBy}

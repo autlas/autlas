@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { PlusIcon, GearIcon, RefreshIcon } from "./ui/Icons";
+import EmptyStateIcon from "./ui/EmptyStateIcon";
 
 interface EmptyStateProps {
     isPathsEmpty: boolean;
@@ -21,14 +22,13 @@ export default function EmptyState({ isPathsEmpty, hasContent, searchQuery, filt
         <div className="flex-1 flex flex-col items-center justify-start pt-[22%] p-12 text-center min-h-[400px]">
             {isPathsEmpty ? (
                 <div className="max-w-[400px] space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-1000">
-                    <div className="w-24 h-24 rounded-[32px] bg-white/5 border border-white/10 flex items-center justify-center mx-auto shadow-2xl relative overflow-hidden group/folder">
-                        <div className="absolute inset-0 bg-indigo-500/10 opacity-0 group-hover/folder:opacity-100 transition-opacity" />
+                    <EmptyStateIcon groupName="folder" hoverBg="bg-indigo-500/10">
                         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#555560" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="relative z-10">
                             <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
                             <line x1="12" y1="11" x2="12" y2="17" />
                             <line x1="9" y1="14" x2="15" y2="14" />
                         </svg>
-                    </div>
+                    </EmptyStateIcon>
                     <div className="space-y-3">
                         <h3 className="text-2xl font-black text-white tracking-tight leading-none">{t("hub.no_folders_title", "Library is Empty")}</h3>
                         <p className="text-[13px] text-tertiary/80 leading-relaxed font-medium px-4">
@@ -45,15 +45,14 @@ export default function EmptyState({ isPathsEmpty, hasContent, searchQuery, filt
                 </div>
             ) : !hasContent ? (
                 <div className="max-w-[400px] space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-                    <div className="w-24 h-24 rounded-[32px] bg-white/5 border border-white/10 flex items-center justify-center mx-auto shadow-2xl relative overflow-hidden group/ghost">
-                        <div className="absolute inset-0 bg-white/5 opacity-0 group-hover/ghost:opacity-100 transition-opacity" />
+                    <EmptyStateIcon groupName="ghost">
                         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#555560" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="relative z-10">
                             <circle cx="11" cy="11" r="8" />
                             <line x1="21" y1="21" x2="16.65" y2="16.65" />
                             <line x1="8" y1="8" x2="14" y2="14" />
                             <line x1="14" y1="8" x2="8" y2="14" />
                         </svg>
-                    </div>
+                    </EmptyStateIcon>
                     <div className="space-y-3">
                         <h3 className="text-2xl font-black text-white tracking-tight leading-none">{t("hub.no_scripts_title", "No Scripts Detected")}</h3>
                         <p className="text-[13px] text-tertiary/80 leading-relaxed font-medium px-4">
@@ -79,13 +78,12 @@ export default function EmptyState({ isPathsEmpty, hasContent, searchQuery, filt
                 </div>
             ) : isSearching ? (
                 <div className="max-w-[400px] space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
-                    <div className="w-24 h-24 rounded-[32px] bg-white/5 border border-white/10 flex items-center justify-center mx-auto shadow-2xl relative overflow-hidden group/search">
-                        <div className="absolute inset-0 bg-white/5 opacity-0 group-hover/search:opacity-100 transition-opacity" />
+                    <EmptyStateIcon groupName="search">
                         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#555560" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="relative z-10">
                             <circle cx="11" cy="11" r="8" />
                             <line x1="21" y1="21" x2="16.65" y2="16.65" />
                         </svg>
-                    </div>
+                    </EmptyStateIcon>
                     <div className="space-y-3">
                         <h3 className="text-2xl font-black text-white tracking-tight leading-none">{t("hub.not_found_title", "Nothing Found")}</h3>
                         <p className="text-[13px] text-tertiary/80 leading-relaxed font-medium px-4">

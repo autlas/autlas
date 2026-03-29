@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import LanguageSelector from "./LanguageSelector";
 import ToggleGroup from "./ui/ToggleGroup";
 import { PlusIcon, CloseIcon, FolderIcon } from "./ui/Icons";
+import SettingsSection from "./ui/SettingsSection";
 
 interface SettingsPanelProps {
   brightness: number;
@@ -38,7 +39,7 @@ export default function SettingsPanel({
 
   return (
     <div className="max-w-[1200px] mx-auto w-full space-y-12 py-8">
-      <section className="space-y-8 bg-white/[0.02] p-10 rounded-[2.5rem] border border-white/5 shadow-2xl">
+      <SettingsSection>
         <h3 className="text-sm font-bold tracking-widest text-tertiary uppercase">{t("settings.language", "Language")}</h3>
         <div className="flex justify-between items-center px-2">
           <div className="flex flex-col">
@@ -47,9 +48,9 @@ export default function SettingsPanel({
           </div>
           <LanguageSelector />
         </div>
-      </section>
+      </SettingsSection>
 
-      <section className="space-y-8 bg-white/[0.02] p-10 rounded-[2.5rem] border border-white/5 shadow-2xl">
+      <SettingsSection>
         <h3 className="text-sm font-bold tracking-widest text-tertiary uppercase">{t("settings.theme_settings")}</h3>
         <div className="space-y-6">
           <div className="flex justify-between items-center px-2">
@@ -107,9 +108,9 @@ export default function SettingsPanel({
             <span>1.5x</span>
           </div>
         </div>
-      </section>
+      </SettingsSection>
 
-      <section className="space-y-8 bg-white/[0.02] p-10 rounded-[2.5rem] border border-white/5 shadow-2xl">
+      <SettingsSection>
         <h3 className="text-sm font-bold tracking-widest text-tertiary uppercase">{t("settings.interface")}</h3>
         <div className="flex justify-between items-center px-2">
           <div className="flex flex-col">
@@ -136,9 +137,9 @@ export default function SettingsPanel({
               className="flex-shrink-0 w-[145px]"
           />
         </div>
-      </section>
+      </SettingsSection>
 
-      <section className="space-y-8 bg-white/[0.02] p-10 rounded-[2.5rem] border border-white/5 shadow-2xl">
+      <SettingsSection>
         <div className="flex flex-col">
           <h3 className="text-sm font-bold tracking-widest text-tertiary uppercase">{t("settings.script_paths")}</h3>
           <span className="text-xs text-tertiary mt-1">{t("settings.folder_picker_desc")}</span>
@@ -186,7 +187,7 @@ export default function SettingsPanel({
             {t("settings.add_path")}
           </button>
         </div>
-      </section>
+      </SettingsSection>
     </div>
   );
 }

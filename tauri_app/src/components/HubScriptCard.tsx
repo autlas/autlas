@@ -4,6 +4,7 @@ import TagPickerPopover from "./TagPickerPopover";
 import { HighlightText } from "./HighlightText";
 import { useTranslation } from "react-i18next";
 import { PlusIcon, CloseIcon, RestartIcon, PlayIcon, InterfaceIcon } from "./ui/Icons";
+import ActionButton from "./ui/ActionButton";
 
 
 const HubScriptCard = memo(function HubScriptCard({
@@ -130,31 +131,16 @@ const HubScriptCard = memo(function HubScriptCard({
                 {s.is_running && !isPending ? (
                     <div className="flex items-center gap-2">
                         {s.has_ui && (
-                            <button
-                                onClick={(e) => { e.stopPropagation(); onShowUI(s); }}
-                                onMouseDown={(e) => e.stopPropagation()}
-                                className="flex-1 h-[42px] rounded-2xl flex items-center justify-center bg-white/5 text-[#71717a] border border-white/5 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-500/30 transition-all cursor-pointer pointer-events-auto"
-                                title="Interface"
-                            >
+                            <ActionButton color="indigo" variant="wide" onClick={() => onShowUI(s)} title="Interface">
                                 <InterfaceIcon size={17} />
-                            </button>
+                            </ActionButton>
                         )}
-                        <button
-                            onClick={(e) => { e.stopPropagation(); onToggle(s); }}
-                            onMouseDown={(e) => e.stopPropagation()}
-                            className="flex-1 h-[42px] rounded-2xl flex items-center justify-center transition-all transform cursor-pointer active:scale-95 pointer-events-auto shadow-xl bg-white/5 text-[#71717a] border border-white/5 hover:bg-red-500/15 hover:text-red-500 hover:border-red-500/30"
-                            title="Kill Script"
-                        >
+                        <ActionButton color="red" variant="wide" onClick={() => onToggle(s)} title="Kill Script" className="shadow-xl active:scale-95">
                             <CloseIcon size={17} />
-                        </button>
-                        <button
-                            onClick={(e) => { e.stopPropagation(); onRestart(s); }}
-                            onMouseDown={(e) => e.stopPropagation()}
-                            className="flex-1 h-[42px] rounded-2xl flex items-center justify-center bg-white/5 text-[#71717a] border border-white/5 hover:bg-yellow-500/10 hover:text-yellow-500 hover:border-yellow-500/30 transition-all cursor-pointer pointer-events-auto"
-                            title="Restart Script"
-                        >
+                        </ActionButton>
+                        <ActionButton color="yellow" variant="wide" onClick={() => onRestart(s)} title="Restart Script">
                             <RestartIcon size={17} />
-                        </button>
+                        </ActionButton>
                     </div>
                 ) : (
                     <button
