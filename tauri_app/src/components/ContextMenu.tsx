@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useTranslation } from "react-i18next";
 
@@ -30,8 +31,46 @@ function ContextMenuItem({ label, icon, onClick, danger = false }: { label: stri
   );
 }
 
+function ConfirmDialog({ tag, onConfirm, onCancel }: { tag: string; onConfirm: () => void; onCancel: () => void }) {
+  const { t } = useTranslation();
+  return (
+    <>
+      <div className="fixed inset-0 z-[100001] bg-black/40 backdrop-blur-sm" onMouseDown={onCancel} />
+      <div
+        className="fixed z-[100002] bg-[#1a1a1c]/95 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.6)] p-6 w-[300px]"
+        style={{ left: "50%", top: "50%", transform: "translate(-50%, -50%)" }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1">
+            <span className="text-sm font-bold text-white">{t("context.delete_tag")}</span>
+            <span className="text-xs text-tertiary leading-relaxed">
+              {t("context.delete_tag_confirm", { tag })}
+            </span>
+          </div>
+          <div className="flex gap-2 justify-end">
+            <button
+              onClick={onCancel}
+              className="px-4 py-2 text-xs font-bold text-tertiary hover:text-white bg-white/5 hover:bg-white/10 rounded-xl transition-all cursor-pointer border border-white/5"
+            >
+              {t("context.cancel", "Cancel")}
+            </button>
+            <button
+              onClick={onConfirm}
+              className="px-4 py-2 text-xs font-bold text-red-400 hover:text-white bg-red-500/10 hover:bg-red-500 rounded-xl transition-all cursor-pointer border border-red-500/20 hover:border-red-500"
+            >
+              {t("context.delete", "Delete")}
+            </button>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
 export default function ContextMenu({ contextMenu, onClose, onStartRenameTag, onRefresh }: ContextMenuProps) {
   const { t } = useTranslation();
+  const [confirmTag, setConfirmTag] = useState<string | null>(null);
 
   if (!contextMenu) return null;
 
@@ -88,13 +127,7 @@ export default function ContextMenu({ contextMenu, onClose, onStartRenameTag, on
               label={t("context.delete_tag")}
               icon="🗑️"
               danger
-              onClick={async () => {
-                if (confirm(t("context.delete_tag_confirm", { tag: contextMenu.data }))) {
-                  await invoke("delete_tag", { tag: contextMenu.data });
-                  onClose();
-                  onRefresh();
-                }
-              }}
+              onClick={() => setConfirmTag(contextMenu.data)}
             />
           </>
         )}
@@ -118,6 +151,19 @@ export default function ContextMenu({ contextMenu, onClose, onStartRenameTag, on
           </>
         )}
       </div>
+
+      {confirmTag && (
+        <ConfirmDialog
+          tag={confirmTag}
+          onConfirm={async () => {
+            await invoke("delete_tag", { tag: confirmTag });
+            setConfirmTag(null);
+            onClose();
+            onRefresh();
+          }}
+          onCancel={() => setConfirmTag(null)}
+        />
+      )}
     </>
   );
 }
