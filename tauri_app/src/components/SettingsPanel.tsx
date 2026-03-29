@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import LanguageSelector from "./LanguageSelector";
 import ToggleGroup from "./ui/ToggleGroup";
@@ -31,6 +31,18 @@ export default function SettingsPanel({
   scanPaths, onAddPath, onRemovePath,
 }: SettingsPanelProps) {
   const { t } = useTranslation();
+
+  const [closeToTray, setCloseToTray] = useState(true);
+
+  useEffect(() => {
+    invoke<{ close_to_tray: boolean }>("get_tray_settings").then((s) => setCloseToTray(s.close_to_tray));
+  }, []);
+
+  const toggleCloseToTray = () => {
+    const next = !closeToTray;
+    setCloseToTray(next);
+    invoke("set_tray_settings", { settings: { close_to_tray: next } });
+  };
 
   const vimNavOptions = useMemo(() => [
     { id: "hjkl" as const, label: "hjkl" },
@@ -136,6 +148,22 @@ export default function SettingsPanel({
               onChange={(v) => { setVimModeNav(v); localStorage.setItem("ahk_vim_mode_nav", v); }}
               className="flex-shrink-0 w-[145px]"
           />
+        </div>
+      </SettingsSection>
+
+      <SettingsSection>
+        <h3 className="text-sm font-bold tracking-widest text-tertiary uppercase">System Tray</h3>
+        <div className="flex justify-between items-center px-2">
+          <div className="flex flex-col">
+            <span className="text-base font-bold text-secondary">{t("settings.close_to_tray", "Close to tray")}</span>
+            <span className="text-xs text-tertiary mt-1">{t("settings.close_to_tray_desc", "Hide window instead of quitting when closing")}</span>
+          </div>
+          <button
+            onClick={toggleCloseToTray}
+            className={`relative w-14 h-7 rounded-full transition-all duration-300 cursor-pointer border ${closeToTray ? "bg-indigo-500/30 border-indigo-400/40 shadow-[0_0_12px_rgba(99,102,241,0.3)]" : "bg-white/5 border-white/10"}`}
+          >
+            <div className={`absolute top-[3px] w-5 h-5 rounded-full transition-all duration-300 shadow-lg ${closeToTray ? "left-[30px] bg-indigo-400 shadow-indigo-500/50" : "left-[3px] bg-white/30"}`} />
+          </button>
         </div>
       </SettingsSection>
 

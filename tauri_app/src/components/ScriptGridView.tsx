@@ -55,7 +55,7 @@ interface ScriptGridViewProps {
 
 export default function ScriptGridView({
     mode, filtered, groupedHub, filterTag, columnsCount, masonryColumns,
-    isPathsEmpty, hasContent, searchQuery, onAddPath, onRefresh, onViewModeChange, onOpenSettings, setSearchQuery,
+    isPathsEmpty, hasContent, searchQuery, onAddPath, onRefresh, onOpenSettings,
     isDragging, draggedScriptPath, editingScript, pendingScripts, removingTags, allUniqueTags,
     popoverRef, showHidden, contextMenu, handleCustomMouseDown, handleToggle,
     startEditing, addTag, removeTag, stopEditing, onScriptContextMenu,
@@ -139,9 +139,7 @@ export default function ScriptGridView({
                     filterTag={filterTag}
                     onAddPath={onAddPath}
                     onRefresh={onRefresh}
-                    onViewModeChange={onViewModeChange}
                     onOpenSettings={onOpenSettings}
-                    setSearchQuery={setSearchQuery}
                 />
             ) : (filterTag === "hub" && groupedHub) ? (
                 groupedHub.map(({ tag, scripts }) => {

@@ -4,11 +4,19 @@ use std::fs;
 use std::process::Command;
 use std::sync::Mutex;
 use sysinfo::System;
-use tauri::Emitter;
+use tauri::tray::{TrayIconBuilder, TrayIconEvent, MouseButton, MouseButtonState, TrayIcon};
+use tauri::menu::{Menu, MenuEvent, MenuItem, PredefinedMenuItem};
+use tauri::{Emitter, Manager, Wry};
 use walkdir::WalkDir;
 
 // ── Managed state: single source of truth for tags, prevents race conditions ──
 pub struct TagsState(pub Mutex<HashMap<String, Vec<String>>>);
+struct TraySettingsState(Mutex<TraySettings>);
+
+#[derive(Serialize, Deserialize, Clone)]
+struct TraySettings {
+    close_to_tray: bool,
+}
 
 #[derive(Serialize, Clone)]
 struct ScriptStatusEvent {
@@ -34,6 +42,41 @@ fn get_running_ahk_paths(sys: &System) -> HashSet<String> {
         }
     }
     paths
+}
+
+fn build_tray_menu(app: &tauri::AppHandle, running: &HashSet<String>) -> tauri::Result<Menu<tauri::Wry>> {
+    let menu = Menu::new(app)?;
+
+    if !running.is_empty() {
+        let header = MenuItem::with_id(app, "header_running", format!("Running ({})", running.len()), false, None::<&str>)?;
+        menu.append(&header)?;
+        menu.append(&PredefinedMenuItem::separator(app)?)?;
+
+        let mut sorted: Vec<&String> = running.iter().collect();
+        sorted.sort();
+
+        for path in sorted {
+            let filename = std::path::Path::new(path.as_str())
+                .file_name()
+                .map(|f| f.to_string_lossy().to_string())
+                .unwrap_or_else(|| path.clone());
+            let stop_item = MenuItem::with_id(app, format!("stop|{}", path), format!("  {} \u{2014} Stop", filename), true, None::<&str>)?;
+            menu.append(&stop_item)?;
+        }
+
+        menu.append(&PredefinedMenuItem::separator(app)?)?;
+        let stop_all = MenuItem::with_id(app, "stop_all", "Stop All Scripts", true, None::<&str>)?;
+        menu.append(&stop_all)?;
+        menu.append(&PredefinedMenuItem::separator(app)?)?;
+    }
+
+    let show = MenuItem::with_id(app, "show_window", "Show Window", true, None::<&str>)?;
+    menu.append(&show)?;
+    menu.append(&PredefinedMenuItem::separator(app)?)?;
+    let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
+    menu.append(&quit)?;
+
+    Ok(menu)
 }
 
 fn start_process_watcher(app: tauri::AppHandle) {
@@ -71,6 +114,15 @@ fn start_process_watcher(app: tauri::AppHandle) {
                     is_running: false,
                     has_ui: false,
                 });
+            }
+
+            // Update tray menu when running scripts change
+            if current != prev {
+                if let Some(tray) = app.tray_by_id("main_tray") {
+                    if let Ok(menu) = build_tray_menu(&app, &current) {
+                        let _ = tray.set_menu(Some(menu));
+                    }
+                }
             }
 
             prev = current;
@@ -906,18 +958,209 @@ async fn set_scan_paths(paths: Vec<String>) -> Result<(), String> {
     Ok(())
 }
 
+fn load_tray_settings() -> TraySettings {
+    let ini_path = get_ini_path();
+    let content = fs::read_to_string(&ini_path).unwrap_or_default();
+    let mut close_to_tray = true;
+    let mut in_settings = false;
+    for line in content.lines() {
+        let trimmed = line.trim();
+        if trimmed.to_lowercase() == "[settings]" {
+            in_settings = true;
+            continue;
+        }
+        if trimmed.starts_with('[') {
+            in_settings = false;
+            continue;
+        }
+        if in_settings {
+            if let Some(pos) = trimmed.find('=') {
+                let key = trimmed[..pos].trim().to_lowercase();
+                let val = trimmed[pos + 1..].trim();
+                if key == "close_to_tray" {
+                    close_to_tray = val != "0" && val.to_lowercase() != "false";
+                }
+            }
+        }
+    }
+    TraySettings { close_to_tray }
+}
+
+fn save_tray_settings(settings: &TraySettings) -> Result<(), String> {
+    let ini_path = get_ini_path();
+    let content = fs::read_to_string(&ini_path).unwrap_or_default();
+    let mut lines: Vec<String> = content.lines().map(|s| s.to_string()).collect();
+
+    let key = "close_to_tray";
+    let val = if settings.close_to_tray { "true" } else { "false" };
+    let new_entry = format!("{}={}", key, val);
+
+    let mut in_settings = false;
+    let mut found = false;
+    for line in lines.iter_mut() {
+        let trimmed = line.trim();
+        if trimmed.to_lowercase() == "[settings]" {
+            in_settings = true;
+            continue;
+        }
+        if trimmed.starts_with('[') {
+            in_settings = false;
+            continue;
+        }
+        if in_settings {
+            if let Some(pos) = trimmed.find('=') {
+                if trimmed[..pos].trim().to_lowercase() == key {
+                    *line = new_entry.clone();
+                    found = true;
+                    break;
+                }
+            }
+        }
+    }
+
+    if !found {
+        let section_idx = lines
+            .iter()
+            .position(|l| l.trim().to_lowercase() == "[settings]");
+        if let Some(idx) = section_idx {
+            lines.insert(idx + 1, new_entry);
+        } else {
+            lines.push("[Settings]".to_string());
+            lines.push(new_entry);
+        }
+    }
+
+    fs::write(&ini_path, lines.join("\r\n")).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn get_tray_settings(state: tauri::State<'_, TraySettingsState>) -> Result<TraySettings, String> {
+    let settings = state.0.lock().map_err(|e| e.to_string())?;
+    Ok(settings.clone())
+}
+
+#[tauri::command]
+async fn set_tray_settings(
+    state: tauri::State<'_, TraySettingsState>,
+    settings: TraySettings,
+) -> Result<(), String> {
+    let mut current = state.0.lock().map_err(|e| e.to_string())?;
+    *current = settings.clone();
+    drop(current);
+    save_tray_settings(&settings)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    // Seed the tags state from disk on startup
+    // Seed state from disk on startup
     let initial_tags = load_metadata().tags;
+    let initial_tray = load_tray_settings();
 
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_notification::init())
         .manage(TagsState(Mutex::new(initial_tags)))
+        .manage(TraySettingsState(Mutex::new(initial_tray)))
         .setup(|app| {
-            start_process_watcher(app.handle().clone());
+            let handle = app.handle().clone();
+
+            // Build initial tray menu (no scripts running yet)
+            let empty_running = HashSet::new();
+            let menu = build_tray_menu(&handle, &empty_running)?;
+
+            TrayIconBuilder::with_id("main_tray")
+                .icon(app.default_window_icon().cloned().expect("no default icon"))
+                .menu(&menu)
+                .tooltip("AHK Manager")
+                .on_tray_icon_event(|tray: &TrayIcon<Wry>, event: TrayIconEvent| {
+                    if let TrayIconEvent::Click {
+                        button: MouseButton::Left,
+                        button_state: MouseButtonState::Up,
+                        ..
+                    } = event
+                    {
+                        let app = tray.app_handle();
+                        if let Some(window) = app.get_webview_window("main") {
+                            let visible: bool = window.is_visible().unwrap_or(false);
+                            if visible {
+                                let _ = window.hide();
+                            } else {
+                                let _ = window.show();
+                                let _ = window.set_focus();
+                            }
+                        }
+                    }
+                })
+                .on_menu_event(|app: &tauri::AppHandle<Wry>, event: MenuEvent| {
+                    let id = event.id().as_ref();
+                    match id {
+                        "show_window" => {
+                            if let Some(window) = app.get_webview_window("main") {
+                                let _ = window.show();
+                                let _ = window.set_focus();
+                            }
+                        }
+                        "quit" => {
+                            app.exit(0);
+                        }
+                        "stop_all" => {
+                            let mut sys = System::new_all();
+                            sys.refresh_all();
+                            for (pid, process) in sys.processes() {
+                                let name = process.name().to_string_lossy().to_lowercase();
+                                if name.contains("autohotkey") {
+                                    let _ = Command::new("taskkill")
+                                        .args(["/F", "/PID", &pid.as_u32().to_string()])
+                                        .output();
+                                }
+                            }
+                        }
+                        other => {
+                            if let Some(path) = other.strip_prefix("stop|") {
+                                let mut sys = System::new_all();
+                                sys.refresh_all();
+                                let path_lower = path.to_lowercase().replace('/', "\\");
+                                for (pid, process) in sys.processes() {
+                                    let name = process.name().to_string_lossy().to_lowercase();
+                                    if name.contains("autohotkey") {
+                                        let matched = process.cmd().iter().any(|arg| {
+                                            arg.to_string_lossy()
+                                                .trim_matches('"')
+                                                .replace('/', "\\")
+                                                .to_lowercase()
+                                                == path_lower
+                                        });
+                                        if matched {
+                                            let _ = Command::new("taskkill")
+                                                .args(["/F", "/PID", &pid.as_u32().to_string()])
+                                                .output();
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                })
+                .build(app)?;
+
+            start_process_watcher(handle);
             Ok(())
+        })
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                let close_to_tray = window
+                    .app_handle()
+                    .state::<TraySettingsState>()
+                    .0
+                    .lock()
+                    .map(|s| s.close_to_tray)
+                    .unwrap_or(true);
+                if close_to_tray {
+                    api.prevent_close();
+                    let _ = window.hide();
+                }
+            }
         })
         .invoke_handler(tauri::generate_handler![
             get_scripts,
@@ -938,7 +1181,9 @@ pub fn run() {
             open_with,
             get_scan_paths,
             set_scan_paths,
-            get_script_status
+            get_script_status,
+            get_tray_settings,
+            set_tray_settings
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

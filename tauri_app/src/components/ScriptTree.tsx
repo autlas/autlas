@@ -386,8 +386,6 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
                                         onAddPath={onAddPath}
                                         onRefresh={onRefresh}
                                         onOpenSettings={onOpenSettings}
-                                        onViewModeChange={onViewModeChange}
-                                        setSearchQuery={setSearchQuery}
                                     />
                                 ) : (
                                     <TreeNodeRenderer node={tree} depth={0} isExpanded={true} />

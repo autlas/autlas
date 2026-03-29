@@ -43,7 +43,9 @@
         "browse": "Browse",
         "devtools": "Open DevTools",
         "devtools_desc": "Open developer tools console",
-        "close": "Close"
+        "close": "Close",
+        "close_to_tray": "Close to tray",
+        "close_to_tray_desc": "Hide window instead of quitting when closing"
     },
     "context": {
         "stop": "Stop",

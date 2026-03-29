@@ -10,11 +10,9 @@ interface EmptyStateProps {
     onAddPath?: () => void;
     onRefresh?: () => void;
     onOpenSettings?: () => void;
-    onViewModeChange: (mode: any) => void;
-    setSearchQuery: (q: string) => void;
 }
 
-export default function EmptyState({ isPathsEmpty, hasContent, searchQuery, filterTag, onAddPath, onRefresh, onOpenSettings, onViewModeChange, setSearchQuery }: EmptyStateProps) {
+export default function EmptyState({ isPathsEmpty, hasContent, searchQuery, filterTag, onAddPath, onRefresh, onOpenSettings }: EmptyStateProps) {
     const { t } = useTranslation();
     const isSearching = !!searchQuery.trim();
 
