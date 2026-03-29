@@ -5,9 +5,114 @@ use std::process::Command;
 use std::sync::Mutex;
 use sysinfo::System;
 use tauri::tray::{TrayIconBuilder, TrayIconEvent, MouseButton, MouseButtonState, TrayIcon};
-use tauri::menu::{Menu, MenuEvent, MenuItem, PredefinedMenuItem};
-use tauri::{Emitter, Manager, WebviewUrl, WebviewWindowBuilder, Wry};
+use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
+use tauri::{Emitter, Manager, Wry};
 use walkdir::WalkDir;
+
+#[cfg(target_os = "windows")]
+mod native_popup {
+    use windows_sys::Win32::Foundation::*;
+    use windows_sys::Win32::Graphics::Gdi::*;
+    use windows_sys::Win32::System::LibraryLoader::GetModuleHandleW;
+    use windows_sys::Win32::UI::WindowsAndMessaging::*;
+    use std::sync::atomic::{AtomicPtr, Ordering};
+    use std::ffi::c_void;
+
+    static POPUP_HWND: AtomicPtr<c_void> = AtomicPtr::new(std::ptr::null_mut());
+
+    fn wide(s: &str) -> Vec<u16> {
+        s.encode_utf16().chain(std::iter::once(0)).collect()
+    }
+
+    unsafe extern "system" fn wndproc(
+        hwnd: HWND, msg: u32, wparam: WPARAM, lparam: LPARAM,
+    ) -> LRESULT {
+        match msg {
+            WM_ACTIVATE => {
+                let activation = (wparam & 0xFFFF) as u32;
+                if activation == 0 {
+                    ShowWindow(hwnd, SW_HIDE);
+                }
+                0
+            }
+            WM_PAINT => {
+                let mut ps: PAINTSTRUCT = std::mem::zeroed();
+                let hdc = BeginPaint(hwnd, &mut ps);
+                let brush = CreateSolidBrush(0x001E1E1E);
+                FillRect(hdc, &ps.rcPaint, brush);
+                DeleteObject(brush as _);
+
+                SetBkMode(hdc, 1);
+                SetTextColor(hdc, 0x00AAAAAA);
+                let text = wide("AHK Manager - Tray Popup");
+                let mut rc = ps.rcPaint;
+                DrawTextW(hdc, text.as_ptr(), text.len() as i32 - 1, &mut rc,
+                    DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+
+                EndPaint(hwnd, &ps);
+                0
+            }
+            WM_DESTROY => 0,
+            _ => DefWindowProcW(hwnd, msg, wparam, lparam),
+        }
+    }
+
+    pub fn create_popup() {
+        unsafe {
+            let hinstance = GetModuleHandleW(std::ptr::null());
+            let class_name = wide("AHKManagerPopup");
+
+            let wc = WNDCLASSW {
+                style: CS_DROPSHADOW,
+                lpfnWndProc: Some(wndproc),
+                cbClsExtra: 0,
+                cbWndExtra: 0,
+                hInstance: hinstance,
+                hIcon: std::ptr::null_mut(),
+                hCursor: LoadCursorW(std::ptr::null_mut(), IDC_ARROW),
+                hbrBackground: std::ptr::null_mut(),
+                lpszMenuName: std::ptr::null(),
+                lpszClassName: class_name.as_ptr(),
+            };
+            RegisterClassW(&wc);
+
+            let hwnd = CreateWindowExW(
+                WS_EX_TOOLWINDOW | WS_EX_TOPMOST,
+                class_name.as_ptr(),
+                wide("").as_ptr(),
+                WS_POPUP,
+                0, 0, 300, 380,
+                std::ptr::null_mut(),
+                std::ptr::null_mut(),
+                hinstance,
+                std::ptr::null(),
+            );
+            POPUP_HWND.store(hwnd, Ordering::SeqCst);
+        }
+    }
+
+    pub fn show_at(x: i32, y: i32) {
+        let hwnd = POPUP_HWND.load(Ordering::SeqCst);
+        if hwnd.is_null() { return; }
+        unsafe {
+            SetWindowPos(hwnd, HWND_TOPMOST, x, y, 0, 0, SWP_NOSIZE | SWP_NOACTIVATE);
+            ShowWindow(hwnd, SW_SHOWNOACTIVATE);
+            SetForegroundWindow(hwnd);
+        }
+    }
+
+    pub fn hide() {
+        let hwnd = POPUP_HWND.load(Ordering::SeqCst);
+        if hwnd.is_null() { return; }
+        unsafe { ShowWindow(hwnd, SW_HIDE); }
+    }
+
+    pub fn is_visible() -> bool {
+        let hwnd = POPUP_HWND.load(Ordering::SeqCst);
+        if hwnd.is_null() { return false; }
+        unsafe { IsWindowVisible(hwnd) != 0 }
+    }
+}
 
 // ── Managed state: single source of truth for tags, prevents race conditions ──
 pub struct TagsState(pub Mutex<HashMap<String, Vec<String>>>);
@@ -1091,34 +1196,50 @@ pub fn run() {
         .setup(|app| {
             let handle = app.handle().clone();
 
-            // Init positioner plugin
-            app.handle().plugin(tauri_plugin_positioner::init())?;
+            // Create native Win32 popup (not WebView — instant, no focus issues)
+            #[cfg(target_os = "windows")]
+            native_popup::create_popup();
+
+            // Build right-click menu
+            let empty_running = HashSet::new();
+            let menu = build_tray_menu(&handle, &empty_running)?;
 
             TrayIconBuilder::with_id("main_tray")
                 .icon(app.default_window_icon().cloned().expect("no default icon"))
+                .menu(&menu)
+                .show_menu_on_left_click(false)
                 .tooltip("AHK Manager")
-                .on_tray_icon_event(|tray: &TrayIcon<Wry>, event: TrayIconEvent| {
-                    tauri_plugin_positioner::on_tray_event(tray.app_handle(), &event);
-
+                .on_tray_icon_event(|_tray: &TrayIcon<Wry>, event: TrayIconEvent| {
                     match event {
                         TrayIconEvent::Click {
                             button: MouseButton::Left,
                             button_state: MouseButtonState::Up,
+                            position,
                             ..
                         } => {
-                            let app = tray.app_handle();
-
-                            if let Some(popup) = app.get_webview_window("tray-popup") {
-                                if popup.is_visible().unwrap_or(false) {
-                                    let _ = popup.hide();
+                            #[cfg(target_os = "windows")]
+                            {
+                                if native_popup::is_visible() {
+                                    native_popup::hide();
                                 } else {
-                                    use tauri_plugin_positioner::WindowExt;
-                                    let _ = popup.move_window(tauri_plugin_positioner::Position::TrayCenter);
-                                    let _ = popup.show();
-                                    let _ = popup.set_focus();
+                                    let x = position.x as i32 - 150; // center 300px
+                                    let y = position.y as i32 - 380; // above tray
+                                    native_popup::show_at(x, y);
                                 }
                             }
                         }
+                        _ => {}
+                    }
+                })
+                .on_menu_event(|app: &tauri::AppHandle<Wry>, event: tauri::menu::MenuEvent| {
+                    match event.id().as_ref() {
+                        "show_window" => {
+                            if let Some(w) = app.get_webview_window("main") {
+                                let _ = w.show();
+                                let _ = w.set_focus();
+                            }
+                        }
+                        "quit" => app.exit(0),
                         _ => {}
                     }
                 })
@@ -1142,9 +1263,6 @@ pub fn run() {
                             api.prevent_close();
                             let _ = window.hide();
                         }
-                    } else if window.label() == "tray-popup" {
-                        api.prevent_close();
-                        let _ = window.hide();
                     }
                 }
                 // No blur handler for popup — toggle via tray click only

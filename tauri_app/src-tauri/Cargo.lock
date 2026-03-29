@@ -4160,6 +4160,7 @@ dependencies = [
  "tauri-plugin-opener",
  "tauri-plugin-positioner",
  "walkdir",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
