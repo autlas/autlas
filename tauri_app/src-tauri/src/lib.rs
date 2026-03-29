@@ -181,13 +181,13 @@ fn get_cache_path() -> std::path::PathBuf {
 
 fn load_cache() -> Option<Vec<String>> {
     let cache_path = get_cache_path();
-    if let Ok(content) = fs::read_to_string(cache_path) {
-        let paths: Vec<String> = content.lines()
-            .map(|s| s.trim().to_string())
-            .filter(|s| !s.is_empty())
-            .collect();
-        if !paths.is_empty() {
-            return Some(paths);
+    if cache_path.exists() {
+        if let Ok(content) = fs::read_to_string(cache_path) {
+            let paths: Vec<String> = content.lines()
+                .map(|s| s.trim().to_string())
+                .filter(|s| !s.is_empty())
+                .collect();
+            return Some(paths); // empty vec = no scripts, but cache is valid
         }
     }
     None
@@ -218,21 +218,24 @@ async fn get_scripts(force_scan: bool) -> Vec<Script> {
     let mut script_paths = Vec::new();
 
     // Strategy: If not forcing scan, try to use the cache
-    if !force_scan {
+    let cache_hit = if !force_scan {
         if let Some(cached) = load_cache() {
             println!("[Rust] Loading scripts from cache ({} paths found)", cached.len());
             script_paths = cached;
+            true
         } else {
             println!("[Rust] Cache file missing. Proceeding to scan.");
+            false
         }
     } else {
         println!("[Rust] Manual refresh requested (force_scan=true). Starting full disk scan...");
-    }
+        false
+    };
 
-    // If cache is empty or we are forcing a full scan, go to disk
-    if script_paths.is_empty() {
+    // Only scan disk if we have no cache at all (not just empty cache)
+    if !cache_hit {
         if !force_scan {
-             println!("[Rust] No cached data available. Starting initial disk scan...");
+            println!("[Rust] No cached data available. Starting initial disk scan...");
         }
         let mut scan_dirs = Vec::new();
         
