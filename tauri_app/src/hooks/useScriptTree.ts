@@ -119,12 +119,9 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
     useEffect(() => {
         fetchData();
 
-        // Background polling for running status - 3 seconds is a good balance
-        const intervalId = setInterval(() => {
-            fetchData();
-        }, 3000);
-
         let unlisten: (() => void) | null = null;
+        let unlistenStatus: (() => void) | null = null;
+
         import('@tauri-apps/api/event').then(({ listen }) => {
             listen<{ path: string; tags: string[] }>('script-tags-changed', (event) => {
                 const { path, tags } = event.payload;
@@ -132,11 +129,38 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
                     s.path === path ? { ...s, tags } : s
                 ));
             }).then(fn => { unlisten = fn; });
+
+            listen<{ path: string; is_running: boolean; has_ui: boolean }>('script-status-changed', (event) => {
+                const { path, is_running, has_ui } = event.payload;
+                const pathLower = path.toLowerCase();
+                startTransition(() => {
+                    setAllScripts(prev => prev.map(s =>
+                        s.path.toLowerCase() === pathLower
+                            ? { ...s, is_running, has_ui: is_running ? has_ui : false }
+                            : s
+                    ));
+                });
+                setPendingScripts(prev => {
+                    const key = Object.keys(prev).find(k => k.toLowerCase() === pathLower);
+                    if (!key) return prev;
+                    const pending = prev[key];
+                    const shouldClear =
+                        (pending === "run" && is_running) ||
+                        (pending === "kill" && !is_running) ||
+                        (pending === "restart" && is_running);
+                    if (shouldClear) {
+                        const next = { ...prev };
+                        delete next[key];
+                        return next;
+                    }
+                    return prev;
+                });
+            }).then(fn => { unlistenStatus = fn; });
         });
 
         return () => {
-            clearInterval(intervalId);
             if (unlisten) unlisten();
+            if (unlistenStatus) unlistenStatus();
         };
     }, []);
 
@@ -193,73 +217,68 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
         }
     }, []);
 
-    const stopBurst = useCallback((interval: any, path: string) => {
-        if (interval) clearInterval(interval);
+    const clearPending = useCallback((path: string) => {
         setPendingScripts(prev => {
+            if (!(path in prev)) return prev;
             const next = { ...prev };
             delete next[path];
             return next;
         });
     }, []);
 
+    const startBurst = useCallback((path: string, expectedRunning: boolean) => {
+        let attempts = 0;
+        const id = setInterval(async () => {
+            attempts++;
+            try {
+                const status = await invoke<{ is_running: boolean; has_ui: boolean }>("get_script_status", { path });
+                if (status.is_running === expectedRunning) {
+                    clearInterval(id);
+                    clearPending(path);
+                    setAllScripts(prev => prev.map(s =>
+                        s.path === path
+                            ? { ...s, is_running: status.is_running, has_ui: status.is_running ? status.has_ui : false }
+                            : s
+                    ));
+                } else if (attempts >= 33) {
+                    clearInterval(id);
+                    clearPending(path);
+                }
+            } catch {
+                clearInterval(id);
+                clearPending(path);
+            }
+        }, 300);
+    }, [clearPending]);
+
     const handleToggle = useCallback(async (script: Script, force?: boolean) => {
         if (pendingScripts[script.path]) return;
         const type = script.is_running ? "kill" : "run";
         setPendingScripts(prev => ({ ...prev, [script.path]: type }));
-
         try {
             if (script.is_running && !force) {
                 await killScript(script.path);
             } else {
                 await runScript(script.path);
             }
-
-            let attempts = 0;
-            const burstInterval = setInterval(async () => {
-                attempts++;
-                try {
-                    const data = await getScripts();
-                    setAllScripts(data);
-                    const updated = data.find(s => s.path === script.path);
-                    if (updated && updated.is_running !== script.is_running) {
-                        stopBurst(burstInterval, script.path);
-                    }
-                    if (attempts > 60) stopBurst(burstInterval, script.path);
-                } catch (e) {
-                    stopBurst(burstInterval, script.path);
-                }
-            }, 100);
+            startBurst(script.path, !script.is_running);
         } catch (e) {
             console.error(e);
-            stopBurst(null, script.path);
+            clearPending(script.path);
         }
-    }, [pendingScripts, stopBurst]);
+    }, [pendingScripts, startBurst, clearPending]);
 
     const handleRestart = useCallback(async (script: Script) => {
         if (pendingScripts[script.path]) return;
         setPendingScripts(prev => ({ ...prev, [script.path]: "restart" }));
         try {
             await invoke("restart_script", { path: script.path });
-            let attempts = 0;
-            const burstInterval = setInterval(async () => {
-                attempts++;
-                try {
-                    const data = await getScripts();
-                    setAllScripts(data);
-                    const updated = data.find(s => s.path === script.path);
-                    if (updated && updated.is_running) {
-                        stopBurst(burstInterval, script.path);
-                    }
-                    if (attempts > 60) stopBurst(burstInterval, script.path);
-                } catch (e) {
-                    stopBurst(burstInterval, script.path);
-                }
-            }, 100);
+            startBurst(script.path, true);
         } catch (e) {
             console.error(e);
-            stopBurst(null, script.path);
+            clearPending(script.path);
         }
-    }, [pendingScripts, stopBurst]);
+    }, [pendingScripts, startBurst, clearPending]);
 
     const stopEditing = useCallback(() => setEditingScript(null), []);
     const startEditing = useCallback((s: Script) => setEditingScript(s.path), []);

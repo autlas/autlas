@@ -1,6 +1,5 @@
-use directories::UserDirs;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::process::Command;
 use std::sync::Mutex;
@@ -10,6 +9,74 @@ use walkdir::WalkDir;
 
 // ── Managed state: single source of truth for tags, prevents race conditions ──
 pub struct TagsState(pub Mutex<HashMap<String, Vec<String>>>);
+
+#[derive(Serialize, Clone)]
+struct ScriptStatusEvent {
+    path: String,
+    is_running: bool,
+    has_ui: bool,
+}
+
+fn get_running_ahk_paths(sys: &System) -> HashSet<String> {
+    let mut paths = HashSet::new();
+    for (_pid, process) in sys.processes() {
+        let name = process.name().to_string_lossy().to_lowercase();
+        if name.contains("autohotkey") {
+            for arg in process.cmd() {
+                let s = arg.to_string_lossy()
+                    .trim_matches('"')
+                    .replace('/', "\\")
+                    .to_lowercase();
+                if s.ends_with(".ahk") {
+                    paths.insert(s);
+                }
+            }
+        }
+    }
+    paths
+}
+
+fn start_process_watcher(app: tauri::AppHandle) {
+    std::thread::spawn(move || {
+        // Fresh System each tick to avoid stale process data
+        let mut prev = {
+            let mut sys = System::new_all();
+            sys.refresh_all();
+            get_running_ahk_paths(&sys)
+        };
+        println!("[Watcher] Started. Initially running: {:?}", prev);
+
+        loop {
+            std::thread::sleep(std::time::Duration::from_millis(1500));
+            let mut sys = System::new_all();
+            sys.refresh_all();
+            let current = get_running_ahk_paths(&sys);
+
+            for path in current.difference(&prev) {
+                println!("[Watcher] Script started: {}", path);
+                let has_ui = fs::read_to_string(path)
+                    .map(|c| { let t = c.to_lowercase(); t.contains("0x0401") || t.contains("0x401") })
+                    .unwrap_or(false);
+                let _ = app.emit("script-status-changed", ScriptStatusEvent {
+                    path: path.clone(),
+                    is_running: true,
+                    has_ui,
+                });
+            }
+
+            for path in prev.difference(&current) {
+                println!("[Watcher] Script stopped: {}", path);
+                let _ = app.emit("script-status-changed", ScriptStatusEvent {
+                    path: path.clone(),
+                    is_running: false,
+                    has_ui: false,
+                });
+            }
+
+            prev = current;
+        }
+    });
+}
 
 #[derive(Serialize, Deserialize, Clone)]
 struct Script {
@@ -753,6 +820,37 @@ async fn delete_tag(tag: String) -> Result<(), String> {
     Ok(())
 }
 
+#[derive(Serialize)]
+struct ScriptStatus {
+    is_running: bool,
+    has_ui: bool,
+}
+
+#[tauri::command]
+async fn get_script_status(path: String) -> ScriptStatus {
+    let mut sys = System::new_all();
+    sys.refresh_all();
+    let path_lower = path.to_lowercase().replace('/', "\\");
+    for (_pid, process) in sys.processes() {
+        let name = process.name().to_string_lossy().to_lowercase();
+        if name.contains("autohotkey") {
+            for arg in process.cmd() {
+                let s = arg.to_string_lossy()
+                    .trim_matches('"')
+                    .replace('/', "\\")
+                    .to_lowercase();
+                if s == path_lower {
+                    let has_ui = fs::read_to_string(&path)
+                        .map(|c| { let t = c.to_lowercase(); t.contains("0x0401") || t.contains("0x401") })
+                        .unwrap_or(false);
+                    return ScriptStatus { is_running: true, has_ui };
+                }
+            }
+        }
+    }
+    ScriptStatus { is_running: false, has_ui: false }
+}
+
 #[tauri::command]
 async fn get_scan_paths() -> Vec<String> {
     load_metadata().scan_paths
@@ -803,6 +901,10 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .manage(TagsState(Mutex::new(initial_tags)))
+        .setup(|app| {
+            start_process_watcher(app.handle().clone());
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             get_scripts,
             run_script,
@@ -821,7 +923,8 @@ pub fn run() {
             restart_script,
             open_with,
             get_scan_paths,
-            set_scan_paths
+            set_scan_paths,
+            get_script_status
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
