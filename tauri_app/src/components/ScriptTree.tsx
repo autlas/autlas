@@ -9,7 +9,7 @@ import ScriptTreeToolbar from "./ScriptTreeToolbar";
 import ScriptGridView from "./ScriptGridView";
 import { TreeContext, TreeNodeRenderer } from "./TreeNodeRenderer";
 
-export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, onRunningCountChange, viewMode, onViewModeChange, onCustomDragStart, isDragging, draggedScriptPath, animationsEnabled, onScriptContextMenu, onFolderContextMenu, searchQuery, setSearchQuery, contextMenu, onShowUI, manualRefresh, onScanComplete, isPathsEmpty, onAddPath, onRefresh }: ScriptTreeProps) {
+export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, onRunningCountChange, viewMode, onViewModeChange, onCustomDragStart, isDragging, draggedScriptPath, animationsEnabled, onScriptContextMenu, onFolderContextMenu, searchQuery, setSearchQuery, contextMenu, onShowUI, manualRefresh, onScanComplete, isPathsEmpty, onAddPath, onRefresh, onOpenSettings }: ScriptTreeProps) {
     const searchInputRef = useRef<HTMLInputElement>(null);
     const lastGTimeRef = useRef(0);
     const lastFTimeRef = useRef(0);
@@ -17,7 +17,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
     const [sortBy, setSortBy] = useState<"name" | "path">("name");
 
     const {
-        loading, filtered, tree, groupedHub,
+        loading, isFetching, allScripts, filtered, tree, groupedHub,
         expandedFolders,
         editingScript, pendingScripts, removingTags,
         isAllExpanded, showHidden, allUniqueTags,
@@ -208,8 +208,8 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
     }, [focusedPath, isVimMode]);
 
     useEffect(() => {
-        if (onLoadingChange) onLoadingChange(loading);
-    }, [loading, onLoadingChange]);
+        if (onLoadingChange) onLoadingChange(isFetching);
+    }, [isFetching, onLoadingChange]);
 
     const [columnsCount, setColumnsCount] = useState(1);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -285,6 +285,19 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
         return cols;
     }, [filtered, columnsCount]);
 
+    const hasAnyContent = useMemo(() => {
+        const sysTagNames = ["hub", "fav", "favourites"];
+        return allScripts.some(s => {
+            if (filterTag === "hub") return s.is_running || s.tags.some(t => sysTagNames.includes(t.toLowerCase()));
+            if (filterTag === "running") return s.is_running;
+            if (filterTag === "hidden") return s.is_hidden;
+            if (filterTag === "no_tags") return s.tags.length === 0;
+            if (filterTag === "tags") return s.tags.length > 0;
+            if (filterTag !== "all" && filterTag !== "all_scripts" && filterTag !== "") return s.tags.includes(filterTag);
+            return true;
+        });
+    }, [allScripts, filterTag]);
+
     if (loading) return <div className="p-10 text-center text-tertiary font-bold text-xs tracking-[0.5em] animate-pulse uppercase">Syncing Uplink...</div>;
 
     const hasContent = Object.keys(tree.children).length > 0 || tree.scripts.length > 0;
@@ -331,11 +344,12 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
                             columnsCount={columnsCount}
                             masonryColumns={masonryColumns}
                             isPathsEmpty={!!isPathsEmpty}
-                            hasContent={hasContent}
+                            hasContent={hasAnyContent}
                             searchQuery={searchQuery}
                             onAddPath={onAddPath}
                             onRefresh={onRefresh}
                             onViewModeChange={onViewModeChange}
+                            onOpenSettings={onOpenSettings}
                             setSearchQuery={setSearchQuery}
                             isDragging={isDragging}
                             draggedScriptPath={draggedScriptPath}
@@ -361,16 +375,17 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
                             setIsVimMode={setIsVimMode}
                         />
                     ) : (
-                        <div className="flex flex-col space-y-0.5 select-none">
+                        <div className="flex flex-col space-y-0.5 select-none min-h-full">
                             <TreeContext.Provider value={treeContextValue}>
                                 {!hasContent ? (
                                     <EmptyState
                                         isPathsEmpty={!!isPathsEmpty}
-                                        hasContent={hasContent}
+                                        hasContent={hasAnyContent}
                                         searchQuery={searchQuery}
                                         filterTag={filterTag}
                                         onAddPath={onAddPath}
                                         onRefresh={onRefresh}
+                                        onOpenSettings={onOpenSettings}
                                         onViewModeChange={onViewModeChange}
                                         setSearchQuery={setSearchQuery}
                                     />

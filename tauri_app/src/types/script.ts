@@ -32,6 +32,7 @@ export interface ScriptTreeProps {
     isPathsEmpty?: boolean;
     onAddPath?: () => void;
     onRefresh?: () => void;
+    onOpenSettings?: () => void;
 }
 
 export interface TagPickerProps {

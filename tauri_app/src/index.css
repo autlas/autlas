@@ -304,3 +304,13 @@ body {
 .vim-active * {
     cursor: none !important;
 }
+
+@keyframes highlight-pulse-once {
+    0%   { box-shadow: none; }
+    30%  { box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.7), 0 0 32px rgba(99, 102, 241, 0.45); }
+    100% { box-shadow: none; }
+}
+
+.highlight-pulse-once {
+    animation: highlight-pulse-once 2s cubic-bezier(0.25, 0, 0.4, 1) forwards;
+}

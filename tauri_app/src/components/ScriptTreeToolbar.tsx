@@ -34,8 +34,10 @@ export default function ScriptTreeToolbar({
     const displayValue = prefixMatch ? searchQuery.substring(prefixMatch.length) : searchQuery;
 
     return (
-        <div className={`flex items-center justify-between pt-6 pb-2 border-b transition-all duration-300 ${draggedScriptPath ? 'opacity-20 blur-[1px] pointer-events-none' : ''}`} style={{ borderColor: 'var(--border-color)' }}>
-            <div className="flex-1 flex items-center space-x-1">
+        <div className={`flex items-end justify-between pt-3 pb-2 border-b transition-all duration-300 ${draggedScriptPath ? 'opacity-20 blur-[1px] pointer-events-none' : ''}`} style={{ borderColor: 'var(--border-color)' }}>
+            <div className="flex-1 flex items-end space-x-1">
+                <div className="flex flex-col">
+                    <span className="text-[11px] font-bold text-tertiary/50 uppercase tracking-widest ml-3 mb-0.5">{t("toolbar.view", "View")}</span>
                 <div className="flex bg-white/[0.03] p-1 rounded-xl border border-white/5 h-[42px] items-center">
                     {[
                         {
@@ -85,9 +87,11 @@ export default function ScriptTreeToolbar({
                         );
                     })}
                 </div>
+                </div>
 
                 {/* SORTING CONTROLS */}
-                <div className={`flex items-center overflow-hidden transition-all duration-300 ease-in-out ${viewMode !== "tree" ? 'w-[145px] opacity-100 ml-4' : 'w-0 opacity-0 pointer-events-none'}`}>
+                <div className={`flex flex-col overflow-hidden transition-all duration-300 ease-in-out ${viewMode !== "tree" ? 'w-[145px] opacity-100 ml-4' : 'w-0 opacity-0 pointer-events-none'}`}>
+                    <span className="text-[11px] font-bold text-tertiary/50 uppercase tracking-widest ml-3 mb-0.5">{t("toolbar.sort", "Sort")}</span>
                     <div className="flex bg-white/[0.03] border border-white/5 rounded-xl p-1 gap-1 h-[42px] flex-shrink-0 w-[145px]">
                         <button
                             onClick={() => !isDragging && setSortBy("name")}

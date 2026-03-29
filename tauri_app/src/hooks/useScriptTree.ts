@@ -22,6 +22,8 @@ const smoothScrollTo = (container: HTMLElement, target: number, duration: number
     requestAnimationFrame(animate);
 };
 
+let _cachedScripts: Script[] = [];
+
 interface UseScriptTreeOptions {
     filterTag: string;
     onTagsLoaded: (tags: string[]) => void;
@@ -37,8 +39,9 @@ interface UseScriptTreeOptions {
 
 export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, searchQuery, setSearchQuery, onRunningCountChange, manualRefresh, onScanComplete, viewMode, sortBy }: UseScriptTreeOptions) {
     const { t } = useTranslation();
-    const [allScripts, setAllScripts] = useState<Script[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [allScripts, setAllScripts] = useState<Script[]>(_cachedScripts);
+    const [loading, setLoading] = useState(_cachedScripts.length === 0);
+    const [isFetching, setIsFetching] = useState(false);
     const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({});
     const [editingScript, setEditingScript] = useState<string | null>(null);
     const popoverRef = useRef<HTMLDivElement>(null);
@@ -66,8 +69,10 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
     }, [editingScript]);
 
     const fetchData = async () => {
+        setIsFetching(true);
         try {
             const data = await getScripts(manualRefresh);
+            _cachedScripts = data;
             if (manualRefresh && onScanComplete) {
                 onScanComplete(Date.now());
             }
@@ -93,6 +98,7 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
             // silence
         } finally {
             setLoading(false);
+            setIsFetching(false);
         }
     };
 
@@ -384,7 +390,20 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
     const filtered = useMemo(() => {
         let list = [...allScripts];
         if (filterTag === "hub") {
-            return list.filter(s => s.is_running || s.tags.some(t => t.toLowerCase() === "hub" || t.toLowerCase() === "fav" || t.toLowerCase() === "favourites"));
+            list = list.filter(s => s.is_running || s.tags.some(t => t.toLowerCase() === "hub" || t.toLowerCase() === "fav" || t.toLowerCase() === "favourites"));
+            const rawQuery = searchQuery.trim().toLowerCase();
+            if (rawQuery) {
+                if (rawQuery.startsWith("file:")) {
+                    const q = rawQuery.replace("file:", "").trim();
+                    if (q) list = list.filter(s => s.filename.toLowerCase().includes(q));
+                } else if (rawQuery.startsWith("path:")) {
+                    const q = rawQuery.replace("path:", "").trim();
+                    if (q) list = list.filter(s => s.path.toLowerCase().replace(s.filename.toLowerCase(), "").includes(q));
+                } else {
+                    list = list.filter(s => s.filename.toLowerCase().includes(rawQuery) || s.path.toLowerCase().includes(rawQuery));
+                }
+            }
+            return list;
         }
 
         list = list.filter(s => {
@@ -714,7 +733,7 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
     }, [visibleItems]);
 
     return {
-        loading, allScripts, filtered, tree, groupedHub,
+        loading, isFetching, allScripts, filtered, tree, groupedHub,
         expandedFolders, isAllExpanded, folderDurations,
         editingScript, pendingScripts, removingTags,
         showHidden, allUniqueTags, searchQuery,

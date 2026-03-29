@@ -28,6 +28,8 @@ function App() {
   const [editTagName, setEditTagName] = useState("");
   const [refreshKey, setRefreshKey] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [scanToast, setScanToast] = useState(false);
+  const scanToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; type: "script" | "tag" | "folder" | "general"; data: any } | null>(null);
   const [activeTabPressed, setActiveTabPressed] = useState<string | null>(null);
   const [runningCount, setRunningCount] = useState(0);
@@ -59,9 +61,11 @@ function App() {
   const [dragGhostSize, setDragGhostSize] = useState({ w: 0, h: 0 });
 
   const handleScanComplete = useCallback((timestamp: number) => {
-    console.log("[App] MANUAL SCAN COMPLETE. Updating timestamp:", new Date(timestamp).toLocaleTimeString());
     setLastScanTimestamp(timestamp);
     localStorage.setItem("ahk_last_scan_timestamp", timestamp.toString());
+    if (scanToastTimerRef.current) clearTimeout(scanToastTimerRef.current);
+    setScanToast(true);
+    scanToastTimerRef.current = setTimeout(() => setScanToast(false), 2500);
   }, []);
 
   const handleLoadingChange = useCallback((loading: boolean) => {
@@ -375,6 +379,17 @@ function App() {
               isPathsEmpty={scanPaths.length === 0}
               onAddPath={handleAddScanPath}
               onRefresh={() => setRefreshKey(p => p + 1)}
+              onOpenSettings={() => {
+                handleTabClick("settings");
+                setTimeout(() => {
+                  const el = document.getElementById("settings-add-folder-btn");
+                  if (el) {
+                    el.scrollIntoView({ behavior: "smooth", block: "center" });
+                    el.classList.add("highlight-pulse-once");
+                    el.addEventListener("animationend", () => el.classList.remove("highlight-pulse-once"), { once: true });
+                  }
+                }, 350);
+              }}
             />
           </div>
         </div>
@@ -394,6 +409,13 @@ function App() {
         onStartRenameTag={(tag) => { setIsRenamingTag(tag); setEditTagName(tag); }}
         onRefresh={() => setRefreshKey(p => p + 1)}
       />
+
+      <div className={`fixed bottom-6 right-6 z-[9999] transition-all duration-500 ${scanToast ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2 pointer-events-none'}`}>
+        <div className="flex items-center gap-2.5 px-4 py-2.5 bg-[#1a1a1f] border border-white/10 rounded-2xl shadow-2xl">
+          <div className="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]" />
+          <span className="text-[11px] font-bold tracking-widest uppercase text-white/60">Library synced</span>
+        </div>
+      </div>
     </div>
   );
 }

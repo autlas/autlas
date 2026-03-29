@@ -26,6 +26,7 @@ interface ScriptGridViewProps {
     onAddPath?: () => void;
     onRefresh?: () => void;
     onViewModeChange: (mode: any) => void;
+    onOpenSettings?: () => void;
     setSearchQuery: (q: string) => void;
     // script state
     isDragging: boolean;
@@ -54,7 +55,7 @@ interface ScriptGridViewProps {
 
 export default function ScriptGridView({
     mode, filtered, groupedHub, filterTag, columnsCount, masonryColumns,
-    isPathsEmpty, hasContent, searchQuery, onAddPath, onRefresh, onViewModeChange, setSearchQuery,
+    isPathsEmpty, hasContent, searchQuery, onAddPath, onRefresh, onViewModeChange, onOpenSettings, setSearchQuery,
     isDragging, draggedScriptPath, editingScript, pendingScripts, removingTags, allUniqueTags,
     popoverRef, showHidden, contextMenu, handleCustomMouseDown, handleToggle,
     startEditing, addTag, removeTag, stopEditing, onScriptContextMenu,
@@ -129,7 +130,7 @@ export default function ScriptGridView({
     };
 
     return (
-        <div className="flex flex-col pb-10 min-h-full">
+        <div className="flex flex-col min-h-full">
             {filtered.length === 0 ? (
                 <EmptyState
                     isPathsEmpty={isPathsEmpty}
@@ -139,6 +140,7 @@ export default function ScriptGridView({
                     onAddPath={onAddPath}
                     onRefresh={onRefresh}
                     onViewModeChange={onViewModeChange}
+                    onOpenSettings={onOpenSettings}
                     setSearchQuery={setSearchQuery}
                 />
             ) : (filterTag === "hub" && groupedHub) ? (
@@ -146,7 +148,7 @@ export default function ScriptGridView({
                     const sectionMasonry: Script[][] = Array.from({ length: columnsCount }, () => []);
                     scripts.forEach((s, i) => sectionMasonry[i % columnsCount].push(s));
                     return (
-                        <div key={tag} className={`flex flex-col ${isTiles ? 'mb-10' : 'mb-8'}`}>
+                        <div key={tag} className={`flex flex-col ${isTiles ? 'mb-10' : 'mb-8'} last:pb-10`}>
                             <TagSectionHeader tag={tag} />
                             <div
                                 className={`grid ${gridGap} items-start`}
@@ -163,7 +165,7 @@ export default function ScriptGridView({
                 })
             ) : (
                 <div
-                    className={`grid ${gridGap} items-start pt-6`}
+                    className={`grid ${gridGap} items-start pt-6 pb-10`}
                     style={{ gridTemplateColumns: `repeat(${columnsCount}, minmax(0, 1fr))` }}
                 >
                     {masonryColumns.map((col, colIdx) => (
