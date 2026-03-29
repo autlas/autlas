@@ -13,22 +13,33 @@ use walkdir::WalkDir;
 mod native_popup {
     use windows_sys::Win32::Foundation::*;
     use windows_sys::Win32::Graphics::Gdi::*;
+    // Don't use GdiPlus::* — it exports `Ok` which shadows Result::Ok
+    use windows_sys::Win32::Graphics::GdiPlus::{
+        GdiplusStartup, GdiplusStartupInput, GdipCreateFromHDC, GdipDeleteGraphics,
+        GdipSetSmoothingMode, GdipSetTextRenderingHint,
+        GdipCreateSolidFill, GdipDeleteBrush, GdipFillRectangle, GdipFillEllipse,
+        GdipCreatePath, GdipAddPathArc, GdipClosePathFigure, GdipFillPath, GdipDeletePath,
+        GdipCreateFontFamilyFromName, GdipCreateFont, GdipDeleteFont, GdipDeleteFontFamily,
+        GdipCreateStringFormat, GdipSetStringFormatAlign, GdipSetStringFormatLineAlign, GdipDeleteStringFormat,
+        GdipDrawString,
+        GpGraphics, GpSolidFill, GpBrush, GpPath, GpFontFamily, GpFont, GpStringFormat,
+        RectF,
+    };
     use windows_sys::Win32::System::LibraryLoader::GetModuleHandleW;
     use windows_sys::Win32::UI::WindowsAndMessaging::*;
     use windows_sys::Win32::UI::Input::KeyboardAndMouse::*;
-    use std::sync::atomic::{AtomicPtr, Ordering};
+    use std::sync::atomic::{AtomicPtr, AtomicUsize, Ordering};
     use std::sync::Mutex;
     use std::ffi::c_void;
 
     static POPUP_HWND: AtomicPtr<c_void> = AtomicPtr::new(std::ptr::null_mut());
-    // Callback to execute actions (stop script, show window, quit)
+    static GDI_TOKEN: AtomicUsize = AtomicUsize::new(0);
     static ACTION_CB: Mutex<Option<Box<dyn Fn(&str) + Send>>> = Mutex::new(None);
 
-    // Running scripts + hover state
     struct PopupState {
         scripts: Vec<RunningScript>,
-        hover_index: i32, // -1 = none, 0..n = script row, 100 = show window, 101 = quit
-        hover_btn: i32,   // -1 = none, 0 = UI, 1 = restart, 2 = stop (within hovered script row)
+        hover_index: i32,
+        hover_btn: i32,
     }
     pub struct RunningScript {
         pub path: String,
@@ -37,8 +48,7 @@ mod native_popup {
     }
     static STATE: Mutex<Option<PopupState>> = Mutex::new(None);
 
-    const POPUP_VERSION: &str = "v12";
-    const DEBUG_PALETTE: bool = false;
+    const POPUP_VERSION: &str = "v13";
     const ITEM_H: i32 = 36;
     const HEADER_H: i32 = 36;
     const FOOTER_H: i32 = 70;
@@ -46,18 +56,19 @@ mod native_popup {
     const BTN_SIZE: i32 = 23;
     const BTN_GAP: i32 = 2;
     const BTN_RIGHT: i32 = 14;
-    // Format: 0x00BBGGRR (confirmed by v7 test)
-    const BG_COLOR: u32 = 0x001E1A1A;
-    const HOVER_COLOR: u32 = 0x00363030;
-    const TEXT_COLOR: u32 = 0x00C8CCCC;
-    const DIM_COLOR: u32 = 0x00667070;
-    const GREEN_COLOR: u32 = 0x005EC522;     // #22C55E
-    const INDIGO_COLOR: u32 = 0x00F16663;    // #6366F1
-    const RED_COLOR: u32 = 0x005050F0;       // #F05050
-    const YELLOW_COLOR: u32 = 0x000088EE;    // #EE8800 orange
-    const RED_HOVER: u32 = 0x006666FF;       // brighter red
-    const YELLOW_HOVER: u32 = 0x0020AAFF;    // brighter orange
-    const INDIGO_HOVER: u32 = 0x00FF8888;    // brighter indigo
+    // GDI+ ARGB format: 0xAARRGGBB
+    const BG: u32       = 0xFF1A1A1E;
+    const HOVER_BG: u32 = 0xFF303036;
+    const TEXT_CLR: u32 = 0xFFCCCCC8;
+    const DIM_CLR: u32  = 0xFF707066;
+    const GREEN: u32    = 0xFF22C55E;
+    const INDIGO: u32   = 0xFF6366F1;
+    const RED: u32      = 0xFFF05050;
+    const ORANGE: u32   = 0xFFEE8800;
+    const SEP_CLR: u32  = 0xFF383038;
+
+    // GDI colors still needed for window bg (WM_ERASEBKGND uses GDI)
+    const BG_GDI: u32   = 0x001E1A1A; // BBGGRR
 
     fn get_y(lparam: LPARAM) -> i32 {
         ((lparam as u32 >> 16) & 0xFFFF) as i16 as i32
@@ -98,29 +109,67 @@ mod native_popup {
         (lparam as u32 & 0xFFFF) as i16 as i32
     }
 
-    static FONT: AtomicPtr<c_void> = AtomicPtr::new(std::ptr::null_mut());
-    static FONT_SMALL: AtomicPtr<c_void> = AtomicPtr::new(std::ptr::null_mut());
-    static FONT_ICON: AtomicPtr<c_void> = AtomicPtr::new(std::ptr::null_mut());
-
-    unsafe fn create_fonts() {
-        let name = wide("Segoe UI");
-        let f = CreateFontW(-16, 0, 0, 0, 600, 0, 0, 0, 1, 0, 0, 5 /* CLEARTYPE_QUALITY */, 0, name.as_ptr());
-        FONT.store(f as _, Ordering::SeqCst);
-        let fs = CreateFontW(-13, 0, 0, 0, 700, 0, 0, 0, 1, 0, 0, 5, 0, name.as_ptr());
-        FONT_SMALL.store(fs as _, Ordering::SeqCst);
-        // Segoe MDL2 Assets for icons (Windows 10+ built-in icon font)
-        let icon_name = wide("Segoe MDL2 Assets");
-        let fi = CreateFontW(-14, 0, 0, 0, 400, 0, 0, 0, 1, 0, 0, 5, 0, icon_name.as_ptr());
-        FONT_ICON.store(fi as _, Ordering::SeqCst);
+    unsafe fn init_gdiplus() {
+        let mut token: usize = 0;
+        let input = GdiplusStartupInput {
+            GdiplusVersion: 1,
+            DebugEventCallback: 0,
+            SuppressBackgroundThread: 0,
+            SuppressExternalCodecs: 0,
+        };
+        if GdiplusStartup(&mut token, &input, std::ptr::null_mut()) == 0 {
+            GDI_TOKEN.store(token, Ordering::SeqCst);
+        }
     }
 
-    unsafe fn draw_icon(hdc: HDC, rc: &RECT, codepoint: u16, color: u32) {
-        let old = SelectObject(hdc, FONT_ICON.load(Ordering::SeqCst));
-        SetTextColor(hdc, color);
-        let ch = [codepoint, 0u16];
-        let mut r = *rc;
-        DrawTextW(hdc, ch.as_ptr(), 1, &mut r, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
-        SelectObject(hdc, old);
+    unsafe fn gp_fill_rounded_rect(g: *mut GpGraphics, color: u32, x: f32, y: f32, w: f32, h: f32, r: f32) {
+        let mut brush: *mut GpSolidFill = std::ptr::null_mut();
+        GdipCreateSolidFill(color, &mut brush);
+        let mut path: *mut GpPath = std::ptr::null_mut();
+        GdipCreatePath(0, &mut path); // FillModeAlternate
+        let d = r * 2.0;
+        GdipAddPathArc(path, x, y, d, d, 180.0, 90.0);
+        GdipAddPathArc(path, x + w - d, y, d, d, 270.0, 90.0);
+        GdipAddPathArc(path, x + w - d, y + h - d, d, d, 0.0, 90.0);
+        GdipAddPathArc(path, x, y + h - d, d, d, 90.0, 90.0);
+        GdipClosePathFigure(path);
+        GdipFillPath(g, brush as _, path);
+        GdipDeletePath(path);
+        GdipDeleteBrush(brush as _);
+    }
+
+    unsafe fn gp_fill_circle(g: *mut GpGraphics, color: u32, cx: f32, cy: f32, r: f32) {
+        let mut brush: *mut GpSolidFill = std::ptr::null_mut();
+        GdipCreateSolidFill(color, &mut brush);
+        GdipFillEllipse(g, brush as _, cx - r, cy - r, r * 2.0, r * 2.0);
+        GdipDeleteBrush(brush as _);
+    }
+
+    unsafe fn gp_draw_text(g: *mut GpGraphics, text: &str, family_name: &str, size: f32, style: i32, color: u32, rect: RectF, h_align: i32, v_align: i32) {
+        let name_w = wide(family_name);
+        let mut family: *mut GpFontFamily = std::ptr::null_mut();
+        GdipCreateFontFamilyFromName(name_w.as_ptr(), std::ptr::null_mut(), &mut family);
+        let mut font: *mut GpFont = std::ptr::null_mut();
+        GdipCreateFont(family, size, style, 2 /* UnitPixel */, &mut font);
+        let mut fmt: *mut GpStringFormat = std::ptr::null_mut();
+        GdipCreateStringFormat(0, 0, &mut fmt);
+        GdipSetStringFormatAlign(fmt, h_align);
+        GdipSetStringFormatLineAlign(fmt, v_align);
+        let mut brush: *mut GpSolidFill = std::ptr::null_mut();
+        GdipCreateSolidFill(color, &mut brush);
+        let text_w = wide(text);
+        GdipDrawString(g, text_w.as_ptr(), -1, font as _, &rect, fmt as _, brush as _);
+        GdipDeleteBrush(brush as _);
+        GdipDeleteStringFormat(fmt);
+        GdipDeleteFont(font);
+        GdipDeleteFontFamily(family);
+    }
+
+    unsafe fn gp_fill_rect(g: *mut GpGraphics, color: u32, x: f32, y: f32, w: f32, h: f32) {
+        let mut brush: *mut GpSolidFill = std::ptr::null_mut();
+        GdipCreateSolidFill(color, &mut brush);
+        GdipFillRectangle(g, brush as _, x, y, w, h);
+        GdipDeleteBrush(brush as _);
     }
 
     unsafe extern "system" fn wndproc(
@@ -200,116 +249,21 @@ mod native_popup {
             WM_PAINT => {
                 let mut ps: PAINTSTRUCT = std::mem::zeroed();
                 let hdc = BeginPaint(hwnd, &mut ps);
-                let bg = CreateSolidBrush(BG_COLOR);
-                FillRect(hdc, &ps.rcPaint, bg);
-                DeleteObject(bg as _);
-                SetBkMode(hdc, 1);
 
-                if DEBUG_PALETTE {
-                    let font = FONT.load(Ordering::SeqCst);
-                    let font_small = FONT_SMALL.load(Ordering::SeqCst);
-                    SelectObject(hdc, font_small);
+                // Double-buffer: draw to offscreen bitmap, then blit
+                let mut client_rc: RECT = std::mem::zeroed();
+                GetClientRect(hwnd, &mut client_rc);
+                let cw = client_rc.right;
+                let ch = client_rc.bottom;
+                let mem_dc = CreateCompatibleDC(hdc);
+                let mem_bmp = CreateCompatibleBitmap(hdc, cw, ch);
+                let old_bmp = SelectObject(mem_dc, mem_bmp);
 
-                    // DEFINITIVE test: 3 big squares + text icon test
-                    // Square 1: 0x000000FF - if RED = correct, if BLUE = format is BBGGRR
-                    // Square 2: 0x0000FF00 - should be GREEN either way
-                    // Square 3: 0x00FF0000 - if BLUE = correct, if RED = format is RRGGBB
-                    let test_colors: [(u32, &str); 6] = [
-                        (0x000000FF, "0x0000FF"),
-                        (0x0000FF00, "0x00FF00"),
-                        (0x00FF0000, "0xFF0000"),
-                        (0x0000AAEE, "yellow?"),  // test yellow
-                        (0x00EEAA00, "yellow2?"), // test yellow other way
-                        (0x006366F1, "indigo?"),  // test indigo
-                    ];
-                    let labels = ["not used"];
-                    let icon_colors: [u32; 1] = [0];
-                    let icon_codes: [u16; 1] = [0];
-                    let palettes: [[u32; 10]; 1] = [[0; 10]]; // unused
-
-                    SelectObject(hdc, font);
-                    let sq_size = 60;
-                    for (i, (color, label)) in test_colors.iter().enumerate() {
-                        let col = (i % 3) as i32;
-                        let row = (i / 3) as i32;
-                        let x = 10 + col * (sq_size + 10);
-                        let y = 30 + row * (sq_size + 30);
-
-                        // Draw square
-                        let brush = CreateSolidBrush(*color);
-                        let rc = RECT { left: x, top: y, right: x + sq_size, bottom: y + sq_size };
-                        FillRect(hdc, &rc, brush);
-                        DeleteObject(brush as _);
-
-                        // Also draw icon with same color as text
-                        SetTextColor(hdc, *color);
-                        let icon = [0xE711u16, 0]; // X icon
-                        let mut irc = RECT { left: x, top: y, right: x + sq_size, bottom: y + sq_size };
-                        SelectObject(hdc, FONT_ICON.load(Ordering::SeqCst));
-                        DrawTextW(hdc, icon.as_ptr(), 1, &mut irc, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
-
-                        // Label below
-                        SelectObject(hdc, font_small);
-                        SetTextColor(hdc, TEXT_COLOR);
-                        let lbl = wide(label);
-                        let mut lrc = RECT { left: x, top: y + sq_size, right: x + sq_size + 20, bottom: y + sq_size + 18 };
-                        DrawTextW(hdc, lbl.as_ptr(), lbl.len() as i32 - 1, &mut lrc, DT_LEFT | DT_SINGLELINE);
-                    }
-
-                    let cell_w = 24;
-                    let cell_h = 24;
-                    let pad_left = 10;
-                    let row_h = 50;
-                    let label_h = 16;
-
-                    // Title
-                    SetTextColor(hdc, TEXT_COLOR);
-                    SelectObject(hdc, font);
-                    let title = wide(&format!("COLOR PICKER {}", POPUP_VERSION));
-                    let mut trc = RECT { left: 10, top: 4, right: WIDTH, bottom: 24 };
-                    DrawTextW(hdc, title.as_ptr(), title.len() as i32 - 1, &mut trc, DT_LEFT | DT_SINGLELINE);
-
-                    // Column numbers
-                    SelectObject(hdc, font_small);
-                    SetTextColor(hdc, DIM_COLOR);
-                    for col in 0..10 {
-                        let x = pad_left + col * (cell_w + 2);
-                        let num = wide(&format!("{}", col + 1));
-                        let mut nrc = RECT { left: x, top: 26, right: x + cell_w, bottom: 40 };
-                        DrawTextW(hdc, num.as_ptr(), num.len() as i32 - 1, &mut nrc, DT_CENTER | DT_SINGLELINE);
-                    }
-
-                    for (row, (label, bg_colors)) in labels.iter().zip(palettes.iter()).enumerate() {
-                        let base_y = 42 + row as i32 * row_h;
-
-                        // Row label
-                        SetTextColor(hdc, DIM_COLOR);
-                        let lbl = wide(label);
-                        let mut lrc = RECT { left: pad_left, top: base_y, right: WIDTH, bottom: base_y + label_h };
-                        DrawTextW(hdc, lbl.as_ptr(), lbl.len() as i32 - 1, &mut lrc, DT_LEFT | DT_SINGLELINE);
-
-                        for col in 0..10 {
-                            let x = pad_left + col * (cell_w + 2);
-                            let y = base_y + label_h + 2;
-
-                            // Draw bg color
-                            let cell_bg = CreateSolidBrush(bg_colors[col as usize]);
-                            let cell_rc = RECT { left: x, top: y, right: x + cell_w, bottom: y + cell_h };
-                            FillRect(hdc, &cell_rc, cell_bg);
-                            DeleteObject(cell_bg as _);
-
-                            // Draw icon on top with fixed color
-                            draw_icon(hdc, &cell_rc, icon_codes[row], icon_colors[row]);
-                        }
-                    }
-
-                    EndPaint(hwnd, &ps);
-                    return 0;
-                }
-
-                let font = FONT.load(Ordering::SeqCst);
-                let font_small = FONT_SMALL.load(Ordering::SeqCst);
-                let old_font = SelectObject(hdc, font_small);
+                // GDI+ from offscreen DC
+                let mut g: *mut GpGraphics = std::ptr::null_mut();
+                GdipCreateFromHDC(mem_dc, &mut g);
+                GdipSetSmoothingMode(g, 4); // SmoothingModeAntiAlias
+                GdipSetTextRenderingHint(g, 5); // TextRenderingHintClearTypeGridFit
 
                 let state = STATE.lock().ok();
                 let state_ref = state.as_ref().and_then(|s| s.as_ref());
@@ -318,162 +272,100 @@ mod native_popup {
                 let hover_btn = state_ref.map(|s| s.hover_btn).unwrap_or(-1);
                 drop(state);
 
+                let w = cw as f32;
+
+                // Background
+                gp_fill_rect(g, BG, 0.0, 0.0, w, ch as f32);
+
                 // Header
-                SetTextColor(hdc, DIM_COLOR);
-                let header = wide(&format!("AHK MANAGER {}", POPUP_VERSION));
-                let mut rc = RECT { left: 16, top: 0, right: WIDTH, bottom: HEADER_H };
-                DrawTextW(hdc, header.as_ptr(), header.len() as i32 - 1, &mut rc, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
+                let ver = format!("AHK MANAGER {}", POPUP_VERSION);
+                gp_draw_text(g, &ver, "Segoe UI", 11.0, 1, DIM_CLR,
+                    RectF { X: 16.0, Y: 0.0, Width: w, Height: HEADER_H as f32 }, 0, 1);
                 if !scripts.is_empty() {
-                    SetTextColor(hdc, GREEN_COLOR);
-                    let cnt = wide(&format!("{} running", scripts.len()));
-                    let mut rc2 = RECT { left: 0, top: 0, right: WIDTH - 16, bottom: HEADER_H };
-                    DrawTextW(hdc, cnt.as_ptr(), cnt.len() as i32 - 1, &mut rc2, DT_RIGHT | DT_VCENTER | DT_SINGLELINE);
+                    let cnt = format!("{} running", scripts.len());
+                    gp_draw_text(g, &cnt, "Segoe UI", 11.0, 1, GREEN,
+                        RectF { X: 0.0, Y: 0.0, Width: w - 16.0, Height: HEADER_H as f32 }, 2, 1);
                 }
 
                 // Separator
-                let sep = CreateSolidBrush(0x00303038);
-                let sep_rc = RECT { left: 12, top: HEADER_H - 1, right: WIDTH - 12, bottom: HEADER_H };
-                FillRect(hdc, &sep_rc, sep);
-                DeleteObject(sep as _);
-
-                // Switch to main font
-                SelectObject(hdc, font);
+                gp_fill_rect(g, SEP_CLR, 12.0, (HEADER_H - 1) as f32, w - 24.0, 1.0);
 
                 // Scripts
                 if scripts.is_empty() {
-                    SetTextColor(hdc, 0x00444450);
-                    let empty = wide("No running scripts");
-                    let mut rc = RECT { left: 0, top: HEADER_H, right: WIDTH, bottom: HEADER_H + ITEM_H * 2 };
-                    DrawTextW(hdc, empty.as_ptr(), empty.len() as i32 - 1, &mut rc, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+                    gp_draw_text(g, "No running scripts", "Segoe UI", 14.0, 0, 0xFF504450,
+                        RectF { X: 0.0, Y: HEADER_H as f32, Width: w, Height: (ITEM_H * 2) as f32 }, 1, 1);
                 } else {
                     for (i, script) in scripts.iter().enumerate() {
-                        let y = HEADER_H + (i as i32) * ITEM_H;
+                        let y = (HEADER_H + (i as i32) * ITEM_H) as f32;
                         let is_hover = hover == i as i32;
 
-                        // Row hover bg (rounded)
+                        // Row hover bg
                         if is_hover {
-                            let hv = CreateSolidBrush(HOVER_COLOR);
-                            let old_brush = SelectObject(hdc, hv as _);
-                            let null_pen = CreatePen(5 /* PS_NULL */, 0, 0);
-                            let old_pen = SelectObject(hdc, null_pen as _);
-                            RoundRect(hdc, 6, y + 2, WIDTH - 6, y + ITEM_H - 2, 8, 8);
-                            SelectObject(hdc, old_brush);
-                            SelectObject(hdc, old_pen);
-                            DeleteObject(hv as _);
-                            DeleteObject(null_pen as _);
+                            gp_fill_rounded_rect(g, HOVER_BG, 6.0, y + 2.0, w - 12.0, ITEM_H as f32 - 4.0, 6.0);
                         }
 
-                        // Green dot (font-rendered for anti-aliasing)
-                        {
-                            let dot_font = CreateFontW(-8, 0, 0, 0, 400, 0, 0, 0, 1, 0, 0, 5, 0, wide("Segoe UI").as_ptr());
-                            let old_f = SelectObject(hdc, dot_font as _);
-                            SetTextColor(hdc, GREEN_COLOR);
-                            let dot_ch = [0x25CF_u16, 0]; // ● solid circle
-                            let mut dot_rc = RECT { left: 12, top: y + 1, right: 24, bottom: y + ITEM_H + 1 };
-                            DrawTextW(hdc, dot_ch.as_ptr(), 1, &mut dot_rc, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
-                            SelectObject(hdc, old_f);
-                            DeleteObject(dot_font as _);
-                        }
+                        // Green dot (anti-aliased circle)
+                        gp_fill_circle(g, GREEN, 18.0, y + ITEM_H as f32 / 2.0, 3.5);
 
-                        // Filename (shifted 2px up)
-                        SetTextColor(hdc, if is_hover { 0x00FFFFFF } else { TEXT_COLOR });
-                        let btn_area = if script.has_ui { 3 } else { 2 };
-                        let text_right = if is_hover { WIDTH - 16 - btn_area * (BTN_SIZE + BTN_GAP) } else { WIDTH - 16 };
-                        let name = wide(&script.filename.replace(".ahk", "").replace(".AHK", ""));
-                        let mut rc = RECT { left: 30, top: y - 2, right: text_right, bottom: y + ITEM_H - 2 };
-                        DrawTextW(hdc, name.as_ptr(), name.len() as i32 - 1, &mut rc, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
+                        // Filename
+                        let text_clr = if is_hover { 0xFFFFFFFF } else { TEXT_CLR };
+                        let btn_count = if script.has_ui { 3 } else { 2 };
+                        let text_w = if is_hover { w - 30.0 - (btn_count as f32) * (BTN_SIZE as f32 + BTN_GAP as f32) - BTN_RIGHT as f32 } else { w - 46.0 };
+                        let name = script.filename.replace(".ahk", "").replace(".AHK", "");
+                        gp_draw_text(g, &name, "Segoe UI", 15.0, 1, text_clr,
+                            RectF { X: 30.0, Y: y, Width: text_w, Height: ITEM_H as f32 }, 0, 1);
 
-                        // Action buttons (only on hover) — using Segoe MDL2 Assets icons
+                        // Action buttons on hover
                         if is_hover {
-                            let btn_y = y + (ITEM_H - BTN_SIZE) / 2;
-                            // Stop (X) — E711 = Cancel icon
-                            let stop_x = WIDTH - BTN_RIGHT - BTN_SIZE;
-                            let stop_rc = RECT { left: stop_x, top: btn_y, right: stop_x + BTN_SIZE, bottom: btn_y + BTN_SIZE };
-                            if hover_btn == 2 {
-                                let hv = CreateSolidBrush(0x00202040);
-                                let ob = SelectObject(hdc, hv as _);
-                                let np = CreatePen(5, 0, 0);
-                                let op = SelectObject(hdc, np as _);
-                                RoundRect(hdc, stop_rc.left - 1, stop_rc.top - 1, stop_rc.right + 1, stop_rc.bottom + 1, 6, 6);
-                                SelectObject(hdc, ob); SelectObject(hdc, op);
-                                DeleteObject(hv as _); DeleteObject(np as _);
-                            }
-                            draw_icon(hdc, &stop_rc, 0xE711, if hover_btn == 2 { RED_HOVER } else { RED_COLOR });
+                            let btn_y = y + (ITEM_H as f32 - BTN_SIZE as f32) / 2.0;
+                            let bs = BTN_SIZE as f32;
 
-                            // Restart — E72C = Refresh icon
-                            let restart_x = stop_x - BTN_GAP - BTN_SIZE;
-                            let restart_rc = RECT { left: restart_x, top: btn_y, right: restart_x + BTN_SIZE, bottom: btn_y + BTN_SIZE };
-                            if hover_btn == 1 {
-                                let hv = CreateSolidBrush(0x00102030);
-                                let ob = SelectObject(hdc, hv as _);
-                                let np = CreatePen(5, 0, 0);
-                                let op = SelectObject(hdc, np as _);
-                                RoundRect(hdc, restart_rc.left - 1, restart_rc.top - 1, restart_rc.right + 1, restart_rc.bottom + 1, 6, 6);
-                                SelectObject(hdc, ob); SelectObject(hdc, op);
-                                DeleteObject(hv as _); DeleteObject(np as _);
-                            }
-                            draw_icon(hdc, &restart_rc, 0xE72C, if hover_btn == 1 { YELLOW_HOVER } else { YELLOW_COLOR });
+                            // Stop (X)
+                            let stop_x = w - BTN_RIGHT as f32 - bs;
+                            if hover_btn == 2 { gp_fill_rounded_rect(g, 0xFF402020, stop_x - 1.0, btn_y - 1.0, bs + 2.0, bs + 2.0, 5.0); }
+                            gp_draw_text(g, "\u{E711}", "Segoe MDL2 Assets", 14.0, 0,
+                                if hover_btn == 2 { 0xFFFF6666 } else { RED },
+                                RectF { X: stop_x, Y: btn_y, Width: bs, Height: bs }, 1, 1);
 
-                            // UI — E737 = Page icon
+                            // Restart
+                            let restart_x = stop_x - BTN_GAP as f32 - bs;
+                            if hover_btn == 1 { gp_fill_rounded_rect(g, 0xFF302810, restart_x - 1.0, btn_y - 1.0, bs + 2.0, bs + 2.0, 5.0); }
+                            gp_draw_text(g, "\u{E72C}", "Segoe MDL2 Assets", 14.0, 0,
+                                if hover_btn == 1 { 0xFFFFAA30 } else { ORANGE },
+                                RectF { X: restart_x, Y: btn_y, Width: bs, Height: bs }, 1, 1);
+
+                            // UI
                             if script.has_ui {
-                                let ui_x = restart_x - BTN_GAP - BTN_SIZE;
-                                let ui_rc = RECT { left: ui_x, top: btn_y, right: ui_x + BTN_SIZE, bottom: btn_y + BTN_SIZE };
-                                if hover_btn == 0 {
-                                    let hv = CreateSolidBrush(0x00381820);
-                                    let ob = SelectObject(hdc, hv as _);
-                                    let np = CreatePen(5, 0, 0);
-                                    let op = SelectObject(hdc, np as _);
-                                    RoundRect(hdc, ui_rc.left - 1, ui_rc.top - 1, ui_rc.right + 1, ui_rc.bottom + 1, 6, 6);
-                                    SelectObject(hdc, ob); SelectObject(hdc, op);
-                                    DeleteObject(hv as _); DeleteObject(np as _);
-                                }
-                                draw_icon(hdc, &ui_rc, 0xE737, if hover_btn == 0 { INDIGO_HOVER } else { INDIGO_COLOR });
+                                let ui_x = restart_x - BTN_GAP as f32 - bs;
+                                if hover_btn == 0 { gp_fill_rounded_rect(g, 0xFF201838, ui_x - 1.0, btn_y - 1.0, bs + 2.0, bs + 2.0, 5.0); }
+                                gp_draw_text(g, "\u{E737}", "Segoe MDL2 Assets", 14.0, 0,
+                                    if hover_btn == 0 { 0xFF8888FF } else { INDIGO },
+                                    RectF { X: ui_x, Y: btn_y, Width: bs, Height: bs }, 1, 1);
                             }
                         }
                     }
                 }
 
-                // Footer separator
-                let footer_y = HEADER_H + items_height(scripts.len());
-                let sep2 = CreateSolidBrush(0x00303038);
-                let sep2_rc = RECT { left: 12, top: footer_y, right: WIDTH - 12, bottom: footer_y + 1 };
-                FillRect(hdc, &sep2_rc, sep2);
-                DeleteObject(sep2 as _);
+                // Footer
+                let footer_y = (HEADER_H + items_height(scripts.len())) as f32;
+                gp_fill_rect(g, SEP_CLR, 12.0, footer_y, w - 24.0, 1.0);
 
-                // Show Window
-                SelectObject(hdc, font_small);
-                let sw_y = footer_y + 1;
-                if hover == 100 {
-                    let hv = CreateSolidBrush(HOVER_COLOR);
-                    let ob = SelectObject(hdc, hv as _);
-                    let np = CreatePen(5, 0, 0);
-                    let op = SelectObject(hdc, np as _);
-                    RoundRect(hdc, 6, sw_y + 2, WIDTH - 6, sw_y + ITEM_H - 2, 8, 8);
-                    SelectObject(hdc, ob); SelectObject(hdc, op);
-                    DeleteObject(hv as _); DeleteObject(np as _);
-                }
-                SetTextColor(hdc, INDIGO_COLOR);
-                let sw = wide("SHOW WINDOW");
-                let mut sw_rc = RECT { left: 0, top: sw_y, right: WIDTH, bottom: sw_y + ITEM_H };
-                DrawTextW(hdc, sw.as_ptr(), sw.len() as i32 - 1, &mut sw_rc, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+                let sw_y = footer_y + 1.0;
+                if hover == 100 { gp_fill_rounded_rect(g, HOVER_BG, 6.0, sw_y + 2.0, w - 12.0, ITEM_H as f32 - 4.0, 6.0); }
+                gp_draw_text(g, "SHOW WINDOW", "Segoe UI", 11.0, 1, INDIGO,
+                    RectF { X: 0.0, Y: sw_y, Width: w, Height: ITEM_H as f32 }, 1, 1);
 
-                // Quit
-                let q_y = sw_y + ITEM_H;
-                if hover == 101 {
-                    let hv = CreateSolidBrush(HOVER_COLOR);
-                    let ob = SelectObject(hdc, hv as _);
-                    let np = CreatePen(5, 0, 0);
-                    let op = SelectObject(hdc, np as _);
-                    RoundRect(hdc, 6, q_y + 2, WIDTH - 6, q_y + ITEM_H - 2, 8, 8);
-                    SelectObject(hdc, ob); SelectObject(hdc, op);
-                    DeleteObject(hv as _); DeleteObject(np as _);
-                }
-                SetTextColor(hdc, DIM_COLOR);
-                let q = wide("QUIT");
-                let mut q_rc = RECT { left: 0, top: q_y, right: WIDTH, bottom: q_y + ITEM_H };
-                DrawTextW(hdc, q.as_ptr(), q.len() as i32 - 1, &mut q_rc, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+                let q_y = sw_y + ITEM_H as f32;
+                if hover == 101 { gp_fill_rounded_rect(g, HOVER_BG, 6.0, q_y + 2.0, w - 12.0, ITEM_H as f32 - 4.0, 6.0); }
+                gp_draw_text(g, "QUIT", "Segoe UI", 11.0, 1, DIM_CLR,
+                    RectF { X: 0.0, Y: q_y, Width: w, Height: ITEM_H as f32 }, 1, 1);
 
-                SelectObject(hdc, old_font);
+                // Cleanup & blit
+                GdipDeleteGraphics(g);
+                BitBlt(hdc, 0, 0, cw, ch, mem_dc, 0, 0, SRCCOPY);
+                SelectObject(mem_dc, old_bmp);
+                DeleteObject(mem_bmp as _);
+                DeleteDC(mem_dc);
                 EndPaint(hwnd, &ps);
                 0
             }
@@ -490,7 +382,7 @@ mod native_popup {
 
     pub fn create_popup() {
         unsafe {
-            create_fonts();
+            init_gdiplus();
             let hinstance = GetModuleHandleW(std::ptr::null());
             let class_name = wide("AHKManagerPopup");
 
@@ -546,7 +438,7 @@ mod native_popup {
         let script_count = STATE.lock().ok()
             .and_then(|s| s.as_ref().map(|s| s.scripts.len()))
             .unwrap_or(0);
-        let total_h = if DEBUG_PALETTE { 280 } else { HEADER_H + items_height(script_count) + FOOTER_H + 2 };
+        let total_h = HEADER_H + items_height(script_count) + FOOTER_H + 2;
 
         unsafe {
             // Resize and position
