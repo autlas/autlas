@@ -45,7 +45,9 @@
         "devtools_desc": "Open developer tools console",
         "close": "Close",
         "close_to_tray": "Close to tray",
-        "close_to_tray_desc": "Hide window instead of quitting when closing"
+        "close_to_tray_desc": "Hide window instead of quitting when closing",
+        "click_to_toggle": "Click to toggle window",
+        "click_to_toggle_desc": "Left-click tray icon to show/hide window"
     },
     "context": {
         "stop": "Stop",

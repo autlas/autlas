@@ -33,15 +33,30 @@ export default function SettingsPanel({
   const { t } = useTranslation();
 
   const [closeToTray, setCloseToTray] = useState(true);
+  const [clickToToggle, setClickToToggle] = useState(true);
 
   useEffect(() => {
-    invoke<{ close_to_tray: boolean }>("get_tray_settings").then((s) => setCloseToTray(s.close_to_tray));
+    invoke<{ close_to_tray: boolean; click_to_toggle: boolean }>("get_tray_settings").then((s) => {
+      setCloseToTray(s.close_to_tray);
+      setClickToToggle(s.click_to_toggle);
+    });
   }, []);
+
+  const updateTraySetting = (key: string, val: boolean) => {
+    const settings = { close_to_tray: closeToTray, click_to_toggle: clickToToggle, [key]: val };
+    invoke("set_tray_settings", { settings });
+  };
 
   const toggleCloseToTray = () => {
     const next = !closeToTray;
     setCloseToTray(next);
-    invoke("set_tray_settings", { settings: { close_to_tray: next } });
+    updateTraySetting("close_to_tray", next);
+  };
+
+  const toggleClickToToggle = () => {
+    const next = !clickToToggle;
+    setClickToToggle(next);
+    updateTraySetting("click_to_toggle", next);
   };
 
   const vimNavOptions = useMemo(() => [
@@ -163,6 +178,19 @@ export default function SettingsPanel({
             className={`relative w-14 h-7 rounded-full transition-all duration-300 cursor-pointer border ${closeToTray ? "bg-indigo-500/30 border-indigo-400/40 shadow-[0_0_12px_rgba(99,102,241,0.3)]" : "bg-white/5 border-white/10"}`}
           >
             <div className={`absolute top-[3px] w-5 h-5 rounded-full transition-all duration-300 shadow-lg ${closeToTray ? "left-[30px] bg-indigo-400 shadow-indigo-500/50" : "left-[3px] bg-white/30"}`} />
+          </button>
+        </div>
+
+        <div className="flex justify-between items-center px-2 pt-4 border-t border-white/5">
+          <div className="flex flex-col">
+            <span className="text-base font-bold text-secondary">{t("settings.click_to_toggle", "Click to toggle window")}</span>
+            <span className="text-xs text-tertiary mt-1">{t("settings.click_to_toggle_desc", "Left-click tray icon to show/hide window")}</span>
+          </div>
+          <button
+            onClick={toggleClickToToggle}
+            className={`relative w-14 h-7 rounded-full transition-all duration-300 cursor-pointer border ${clickToToggle ? "bg-indigo-500/30 border-indigo-400/40 shadow-[0_0_12px_rgba(99,102,241,0.3)]" : "bg-white/5 border-white/10"}`}
+          >
+            <div className={`absolute top-[3px] w-5 h-5 rounded-full transition-all duration-300 shadow-lg ${clickToToggle ? "left-[30px] bg-indigo-400 shadow-indigo-500/50" : "left-[3px] bg-white/30"}`} />
           </button>
         </div>
       </SettingsSection>

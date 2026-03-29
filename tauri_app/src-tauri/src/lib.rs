@@ -16,6 +16,7 @@ struct TraySettingsState(Mutex<TraySettings>);
 #[derive(Serialize, Deserialize, Clone)]
 struct TraySettings {
     close_to_tray: bool,
+    click_to_toggle: bool,
 }
 
 #[derive(Serialize, Clone)]
@@ -962,6 +963,7 @@ fn load_tray_settings() -> TraySettings {
     let ini_path = get_ini_path();
     let content = fs::read_to_string(&ini_path).unwrap_or_default();
     let mut close_to_tray = true;
+    let mut click_to_toggle = true;
     let mut in_settings = false;
     for line in content.lines() {
         let trimmed = line.trim();
@@ -977,13 +979,16 @@ fn load_tray_settings() -> TraySettings {
             if let Some(pos) = trimmed.find('=') {
                 let key = trimmed[..pos].trim().to_lowercase();
                 let val = trimmed[pos + 1..].trim();
-                if key == "close_to_tray" {
-                    close_to_tray = val != "0" && val.to_lowercase() != "false";
+                let bool_val = val != "0" && val.to_lowercase() != "false";
+                match key.as_str() {
+                    "close_to_tray" => close_to_tray = bool_val,
+                    "click_to_toggle" => click_to_toggle = bool_val,
+                    _ => {}
                 }
             }
         }
     }
-    TraySettings { close_to_tray }
+    TraySettings { close_to_tray, click_to_toggle }
 }
 
 fn save_tray_settings(settings: &TraySettings) -> Result<(), String> {
@@ -991,42 +996,45 @@ fn save_tray_settings(settings: &TraySettings) -> Result<(), String> {
     let content = fs::read_to_string(&ini_path).unwrap_or_default();
     let mut lines: Vec<String> = content.lines().map(|s| s.to_string()).collect();
 
-    let key = "close_to_tray";
-    let val = if settings.close_to_tray { "true" } else { "false" };
-    let new_entry = format!("{}={}", key, val);
+    let entries = vec![
+        ("close_to_tray", settings.close_to_tray),
+        ("click_to_toggle", settings.click_to_toggle),
+    ];
 
-    let mut in_settings = false;
-    let mut found = false;
-    for line in lines.iter_mut() {
-        let trimmed = line.trim();
-        if trimmed.to_lowercase() == "[settings]" {
-            in_settings = true;
-            continue;
-        }
-        if trimmed.starts_with('[') {
-            in_settings = false;
-            continue;
-        }
-        if in_settings {
-            if let Some(pos) = trimmed.find('=') {
-                if trimmed[..pos].trim().to_lowercase() == key {
-                    *line = new_entry.clone();
-                    found = true;
-                    break;
+    // Ensure [Settings] section exists
+    let section_exists = lines.iter().any(|l| l.trim().to_lowercase() == "[settings]");
+    if !section_exists {
+        lines.push("[Settings]".to_string());
+    }
+
+    for (key, val) in &entries {
+        let new_entry = format!("{}={}", key, val);
+        let mut in_settings = false;
+        let mut found = false;
+        for line in lines.iter_mut() {
+            let trimmed = line.trim();
+            if trimmed.to_lowercase() == "[settings]" {
+                in_settings = true;
+                continue;
+            }
+            if trimmed.starts_with('[') {
+                in_settings = false;
+                continue;
+            }
+            if in_settings {
+                if let Some(pos) = trimmed.find('=') {
+                    if trimmed[..pos].trim().to_lowercase() == *key {
+                        *line = new_entry.clone();
+                        found = true;
+                        break;
+                    }
                 }
             }
         }
-    }
-
-    if !found {
-        let section_idx = lines
-            .iter()
-            .position(|l| l.trim().to_lowercase() == "[settings]");
-        if let Some(idx) = section_idx {
-            lines.insert(idx + 1, new_entry);
-        } else {
-            lines.push("[Settings]".to_string());
-            lines.push(new_entry);
+        if !found {
+            if let Some(idx) = lines.iter().position(|l| l.trim().to_lowercase() == "[settings]") {
+                lines.insert(idx + 1, new_entry);
+            }
         }
     }
 
@@ -1081,6 +1089,15 @@ pub fn run() {
                     } = event
                     {
                         let app = tray.app_handle();
+                        let click_enabled = app
+                            .state::<TraySettingsState>()
+                            .0
+                            .lock()
+                            .map(|s| s.click_to_toggle)
+                            .unwrap_or(true);
+                        if !click_enabled {
+                            return;
+                        }
                         if let Some(window) = app.get_webview_window("main") {
                             let visible: bool = window.is_visible().unwrap_or(false);
                             if visible {
