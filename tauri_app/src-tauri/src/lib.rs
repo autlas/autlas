@@ -20,9 +20,9 @@ mod native_popup {
         GdipCreateSolidFill, GdipDeleteBrush, GdipFillRectangle, GdipFillEllipse,
         GdipCreatePath, GdipAddPathArc, GdipClosePathFigure, GdipFillPath, GdipDeletePath,
         GdipCreateFontFamilyFromName, GdipCreateFont, GdipDeleteFont, GdipDeleteFontFamily,
-        GdipCreateStringFormat, GdipSetStringFormatAlign, GdipSetStringFormatLineAlign, GdipSetStringFormatFlags, GdipSetStringFormatTrimming, GdipDeleteStringFormat,
+        GdipCreateStringFormat, GdipSetStringFormatAlign, GdipSetStringFormatLineAlign, GdipSetStringFormatFlags, GdipDeleteStringFormat,
         GdipDrawString, GdipMeasureString,
-        GpGraphics, GpSolidFill, GpBrush, GpPath, GpFontFamily, GpFont, GpStringFormat,
+        GpGraphics, GpSolidFill, GpPath, GpFontFamily, GpFont, GpStringFormat,
         RectF,
     };
     use windows_sys::Win32::System::LibraryLoader::GetModuleHandleW;
@@ -48,7 +48,6 @@ mod native_popup {
     }
     static STATE: Mutex<Option<PopupState>> = Mutex::new(None);
 
-    const POPUP_VERSION: &str = "v13";
     const ITEM_H: i32 = 36;
     const HEADER_H: i32 = 36;
     const FOOTER_H: i32 = 70;
@@ -146,7 +145,23 @@ mod native_popup {
     }
 
     unsafe fn gp_draw_text(g: *mut GpGraphics, text: &str, family_name: &str, size: f32, style: i32, color: u32, rect: RectF, h_align: i32, v_align: i32) {
-        gp_draw_text_ex(g, text, family_name, size, style, color, rect, h_align, v_align, false);
+        let name_w = wide(family_name);
+        let mut family: *mut GpFontFamily = std::ptr::null_mut();
+        GdipCreateFontFamilyFromName(name_w.as_ptr(), std::ptr::null_mut(), &mut family);
+        let mut font: *mut GpFont = std::ptr::null_mut();
+        GdipCreateFont(family, size, style, 2 /* UnitPixel */, &mut font);
+        let mut fmt: *mut GpStringFormat = std::ptr::null_mut();
+        GdipCreateStringFormat(0, 0, &mut fmt);
+        GdipSetStringFormatAlign(fmt, h_align);
+        GdipSetStringFormatLineAlign(fmt, v_align);
+        let mut brush: *mut GpSolidFill = std::ptr::null_mut();
+        GdipCreateSolidFill(color, &mut brush);
+        let text_w = wide(text);
+        GdipDrawString(g, text_w.as_ptr(), -1, font as _, &rect, fmt as _, brush as _);
+        GdipDeleteBrush(brush as _);
+        GdipDeleteStringFormat(fmt);
+        GdipDeleteFont(font);
+        GdipDeleteFontFamily(family);
     }
 
     unsafe fn gp_draw_text_ellipsis(g: *mut GpGraphics, text: &str, family_name: &str, size: f32, style: i32, color: u32, rect: RectF, h_align: i32, v_align: i32) {
@@ -318,8 +333,7 @@ mod native_popup {
                 gp_fill_rect(g, BG, 0.0, 0.0, w, ch as f32);
 
                 // Header
-                let ver = format!("AHK MANAGER {}", POPUP_VERSION);
-                gp_draw_text(g, &ver, "Segoe UI", 11.0, 1, DIM_CLR,
+                gp_draw_text(g, "AHK MANAGER", "Segoe UI", 11.0, 1, DIM_CLR,
                     RectF { X: 16.0, Y: 0.0, Width: w, Height: HEADER_H as f32 }, 0, 1);
                 if !scripts.is_empty() {
                     let cnt = format!("{} running", scripts.len());
@@ -503,6 +517,34 @@ mod native_popup {
         if hwnd.is_null() { return false; }
         unsafe { IsWindowVisible(hwnd) != 0 }
     }
+
+    /// Update scripts and repaint + resize if popup is visible
+    pub fn refresh(scripts: Vec<RunningScript>) {
+        if !is_visible() { return; }
+        let hwnd = POPUP_HWND.load(Ordering::SeqCst);
+        if hwnd.is_null() { return; }
+
+        // Update data
+        if let Ok(mut state) = STATE.lock() {
+            if let Some(s) = state.as_mut() {
+                s.scripts = scripts;
+                // keep hover_index only if still valid
+                let count = s.scripts.len() as i32;
+                if s.hover_index >= count { s.hover_index = -1; s.hover_btn = -1; }
+            }
+        }
+
+        // Resize window to match new script count
+        let script_count = STATE.lock().ok()
+            .and_then(|s| s.as_ref().map(|s| s.scripts.len()))
+            .unwrap_or(0);
+        let total_h = HEADER_H + items_height(script_count) + FOOTER_H + 2;
+        unsafe {
+            SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, WIDTH, total_h,
+                SWP_NOMOVE | SWP_NOACTIVATE);
+            InvalidateRect(hwnd, std::ptr::null(), 1);
+        }
+    }
 }
 
 // ── Managed state: single source of truth for tags, prevents race conditions ──
@@ -576,6 +618,23 @@ fn build_tray_menu(app: &tauri::AppHandle, running: &HashSet<String>) -> tauri::
     Ok(menu)
 }
 
+#[cfg(target_os = "windows")]
+fn collect_running_scripts(paths: &HashSet<String>) -> Vec<native_popup::RunningScript> {
+    paths.iter().map(|path| {
+        let pb = std::path::PathBuf::from(path);
+        let filename = pb.file_name()
+            .and_then(|_| {
+                pb.canonicalize().ok()
+                    .and_then(|c| c.file_name().map(|n| n.to_string_lossy().to_string()))
+            })
+            .unwrap_or_else(|| pb.file_name().map(|f| f.to_string_lossy().to_string()).unwrap_or(path.clone()));
+        let has_ui = fs::read_to_string(path)
+            .map(|c| { let t = c.to_lowercase(); t.contains("0x0401") || t.contains("0x401") })
+            .unwrap_or(false);
+        native_popup::RunningScript { path: path.clone(), filename, has_ui }
+    }).collect()
+}
+
 fn start_process_watcher(app: tauri::AppHandle) {
     std::thread::spawn(move || {
         // Fresh System each tick to avoid stale process data
@@ -613,12 +672,17 @@ fn start_process_watcher(app: tauri::AppHandle) {
                 });
             }
 
-            // Update tray menu when running scripts change
+            // Update tray menu and popup when running scripts change
             if current != prev {
                 if let Some(tray) = app.tray_by_id("main_tray") {
                     if let Ok(menu) = build_tray_menu(&app, &current) {
                         let _ = tray.set_menu(Some(menu));
                     }
+                }
+                #[cfg(target_os = "windows")]
+                {
+                    let running = collect_running_scripts(&current);
+                    native_popup::refresh(running);
                 }
             }
 
@@ -1671,24 +1735,8 @@ pub fn run() {
                                     // Collect running scripts
                                     let mut sys = System::new_all();
                                     sys.refresh_all();
-                                    let running: Vec<native_popup::RunningScript> = get_running_ahk_paths(&sys)
-                                        .into_iter()
-                                        .map(|path| {
-                                            // path is lowercased; get real filename from filesystem
-                                            let pb = std::path::PathBuf::from(&path);
-                                            let filename = pb.file_name()
-                                                .and_then(|f| {
-                                                    // Try to get original casing via canonicalize
-                                                    pb.canonicalize().ok()
-                                                        .and_then(|c| c.file_name().map(|n| n.to_string_lossy().to_string()))
-                                                })
-                                                .unwrap_or_else(|| pb.file_name().map(|f| f.to_string_lossy().to_string()).unwrap_or(path.clone()));
-                                            let has_ui = fs::read_to_string(&path)
-                                                .map(|c| { let t = c.to_lowercase(); t.contains("0x0401") || t.contains("0x401") })
-                                                .unwrap_or(false);
-                                            native_popup::RunningScript { path, filename, has_ui }
-                                        })
-                                        .collect();
+                                    let paths = get_running_ahk_paths(&sys);
+                                    let running = collect_running_scripts(&paths);
                                     native_popup::update_scripts(running);
                                     native_popup::show_at(position.x as i32, position.y as i32);
                                 }
