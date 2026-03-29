@@ -17,6 +17,17 @@
         "height": 600,
         "devtools": true,
         "additionalBrowserArgs": "--enable-gpu --ignore-gpu-blocklist --enable-accelerated-2d-canvas"
+      },
+      {
+        "label": "tray-popup",
+        "title": "",
+        "width": 300,
+        "height": 380,
+        "decorations": false,
+        "resizable": false,
+        "skipTaskbar": true,
+        "alwaysOnTop": true,
+        "visible": false
       }
     ],
     "security": {

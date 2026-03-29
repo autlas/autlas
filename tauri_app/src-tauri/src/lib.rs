@@ -6,7 +6,7 @@ use std::sync::Mutex;
 use sysinfo::System;
 use tauri::tray::{TrayIconBuilder, TrayIconEvent, MouseButton, MouseButtonState, TrayIcon};
 use tauri::menu::{Menu, MenuEvent, MenuItem, PredefinedMenuItem};
-use tauri::{Emitter, Manager, Wry};
+use tauri::{Emitter, Manager, WebviewUrl, WebviewWindowBuilder, Wry};
 use walkdir::WalkDir;
 
 // ── Managed state: single source of truth for tags, prevents race conditions ──
@@ -1058,6 +1058,24 @@ async fn set_tray_settings(
     save_tray_settings(&settings)
 }
 
+#[tauri::command]
+async fn show_main_window_cmd(app: tauri::AppHandle) -> Result<(), String> {
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.show();
+        let _ = window.set_focus();
+    }
+    if let Some(popup) = app.get_webview_window("tray-popup") {
+        let _ = popup.hide();
+    }
+    Ok(())
+}
+
+#[tauri::command]
+async fn quit_app_cmd(app: tauri::AppHandle) -> Result<(), String> {
+    app.exit(0);
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     // Seed state from disk on startup
@@ -1073,90 +1091,35 @@ pub fn run() {
         .setup(|app| {
             let handle = app.handle().clone();
 
-            // Build initial tray menu (no scripts running yet)
-            let empty_running = HashSet::new();
-            let menu = build_tray_menu(&handle, &empty_running)?;
+            // Init positioner plugin
+            app.handle().plugin(tauri_plugin_positioner::init())?;
 
             TrayIconBuilder::with_id("main_tray")
                 .icon(app.default_window_icon().cloned().expect("no default icon"))
-                .menu(&menu)
                 .tooltip("AHK Manager")
                 .on_tray_icon_event(|tray: &TrayIcon<Wry>, event: TrayIconEvent| {
-                    if let TrayIconEvent::Click {
-                        button: MouseButton::Left,
-                        button_state: MouseButtonState::Up,
-                        ..
-                    } = event
-                    {
-                        let app = tray.app_handle();
-                        let click_enabled = app
-                            .state::<TraySettingsState>()
-                            .0
-                            .lock()
-                            .map(|s| s.click_to_toggle)
-                            .unwrap_or(true);
-                        if !click_enabled {
-                            return;
-                        }
-                        if let Some(window) = app.get_webview_window("main") {
-                            let visible: bool = window.is_visible().unwrap_or(false);
-                            if visible {
-                                let _ = window.hide();
-                            } else {
-                                let _ = window.show();
-                                let _ = window.set_focus();
-                            }
-                        }
-                    }
-                })
-                .on_menu_event(|app: &tauri::AppHandle<Wry>, event: MenuEvent| {
-                    let id = event.id().as_ref();
-                    match id {
-                        "show_window" => {
-                            if let Some(window) = app.get_webview_window("main") {
-                                let _ = window.show();
-                                let _ = window.set_focus();
-                            }
-                        }
-                        "quit" => {
-                            app.exit(0);
-                        }
-                        "stop_all" => {
-                            let mut sys = System::new_all();
-                            sys.refresh_all();
-                            for (pid, process) in sys.processes() {
-                                let name = process.name().to_string_lossy().to_lowercase();
-                                if name.contains("autohotkey") {
-                                    let _ = Command::new("taskkill")
-                                        .args(["/F", "/PID", &pid.as_u32().to_string()])
-                                        .output();
+                    tauri_plugin_positioner::on_tray_event(tray.app_handle(), &event);
+
+                    match event {
+                        TrayIconEvent::Click {
+                            button: MouseButton::Left,
+                            button_state: MouseButtonState::Up,
+                            ..
+                        } => {
+                            let app = tray.app_handle();
+
+                            if let Some(popup) = app.get_webview_window("tray-popup") {
+                                if popup.is_visible().unwrap_or(false) {
+                                    let _ = popup.hide();
+                                } else {
+                                    use tauri_plugin_positioner::WindowExt;
+                                    let _ = popup.move_window(tauri_plugin_positioner::Position::TrayCenter);
+                                    let _ = popup.show();
+                                    let _ = popup.set_focus();
                                 }
                             }
                         }
-                        other => {
-                            if let Some(path) = other.strip_prefix("stop|") {
-                                let mut sys = System::new_all();
-                                sys.refresh_all();
-                                let path_lower = path.to_lowercase().replace('/', "\\");
-                                for (pid, process) in sys.processes() {
-                                    let name = process.name().to_string_lossy().to_lowercase();
-                                    if name.contains("autohotkey") {
-                                        let matched = process.cmd().iter().any(|arg| {
-                                            arg.to_string_lossy()
-                                                .trim_matches('"')
-                                                .replace('/', "\\")
-                                                .to_lowercase()
-                                                == path_lower
-                                        });
-                                        if matched {
-                                            let _ = Command::new("taskkill")
-                                                .args(["/F", "/PID", &pid.as_u32().to_string()])
-                                                .output();
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                        _ => {}
                     }
                 })
                 .build(app)?;
@@ -1165,18 +1128,27 @@ pub fn run() {
             Ok(())
         })
         .on_window_event(|window, event| {
-            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
-                let close_to_tray = window
-                    .app_handle()
-                    .state::<TraySettingsState>()
-                    .0
-                    .lock()
-                    .map(|s| s.close_to_tray)
-                    .unwrap_or(true);
-                if close_to_tray {
-                    api.prevent_close();
-                    let _ = window.hide();
+            match event {
+                tauri::WindowEvent::CloseRequested { api, .. } => {
+                    if window.label() == "main" {
+                        let close_to_tray = window
+                            .app_handle()
+                            .state::<TraySettingsState>()
+                            .0
+                            .lock()
+                            .map(|s| s.close_to_tray)
+                            .unwrap_or(true);
+                        if close_to_tray {
+                            api.prevent_close();
+                            let _ = window.hide();
+                        }
+                    } else if window.label() == "tray-popup" {
+                        api.prevent_close();
+                        let _ = window.hide();
+                    }
                 }
+                // No blur handler for popup — toggle via tray click only
+                _ => {}
             }
         })
         .invoke_handler(tauri::generate_handler![
@@ -1200,7 +1172,9 @@ pub fn run() {
             set_scan_paths,
             get_script_status,
             get_tray_settings,
-            set_tray_settings
+            set_tray_settings,
+            show_main_window_cmd,
+            quit_app_cmd
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
