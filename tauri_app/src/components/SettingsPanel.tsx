@@ -1,6 +1,8 @@
 import { invoke } from "@tauri-apps/api/core";
+import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import LanguageSelector from "./LanguageSelector";
+import ToggleGroup from "./ui/ToggleGroup";
 
 interface SettingsPanelProps {
   brightness: number;
@@ -27,6 +29,11 @@ export default function SettingsPanel({
   scanPaths, onAddPath, onRemovePath,
 }: SettingsPanelProps) {
   const { t } = useTranslation();
+
+  const vimNavOptions = useMemo(() => [
+    { id: "hjkl" as const, label: "hjkl" },
+    { id: "jk" as const, label: "jk" },
+  ], []);
 
   return (
     <div className="max-w-[1200px] mx-auto w-full space-y-12 py-8">
@@ -121,20 +128,12 @@ export default function SettingsPanel({
             <span className="text-base font-bold text-secondary">Vim Navigation Style</span>
             <span className="text-xs text-tertiary mt-1">hjkl (2D grid) vs jk (1D list)</span>
           </div>
-          <div className="flex bg-white/[0.03] border border-white/5 rounded-xl p-1 gap-1 h-[42px] flex-shrink-0 w-[145px]">
-            <button
-              onClick={() => { setVimModeNav("hjkl"); localStorage.setItem("ahk_vim_mode_nav", "hjkl"); }}
-              className={`flex-1 h-full rounded-lg text-[10px] font-black tracking-widest uppercase transition-all flex items-center justify-center cursor-pointer ${vimModeNav === "hjkl" ? "bg-white/10 text-white shadow-lg shadow-white/5" : "text-tertiary hover:text-white hover:bg-white/5"}`}
-            >
-              hjkl
-            </button>
-            <button
-              onClick={() => { setVimModeNav("jk"); localStorage.setItem("ahk_vim_mode_nav", "jk"); }}
-              className={`flex-1 h-full rounded-lg text-[10px] font-black tracking-widest uppercase transition-all flex items-center justify-center cursor-pointer ${vimModeNav === "jk" ? "bg-white/10 text-white shadow-lg shadow-white/5" : "text-tertiary hover:text-white hover:bg-white/5"}`}
-            >
-              jk
-            </button>
-          </div>
+          <ToggleGroup
+              options={vimNavOptions}
+              value={vimModeNav}
+              onChange={(v) => { setVimModeNav(v); localStorage.setItem("ahk_vim_mode_nav", v); }}
+              className="flex-shrink-0 w-[145px]"
+          />
         </div>
       </section>
 
