@@ -370,14 +370,21 @@ async fn run_script(path: String) -> Result<(), String> {
 async fn kill_script(path: String) -> Result<(), String> {
     let mut sys = System::new_all();
     sys.refresh_all();
-    let path_lower = path.to_lowercase();
-    for (_pid, process) in sys.processes() {
+    let path_lower = path.to_lowercase().replace('/', "\\");
+    for (pid, process) in sys.processes() {
         let name = process.name().to_string_lossy().to_lowercase();
         if name.contains("autohotkey") {
-            let cmd: Vec<String> = process.cmd().iter().map(|s| s.to_string_lossy().into_owned()).collect();
-            let cmd_str = cmd.join(" ").to_lowercase();
-            if cmd_str.contains(&path_lower) {
-                process.kill();
+            let matched = process.cmd().iter().any(|arg| {
+                let s = arg.to_string_lossy()
+                    .trim_matches('"')
+                    .replace('/', "\\")
+                    .to_lowercase();
+                s == path_lower
+            });
+            if matched {
+                let _ = Command::new("taskkill")
+                    .args(["/F", "/PID", &pid.as_u32().to_string()])
+                    .output();
             }
         }
     }
@@ -389,14 +396,21 @@ async fn restart_script(path: String) -> Result<(), String> {
     // 1. Kill the script
     let mut sys = System::new_all();
     sys.refresh_all();
-    let path_lower = path.to_lowercase();
-    for (_pid, process) in sys.processes() {
+    let path_lower = path.to_lowercase().replace('/', "\\");
+    for (pid, process) in sys.processes() {
         let name = process.name().to_string_lossy().to_lowercase();
         if name.contains("autohotkey") {
-            let cmd: Vec<String> = process.cmd().iter().map(|s| s.to_string_lossy().into_owned()).collect();
-            let cmd_str = cmd.join(" ").to_lowercase();
-            if cmd_str.contains(&path_lower) {
-                process.kill();
+            let matched = process.cmd().iter().any(|arg| {
+                let s = arg.to_string_lossy()
+                    .trim_matches('"')
+                    .replace('/', "\\")
+                    .to_lowercase();
+                s == path_lower
+            });
+            if matched {
+                let _ = Command::new("taskkill")
+                    .args(["/F", "/PID", &pid.as_u32().to_string()])
+                    .output();
             }
         }
     }

@@ -46,7 +46,7 @@ const HubScriptCard = memo(function HubScriptCard({
                 setFocusedPath(s.path);
                 setIsVimMode(false);
             }}
-            onDoubleClick={() => !isDragging && onToggle(s, true)}
+            onDoubleClick={() => !isDragging && onToggle(s)}
             id={`script-${s.path}`}
             className={`p-6 rounded-[24px] border flex flex-col select-none relative long-press-shrink ${isEditing ? 'z-[200]' : 'z-10'}
                 ${isFocused && isVimMode ? 'vim-focus-instant !bg-indigo-500/20 shadow-[0_0_40px_rgba(99,102,241,0.2)] ring-2 ring-indigo-500/30' : 'transition-all duration-300'}
