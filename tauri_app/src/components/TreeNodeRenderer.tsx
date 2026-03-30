@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, createContext, useContext, memo } from "react";
+import React, { useState, useEffect, useRef, createContext, memo } from "react";
 import { useTreeStore } from "../store/useTreeStore";
 import { HighlightText } from "./HighlightText";
 import ScriptRow from "./ScriptRow";
@@ -28,6 +28,10 @@ export interface TreeContextValue {
 
 export const TreeContext = createContext<TreeContextValue>(null as any);
 
+// Module-level ref for callbacks — avoids useContext which bypasses React.memo
+let _treeCallbacks: TreeContextValue | null = null;
+export function setTreeCallbacks(cb: TreeContextValue) { _treeCallbacks = cb; }
+
 export const TreeNodeRenderer = memo(function TreeNodeRenderer({
     node,
     depth,
@@ -35,19 +39,32 @@ export const TreeNodeRenderer = memo(function TreeNodeRenderer({
     node: TreeNode;
     depth: number;
 }) {
-    const isExpanded = useTreeStore(s => node.name === "Root" || s.expandedFolders[node.fullName] !== false);
-    const isDragging = useTreeStore(s => s.isDragging);
-    const draggedScriptPath = useTreeStore(s => s.draggedScriptPath);
-    const editingScript = useTreeStore(s => s.editingScript);
-    const pendingScripts = useTreeStore(s => s.pendingScripts);
-    const removingTags = useTreeStore(s => s.removingTags);
-    const showHidden = useTreeStore(s => s.showHidden);
-    const contextMenu = useTreeStore(s => s.contextMenu);
-    const isFolderFocused = useTreeStore(s => s.focusedPath === node.fullName);
-    const isVimMode = useTreeStore(s => s.isVimMode);
-    const folderDurations = useTreeStore(s => s.folderDurations);
+    // Subscribe ONLY to isExpanded — the only value that requires DOM changes on this node
+    const [isExpanded, setIsExpanded] = useState(() =>
+        node.name === "Root" || useTreeStore.getState().expandedFolders[node.fullName] !== false
+    );
+    useEffect(() => {
+        if (node.name === "Root") return;
+        return useTreeStore.subscribe((state) => {
+            const expanded = state.expandedFolders[node.fullName] !== false;
+            setIsExpanded(prev => prev === expanded ? prev : expanded);
+        });
+    }, [node.fullName]);
 
-    const ctx = useContext(TreeContext);
+    // Everything else: read on demand, no subscription
+    const st = useTreeStore.getState();
+    const isFolderFocused = st.focusedPath === node.fullName;
+    const isDragging = st.isDragging;
+    const draggedScriptPath = st.draggedScriptPath;
+    const editingScript = st.editingScript;
+    const pendingScripts = st.pendingScripts;
+    const removingTags = st.removingTags;
+    const showHidden = st.showHidden;
+    const contextMenu = st.contextMenu;
+    const isVimMode = st.isVimMode;
+    const folderDurations = st.folderDurations;
+
+    const ctx = _treeCallbacks!;
     const { toggleFolder, setFolderExpansionRecursive,
         folderRefs, allUniqueTags,
         onFolderContextMenu, onScriptContextMenu,
@@ -243,8 +260,16 @@ export const TreeNodeRenderer = memo(function TreeNodeRenderer({
         </div>
     );
 }, (prev, next) => {
-    if (prev.depth === 0) return false;
-    if (prev.node.fullName !== next.node.fullName) return false;
+    if (prev.node === next.node && prev.depth === next.depth) return true;
+    const result = prev.node.fullName === next.node.fullName &&
+        prev.node.scripts.length === next.node.scripts.length &&
+        Object.keys(prev.node.children).length === Object.keys(next.node.children).length &&
+        prev.node.scripts.every((ps, i) => {
+            const ns = next.node.scripts[i];
+            return ps.path === ns.path && ps.is_running === ns.is_running && ps.tags.join(',') === ns.tags.join(',');
+        });
+    if (!result) console.log(`[memo] ${prev.node.fullName} → rerender (props changed)`);
+    return result;
     if (prev.node.scripts.length !== next.node.scripts.length) return false;
     const prevChildKeys = Object.keys(prev.node.children);
     const nextChildKeys = Object.keys(next.node.children);

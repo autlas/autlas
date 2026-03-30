@@ -7,7 +7,7 @@ import { useHotkeys } from "react-hotkeys-hook";
 import EmptyState from "./EmptyState";
 import ScriptTreeToolbar from "./ScriptTreeToolbar";
 import ScriptGridView from "./ScriptGridView";
-import { TreeContext, TreeNodeRenderer } from "./TreeNodeRenderer";
+import { TreeContext, TreeNodeRenderer, setTreeCallbacks } from "./TreeNodeRenderer";
 import { useTreeStore } from "../store/useTreeStore";
 
 export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, onRunningCountChange, viewMode, onViewModeChange, onCustomDragStart, isDragging, draggedScriptPath, animationsEnabled, onScriptContextMenu, onFolderContextMenu, searchQuery, setSearchQuery, contextMenu, onShowUI, manualRefresh, onScanComplete, isPathsEmpty, onAddPath, onRefresh, onOpenSettings, onSelectScript, onExposeActions }: ScriptTreeProps) {
@@ -30,9 +30,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
     const pendingScripts = useTreeStore(s => s.pendingScripts);
     const showHidden = useTreeStore(s => s.showHidden);
     const setShowHidden = useTreeStore(s => s.setShowHidden);
-    const focusedPath = useTreeStore(s => s.focusedPath);
     const setFocusedPath = useTreeStore(s => s.setFocusedPath);
-    const isVimMode = useTreeStore(s => s.isVimMode);
     const setIsVimMode = useTreeStore(s => s.setIsVimMode);
     const editingScript = useTreeStore(s => s.editingScript);
     const removingTags = useTreeStore(s => s.removingTags);
@@ -71,8 +69,8 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
     }, { preventDefault: true });
 
     useHotkeys('enter', () => {
-        if (!focusedPath) return;
-        const item = visibleItems.find(i => i.path === focusedPath);
+        if (!useTreeStore.getState().focusedPath) return;
+        const item = visibleItems.find(i => i.path === useTreeStore.getState().focusedPath);
         if (item) {
             if (item.type === 'script') {
                 handleToggle(item.data);
@@ -83,8 +81,8 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
     }, { preventDefault: true });
 
     useHotkeys('space', () => {
-        if (!focusedPath) return;
-        const item = visibleItems.find(i => i.path === focusedPath);
+        if (!useTreeStore.getState().focusedPath) return;
+        const item = visibleItems.find(i => i.path === useTreeStore.getState().focusedPath);
         if (item && item.type === 'script') {
             onSelectScript?.(item.data);
         } else if (item) {
@@ -93,16 +91,16 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
     }, { preventDefault: true });
 
     useHotkeys('r', () => {
-        if (!focusedPath) return;
-        const item = visibleItems.find(i => i.path === focusedPath);
+        if (!useTreeStore.getState().focusedPath) return;
+        const item = visibleItems.find(i => i.path === useTreeStore.getState().focusedPath);
         if (item && item.type === 'script' && item.data.is_running) {
             handleRestart(item.data);
         }
     }, { preventDefault: true });
 
     useHotkeys('t', () => {
-        if (!focusedPath) return;
-        const item = visibleItems.find(i => i.path === focusedPath);
+        if (!useTreeStore.getState().focusedPath) return;
+        const item = visibleItems.find(i => i.path === useTreeStore.getState().focusedPath);
         if (item && item.type === 'script') {
             startEditing(item.data);
         }
@@ -186,8 +184,8 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
             if (searchInputRef.current) searchInputRef.current.focus();
             return;
         }
-        if (focusedPath) {
-            const item = visibleItems.find(it => it.path === focusedPath);
+        if (useTreeStore.getState().focusedPath) {
+            const item = visibleItems.find(it => it.path === useTreeStore.getState().focusedPath);
             if (item && item.type === 'script' && item.data.is_running && item.data.has_ui) {
                 onShowUI(item.data);
             }
@@ -215,17 +213,20 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
     const lastScrollTimeRef = useRef(0);
 
     useEffect(() => {
-        if (!focusedPath || !isVimMode) return;
-        const el = folderRefs.current.get(focusedPath) || document.getElementById(`script-${focusedPath}`);
-        if (el) {
-            const now = performance.now();
-            const diff = now - lastScrollTimeRef.current;
-            lastScrollTimeRef.current = now;
-            const behavior = isInstantScrollRef.current || (diff < 80 && diff > 0) ? 'auto' : 'smooth';
-            isInstantScrollRef.current = false;
-            el.scrollIntoView({ behavior, block: 'nearest' });
-        }
-    }, [focusedPath, isVimMode]);
+        return useTreeStore.subscribe((state, prev) => {
+            if (state.focusedPath === prev.focusedPath) return;
+            if (!state.focusedPath || !state.isVimMode) return;
+            const el = folderRefs.current.get(state.focusedPath) || document.getElementById(`script-${state.focusedPath}`);
+            if (el) {
+                const now = performance.now();
+                const diff = now - lastScrollTimeRef.current;
+                lastScrollTimeRef.current = now;
+                const behavior = isInstantScrollRef.current || (diff < 80 && diff > 0) ? 'auto' : 'smooth';
+                isInstantScrollRef.current = false;
+                el.scrollIntoView({ behavior, block: 'nearest' });
+            }
+        });
+    }, []);
 
     useEffect(() => {
         if (onLoadingChange) onLoadingChange(isFetching);
@@ -291,6 +292,9 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
         onShowUI, handleRestart, onSelectScript
     ]);
 
+    // Set module-level callbacks for TreeNodeRenderer (bypasses useContext → prevents memo bypass)
+    setTreeCallbacks(treeContextValue);
+
     const masonryColumns = useMemo(() => {
         const cols: import("../api").Script[][] = Array.from({ length: columnsCount }, () => []);
         filtered.forEach((s, i) => cols[i % columnsCount].push(s));
@@ -343,8 +347,8 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
                 <div
                     ref={containerRef}
                     onScroll={handleScroll}
-                    onMouseMove={() => { if (isVimMode) setIsVimMode(false); }}
-                    className={`flex-1 overflow-y-auto custom-scrollbar -mx-8 px-8 transition-all duration-300 ${draggedScriptPath ? 'opacity-30 blur-[1px]' : ''} ${isVimMode ? 'vim-active' : ''}`}
+                    onMouseMove={() => { if (useTreeStore.getState().isVimMode) setIsVimMode(false); }}
+                    className={`flex-1 overflow-y-auto custom-scrollbar -mx-8 px-8 transition-all duration-300 ${draggedScriptPath ? 'opacity-30 blur-[1px]' : ''}`}
                     id="script-list-container"
                 >
                     {viewMode !== "tree" ? (
