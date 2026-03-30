@@ -69,10 +69,7 @@ export interface ScriptRowProps {
     onScriptContextMenu: (e: React.MouseEvent, script: Script) => void;
     onShowUI: (s: Script) => void;
     onRestart: (s: Script) => void;
-    isFocused: boolean;
     setFocusedPath: (path: string | null) => void;
-    isVimMode: boolean;
-    setIsVimMode: (v: boolean) => void;
     onSelectScript?: (s: Script) => void;
 }
 
@@ -96,9 +93,6 @@ export interface HubScriptCardProps {
     onScriptContextMenu: (e: React.MouseEvent, s: Script) => void;
     onShowUI: (s: Script) => void;
     onRestart: (s: Script) => void;
-    isFocused: boolean;
     setFocusedPath: (path: string | null) => void;
-    isVimMode: boolean;
-    setIsVimMode: (v: boolean) => void;
     onSelectScript?: (s: Script) => void;
 }

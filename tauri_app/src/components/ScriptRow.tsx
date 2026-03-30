@@ -2,6 +2,7 @@ import React, { useState, memo, useRef, useLayoutEffect } from "react";
 import { ScriptRowProps } from "../types/script";
 import TagPickerPopover from "./TagPickerPopover";
 import { HighlightText } from "./HighlightText";
+import { useTreeStore } from "../store/useTreeStore";
 import { useTranslation } from "react-i18next";
 import { PlusIcon, CloseIcon, RestartIcon, PlayIcon, InterfaceIcon } from "./ui/Icons";
 import ActionButton from "./ui/ActionButton";
@@ -11,9 +12,11 @@ const ScriptRow = memo(function ScriptRow({
     allUniqueTags, popoverRef, visibilityMode,
     onMouseDown, onDoubleClick, onToggle, onStartEditing, onAddTag, onRemoveTag, onCloseEditing,
     onScriptContextMenu, onShowUI, onRestart,
-    isFocused, setFocusedPath, isVimMode, onSelectScript
+    setFocusedPath, onSelectScript
 }: ScriptRowProps) {
     const { t } = useTranslation();
+    const isFocused = useTreeStore(store => store.focusedPath === s.path);
+    const isVimMode = useTreeStore(store => store.isVimMode);
 
     const [isLeftPressed, setIsLeftPressed] = useState(false);
     const [visibleCount, setVisibleCount] = useState(s.tags.length);
@@ -264,8 +267,6 @@ const ScriptRow = memo(function ScriptRow({
         prev.visibilityMode === next.visibilityMode &&
         prev.onShowUI === next.onShowUI &&
         prev.onRestart === next.onRestart &&
-        prev.isFocused === next.isFocused &&
-        prev.isVimMode === next.isVimMode &&
         prev.onSelectScript === next.onSelectScript;
 });
 

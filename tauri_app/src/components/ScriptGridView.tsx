@@ -47,10 +47,7 @@ interface ScriptGridViewProps {
     onScriptContextMenu: (e: React.MouseEvent, s: Script) => void;
     onShowUI: (s: Script) => void;
     onRestart: (s: Script) => void;
-    focusedPath: string | null;
     setFocusedPath: (path: string | null) => void;
-    isVimMode: boolean;
-    setIsVimMode: (v: boolean) => void;
     onSelectScript?: (s: Script) => void;
 }
 
@@ -60,7 +57,7 @@ export default function ScriptGridView({
     isDragging, draggedScriptPath, editingScript, pendingScripts, removingTags, allUniqueTags,
     popoverRef, showHidden, contextMenu, handleCustomMouseDown, handleToggle,
     startEditing, addTag, removeTag, stopEditing, onScriptContextMenu,
-    onShowUI, onRestart, focusedPath, setFocusedPath, isVimMode, setIsVimMode, onSelectScript,
+    onShowUI, onRestart, setFocusedPath, onSelectScript,
 }: ScriptGridViewProps) {
     const isTiles = mode === "tiles";
     const gridGap = isTiles ? "gap-6" : "gap-x-8 gap-y-1";
@@ -90,10 +87,8 @@ export default function ScriptGridView({
                     onScriptContextMenu={onScriptContextMenu}
                     onShowUI={onShowUI}
                     onRestart={onRestart}
-                    isFocused={focusedPath === s.path}
+
                     setFocusedPath={setFocusedPath}
-                    isVimMode={isVimMode}
-                    setIsVimMode={setIsVimMode}
                     onSelectScript={onSelectScript}
                 />
             );
@@ -123,10 +118,7 @@ export default function ScriptGridView({
                 onScriptContextMenu={onScriptContextMenu}
                 onShowUI={onShowUI}
                 onRestart={onRestart}
-                isFocused={focusedPath === s.path}
                 setFocusedPath={setFocusedPath}
-                isVimMode={isVimMode}
-                setIsVimMode={setIsVimMode}
                 onSelectScript={onSelectScript}
             />
         );

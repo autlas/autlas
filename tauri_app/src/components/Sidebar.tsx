@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useTranslation } from "react-i18next";
 import { GearIcon } from "./ui/Icons";
@@ -17,7 +17,6 @@ interface SidebarProps {
   isRefreshing: boolean;
   isHoveringRefresh: boolean;
   lastScanTimestamp: number;
-  currentTime: number;
   activeTabPressed: string | null;
   newTagName: string;
 
@@ -66,12 +65,17 @@ function navItemClass(tab: string, isTag: boolean, state: Pick<SidebarProps, "ac
 
 export default function Sidebar({
   activeTab, viewMode, userTags, draggedScript, draggedTag, dragOverTag, isCreatingTagFor, isRenamingTag, editTagName,
-  runningCount, isRefreshing, isHoveringRefresh, lastScanTimestamp, currentTime, activeTabPressed, newTagName,
+  runningCount, isRefreshing, isHoveringRefresh, lastScanTimestamp, activeTabPressed, newTagName,
   onTabClick, setActiveTab, setDragOverTag, setDraggedTag, setIsCreatingTagFor, setNewTagName, setIsRenamingTag, setEditTagName,
   setActiveTabPressed, setDragGhostSize, setContextMenu, setUserTags, setRefreshKey, onRefresh, onHoveringRefresh, onCustomDrop,
   settingsIconRef, refreshIconRef, ghostRef, tagDragOffsetYRef, tagDragOffsetXRef, pendingTagDragRef, formatLastScan,
 }: SidebarProps) {
   const { t } = useTranslation();
+  const [currentTime, setCurrentTime] = useState(Date.now());
+  useEffect(() => {
+    const ticker = setInterval(() => setCurrentTime(Date.now()), 1000);
+    return () => clearInterval(ticker);
+  }, []);
 
   const handleTagDragStart = (e: React.MouseEvent<HTMLLIElement>, tag: string) => {
     if (e.button === 2) {

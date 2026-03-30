@@ -40,6 +40,7 @@ interface UseScriptTreeOptions {
 
 export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, searchQuery, setSearchQuery, onRunningCountChange, manualRefresh, onScanComplete, viewMode, sortBy }: UseScriptTreeOptions) {
     const { t } = useTranslation();
+    console.log(`[useScriptTree] ${performance.now().toFixed(1)}ms render`);
     const [allScripts, setAllScripts] = useState<Script[]>(_cachedScripts);
     const [loading, setLoading] = useState(_cachedScripts.length === 0);
     const [isFetching, setIsFetching] = useState(false);
@@ -137,11 +138,21 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
                 const { path, is_running, has_ui } = event.payload;
                 const pathLower = path.toLowerCase();
                 startTransition(() => {
-                    setAllScripts(prev => prev.map(s =>
-                        s.path.toLowerCase() === pathLower
-                            ? { ...s, is_running, has_ui: is_running ? has_ui : false }
-                            : s
-                    ));
+                    setAllScripts(prev => {
+                        const target = prev.find(s => s.path.toLowerCase() === pathLower);
+                        if (!target) return prev;
+                        const newHasUi = is_running ? has_ui : false;
+                        if (target.is_running === is_running && target.has_ui === newHasUi) {
+                            console.log(`[Watcher] SKIP (no change): ${path}`);
+                            return prev;
+                        }
+                        console.log(`[Watcher] UPDATE: ${path} running=${is_running}`);
+                        return prev.map(s =>
+                            s.path.toLowerCase() === pathLower
+                                ? { ...s, is_running, has_ui: newHasUi }
+                                : s
+                        );
+                    });
                 });
                 {
                     const store = useTreeStore.getState();

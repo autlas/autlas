@@ -42,13 +42,10 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
     }, [handleToggle, handleRestart, pendingScripts, allScripts, onExposeActions]);
 
     const [isCheatSheetOpen, setIsCheatSheetOpen] = useState(false);
-    const [isSearchActive, setIsSearchActiveState] = useState(false);
     const isSearchActiveRef = useRef(false);
     const setIsSearchActive = (v: boolean) => {
         isSearchActiveRef.current = v;
-        setIsSearchActiveState(v);
     };
-    const displayFocusedPath = isSearchActive ? null : focusedPath;
 
     // ─── VIM HOTKEYS ───────────────────────────────────────────────
     useHotkeys('j', () => {
@@ -384,10 +381,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
                             onScriptContextMenu={onScriptContextMenu}
                             onShowUI={onShowUI}
                             onRestart={handleRestart}
-                            focusedPath={displayFocusedPath}
                             setFocusedPath={setFocusedPath}
-                            isVimMode={isVimMode}
-                            setIsVimMode={setIsVimMode}
                             onSelectScript={onSelectScript}
                         />
                     ) : (

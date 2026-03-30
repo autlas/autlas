@@ -43,7 +43,7 @@ export const TreeNodeRenderer = memo(function TreeNodeRenderer({
     const removingTags = useTreeStore(s => s.removingTags);
     const showHidden = useTreeStore(s => s.showHidden);
     const contextMenu = useTreeStore(s => s.contextMenu);
-    const focusedPath = useTreeStore(s => s.focusedPath);
+    const isFolderFocused = useTreeStore(s => s.focusedPath === node.fullName);
     const isVimMode = useTreeStore(s => s.isVimMode);
     const folderDurations = useTreeStore(s => s.folderDurations);
 
@@ -54,6 +54,8 @@ export const TreeNodeRenderer = memo(function TreeNodeRenderer({
         popoverRef, handleCustomMouseDown, handleToggle,
         startEditing, stopEditing, addTag, removeTag, onShowUI } = ctx;
 
+
+    console.log(`[Tree] ${performance.now().toFixed(1)}ms render: ${node.name} (depth=${depth}, expanded=${isExpanded})`);
 
     const [everExpanded, setEverExpanded] = useState(isExpanded);
     const [gridExpanded, setGridExpanded] = useState(isExpanded);
@@ -108,7 +110,7 @@ export const TreeNodeRenderer = memo(function TreeNodeRenderer({
                     }}
                     id={`folder-${node.fullName}`}
                     className={`flex items-center space-x-2 h-[38px] pl-[4px] rounded-lg z-10 relative mb-0.5 border border-transparent hover:z-[50] scroll-mt-[250px] scroll-mb-[250px]
-                        ${focusedPath === node.fullName && isVimMode ? '!transition-none !bg-indigo-500/20 shadow-[0_0_15px_rgba(99,102,241,0.15)]' : 'transition-all duration-300'}
+                        ${isFolderFocused && isVimMode ? '!transition-none !bg-indigo-500/20 shadow-[0_0_15px_rgba(99,102,241,0.15)]' : 'transition-all duration-300'}
                         ${!draggedScriptPath ? (isVimMode ? 'bg-transparent cursor-pointer' : 'bg-transparent hover:bg-white/[0.05] cursor-pointer group') : 'bg-transparent text-tertiary cursor-default pointer-events-none'}
                         ${contextMenu?.type === 'folder' && contextMenu?.data?.fullName === node.fullName ? 'bg-white/5 border-white/10' : ''}
                     `}
@@ -122,7 +124,7 @@ export const TreeNodeRenderer = memo(function TreeNodeRenderer({
                             <path d="M5.5 3.5L5.5 20.5L20.2 12L5.5 3.5Z" />
                         </svg>
                     </div>
-                    {focusedPath === node.fullName && isVimMode && (
+                    {isFolderFocused && isVimMode && (
                         <div className="absolute left-0 top-1 bottom-1 w-[3.5px] bg-indigo-500 rounded-full shadow-[0_0_15px_rgba(99,102,241,0.6)] z-20" />
                     )}
                     <div className="flex items-center overflow-hidden h-full">
@@ -229,10 +231,7 @@ export const TreeNodeRenderer = memo(function TreeNodeRenderer({
                                             onShowUI={onShowUI}
                                             onRestart={ctx.onRestart}
                                             onSelectScript={ctx.onSelectScript}
-                                            isFocused={focusedPath === s.path}
                                             setFocusedPath={useTreeStore.getState().setFocusedPath}
-                                            isVimMode={isVimMode}
-                                            setIsVimMode={useTreeStore.getState().setIsVimMode}
                                         />
                                     );
                                 })}

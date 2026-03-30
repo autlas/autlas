@@ -46,7 +46,6 @@ function App() {
     localStorage.setItem("ahk_last_scan_timestamp", now.toString());
     return now;
   });
-  const [currentTime, setCurrentTime] = useState<number>(Date.now());
   const [isHoveringRefresh, setIsHoveringRefresh] = useState(false);
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
   const [detailPinned, setDetailPinned] = useState(() => localStorage.getItem("ahk_detail_pinned") === "true");
@@ -167,11 +166,6 @@ function App() {
     };
   }, []);
 
-  // Current time ticker (for "last scan" display)
-  useEffect(() => {
-    const ticker = setInterval(() => setCurrentTime(Date.now()), 1000);
-    return () => clearInterval(ticker);
-  }, []);
 
   // Refresh icon animation (Web Animations API)
   useEffect(() => {
@@ -332,7 +326,6 @@ function App() {
         isRefreshing={isRefreshing}
         isHoveringRefresh={isHoveringRefresh}
         lastScanTimestamp={lastScanTimestamp}
-        currentTime={currentTime}
         activeTabPressed={activeTabPressed}
         newTagName={newTagName}
         onTabClick={handleTabClick}

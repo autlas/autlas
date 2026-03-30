@@ -5,14 +5,17 @@ import { HighlightText } from "./HighlightText";
 import { useTranslation } from "react-i18next";
 import { PlusIcon, CloseIcon, RestartIcon, PlayIcon, InterfaceIcon } from "./ui/Icons";
 import ActionButton from "./ui/ActionButton";
+import { useTreeStore } from "../store/useTreeStore";
 
 
 const HubScriptCard = memo(function HubScriptCard({
     s, isDragging, draggedScriptPath, editingScript, pendingScripts, removingTags,
     isContextMenuOpen, allUniqueTags, popoverRef, visibilityMode, onMouseDown, onToggle, onStartEditing, onAddTag, onRemoveTag, onCloseEditing,
     onScriptContextMenu, onShowUI, onRestart,
-    isFocused, setFocusedPath, isVimMode, onSelectScript
+    setFocusedPath, onSelectScript
 }: HubScriptCardProps) {
+    const isFocused = useTreeStore(store => store.focusedPath === s.path);
+    const isVimMode = useTreeStore(store => store.isVimMode);
     const { t } = useTranslation();
     const cardRef = React.useRef<HTMLDivElement>(null);
 
@@ -187,9 +190,7 @@ const HubScriptCard = memo(function HubScriptCard({
         prev.pendingScripts === next.pendingScripts &&
         prev.onRestart === next.onRestart &&
         prev.isContextMenuOpen === next.isContextMenuOpen &&
-        prev.visibilityMode === next.visibilityMode &&
-        prev.isFocused === next.isFocused &&
-        prev.isVimMode === next.isVimMode;
+        prev.visibilityMode === next.visibilityMode;
 });
 
 export default HubScriptCard;
