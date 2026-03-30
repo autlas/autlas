@@ -1,4 +1,4 @@
-import React, { useState, memo, useRef, useEffect, useLayoutEffect } from "react";
+import React, { useState, memo, useRef, useLayoutEffect } from "react";
 import { ScriptRowProps } from "../types/script";
 import TagPickerPopover from "./TagPickerPopover";
 import { HighlightText } from "./HighlightText";

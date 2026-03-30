@@ -8,6 +8,7 @@ import EmptyState from "./EmptyState";
 import ScriptTreeToolbar from "./ScriptTreeToolbar";
 import ScriptGridView from "./ScriptGridView";
 import { TreeContext, TreeNodeRenderer } from "./TreeNodeRenderer";
+import { useTreeStore } from "../store/useTreeStore";
 
 export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, onRunningCountChange, viewMode, onViewModeChange, onCustomDragStart, isDragging, draggedScriptPath, animationsEnabled, onScriptContextMenu, onFolderContextMenu, searchQuery, setSearchQuery, contextMenu, onShowUI, manualRefresh, onScanComplete, isPathsEmpty, onAddPath, onRefresh, onOpenSettings, onSelectScript, onExposeActions }: ScriptTreeProps) {
     const searchInputRef = useRef<HTMLInputElement>(null);
@@ -18,16 +19,24 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
 
     const {
         loading, isFetching, allScripts, filtered, tree, groupedHub,
-        expandedFolders,
-        editingScript, pendingScripts, removingTags,
-        isAllExpanded, showHidden, allUniqueTags,
+        isAllExpanded, allUniqueTags,
         popoverRef, folderRefs,
-        setShowHidden,
         toggleFolder, toggleAll, setFolderExpansionRecursive,
         handleToggle, handleRestart, startEditing, stopEditing,
-        addTag, removeTag, handleCustomMouseDown, folderDurations,
-        focusedPath, setFocusedPath, isVimMode, setIsVimMode, visibleItems, moveFocus
+        addTag, removeTag, handleCustomMouseDown,
+        visibleItems, moveFocus
     } = useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, searchQuery, setSearchQuery, onRunningCountChange, manualRefresh, onScanComplete, viewMode, sortBy });
+
+    const pendingScripts = useTreeStore(s => s.pendingScripts);
+    const showHidden = useTreeStore(s => s.showHidden);
+    const setShowHidden = useTreeStore(s => s.setShowHidden);
+    const focusedPath = useTreeStore(s => s.focusedPath);
+    const setFocusedPath = useTreeStore(s => s.setFocusedPath);
+    const isVimMode = useTreeStore(s => s.isVimMode);
+    const setIsVimMode = useTreeStore(s => s.setIsVimMode);
+    const editingScript = useTreeStore(s => s.editingScript);
+    const removingTags = useTreeStore(s => s.removingTags);
+
     useEffect(() => {
         onExposeActions?.({ toggle: handleToggle, restart: handleRestart, pendingScripts, allScripts });
     }, [handleToggle, handleRestart, pendingScripts, allScripts, onExposeActions]);
@@ -267,31 +276,22 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
         scrollPositions.current[`${filterTag}-${viewMode}`] = e.currentTarget.scrollTop;
     };
 
-    const expandedFoldersRef = useRef<Record<string, boolean>>(expandedFolders);
-    expandedFoldersRef.current = expandedFolders;
-
     const treeContextValue = useMemo(() => ({
-        expandedFoldersRef,
         toggleFolder, setFolderExpansionRecursive, folderRefs,
-        isDragging, draggedScriptPath, animationsEnabled,
+        animationsEnabled, allUniqueTags,
         onFolderContextMenu, onScriptContextMenu,
-        editingScript, pendingScripts, removingTags, allUniqueTags,
         popoverRef, handleCustomMouseDown, handleToggle,
-        startEditing, stopEditing, addTag, removeTag, folderDurations,
-        showHidden,
-        contextMenu,
+        startEditing, stopEditing, addTag, removeTag,
         onShowUI,
         onRestart: handleRestart,
-        focusedPath: displayFocusedPath,
-        setFocusedPath,
-        isVimMode,
-        setIsVimMode,
         onSelectScript
     }), [
-        expandedFolders, toggleFolder, setFolderExpansionRecursive, isDragging, draggedScriptPath,
-        animationsEnabled, onFolderContextMenu, onScriptContextMenu, editingScript,
-        pendingScripts, removingTags, allUniqueTags, folderDurations, showHidden,
-        contextMenu, onShowUI, handleRestart, displayFocusedPath, isVimMode, onSelectScript
+        toggleFolder, setFolderExpansionRecursive,
+        animationsEnabled, onFolderContextMenu, onScriptContextMenu,
+        allUniqueTags,
+        handleCustomMouseDown, handleToggle,
+        startEditing, stopEditing, addTag, removeTag,
+        onShowUI, handleRestart, onSelectScript
     ]);
 
     const masonryColumns = useMemo(() => {
@@ -404,7 +404,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
                                         onOpenSettings={onOpenSettings}
                                     />
                                 ) : (
-                                    <TreeNodeRenderer node={tree} depth={0} isExpanded={true} />
+                                    <TreeNodeRenderer node={tree} depth={0} />
                                 )}
                             </TreeContext.Provider>
                         </div>

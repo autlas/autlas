@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { getScripts, Script, runScript, killScript } from "../api";
 import { invoke } from "@tauri-apps/api/core";
 import { TreeNode } from "../types/script";
+import { useTreeStore } from "../store/useTreeStore";
 
 const smoothScrollTo = (container: HTMLElement, target: number, duration: number) => {
     const start = container.scrollTop;
@@ -42,16 +43,12 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
     const [allScripts, setAllScripts] = useState<Script[]>(_cachedScripts);
     const [loading, setLoading] = useState(_cachedScripts.length === 0);
     const [isFetching, setIsFetching] = useState(false);
-    const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({});
-    const [editingScript, setEditingScript] = useState<string | null>(null);
+    const expandedFolders = useTreeStore(s => s.expandedFolders);
+    const editingScript = useTreeStore(s => s.editingScript);
     const popoverRef = useRef<HTMLDivElement>(null);
-    const [showHidden, setShowHidden] = useState<'none' | 'all' | 'only'>('none');
-    const [pendingScripts, setPendingScripts] = useState<Record<string, "run" | "kill" | "restart">>({});
-    const [removingTags, setRemovingTags] = useState<Set<string>>(new Set());
-    const [folderDurations, setFolderDurations] = useState<Record<string, number>>({});
-
-    const [focusedPath, setFocusedPath] = useState<string | null>(null);
-    const [isVimMode, setIsVimMode] = useState(false);
+    const showHidden = useTreeStore(s => s.showHidden);
+    const pendingScripts = useTreeStore(s => s.pendingScripts);
+    const removingTags = useTreeStore(s => s.removingTags);
 
     const pendingDragRef = useRef<{ script: Script, x: number, y: number } | null>(null);
     const dragTimerRef = useRef<number | null>(null);
@@ -61,7 +58,7 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
             if (editingScript && popoverRef.current && !popoverRef.current.contains(event.target as Node)) {
-                setEditingScript(null);
+                useTreeStore.getState().setEditingScript(null);
             }
         }
         document.addEventListener("mousedown", handleClickOutside);
@@ -146,21 +143,18 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
                             : s
                     ));
                 });
-                setPendingScripts(prev => {
-                    const key = Object.keys(prev).find(k => k.toLowerCase() === pathLower);
-                    if (!key) return prev;
-                    const pending = prev[key];
-                    const shouldClear =
-                        (pending === "run" && is_running) ||
-                        (pending === "kill" && !is_running) ||
-                        (pending === "restart" && is_running);
-                    if (shouldClear) {
-                        const next = { ...prev };
-                        delete next[key];
-                        return next;
+                {
+                    const store = useTreeStore.getState();
+                    const key = Object.keys(store.pendingScripts).find(k => k.toLowerCase() === pathLower);
+                    if (key) {
+                        const pending = store.pendingScripts[key];
+                        const shouldClear =
+                            (pending === "run" && is_running) ||
+                            (pending === "kill" && !is_running) ||
+                            (pending === "restart" && is_running);
+                        if (shouldClear) store.clearPendingScript(key);
                     }
-                    return prev;
-                });
+                }
             }).then(fn => { unlistenStatus = fn; });
         });
 
@@ -190,20 +184,13 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
         }
 
         if (collapseDuration > 150) {
-            setFolderDurations(prev => ({ ...prev, [path]: collapseDuration }));
+            useTreeStore.getState().setFolderDuration(path, collapseDuration);
             setTimeout(() => {
-                setFolderDurations(prev => {
-                    const next = { ...prev };
-                    delete next[path];
-                    return next;
-                });
+                useTreeStore.getState().clearFolderDuration(path);
             }, collapseDuration + 100);
         }
 
-        setExpandedFolders(prev => {
-            const isCurrentlyExpanded = prev[path] !== false;
-            return { ...prev, [path]: !isCurrentlyExpanded };
-        });
+        useTreeStore.getState().toggleFolder(path);
 
         if (collapseDuration > 150) {
             requestAnimationFrame(() => {
@@ -224,12 +211,7 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
     }, []);
 
     const clearPending = useCallback((path: string) => {
-        setPendingScripts(prev => {
-            if (!(path in prev)) return prev;
-            const next = { ...prev };
-            delete next[path];
-            return next;
-        });
+        useTreeStore.getState().clearPendingScript(path);
     }, []);
 
     const startBurst = useCallback((path: string, expectedRunning: boolean) => {
@@ -260,7 +242,7 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
     const handleToggle = useCallback(async (script: Script, force?: boolean) => {
         if (pendingScripts[script.path]) return;
         const type = script.is_running ? "kill" : "run";
-        setPendingScripts(prev => ({ ...prev, [script.path]: type }));
+        useTreeStore.getState().setPendingScript(script.path, type);
         try {
             if (script.is_running && !force) {
                 await killScript(script.path);
@@ -276,7 +258,7 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
 
     const handleRestart = useCallback(async (script: Script) => {
         if (pendingScripts[script.path]) return;
-        setPendingScripts(prev => ({ ...prev, [script.path]: "restart" }));
+        useTreeStore.getState().setPendingScript(script.path, "restart");
         try {
             await invoke("restart_script", { path: script.path });
             startBurst(script.path, true);
@@ -286,8 +268,8 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
         }
     }, [pendingScripts, startBurst, clearPending]);
 
-    const stopEditing = useCallback(() => setEditingScript(null), []);
-    const startEditing = useCallback((s: Script) => setEditingScript(s.path), []);
+    const stopEditing = useCallback(() => useTreeStore.getState().setEditingScript(null), []);
+    const startEditing = useCallback((s: Script) => useTreeStore.getState().setEditingScript(s.path), []);
 
     const allUniqueTags = useMemo(() => {
         const tags = new Set<string>();
@@ -299,12 +281,12 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
         const trimmed = newTag.trim();
         if (!trimmed) return;
         if (script.tags.includes(trimmed)) {
-            setEditingScript(null);
+            useTreeStore.getState().setEditingScript(null);
             return;
         }
         const updatedTags = [...script.tags, trimmed];
         setAllScripts(prev => prev.map(s => s.path === script.path ? { ...s, tags: updatedTags } : s));
-        setEditingScript(null);
+        useTreeStore.getState().setEditingScript(null);
         try {
             await invoke("save_script_tags", { path: script.path, tags: updatedTags });
         } catch (e) {
@@ -316,15 +298,11 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
     const removeTag = useCallback(async (script: Script, tagToRemove: string) => {
         const tagId = `${script.path}-${tagToRemove}`;
         if (removingTags.has(tagId)) return;
-        setRemovingTags(prev => new Set(prev).add(tagId));
+        useTreeStore.getState().addRemovingTag(tagId);
         await new Promise(r => setTimeout(r, 90));
         const newTags = script.tags.filter(t => t !== tagToRemove);
         setAllScripts(prev => prev.map(s => s.path === script.path ? { ...s, tags: newTags } : s));
-        setRemovingTags(prev => {
-            const next = new Set(prev);
-            next.delete(tagId);
-            return next;
-        });
+        useTreeStore.getState().clearRemovingTag(tagId);
         try {
             await invoke("save_script_tags", { path: script.path, tags: newTags });
         } catch (e) {
@@ -601,7 +579,7 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
                 Object.values(node.children).forEach(traverse);
             };
             traverse(tree);
-            setExpandedFolders(next);
+            useTreeStore.getState().setExpandedFolders(next);
         }
     }, [searchQuery, tree]);
 
@@ -612,21 +590,20 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
             next[path] = nextState;
         });
         startTransition(() => {
-            setExpandedFolders(next);
+            useTreeStore.getState().setExpandedFolders(next);
         });
     }, [isAllExpanded, allFolderPaths]);
 
     const setFolderExpansionRecursive = useCallback((node: TreeNode, expanded: boolean) => {
         startTransition(() => {
-            setExpandedFolders(prev => {
-                const next = { ...prev };
-                const traverse = (n: TreeNode) => {
-                    if (n.name !== "Root") next[n.fullName] = expanded;
-                    Object.values(n.children).forEach(traverse);
-                };
-                traverse(node);
-                return next;
-            });
+            const prev = useTreeStore.getState().expandedFolders;
+            const next = { ...prev };
+            const traverse = (n: TreeNode) => {
+                if (n.name !== "Root") next[n.fullName] = expanded;
+                Object.values(n.children).forEach(traverse);
+            };
+            traverse(node);
+            useTreeStore.getState().setExpandedFolders(next);
         });
     }, []);
 
@@ -673,79 +650,48 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
     }, [tree, expandedFolders, groupedHub, filterTag, viewMode, filtered]);
 
     const moveFocus = useCallback((direction: 'up' | 'down' | 'left' | 'right', cols: number = 1) => {
-        setIsVimMode(true);
-        setFocusedPath(prev => {
-            if (visibleItems.length === 0) return null;
-            // Tag section headers (tag-fav, tag-hub etc) are not navigable
-            const isNavigable = (item: { path: string, type: 'folder' | 'script' }) =>
-                item.type === 'script' || (item.type === 'folder' && !item.path.startsWith('tag-'));
-            const getInitial = () => {
-                const first = visibleItems.find(isNavigable);
-                return first ? first.path : null;
-            };
+        useTreeStore.getState().setIsVimMode(true);
+        const prev = useTreeStore.getState().focusedPath;
+        if (visibleItems.length === 0) { useTreeStore.getState().setFocusedPath(null); return; }
 
-            if (!prev) return getInitial();
+        const isNavigable = (item: { path: string, type: 'folder' | 'script' }) =>
+            item.type === 'script' || (item.type === 'folder' && !item.path.startsWith('tag-'));
+        const getInitial = () => visibleItems.find(isNavigable)?.path ?? null;
 
-            const idx = visibleItems.findIndex(item => item.path === prev);
-            if (idx === -1) return getInitial();
+        if (!prev) { useTreeStore.getState().setFocusedPath(getInitial()); return; }
+        const idx = visibleItems.findIndex(item => item.path === prev);
+        if (idx === -1) { useTreeStore.getState().setFocusedPath(getInitial()); return; }
 
-            let nextIdx = idx;
-            const len = visibleItems.length;
+        let nextIdx = idx;
+        const len = visibleItems.length;
 
-            if (direction === 'down') {
-                const step = (cols > 1) ? cols : 1;
-                const startFrom = (idx + step) % len;
-                for (let i = 0; i < len; i++) {
-                    const checkIdx = (startFrom + i) % len;
-                    if (isNavigable(visibleItems[checkIdx]) && (checkIdx !== idx || len <= 1)) {
-                        nextIdx = checkIdx;
-                        break;
-                    }
-                }
-            } else if (direction === 'up') {
-                const step = (cols > 1) ? cols : 1;
-                const startFrom = (idx - step + len) % len;
-                for (let i = 0; i < len; i++) {
-                    const checkIdx = (startFrom - i + len) % len;
-                    if (isNavigable(visibleItems[checkIdx]) && (checkIdx !== idx || len <= 1)) {
-                        nextIdx = checkIdx;
-                        break;
-                    }
-                }
-            } else if (direction === 'right') {
-                const startFrom = (idx + 1) % len;
-                for (let i = 0; i < len; i++) {
-                    const checkIdx = (startFrom + i) % len;
-                    if (isNavigable(visibleItems[checkIdx]) && (checkIdx !== idx || len <= 1)) {
-                        nextIdx = checkIdx;
-                        break;
-                    }
-                }
-            } else if (direction === 'left') {
-                const startFrom = (idx - 1 + len) % len;
-                for (let i = 0; i < len; i++) {
-                    const checkIdx = (startFrom - i + len) % len;
-                    if (isNavigable(visibleItems[checkIdx]) && (checkIdx !== idx || len <= 1)) {
-                        nextIdx = checkIdx;
-                        break;
-                    }
-                }
-            }
+        if (direction === 'down') {
+            const step = (cols > 1) ? cols : 1;
+            const startFrom = (idx + step) % len;
+            for (let i = 0; i < len; i++) { const ci = (startFrom + i) % len; if (isNavigable(visibleItems[ci]) && (ci !== idx || len <= 1)) { nextIdx = ci; break; } }
+        } else if (direction === 'up') {
+            const step = (cols > 1) ? cols : 1;
+            const startFrom = (idx - step + len) % len;
+            for (let i = 0; i < len; i++) { const ci = (startFrom - i + len) % len; if (isNavigable(visibleItems[ci]) && (ci !== idx || len <= 1)) { nextIdx = ci; break; } }
+        } else if (direction === 'right') {
+            const startFrom = (idx + 1) % len;
+            for (let i = 0; i < len; i++) { const ci = (startFrom + i) % len; if (isNavigable(visibleItems[ci]) && (ci !== idx || len <= 1)) { nextIdx = ci; break; } }
+        } else if (direction === 'left') {
+            const startFrom = (idx - 1 + len) % len;
+            for (let i = 0; i < len; i++) { const ci = (startFrom - i + len) % len; if (isNavigable(visibleItems[ci]) && (ci !== idx || len <= 1)) { nextIdx = ci; break; } }
+        }
 
-            return visibleItems[nextIdx].path;
-        });
+        useTreeStore.getState().setFocusedPath(visibleItems[nextIdx].path);
     }, [visibleItems]);
 
     return {
         loading, isFetching, allScripts, filtered, tree, groupedHub,
-        expandedFolders, isAllExpanded, folderDurations,
-        editingScript, pendingScripts, removingTags,
-        showHidden, allUniqueTags, searchQuery,
+        isAllExpanded, allUniqueTags, searchQuery,
         popoverRef, folderRefs,
-        setShowHidden, setSearchQuery,
+        setSearchQuery,
         toggleFolder, toggleAll, setFolderExpansionRecursive,
         handleToggle, handleRestart, startEditing, stopEditing,
         addTag, removeTag, handleCustomMouseDown,
-        focusedPath, setFocusedPath, isVimMode, setIsVimMode, visibleItems, moveFocus
+        visibleItems, moveFocus
     };
 }

@@ -1,39 +1,28 @@
 import React, { useState, useEffect, useRef, createContext, useContext, memo } from "react";
+import { useTreeStore } from "../store/useTreeStore";
 import { HighlightText } from "./HighlightText";
 import ScriptRow from "./ScriptRow";
 import { Script } from "../api";
 import { TreeNode } from "../types/script";
 
+// Stable context: only callbacks and refs — never changes after mount, no re-renders
 export interface TreeContextValue {
-    expandedFoldersRef: React.MutableRefObject<Record<string, boolean>>;
     toggleFolder: (path: string) => void;
     setFolderExpansionRecursive: (node: TreeNode, expanded: boolean) => void;
     folderRefs: React.MutableRefObject<Map<string, HTMLDivElement>>;
-    isDragging: boolean;
-    draggedScriptPath: string | null;
     animationsEnabled: boolean;
-    onFolderContextMenu: (e: React.MouseEvent, data: any) => void;
-    onScriptContextMenu: (e: React.MouseEvent, s: Script) => void;
-    editingScript: string | null;
-    pendingScripts: Record<string, "run" | "kill" | "restart">;
-    removingTags: Set<string>;
     allUniqueTags: string[];
     popoverRef: React.MutableRefObject<HTMLDivElement | null>;
+    onFolderContextMenu: (e: React.MouseEvent, data: any) => void;
+    onScriptContextMenu: (e: React.MouseEvent, s: Script) => void;
     handleCustomMouseDown: (e: React.MouseEvent, script: Script) => void;
     handleToggle: (s: Script, forceStart?: boolean) => void;
     startEditing: (s: Script) => void;
     stopEditing: () => void;
     addTag: (script: Script, tag: string) => void;
     removeTag: (script: Script, tag: string) => void;
-    folderDurations: Record<string, number>;
-    showHidden: 'none' | 'all' | 'only';
-    contextMenu: { x: number, y: number, type: string, data: any } | null;
     onShowUI: (s: Script) => void;
     onRestart: (s: Script) => void;
-    focusedPath: string | null;
-    setFocusedPath: (path: string | null) => void;
-    isVimMode: boolean;
-    setIsVimMode: (v: boolean) => void;
     onSelectScript?: (s: Script) => void;
 }
 
@@ -42,22 +31,29 @@ export const TreeContext = createContext<TreeContextValue>(null as any);
 export const TreeNodeRenderer = memo(function TreeNodeRenderer({
     node,
     depth,
-    isExpanded,
 }: {
     node: TreeNode;
     depth: number;
-    isExpanded: boolean;
 }) {
-    const ctx = useContext(TreeContext);
-    const { expandedFoldersRef, toggleFolder, setFolderExpansionRecursive,
-        folderRefs, isDragging, draggedScriptPath,
-        onFolderContextMenu, onScriptContextMenu,
-        editingScript, pendingScripts, removingTags, allUniqueTags,
-        popoverRef, handleCustomMouseDown, handleToggle,
-        startEditing, stopEditing, addTag, removeTag, onShowUI,
-        focusedPath, setFocusedPath, isVimMode } = ctx;
+    const isExpanded = useTreeStore(s => node.name === "Root" || s.expandedFolders[node.fullName] !== false);
+    const isDragging = useTreeStore(s => s.isDragging);
+    const draggedScriptPath = useTreeStore(s => s.draggedScriptPath);
+    const editingScript = useTreeStore(s => s.editingScript);
+    const pendingScripts = useTreeStore(s => s.pendingScripts);
+    const removingTags = useTreeStore(s => s.removingTags);
+    const showHidden = useTreeStore(s => s.showHidden);
+    const contextMenu = useTreeStore(s => s.contextMenu);
+    const focusedPath = useTreeStore(s => s.focusedPath);
+    const isVimMode = useTreeStore(s => s.isVimMode);
+    const folderDurations = useTreeStore(s => s.folderDurations);
 
-    console.log(`[Tree] ${performance.now().toFixed(1)}ms render: ${node.name} (depth=${depth}, expanded=${isExpanded})`);
+    const ctx = useContext(TreeContext);
+    const { toggleFolder, setFolderExpansionRecursive,
+        folderRefs, allUniqueTags,
+        onFolderContextMenu, onScriptContextMenu,
+        popoverRef, handleCustomMouseDown, handleToggle,
+        startEditing, stopEditing, addTag, removeTag, onShowUI } = ctx;
+
 
     const [everExpanded, setEverExpanded] = useState(isExpanded);
     const [gridExpanded, setGridExpanded] = useState(isExpanded);
@@ -99,7 +95,7 @@ export const TreeNodeRenderer = memo(function TreeNodeRenderer({
                     ref={el => { if (el) folderRefs.current!.set(node.fullName, el); }}
                     onClick={() => { if (!isDragging) { console.log(`[Tree] ${performance.now().toFixed(1)}ms CLICK toggle: ${node.fullName}`); toggleFolder(node.fullName); } }}
                     onMouseEnter={() => {
-                        if (!isVimMode) setFocusedPath(node.fullName);
+                        if (!isVimMode) useTreeStore.getState().setFocusedPath(node.fullName);
                     }}
                     onContextMenu={(e) => {
                         e.preventDefault();
@@ -114,7 +110,7 @@ export const TreeNodeRenderer = memo(function TreeNodeRenderer({
                     className={`flex items-center space-x-2 h-[38px] pl-[4px] rounded-lg z-10 relative mb-0.5 border border-transparent hover:z-[50] scroll-mt-[250px] scroll-mb-[250px]
                         ${focusedPath === node.fullName && isVimMode ? '!transition-none !bg-indigo-500/20 shadow-[0_0_15px_rgba(99,102,241,0.15)]' : 'transition-all duration-300'}
                         ${!draggedScriptPath ? (isVimMode ? 'bg-transparent cursor-pointer' : 'bg-transparent hover:bg-white/[0.05] cursor-pointer group') : 'bg-transparent text-tertiary cursor-default pointer-events-none'}
-                        ${ctx.contextMenu?.type === 'folder' && ctx.contextMenu?.data?.fullName === node.fullName ? 'bg-white/5 border-white/10' : ''}
+                        ${contextMenu?.type === 'folder' && contextMenu?.data?.fullName === node.fullName ? 'bg-white/5 border-white/10' : ''}
                     `}
                 >
                     <div className={`w-4 h-4 flex items-center justify-center transition-transform duration-300 ${isExpanded ? 'rotate-90' : ''}`}>
@@ -144,7 +140,7 @@ export const TreeNodeRenderer = memo(function TreeNodeRenderer({
 
                             return rawParts.map((part, i) => {
                                 const partFullName = partFullNames[i];
-                                const isActive = ctx.contextMenu?.type === 'folder' && ctx.contextMenu?.data?.fullName === partFullName;
+                                const isActive = contextMenu?.type === 'folder' && contextMenu?.data?.fullName === partFullName;
                                 return (
                                     <React.Fragment key={part + i}>
                                         {i > 0 && <div className="w-[5px] h-[5px] rounded-full bg-white/10 mx-2 flex-shrink-0" />}
@@ -185,7 +181,7 @@ export const TreeNodeRenderer = memo(function TreeNodeRenderer({
                     style={{
                         display: (!isExpanded && !animatingOut) ? 'none' : 'grid',
                         gridTemplateRows: gridExpanded ? '1fr' : '0fr',
-                        transition: ctx.animationsEnabled ? `grid-template-rows ${ctx.folderDurations[node.fullName] ? (ctx.folderDurations[node.fullName] / 1000) + 's' : '0.15s'} cubic-bezier(0.33, 1, 0.68, 1)` : 'none',
+                        transition: ctx.animationsEnabled ? `grid-template-rows ${folderDurations[node.fullName] ? (folderDurations[node.fullName] / 1000) + 's' : '0.15s'} cubic-bezier(0.33, 1, 0.68, 1)` : 'none',
                     }}
                 >
                     <div style={{ minHeight: 0, overflow: 'hidden' }}>
@@ -204,7 +200,6 @@ export const TreeNodeRenderer = memo(function TreeNodeRenderer({
                                         key={child.fullName}
                                         node={child}
                                         depth={depth + 1}
-                                        isExpanded={expandedFoldersRef.current![child.fullName] !== false}
                                     />
                                 ))}
                                 {node.scripts.sort((a, b) => a.filename.localeCompare(b.filename)).map(s => {
@@ -221,8 +216,8 @@ export const TreeNodeRenderer = memo(function TreeNodeRenderer({
                                             removingTagKeys={removingTagKeys}
                                             allUniqueTags={allUniqueTags}
                                             popoverRef={popoverRef}
-                                            visibilityMode={ctx.showHidden}
-                                            isContextMenuOpen={ctx.contextMenu?.type === 'script' && ctx.contextMenu?.data?.path === s.path}
+                                            visibilityMode={showHidden}
+                                            isContextMenuOpen={contextMenu?.type === 'script' && contextMenu?.data?.path === s.path}
                                             onMouseDown={handleCustomMouseDown}
                                             onDoubleClick={handleToggle}
                                             onToggle={handleToggle}
@@ -233,11 +228,11 @@ export const TreeNodeRenderer = memo(function TreeNodeRenderer({
                                             onScriptContextMenu={onScriptContextMenu}
                                             onShowUI={onShowUI}
                                             onRestart={ctx.onRestart}
-                                            isFocused={focusedPath === s.path}
-                                            setFocusedPath={ctx.setFocusedPath}
-                                            isVimMode={ctx.isVimMode}
-                                            setIsVimMode={ctx.setIsVimMode}
                                             onSelectScript={ctx.onSelectScript}
+                                            isFocused={focusedPath === s.path}
+                                            setFocusedPath={useTreeStore.getState().setFocusedPath}
+                                            isVimMode={isVimMode}
+                                            setIsVimMode={useTreeStore.getState().setIsVimMode}
                                         />
                                     );
                                 })}
@@ -250,7 +245,6 @@ export const TreeNodeRenderer = memo(function TreeNodeRenderer({
     );
 }, (prev, next) => {
     if (prev.depth === 0) return false;
-    if (prev.isExpanded !== next.isExpanded) return false;
     if (prev.node.fullName !== next.node.fullName) return false;
     if (prev.node.scripts.length !== next.node.scripts.length) return false;
     const prevChildKeys = Object.keys(prev.node.children);
