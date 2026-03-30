@@ -39,21 +39,37 @@ export const TreeNodeRenderer = memo(function TreeNodeRenderer({
     node: TreeNode;
     depth: number;
 }) {
-    // Subscribe ONLY to isExpanded — the only value that requires DOM changes on this node
+    // Subscribe to isExpanded via local state (triggers re-render only when expand state changes)
     const [isExpanded, setIsExpanded] = useState(() =>
         node.name === "Root" || useTreeStore.getState().expandedFolders[node.fullName] !== false
     );
+    // Focus highlight via DOM manipulation — no React re-render needed
+    const folderRowRef = useRef<HTMLDivElement>(null);
     useEffect(() => {
         if (node.name === "Root") return;
+        let prevExpanded = useTreeStore.getState().expandedFolders[node.fullName] !== false;
+        let prevFocused = useTreeStore.getState().focusedPath === node.fullName;
+        // Apply initial focus class
+        if (prevFocused && useTreeStore.getState().isVimMode && folderRowRef.current) folderRowRef.current.classList.add("vim-focus-folder");
         return useTreeStore.subscribe((state) => {
             const expanded = state.expandedFolders[node.fullName] !== false;
-            setIsExpanded(prev => prev === expanded ? prev : expanded);
+            if (expanded !== prevExpanded) { prevExpanded = expanded; setIsExpanded(expanded); }
+            const focused = state.focusedPath === node.fullName && state.isVimMode;
+            if (focused !== prevFocused) {
+                prevFocused = focused;
+                if (folderRowRef.current) {
+                    if (focused) folderRowRef.current.classList.add("vim-focus-folder");
+                    else folderRowRef.current.classList.remove("vim-focus-folder");
+                }
+            }
         });
     }, [node.fullName]);
+    const isFolderFocused = false; // never causes re-render, CSS class handles it
+
+    console.log(`[Tree] ${performance.now().toFixed(1)}ms render: ${node.name} (depth=${depth}, exp=${isExpanded}, focus=${isFolderFocused})`);
 
     // Everything else: read on demand, no subscription
     const st = useTreeStore.getState();
-    const isFolderFocused = st.focusedPath === node.fullName;
     const isDragging = st.isDragging;
     const draggedScriptPath = st.draggedScriptPath;
     const editingScript = st.editingScript;
@@ -72,7 +88,6 @@ export const TreeNodeRenderer = memo(function TreeNodeRenderer({
         startEditing, stopEditing, addTag, removeTag, onShowUI } = ctx;
 
 
-    console.log(`[Tree] ${performance.now().toFixed(1)}ms render: ${node.name} (depth=${depth}, expanded=${isExpanded})`);
 
     const [everExpanded, setEverExpanded] = useState(isExpanded);
     const [gridExpanded, setGridExpanded] = useState(isExpanded);
@@ -97,9 +112,10 @@ export const TreeNodeRenderer = memo(function TreeNodeRenderer({
             }
         } else {
             if (animated) {
-                setGridExpanded(false);
                 setAnimatingOut(true);
-                const t = setTimeout(() => setAnimatingOut(false), 230);
+                // Delay gridExpanded=false so grid is visible (display:grid) before transition starts
+                requestAnimationFrame(() => requestAnimationFrame(() => setGridExpanded(false)));
+                const t = setTimeout(() => setAnimatingOut(false), 300);
                 return () => clearTimeout(t);
             } else {
                 setGridExpanded(false);
@@ -111,8 +127,8 @@ export const TreeNodeRenderer = memo(function TreeNodeRenderer({
         <div className="flex flex-col">
             {node.name !== "Root" && (
                 <div
-                    ref={el => { if (el) folderRefs.current!.set(node.fullName, el); }}
-                    onClick={() => { if (!isDragging) { console.log(`[Tree] ${performance.now().toFixed(1)}ms CLICK toggle: ${node.fullName}`); toggleFolder(node.fullName); } }}
+                    ref={el => { if (el) { folderRefs.current!.set(node.fullName, el); (folderRowRef as any).current = el; } }}
+                    onClick={() => { if (!isDragging) toggleFolder(node.fullName); }}
                     onMouseEnter={() => {
                         if (!isVimMode) useTreeStore.getState().setFocusedPath(node.fullName);
                     }}
@@ -141,9 +157,7 @@ export const TreeNodeRenderer = memo(function TreeNodeRenderer({
                             <path d="M5.5 3.5L5.5 20.5L20.2 12L5.5 3.5Z" />
                         </svg>
                     </div>
-                    {isFolderFocused && isVimMode && (
-                        <div className="absolute left-0 top-1 bottom-1 w-[3.5px] bg-indigo-500 rounded-full shadow-[0_0_15px_rgba(99,102,241,0.6)] z-20" />
-                    )}
+                    <div className="vim-focus-indicator absolute left-0 top-1 bottom-1 w-[3.5px] bg-indigo-500 rounded-full shadow-[0_0_15px_rgba(99,102,241,0.6)] z-20 hidden" />
                     <div className="flex items-center overflow-hidden h-full">
                         {(() => {
                             const rawParts = node.name.split('|').map(p => p.trim());
@@ -260,24 +274,8 @@ export const TreeNodeRenderer = memo(function TreeNodeRenderer({
         </div>
     );
 }, (prev, next) => {
+    // Same node reference = nothing changed, skip render
     if (prev.node === next.node && prev.depth === next.depth) return true;
-    const result = prev.node.fullName === next.node.fullName &&
-        prev.node.scripts.length === next.node.scripts.length &&
-        Object.keys(prev.node.children).length === Object.keys(next.node.children).length &&
-        prev.node.scripts.every((ps, i) => {
-            const ns = next.node.scripts[i];
-            return ps.path === ns.path && ps.is_running === ns.is_running && ps.tags.join(',') === ns.tags.join(',');
-        });
-    if (!result) console.log(`[memo] ${prev.node.fullName} → rerender (props changed)`);
-    return result;
-    if (prev.node.scripts.length !== next.node.scripts.length) return false;
-    const prevChildKeys = Object.keys(prev.node.children);
-    const nextChildKeys = Object.keys(next.node.children);
-    if (prevChildKeys.length !== nextChildKeys.length) return false;
-    for (let i = 0; i < prev.node.scripts.length; i++) {
-        const ps = prev.node.scripts[i];
-        const ns = next.node.scripts[i];
-        if (ps.path !== ns.path || ps.is_running !== ns.is_running || ps.tags.join(',') !== ns.tags.join(',')) return false;
-    }
-    return true;
+    // Different node reference = tree was rebuilt, must re-render
+    return false;
 });

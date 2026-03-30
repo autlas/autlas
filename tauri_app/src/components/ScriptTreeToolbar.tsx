@@ -93,7 +93,7 @@ export default function ScriptTreeToolbar({
         return () => observer.disconnect();
     }, [searchFocused]);
 
-    const searchActive = searchFocused || !!searchQuery;
+    const searchActive = (searchCollapsed && searchFocused) || (searchCollapsed && !!searchQuery);
 
     return (
         <div className={`flex items-end justify-between pt-3 pb-2 border-b transition-all duration-300 ${draggedScriptPath ? 'opacity-20 blur-[1px] pointer-events-none' : ''}`} style={{ borderColor: 'var(--border-color)' }}>
@@ -135,7 +135,7 @@ export default function ScriptTreeToolbar({
                 </div>
 
                 {/* Search */}
-                <div ref={searchSizerRef} className="flex-1 min-w-0 ml-2 mr-4">
+                <div ref={searchSizerRef} className="flex-1 min-w-0 ml-2">
                     {searchCollapsed && !searchActive ? (
                         <button
                             onClick={() => {
@@ -148,7 +148,7 @@ export default function ScriptTreeToolbar({
                             <SearchIcon />
                         </button>
                     ) : (
-                        <div className="relative group flex items-center bg-white/[0.03] border border-white/5 rounded-xl h-[41px] mb-[1px] transition-all focus-within:border-indigo-500/50 focus-within:bg-white/[0.05]">
+                        <div className="relative group flex items-center bg-white/[0.03] border border-white/5 rounded-xl h-[42px] transition-all focus-within:border-indigo-500/50 focus-within:bg-white/[0.05]">
                             <div className="pl-3 text-tertiary group-focus-within:text-indigo-400 transition-colors pointer-events-none">
                                 <SearchIcon />
                             </div>
@@ -201,7 +201,7 @@ export default function ScriptTreeToolbar({
             </div>
 
             {filterTag !== "hub" && (
-                <div className="flex items-center space-x-3">
+                <div className="flex items-center space-x-3 ml-2">
                     <button
                         onClick={() => {
                             if (isDragging) return;

@@ -83,6 +83,16 @@ body {
     transition-property: background-color, border-color, box-shadow, color !important;
 }
 
+.vim-focus-folder {
+    transition-duration: 0s !important;
+    background-color: rgba(99, 102, 241, 0.2) !important;
+    box-shadow: 0 0 15px rgba(99, 102, 241, 0.15) !important;
+}
+
+.vim-focus-folder .vim-focus-indicator {
+    display: block !important;
+}
+
 .custom-scrollbar {
     scrollbar-width: thin;
     scrollbar-color: var(--border-color) transparent;
