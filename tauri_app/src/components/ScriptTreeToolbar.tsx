@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import ToggleGroup from "./ui/ToggleGroup";
 import { SearchIcon, CloseIcon } from "./ui/Icons";
@@ -78,10 +78,27 @@ export default function ScriptTreeToolbar({
         lowerSearch.startsWith("file:") ? "file:" : null;
     const displayValue = prefixMatch ? searchQuery.substring(prefixMatch.length) : searchQuery;
 
+    const [searchFocused, setSearchFocused] = useState(false);
+    const [searchCollapsed, setSearchCollapsed] = useState(false);
+    const searchSizerRef = useRef<HTMLDivElement>(null);
+
+    // Watch own width — collapse into button when too narrow
+    useEffect(() => {
+        if (!searchSizerRef.current) return;
+        const observer = new ResizeObserver((entries) => {
+            const width = entries[0]?.contentRect.width ?? 999;
+            if (!searchFocused) setSearchCollapsed(width < 180);
+        });
+        observer.observe(searchSizerRef.current);
+        return () => observer.disconnect();
+    }, [searchFocused]);
+
+    const searchActive = searchFocused || !!searchQuery;
+
     return (
         <div className={`flex items-end justify-between pt-3 pb-2 border-b transition-all duration-300 ${draggedScriptPath ? 'opacity-20 blur-[1px] pointer-events-none' : ''}`} style={{ borderColor: 'var(--border-color)' }}>
-            <div className="flex-1 flex items-end">
-                <div className="flex flex-col">
+            <div className="flex-1 min-w-0 flex items-end relative overflow-hidden">
+                <div className={`flex flex-col flex-shrink-0 overflow-hidden transition-all duration-300 ease-in-out ${searchActive ? 'w-0 opacity-0 pointer-events-none' : 'opacity-100'}`}>
                     <SectionLabel className="ml-3 mb-0.5">{t("toolbar.view", "View")}</SectionLabel>
                     <ToggleGroup
                         options={viewOptions}
@@ -92,7 +109,7 @@ export default function ScriptTreeToolbar({
                 </div>
 
                 {/* SORTING CONTROLS */}
-                <div className={`flex flex-col overflow-hidden transition-all duration-300 ease-in-out ${viewMode !== "tree" ? 'w-[145px] opacity-100 ml-2' : 'w-0 opacity-0 pointer-events-none ml-0'}`}>
+                <div className={`flex flex-col overflow-hidden transition-all duration-300 ease-in-out ${searchActive ? 'w-0 opacity-0 pointer-events-none ml-0' : viewMode !== "tree" ? 'w-[145px] opacity-100 ml-2' : 'w-0 opacity-0 pointer-events-none ml-0'}`}>
                     <SectionLabel className="ml-3 mb-0.5">{t("toolbar.sort", "Sort")}</SectionLabel>
                     <ToggleGroup
                         options={sortOptions}
@@ -103,7 +120,7 @@ export default function ScriptTreeToolbar({
                     />
                 </div>
 
-                <div className={`flex items-end overflow-hidden transition-all duration-[150ms] ease-in-out ${viewMode === "tree" ? 'w-[42px] opacity-100 ml-2' : 'w-0 opacity-0 pointer-events-none ml-0'}`}>
+                <div className={`flex items-end overflow-hidden transition-all duration-[150ms] ease-in-out ${searchActive ? 'w-0 opacity-0 pointer-events-none ml-0' : viewMode === "tree" ? 'w-[42px] opacity-100 ml-2' : 'w-0 opacity-0 pointer-events-none ml-0'}`}>
                     <button
                         onClick={toggleAll}
                         className={`h-[42px] w-[42px] flex flex-shrink-0 flex-col items-center justify-center rounded-xl bg-white/[0.03] border border-white/5 transition-all cursor-pointer focus:outline-none
@@ -117,52 +134,68 @@ export default function ScriptTreeToolbar({
                     </button>
                 </div>
 
-                <div className={`flex-1 min-w-[80px] ml-2 mr-4 relative group flex items-center bg-white/[0.03] border border-white/5 rounded-xl h-[41px] mb-[1px] transition-all focus-within:border-indigo-500/50 focus-within:bg-white/[0.05]`}>
-                    <div className="pl-3 text-tertiary group-focus-within:text-indigo-400 transition-colors pointer-events-none">
-                        <SearchIcon />
-                    </div>
-
-                    {prefixMatch && (
-                        <div className="ml-2 bg-white/10 text-white/50 px-2 py-0.5 rounded-lg text-[12px] font-bold uppercase tracking-widest border border-white/10 pointer-events-none flex-shrink-0">
-                            {prefixMatch.replace(':', '')}
-                        </div>
-                    )}
-
-                    <input
-                        ref={searchInputRef}
-                        type="text"
-                        value={displayValue}
-                        onFocus={onSearchFocus}
-                        onBlur={onSearchBlur}
-                        onChange={(e) => {
-                            const val = e.target.value;
-                            setSearchQuery(prefixMatch ? prefixMatch + val : val);
-                        }}
-                        onKeyDown={(e) => {
-                            if (e.key === 'Backspace' && prefixMatch && displayValue === "") {
-                                setSearchQuery("");
-                            } else if (e.key === 'Tab') {
-                                const q = searchQuery.toLowerCase();
-                                if (q === 'p') {
-                                    e.preventDefault();
-                                    setSearchQuery('path:');
-                                } else if (q === 'f') {
-                                    e.preventDefault();
-                                    setSearchQuery('file:');
-                                }
-                            }
-                        }}
-                        placeholder={prefixMatch ? "" : t("search.placeholder")}
-                        className={`flex-1 bg-transparent border-none outline-none h-full pr-10 text-[14px] font-normal text-white placeholder:text-tertiary/50 ${prefixMatch ? 'ml-[10px]' : 'ml-2'}`}
-                    />
-
-                    {searchQuery && (
+                {/* Search */}
+                <div ref={searchSizerRef} className="flex-1 min-w-0 ml-2 mr-4">
+                    {searchCollapsed && !searchActive ? (
                         <button
-                            onClick={() => setSearchQuery("")}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 p-2 hover:bg-white/10 rounded-lg text-tertiary hover:text-white transition-all flex items-center justify-center cursor-pointer z-10"
+                            onClick={() => {
+                                setSearchFocused(true);
+                                setTimeout(() => searchInputRef.current?.focus(), 50);
+                            }}
+                            className="h-[42px] w-[42px] flex items-center justify-center rounded-xl bg-white/[0.03] border border-white/5 text-tertiary hover:text-secondary hover:bg-white/[0.06] transition-all cursor-pointer"
+                            title={t("search.placeholder")}
                         >
-                            <CloseIcon />
+                            <SearchIcon />
                         </button>
+                    ) : (
+                        <div className="relative group flex items-center bg-white/[0.03] border border-white/5 rounded-xl h-[41px] mb-[1px] transition-all focus-within:border-indigo-500/50 focus-within:bg-white/[0.05]">
+                            <div className="pl-3 text-tertiary group-focus-within:text-indigo-400 transition-colors pointer-events-none">
+                                <SearchIcon />
+                            </div>
+
+                            {prefixMatch && (
+                                <div className="ml-2 bg-white/10 text-white/50 px-2 py-0.5 rounded-lg text-[12px] font-bold uppercase tracking-widest border border-white/10 pointer-events-none flex-shrink-0">
+                                    {prefixMatch.replace(':', '')}
+                                </div>
+                            )}
+
+                            <input
+                                ref={searchInputRef}
+                                type="text"
+                                value={displayValue}
+                                onFocus={() => { onSearchFocus(); setSearchFocused(true); }}
+                                onBlur={() => { onSearchBlur(); setSearchFocused(false); }}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    setSearchQuery(prefixMatch ? prefixMatch + val : val);
+                                }}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Backspace' && prefixMatch && displayValue === "") {
+                                        setSearchQuery("");
+                                    } else if (e.key === 'Tab') {
+                                        const q = searchQuery.toLowerCase();
+                                        if (q === 'p') {
+                                            e.preventDefault();
+                                            setSearchQuery('path:');
+                                        } else if (q === 'f') {
+                                            e.preventDefault();
+                                            setSearchQuery('file:');
+                                        }
+                                    }
+                                }}
+                                placeholder={prefixMatch ? "" : t("search.placeholder")}
+                                className={`flex-1 bg-transparent border-none outline-none h-full pr-10 text-[14px] font-normal text-white placeholder:text-tertiary/50 ${prefixMatch ? 'ml-[10px]' : 'ml-2'}`}
+                            />
+
+                            {searchQuery && (
+                                <button
+                                    onClick={() => setSearchQuery("")}
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 p-2 hover:bg-white/10 rounded-lg text-tertiary hover:text-white transition-all flex items-center justify-center cursor-pointer z-10"
+                                >
+                                    <CloseIcon />
+                                </button>
+                            )}
+                        </div>
                     )}
                 </div>
             </div>
