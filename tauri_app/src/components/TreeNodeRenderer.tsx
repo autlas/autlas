@@ -57,15 +57,23 @@ export const TreeNodeRenderer = memo(function TreeNodeRenderer({
         startEditing, stopEditing, addTag, removeTag, onShowUI,
         focusedPath, setFocusedPath, isVimMode } = ctx;
 
-    const [childVisible, setChildVisible] = useState(isExpanded);
+    console.log(`[Tree] ${performance.now().toFixed(1)}ms render: ${node.name} (depth=${depth}, expanded=${isExpanded})`);
+
+    const [everExpanded, setEverExpanded] = useState(isExpanded);
     const [gridExpanded, setGridExpanded] = useState(isExpanded);
+    const [animatingOut, setAnimatingOut] = useState(false);
     const skipFirstEffect = useRef(true);
+
+    // Track if this folder was ever opened — once mounted, keep in DOM forever
+    useEffect(() => {
+        if (isExpanded && !everExpanded) setEverExpanded(true);
+    }, [isExpanded, everExpanded]);
 
     useEffect(() => {
         if (skipFirstEffect.current) { skipFirstEffect.current = false; return; }
         const animated = ctx.animationsEnabled;
         if (isExpanded) {
-            setChildVisible(true);
+            setAnimatingOut(false);
             if (animated) {
                 setGridExpanded(false);
                 requestAnimationFrame(() => requestAnimationFrame(() => setGridExpanded(true)));
@@ -75,11 +83,11 @@ export const TreeNodeRenderer = memo(function TreeNodeRenderer({
         } else {
             if (animated) {
                 setGridExpanded(false);
-                const t = setTimeout(() => setChildVisible(false), 230);
+                setAnimatingOut(true);
+                const t = setTimeout(() => setAnimatingOut(false), 230);
                 return () => clearTimeout(t);
             } else {
                 setGridExpanded(false);
-                setChildVisible(false);
             }
         }
     }, [isExpanded]);
@@ -89,7 +97,7 @@ export const TreeNodeRenderer = memo(function TreeNodeRenderer({
             {node.name !== "Root" && (
                 <div
                     ref={el => { if (el) folderRefs.current!.set(node.fullName, el); }}
-                    onClick={() => !isDragging && toggleFolder(node.fullName)}
+                    onClick={() => { if (!isDragging) { console.log(`[Tree] ${performance.now().toFixed(1)}ms CLICK toggle: ${node.fullName}`); toggleFolder(node.fullName); } }}
                     onMouseEnter={() => {
                         if (!isVimMode) setFocusedPath(node.fullName);
                     }}
@@ -172,10 +180,10 @@ export const TreeNodeRenderer = memo(function TreeNodeRenderer({
                 </div>
             )}
 
-            {childVisible && (
+            {everExpanded && (
                 <div
                     style={{
-                        display: 'grid',
+                        display: (!isExpanded && !animatingOut) ? 'none' : 'grid',
                         gridTemplateRows: gridExpanded ? '1fr' : '0fr',
                         transition: ctx.animationsEnabled ? `grid-template-rows ${ctx.folderDurations[node.fullName] ? (ctx.folderDurations[node.fullName] / 1000) + 's' : '0.15s'} cubic-bezier(0.33, 1, 0.68, 1)` : 'none',
                     }}
