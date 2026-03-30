@@ -611,18 +611,22 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
         allFolderPaths.forEach(path => {
             next[path] = nextState;
         });
-        setExpandedFolders(next);
+        startTransition(() => {
+            setExpandedFolders(next);
+        });
     }, [isAllExpanded, allFolderPaths]);
 
     const setFolderExpansionRecursive = useCallback((node: TreeNode, expanded: boolean) => {
-        setExpandedFolders(prev => {
-            const next = { ...prev };
-            const traverse = (n: TreeNode) => {
-                if (n.name !== "Root") next[n.fullName] = expanded;
-                Object.values(n.children).forEach(traverse);
-            };
-            traverse(node);
-            return next;
+        startTransition(() => {
+            setExpandedFolders(prev => {
+                const next = { ...prev };
+                const traverse = (n: TreeNode) => {
+                    if (n.name !== "Root") next[n.fullName] = expanded;
+                    Object.values(n.children).forEach(traverse);
+                };
+                traverse(node);
+                return next;
+            });
         });
     }, []);
 
