@@ -1,4 +1,4 @@
-import React, { useState, memo, useRef, useEffect } from "react";
+import React, { useState, memo, useRef, useEffect, useLayoutEffect } from "react";
 import { ScriptRowProps } from "../types/script";
 import TagPickerPopover from "./TagPickerPopover";
 import { HighlightText } from "./HighlightText";
@@ -20,6 +20,7 @@ const ScriptRow = memo(function ScriptRow({
     const containerRef = useRef<HTMLDivElement>(null);
     const measureRef = useRef<HTMLDivElement>(null);
     const [tagWidths, setTagWidths] = useState<number[]>([]);
+    const tagWidthsRef = useRef<number[]>([]);
     const prevTagsRef = useRef<string[]>(s.tags);
     const newTagsSet = new Set(s.tags.filter(t => !prevTagsRef.current.includes(t)));
     const addBtnRef = useRef<HTMLButtonElement>(null);
@@ -27,63 +28,50 @@ const ScriptRow = memo(function ScriptRow({
     // Filtered tags for display (hide system tags)
     const displayedTags = s.tags.filter(t => !["hub", "fav", "favourites"].includes(t.toLowerCase()));
 
-    useEffect(() => {
+    const recalcVisible = () => {
+        if (!containerRef.current) return;
+        const containerWidth = containerRef.current.offsetWidth;
+        if (containerWidth < 30) return;
+        const widths = tagWidthsRef.current;
+        const ADD_BTN_WIDTH = 36;
+        const COUNTER_WIDTH = 42;
+        const available = containerWidth - ADD_BTN_WIDTH;
+
+        if (widths.length === 0 || widths.length < displayedTags.length) return;
+
+        let totalWidth = 0;
+        let count = 0;
+        for (let i = 0; i < widths.length; i++) {
+            const isLast = (i === widths.length - 1);
+            const reqSpace = totalWidth + widths[i] + (isLast ? 0 : COUNTER_WIDTH);
+            if (reqSpace > available) break;
+            totalWidth += widths[i];
+            count++;
+        }
+        if (count === 0 && widths.length > 0) count = 1;
+        setVisibleCount(count);
+    };
+
+    useLayoutEffect(() => {
         prevTagsRef.current = s.tags;
         if (measureRef.current) {
             const children = Array.from(measureRef.current.children) as HTMLElement[];
-            setTagWidths(children.map(c => c.offsetWidth + 8));
+            const widths = children.map(c => c.offsetWidth + 8);
+            tagWidthsRef.current = widths;
+            setTagWidths(widths);
         }
+        recalcVisible();
     }, [s.tags]);
 
-    useEffect(() => {
+    useLayoutEffect(() => {
         if (!containerRef.current) return;
 
-        const update = () => {
-            if (!containerRef.current) return;
-            const containerWidth = containerRef.current.offsetWidth;
-            if (containerWidth < 30) return;
-
-            const ADD_BTN_WIDTH = 36;
-            const COUNTER_WIDTH = 42;
-            const available = containerWidth - ADD_BTN_WIDTH;
-
-            if (tagWidths.length === 0) {
-                setVisibleCount(displayedTags.length);
-                return;
-            }
-
-            if (tagWidths.length < displayedTags.length) {
-                setVisibleCount(displayedTags.length);
-                return;
-            }
-
-            let totalWidth = 0;
-            let count = 0;
-
-            for (let i = 0; i < tagWidths.length; i++) {
-                const isLast = (i === tagWidths.length - 1);
-                const reqSpace = totalWidth + tagWidths[i] + (isLast ? 0 : COUNTER_WIDTH);
-
-                if (reqSpace > available) {
-                    break;
-                }
-                totalWidth += tagWidths[i];
-                count++;
-            }
-
-            if (count === 0 && tagWidths.length > 0) {
-                count = 1;
-            }
-
-            setVisibleCount(count);
-        };
-
         const observer = new ResizeObserver(() => {
-            requestAnimationFrame(update);
+            requestAnimationFrame(recalcVisible);
         });
 
         observer.observe(containerRef.current);
-        requestAnimationFrame(update);
+        requestAnimationFrame(recalcVisible);
 
         return () => observer.disconnect();
     }, [displayedTags, tagWidths, isDragging]);

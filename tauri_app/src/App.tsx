@@ -49,7 +49,7 @@ function App() {
   const [currentTime, setCurrentTime] = useState<number>(Date.now());
   const [isHoveringRefresh, setIsHoveringRefresh] = useState(false);
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
-  const [detailPinned, setDetailPinned] = useState(false);
+  const [detailPinned, setDetailPinned] = useState(() => localStorage.getItem("ahk_detail_pinned") === "true");
   const scriptActionsRef = useRef<{ toggle: (s: Script) => void; restart: (s: Script) => void; pendingScripts: Record<string, "run" | "kill" | "restart">; allScripts: Script[] }>({ toggle: () => {}, restart: () => {}, pendingScripts: {}, allScripts: [] });
   const [, setDataVersion] = useState(0);
 
@@ -443,7 +443,7 @@ function App() {
             allUniqueTags={userTags}
             pinned={detailPinned}
             pendingType={scriptActionsRef.current.pendingScripts[selectedPath] ?? null}
-            onPinToggle={() => setDetailPinned(p => !p)}
+            onPinToggle={() => setDetailPinned(p => { const v = !p; localStorage.setItem("ahk_detail_pinned", String(v)); return v; })}
             onClose={() => setSelectedPath(null)}
             onToggle={handleDetailToggle}
             onRestart={handleDetailRestart}
