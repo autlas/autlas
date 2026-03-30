@@ -39,7 +39,7 @@ const CheatSheet = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void 
             onClick={onClose}
         >
             <div
-                className="bg-[#0a0a0c] border border-white/10 p-10 rounded-[40px] shadow-2xl max-w-4xl w-full mx-4 relative overflow-hidden group"
+                className="bg-[#0a0a0c] border border-white/10 p-10 rounded-[40px] shadow-2xl w-auto mx-4 relative overflow-hidden group"
                 onClick={e => e.stopPropagation()}
             >
                 {/* Decorative glow */}
@@ -61,7 +61,8 @@ const CheatSheet = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void 
                         </h3>
                         <ShortcutItem keys={['h', 'j', 'k', 'l']} desc="Navigate (HJKL)" />
                         <ShortcutItem sets={[['g', 'g'], ['G']]} desc="Scroll Top / Bottom" />
-                        <ShortcutItem sets={[['Enter'], ['Space']]} desc="Run / Stop Script" />
+                        <ShortcutItem keys={['Enter']} desc="Run / Stop Script" />
+                        <ShortcutItem keys={['Space']} desc="Open Script Details" />
                         <ShortcutItem keys={['Esc']} desc="Clear Focus / Close" />
                     </div>
 
@@ -76,7 +77,21 @@ const CheatSheet = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void 
                             <ShortcutItem keys={['q', 'w', 'e']} desc="Tree / Tiles / List" />
                             <ShortcutItem keys={['s']} desc="Toggle Sort (N/P)" />
                             <ShortcutItem keys={['?']} desc="Show Help" />
+                            <ShortcutItem keys={['r']} desc="Restart Script" />
+                            <ShortcutItem keys={['t']} desc="Edit Tags" />
                         </div>
+                    </div>
+                </div>
+
+                <div className="mt-10 grid grid-cols-2 gap-x-12">
+                    <div className="space-y-4">
+                        <h3 className="text-[10px] font-black text-white/20 uppercase tracking-[0.3em] mb-6 flex items-center">
+                            <span className="w-4 h-[2px] bg-indigo-500/30 mr-2" />
+                            Script Details Panel
+                        </h3>
+                        <ShortcutItem keys={['p']} desc="Pin / Unpin Panel" />
+                        <ShortcutItem keys={['f']} desc="Show in Folder" />
+                        <ShortcutItem keys={['Esc']} desc="Close Panel" />
                     </div>
                 </div>
 

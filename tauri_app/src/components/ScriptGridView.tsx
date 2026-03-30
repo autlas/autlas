@@ -51,6 +51,7 @@ interface ScriptGridViewProps {
     setFocusedPath: (path: string | null) => void;
     isVimMode: boolean;
     setIsVimMode: (v: boolean) => void;
+    onSelectScript?: (s: Script) => void;
 }
 
 export default function ScriptGridView({
@@ -59,7 +60,7 @@ export default function ScriptGridView({
     isDragging, draggedScriptPath, editingScript, pendingScripts, removingTags, allUniqueTags,
     popoverRef, showHidden, contextMenu, handleCustomMouseDown, handleToggle,
     startEditing, addTag, removeTag, stopEditing, onScriptContextMenu,
-    onShowUI, onRestart, focusedPath, setFocusedPath, isVimMode, setIsVimMode,
+    onShowUI, onRestart, focusedPath, setFocusedPath, isVimMode, setIsVimMode, onSelectScript,
 }: ScriptGridViewProps) {
     const isTiles = mode === "tiles";
     const gridGap = isTiles ? "gap-6" : "gap-x-8 gap-y-1";
@@ -93,6 +94,7 @@ export default function ScriptGridView({
                     setFocusedPath={setFocusedPath}
                     isVimMode={isVimMode}
                     setIsVimMode={setIsVimMode}
+                    onSelectScript={onSelectScript}
                 />
             );
         }
@@ -125,6 +127,7 @@ export default function ScriptGridView({
                 setFocusedPath={setFocusedPath}
                 isVimMode={isVimMode}
                 setIsVimMode={setIsVimMode}
+                onSelectScript={onSelectScript}
             />
         );
     };

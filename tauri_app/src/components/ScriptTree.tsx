@@ -9,7 +9,7 @@ import ScriptTreeToolbar from "./ScriptTreeToolbar";
 import ScriptGridView from "./ScriptGridView";
 import { TreeContext, TreeNodeRenderer } from "./TreeNodeRenderer";
 
-export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, onRunningCountChange, viewMode, onViewModeChange, onCustomDragStart, isDragging, draggedScriptPath, animationsEnabled, onScriptContextMenu, onFolderContextMenu, searchQuery, setSearchQuery, contextMenu, onShowUI, manualRefresh, onScanComplete, isPathsEmpty, onAddPath, onRefresh, onOpenSettings }: ScriptTreeProps) {
+export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, onRunningCountChange, viewMode, onViewModeChange, onCustomDragStart, isDragging, draggedScriptPath, animationsEnabled, onScriptContextMenu, onFolderContextMenu, searchQuery, setSearchQuery, contextMenu, onShowUI, manualRefresh, onScanComplete, isPathsEmpty, onAddPath, onRefresh, onOpenSettings, onSelectScript, onExposeActions }: ScriptTreeProps) {
     const searchInputRef = useRef<HTMLInputElement>(null);
     const lastGTimeRef = useRef(0);
     const lastFTimeRef = useRef(0);
@@ -28,6 +28,10 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
         addTag, removeTag, handleCustomMouseDown, folderDurations,
         focusedPath, setFocusedPath, isVimMode, setIsVimMode, visibleItems, moveFocus
     } = useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, searchQuery, setSearchQuery, onRunningCountChange, manualRefresh, onScanComplete, viewMode, sortBy });
+    useEffect(() => {
+        onExposeActions?.({ toggle: handleToggle, restart: handleRestart, pendingScripts, allScripts });
+    }, [handleToggle, handleRestart, pendingScripts, allScripts, onExposeActions]);
+
     const [isCheatSheetOpen, setIsCheatSheetOpen] = useState(false);
     const [isSearchActive, setIsSearchActiveState] = useState(false);
     const isSearchActiveRef = useRef(false);
@@ -60,7 +64,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
         moveFocus('right', 1);
     }, { preventDefault: true });
 
-    useHotkeys('enter, space', () => {
+    useHotkeys('enter', () => {
         if (!focusedPath) return;
         const item = visibleItems.find(i => i.path === focusedPath);
         if (item) {
@@ -69,6 +73,16 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
             } else {
                 toggleFolder(item.path);
             }
+        }
+    }, { preventDefault: true });
+
+    useHotkeys('space', () => {
+        if (!focusedPath) return;
+        const item = visibleItems.find(i => i.path === focusedPath);
+        if (item && item.type === 'script') {
+            onSelectScript?.(item.data);
+        } else if (item) {
+            toggleFolder(item.path);
         }
     }, { preventDefault: true });
 
@@ -271,12 +285,13 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
         focusedPath: displayFocusedPath,
         setFocusedPath,
         isVimMode,
-        setIsVimMode
+        setIsVimMode,
+        onSelectScript
     }), [
         expandedFolders, toggleFolder, setFolderExpansionRecursive, isDragging, draggedScriptPath,
         animationsEnabled, onFolderContextMenu, onScriptContextMenu, editingScript,
         pendingScripts, removingTags, allUniqueTags, folderDurations, showHidden,
-        contextMenu, onShowUI, handleRestart, displayFocusedPath, isVimMode
+        contextMenu, onShowUI, handleRestart, displayFocusedPath, isVimMode, onSelectScript
     ]);
 
     const masonryColumns = useMemo(() => {
@@ -373,6 +388,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
                             setFocusedPath={setFocusedPath}
                             isVimMode={isVimMode}
                             setIsVimMode={setIsVimMode}
+                            onSelectScript={onSelectScript}
                         />
                     ) : (
                         <div className="flex flex-col space-y-0.5 select-none min-h-full">

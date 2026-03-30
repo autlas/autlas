@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import ScriptTree from "./components/ScriptTree";
+import ScriptDetailPanel from "./components/ScriptDetailPanel";
 import ContextMenu from "./components/ContextMenu";
 import SettingsPanel from "./components/SettingsPanel";
 import DragGhost from "./components/DragGhost";
 import Sidebar from "./components/Sidebar";
+import { Script } from "./api";
 import { useTheme } from "./hooks/useTheme";
 import { useScanPaths } from "./hooks/useScanPaths";
 import { usePhysicsMotion } from "./hooks/usePhysicsMotion";
@@ -46,6 +48,10 @@ function App() {
   });
   const [currentTime, setCurrentTime] = useState<number>(Date.now());
   const [isHoveringRefresh, setIsHoveringRefresh] = useState(false);
+  const [selectedPath, setSelectedPath] = useState<string | null>(null);
+  const [detailPinned, setDetailPinned] = useState(false);
+  const scriptActionsRef = useRef<{ toggle: (s: Script) => void; restart: (s: Script) => void; pendingScripts: Record<string, "run" | "kill" | "restart">; allScripts: Script[] }>({ toggle: () => {}, restart: () => {}, pendingScripts: {}, allScripts: [] });
+  const [, setDataVersion] = useState(0);
 
   const { brightness, setBrightness, textContrast, setTextContrast, fontScale, setFontScale, animationsEnabled, toggleAnimations, vimModeNav, setVimModeNav } = useTheme();
   const { scanPaths, handleAddScanPath, handleRemoveScanPath } = useScanPaths(() => setRefreshKey(p => p + 1));
@@ -229,6 +235,35 @@ function App() {
     });
   }, []);
 
+  const handleExposeActions = useCallback((actions: { toggle: (s: Script) => void; restart: (s: Script) => void; pendingScripts: Record<string, "run" | "kill" | "restart">; allScripts: Script[] }) => {
+    scriptActionsRef.current = actions;
+    setDataVersion(v => v + 1);
+  }, []);
+
+  const handleSelectScript = useCallback((s: Script) => {
+    setSelectedPath(s.path);
+  }, []);
+
+  const handleDetailToggle = useCallback((s: Script) => {
+    scriptActionsRef.current.toggle(s);
+  }, []);
+
+  const handleDetailRestart = useCallback((s: Script) => {
+    scriptActionsRef.current?.restart(s);
+  }, []);
+
+  const handleDetailAddTag = useCallback(async (s: Script, tag: string) => {
+    try {
+      await invoke("add_script_tag", { path: s.path, tag });
+    } catch (err) { console.error("[App] Add tag failed:", err); }
+  }, []);
+
+  const handleDetailRemoveTag = useCallback(async (s: Script, tag: string) => {
+    try {
+      await invoke("remove_script_tag", { path: s.path, tag });
+    } catch (err) { console.error("[App] Remove tag failed:", err); }
+  }, []);
+
   const handleShowUI = useCallback(async (s: any) => {
     console.log("[frontend] Requesting UI for script:", s.path);
     try {
@@ -325,9 +360,10 @@ function App() {
         formatLastScan={formatLastScan}
       />
 
-      {/* Main Content */}
+      {/* Main Content + Detail Panel */}
+      <div className="flex-1 flex flex-row overflow-hidden relative z-10">
       <div
-        className="flex-1 px-8 flex flex-col overflow-hidden transition-all duration-300 relative z-10"
+        className="flex-1 px-8 flex flex-col overflow-hidden transition-all duration-300"
         style={{ background: viewMode === "settings" ? "var(--bg-primary)" : "linear-gradient(to bottom right, var(--bg-primary), var(--bg-secondary))" }}
       >
         <div className={`flex-1 flex flex-col min-h-0 ${viewMode === "settings" ? "overflow-y-auto custom-scrollbar" : ""}`}>
@@ -379,6 +415,8 @@ function App() {
               isPathsEmpty={scanPaths.length === 0}
               onAddPath={handleAddScanPath}
               onRefresh={() => setRefreshKey(p => p + 1)}
+              onSelectScript={handleSelectScript}
+              onExposeActions={handleExposeActions}
               onOpenSettings={() => {
                 handleTabClick("settings");
                 setTimeout(() => {
@@ -393,6 +431,28 @@ function App() {
             />
           </div>
         </div>
+      </div>
+
+      {(() => {
+        if (!selectedPath) return null;
+        const script = scriptActionsRef.current.allScripts.find(s => s.path === selectedPath);
+        if (!script) return null;
+        return (
+          <ScriptDetailPanel
+            script={script}
+            allUniqueTags={userTags}
+            pinned={detailPinned}
+            pendingType={scriptActionsRef.current.pendingScripts[selectedPath] ?? null}
+            onPinToggle={() => setDetailPinned(p => !p)}
+            onClose={() => setSelectedPath(null)}
+            onToggle={handleDetailToggle}
+            onRestart={handleDetailRestart}
+            onShowUI={handleShowUI}
+            onAddTag={handleDetailAddTag}
+            onRemoveTag={handleDetailRemoveTag}
+          />
+        );
+      })()}
       </div>
 
       <DragGhost

@@ -34,6 +34,7 @@ export interface TreeContextValue {
     setFocusedPath: (path: string | null) => void;
     isVimMode: boolean;
     setIsVimMode: (v: boolean) => void;
+    onSelectScript?: (s: Script) => void;
 }
 
 export const TreeContext = createContext<TreeContextValue>(null as any);
@@ -228,6 +229,7 @@ export const TreeNodeRenderer = memo(function TreeNodeRenderer({
                                             setFocusedPath={ctx.setFocusedPath}
                                             isVimMode={ctx.isVimMode}
                                             setIsVimMode={ctx.setIsVimMode}
+                                            onSelectScript={ctx.onSelectScript}
                                         />
                                     );
                                 })}

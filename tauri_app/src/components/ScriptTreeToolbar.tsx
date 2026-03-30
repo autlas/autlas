@@ -117,7 +117,7 @@ export default function ScriptTreeToolbar({
                     </button>
                 </div>
 
-                <div className={`flex-1 ml-2 mr-4 relative group flex items-center bg-white/[0.03] border border-white/5 rounded-xl h-[41px] mb-[1px] transition-all focus-within:border-indigo-500/50 focus-within:bg-white/[0.05]`}>
+                <div className={`flex-1 min-w-[80px] ml-2 mr-4 relative group flex items-center bg-white/[0.03] border border-white/5 rounded-xl h-[41px] mb-[1px] transition-all focus-within:border-indigo-500/50 focus-within:bg-white/[0.05]`}>
                     <div className="pl-3 text-tertiary group-focus-within:text-indigo-400 transition-colors pointer-events-none">
                         <SearchIcon />
                     </div>

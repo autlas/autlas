@@ -66,9 +66,6 @@ mod native_popup {
     const ORANGE: u32   = 0xFFEE8800;
     const SEP_CLR: u32  = 0xFF383038;
 
-    // GDI colors still needed for window bg (WM_ERASEBKGND uses GDI)
-    const BG_GDI: u32   = 0x001E1A1A; // BBGGRR
-
     fn get_y(lparam: LPARAM) -> i32 {
         ((lparam as u32 >> 16) & 0xFFFF) as i16 as i32
     }
@@ -1454,6 +1451,11 @@ struct ScriptStatus {
 }
 
 #[tauri::command]
+async fn read_script_content(path: String) -> Result<String, String> {
+    fs::read_to_string(&path).map_err(|e| format!("Failed to read {}: {}", path, e))
+}
+
+#[tauri::command]
 async fn get_script_status(path: String) -> ScriptStatus {
     let mut sys = System::new_all();
     sys.refresh_all();
@@ -1802,6 +1804,7 @@ pub fn run() {
             open_with,
             get_scan_paths,
             set_scan_paths,
+            read_script_content,
             get_script_status,
             get_tray_settings,
             set_tray_settings,

@@ -11,7 +11,7 @@ const ScriptRow = memo(function ScriptRow({
     allUniqueTags, popoverRef, visibilityMode,
     onMouseDown, onDoubleClick, onToggle, onStartEditing, onAddTag, onRemoveTag, onCloseEditing,
     onScriptContextMenu, onShowUI, onRestart,
-    isFocused, setFocusedPath, isVimMode
+    isFocused, setFocusedPath, isVimMode, onSelectScript
 }: ScriptRowProps) {
     const { t } = useTranslation();
 
@@ -101,14 +101,23 @@ const ScriptRow = memo(function ScriptRow({
         onMouseDown(e, s);
     };
 
-    const handleMouseUp = () => setIsLeftPressed(false);
+    const handleMouseUp = () => {
+        setIsLeftPressed(false);
+    };
     const handleMouseLeave = () => setIsLeftPressed(false);
+    const handleClick = (e: React.MouseEvent) => {
+        if (e.button !== 0) return;
+        const target = e.target as HTMLElement;
+        if (target.closest('button') || target.closest('input')) return;
+        onSelectScript?.(s);
+    };
 
     return (
         <div
             onMouseDown={handleMouseDown}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseLeave}
+            onClick={handleClick}
             onMouseEnter={() => {
                 if (!isVimMode) setFocusedPath(s.path);
             }}
@@ -268,7 +277,8 @@ const ScriptRow = memo(function ScriptRow({
         prev.onShowUI === next.onShowUI &&
         prev.onRestart === next.onRestart &&
         prev.isFocused === next.isFocused &&
-        prev.isVimMode === next.isVimMode;
+        prev.isVimMode === next.isVimMode &&
+        prev.onSelectScript === next.onSelectScript;
 });
 
 export default ScriptRow;

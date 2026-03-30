@@ -33,6 +33,8 @@ export interface ScriptTreeProps {
     onAddPath?: () => void;
     onRefresh?: () => void;
     onOpenSettings?: () => void;
+    onSelectScript?: (s: Script) => void;
+    onExposeActions?: (actions: { toggle: (s: Script) => void; restart: (s: Script) => void; pendingScripts: Record<string, "run" | "kill" | "restart">; allScripts: Script[] }) => void;
 }
 
 export interface TagPickerProps {
@@ -71,6 +73,7 @@ export interface ScriptRowProps {
     setFocusedPath: (path: string | null) => void;
     isVimMode: boolean;
     setIsVimMode: (v: boolean) => void;
+    onSelectScript?: (s: Script) => void;
 }
 
 export interface HubScriptCardProps {
@@ -97,4 +100,5 @@ export interface HubScriptCardProps {
     setFocusedPath: (path: string | null) => void;
     isVimMode: boolean;
     setIsVimMode: (v: boolean) => void;
+    onSelectScript?: (s: Script) => void;
 }
