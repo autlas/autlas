@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, createContext, memo } from "react";
+import { flushSync } from "react-dom";
 import { useTreeStore } from "../store/useTreeStore";
 import { HighlightText } from "./HighlightText";
 import ScriptRow from "./ScriptRow";
@@ -92,6 +93,7 @@ export const TreeNodeRenderer = memo(function TreeNodeRenderer({
     const [everExpanded, setEverExpanded] = useState(isExpanded);
     const [gridExpanded, setGridExpanded] = useState(isExpanded);
     const [animatingOut, setAnimatingOut] = useState(false);
+    const [transitionEnabled, setTransitionEnabled] = useState(true);
     const skipFirstEffect = useRef(true);
 
     // Track if this folder was ever opened — once mounted, keep in DOM forever
@@ -105,8 +107,18 @@ export const TreeNodeRenderer = memo(function TreeNodeRenderer({
         if (isExpanded) {
             setAnimatingOut(false);
             if (animated) {
-                setGridExpanded(false);
-                requestAnimationFrame(() => requestAnimationFrame(() => setGridExpanded(true)));
+                // 1) Synchronously render grid at 0fr with NO transition
+                flushSync(() => {
+                    setTransitionEnabled(false);
+                    setGridExpanded(false);
+                });
+                // 2) Next frame: enable transition and expand to 1fr
+                requestAnimationFrame(() => {
+                    flushSync(() => {
+                        setTransitionEnabled(true);
+                        setGridExpanded(true);
+                    });
+                });
             } else {
                 setGridExpanded(true);
             }
@@ -212,9 +224,9 @@ export const TreeNodeRenderer = memo(function TreeNodeRenderer({
             {everExpanded && (
                 <div
                     style={{
-                        display: (!isExpanded && !animatingOut) ? 'none' : 'grid',
+                        display: (!gridExpanded && !animatingOut && !isExpanded) ? 'none' : 'grid',
                         gridTemplateRows: gridExpanded ? '1fr' : '0fr',
-                        transition: ctx.animationsEnabled ? `grid-template-rows ${folderDurations[node.fullName] ? (folderDurations[node.fullName] / 1000) + 's' : '0.15s'} cubic-bezier(0.33, 1, 0.68, 1)` : 'none',
+                        transition: (ctx.animationsEnabled && transitionEnabled) ? `grid-template-rows ${folderDurations[node.fullName] ? (folderDurations[node.fullName] / 1000) + 's' : '0.15s'} cubic-bezier(0.33, 1, 0.68, 1)` : 'none',
                     }}
                 >
                     <div style={{ minHeight: 0, overflow: 'hidden' }}>
