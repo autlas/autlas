@@ -56,10 +56,18 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
     });
   }, [script.path]);
 
-  useHotkeys('escape', () => {
-    if (isEditingTags) setIsEditingTags(false);
-    else onClose();
-  });
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        if (isEditingTags) setIsEditingTags(false);
+        else onClose();
+      }
+    };
+    window.addEventListener('keydown', handleEsc, true); // capture phase
+    return () => window.removeEventListener('keydown', handleEsc, true);
+  }, [isEditingTags, onClose]);
   useHotkeys('p', () => onPinToggle(), { preventDefault: true });
   useHotkeys('f', () => handleOpenFolder(), { preventDefault: true });
 
@@ -141,11 +149,16 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
       {/* Path */}
       <button
         onClick={copyPath}
-        className="mx-5 mb-4 px-3 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.06] text-left cursor-pointer hover:bg-white/[0.06] transition-all"
+        className="mx-5 mb-4 px-3 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.06] text-left cursor-pointer hover:bg-white/[0.06] transition-all relative"
       >
-        <span className="text-[14px] font-mono text-white/30 break-all leading-relaxed">
-          {copied ? "Copied!" : script.path}
+        <span className={`text-[14px] font-mono text-white/30 leading-relaxed transition-opacity ${copied ? 'opacity-0' : ''}`}>
+          {script.path.split(/(?<=[\\/])/).map((seg, i) => <span key={i} style={{ display: 'inline-block' }}>{seg}</span>)}
         </span>
+        {copied && (
+          <span className="absolute inset-0 flex items-center justify-center text-[13px] font-bold text-white/50">
+            Copied!
+          </span>
+        )}
       </button>
 
       {/* Actions */}

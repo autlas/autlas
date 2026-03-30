@@ -434,7 +434,7 @@ function App() {
       </div>
 
       {(() => {
-        if (!selectedPath) return null;
+        if (!selectedPath || viewMode === "settings") return null;
         const script = scriptActionsRef.current.allScripts.find(s => s.path === selectedPath);
         if (!script) return null;
         return (

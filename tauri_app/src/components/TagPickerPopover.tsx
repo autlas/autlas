@@ -49,7 +49,7 @@ const TagPickerPopover = memo(function TagPickerPopover({ script, allUniqueTags,
     }, [selectedIndex]);
 
     const availableTags = useMemo(
-        () => allUniqueTags.filter(t => t.toLowerCase().includes(query.toLowerCase()) && !script.tags.includes(t)),
+        () => allUniqueTags.filter(t => !["hub", "fav", "favourites"].includes(t.toLowerCase()) && t.toLowerCase().includes(query.toLowerCase()) && !script.tags.includes(t)),
         [allUniqueTags, query, script.tags]
     );
     const showCreate = query && !allUniqueTags.some(t => t.toLowerCase() === query.toLowerCase());
