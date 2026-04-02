@@ -90,13 +90,16 @@ export const TreeNodeRenderer = memo(function TreeNodeRenderer({
 
 
 
+    // Folder animation state machine:
+    // collapsed  → display:none
+    // expanding  → display:grid, gridRows:0fr, no transition (1 frame setup)
+    // expanded   → display:grid, gridRows:1fr, transition enabled
+    // collapsing → display:grid, gridRows:0fr, transition enabled (animating 1fr→0fr)
+    type FolderAnim = 'collapsed' | 'expanding' | 'expanded' | 'collapsing';
+    const [anim, setAnim] = useState<FolderAnim>(isExpanded ? 'expanded' : 'collapsed');
     const [everExpanded, setEverExpanded] = useState(isExpanded);
-    const [gridExpanded, setGridExpanded] = useState(isExpanded);
-    const [animatingOut, setAnimatingOut] = useState(false);
-    const [transitionEnabled, setTransitionEnabled] = useState(true);
     const skipFirstEffect = useRef(true);
 
-    // Track if this folder was ever opened — once mounted, keep in DOM forever
     useEffect(() => {
         if (isExpanded && !everExpanded) setEverExpanded(true);
     }, [isExpanded, everExpanded]);
@@ -105,32 +108,24 @@ export const TreeNodeRenderer = memo(function TreeNodeRenderer({
         if (skipFirstEffect.current) { skipFirstEffect.current = false; return; }
         const animated = ctx.animationsEnabled;
         if (isExpanded) {
-            setAnimatingOut(false);
             if (animated) {
-                // 1) Synchronously render grid at 0fr with NO transition
-                flushSync(() => {
-                    setTransitionEnabled(false);
-                    setGridExpanded(false);
-                });
-                // 2) Next frame: enable transition and expand to 1fr
-                requestAnimationFrame(() => {
-                    flushSync(() => {
-                        setTransitionEnabled(true);
-                        setGridExpanded(true);
-                    });
-                });
+                // Frame 1: display:grid + 0fr + no transition
+                flushSync(() => setAnim('expanding'));
+                // Frame 2: enable transition + 1fr → animate open
+                requestAnimationFrame(() => flushSync(() => setAnim('expanded')));
             } else {
-                setGridExpanded(true);
+                setAnim('expanded');
             }
         } else {
             if (animated) {
-                setAnimatingOut(true);
-                // Delay gridExpanded=false so grid is visible (display:grid) before transition starts
-                requestAnimationFrame(() => requestAnimationFrame(() => setGridExpanded(false)));
-                const t = setTimeout(() => setAnimatingOut(false), 300);
+                // Frame 1: still display:grid + 1fr (collapsing keeps grid visible with transition)
+                // Frame 2-3: gridRows becomes 0fr, transition plays
+                requestAnimationFrame(() => requestAnimationFrame(() => setAnim('collapsing')));
+                const dur = folderDurations[node.fullName] || 150;
+                const t = setTimeout(() => setAnim('collapsed'), dur + 100);
                 return () => clearTimeout(t);
             } else {
-                setGridExpanded(false);
+                setAnim('collapsed');
             }
         }
     }, [isExpanded]);
@@ -224,9 +219,11 @@ export const TreeNodeRenderer = memo(function TreeNodeRenderer({
             {everExpanded && (
                 <div
                     style={{
-                        display: (!gridExpanded && !animatingOut && !isExpanded) ? 'none' : 'grid',
-                        gridTemplateRows: gridExpanded ? '1fr' : '0fr',
-                        transition: (ctx.animationsEnabled && transitionEnabled) ? `grid-template-rows ${folderDurations[node.fullName] ? (folderDurations[node.fullName] / 1000) + 's' : '0.15s'} cubic-bezier(0.33, 1, 0.68, 1)` : 'none',
+                        display: anim === 'collapsed' ? 'none' : 'grid',
+                        gridTemplateRows: (anim === 'expanded') ? '1fr' : '0fr',
+                        transition: (anim === 'expanded' || anim === 'collapsing')
+                            ? `grid-template-rows ${folderDurations[node.fullName] ? (folderDurations[node.fullName] / 1000) + 's' : '0.15s'} cubic-bezier(0.33, 1, 0.68, 1)`
+                            : 'none',
                     }}
                 >
                     <div style={{ minHeight: 0, overflow: 'hidden' }}>
