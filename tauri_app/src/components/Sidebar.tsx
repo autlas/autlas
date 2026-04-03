@@ -180,7 +180,7 @@ export default function Sidebar({
               onClick={() => !draggedScript && onTabClick(tab.id)}
             >
               <div className="flex items-center pointer-events-none flex-shrink-0 overflow-hidden">
-                <img src={logoImg} alt="Hub" className="w-8 h-8 flex-shrink-0" />
+                <img src={logoImg} alt="Hub" className={`w-8 h-8 flex-shrink-0 transition-all duration-300 ${activeTab === "hub" && viewMode !== "settings" ? "brightness-0 invert" : ""}`} />
                 <span className={`text-lg tracking-tight transition-all duration-150 ${collapsed ? 'w-0 ml-0 opacity-0' : 'w-auto ml-3 opacity-100'}`}>{tab.label}</span>
               </div>
               {activeTab !== "hub" && (
