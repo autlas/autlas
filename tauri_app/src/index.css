@@ -93,6 +93,11 @@ body {
     display: block !important;
 }
 
+.scrollbar-overlay {
+    overflow-y: overlay !important;
+    scrollbar-gutter: auto !important;
+}
+
 .custom-scrollbar {
     scrollbar-width: thin;
     scrollbar-color: var(--border-color) transparent;

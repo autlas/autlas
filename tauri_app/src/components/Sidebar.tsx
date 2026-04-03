@@ -154,7 +154,7 @@ export default function Sidebar({
         </svg>
       </button>
 
-      <div className={`flex flex-col space-y-1.5 flex-1 pt-5 pb-5 overflow-y-auto custom-scrollbar overflow-x-hidden pl-4 ${collapsed ? 'pr-4' : 'pr-[6px]'}`}>
+      <div className={`flex flex-col space-y-1.5 flex-1 pt-5 pb-5 overflow-x-hidden pl-4 ${collapsed ? 'scrollbar-overlay custom-scrollbar pr-[13px]' : 'overflow-y-auto custom-scrollbar pr-[6px]'}`}>
         {/* Group 1: Hub */}
         <ul className="space-y-1.5 w-full">
           {[{ id: "hub", label: t("sidebar.hub", "Hub") }].map((tab) => (
@@ -162,7 +162,7 @@ export default function Sidebar({
               key={tab.id}
               onMouseEnter={() => { if (!collapsed && draggedScript && !draggedScript.tags.includes("hub")) setDragOverTag(tab.id); }}
               onMouseLeave={() => { if (!collapsed && draggedScript && dragOverTag === tab.id) setDragOverTag(null); }}
-              className={`h-[52px] rounded-2xl cursor-pointer text-sm font-bold transition-all flex items-center whitespace-nowrap relative px-[10px] -ml-[2px] ${collapsed && 'w-[52px]'}
+              className={`h-[52px] rounded-2xl cursor-pointer text-sm font-bold transition-all flex items-center whitespace-nowrap relative px-[10px] -ml-[2px]
                 justify-between
                 ${draggedScript && !collapsed
                   ? (draggedScript.tags.includes("hub")
@@ -181,16 +181,18 @@ export default function Sidebar({
             >
               <div className="flex items-center pointer-events-none flex-shrink-0 overflow-hidden">
                 <img src={logoImg} alt="Hub" className="w-8 h-8 flex-shrink-0" />
-                <span className={`text-lg tracking-tight transition-all duration-300 ${collapsed ? 'w-0 ml-0 opacity-0' : 'w-auto ml-3 opacity-100'}`}>{tab.label}</span>
+                <span className={`text-lg tracking-tight transition-all duration-150 ${collapsed ? 'w-0 ml-0 opacity-0' : 'w-auto ml-3 opacity-100'}`}>{tab.label}</span>
               </div>
-              {!collapsed && activeTab !== "hub" && (
-                <div className={`flex items-center justify-center rounded-full bg-indigo-400 transition-all duration-500 flex-shrink-0 ${runningCount > 0 ? "w-5 h-5 shadow-[0_0_12px_rgba(99,102,241,0.6)]" : "w-2 h-2 animate-pulse shadow-[0_0_8px_rgba(79,70,229,0.5)]"}`}>
-                  {runningCount > 0 && <span className="text-[15px] font-bold leading-none mt-[1px]" style={{ color: "var(--bg-secondary)" }}>{runningCount}</span>}
-                </div>
-              )}
-              {collapsed && activeTab !== "hub" && runningCount > 0 && (
-                <div className="absolute top-0 right-0 w-4 h-4 rounded-full bg-indigo-400 flex items-center justify-center shadow-[0_0_12px_rgba(99,102,241,0.6)]">
-                  <span className="text-[10px] font-bold leading-none" style={{ color: "var(--bg-secondary)" }}>{runningCount}</span>
+              {activeTab !== "hub" && (
+                <div className={`absolute flex items-center justify-center rounded-full bg-indigo-400 transition-all duration-300
+                  ${collapsed
+                    ? (runningCount > 0 ? 'top-0 right-0 w-4 h-4 shadow-[0_0_12px_rgba(99,102,241,0.6)]' : 'top-[22px] right-2 w-2 h-2 animate-pulse shadow-[0_0_8px_rgba(79,70,229,0.5)] opacity-0')
+                    : (runningCount > 0 ? 'top-[16px] right-3 w-5 h-5 shadow-[0_0_12px_rgba(99,102,241,0.6)]' : 'top-[22px] right-4 w-2 h-2 animate-pulse shadow-[0_0_8px_rgba(79,70,229,0.5)]')
+                  }`}
+                >
+                  {runningCount > 0 && (
+                    <span className={`font-bold leading-none transition-all duration-300 ${collapsed ? 'text-[10px]' : 'text-[15px] mt-[1px]'}`} style={{ color: "var(--bg-secondary)" }}>{runningCount}</span>
+                  )}
                 </div>
               )}
             </li>
@@ -220,7 +222,7 @@ export default function Sidebar({
               <div className="flex items-center pointer-events-none flex-shrink-0">
                 {tab.id === "all" && <LayersIcon className={`flex-shrink-0 transition-opacity ${activeTab === tab.id && viewMode !== "settings" ? 'opacity-100' : 'opacity-40'}`} />}
                 {tab.id === "no_tags" && <TagOffIcon className={`flex-shrink-0 translate-y-[1px] transition-opacity ${activeTab === tab.id && viewMode !== "settings" ? 'opacity-100' : 'opacity-40'}`} />}
-                <span className={`transition-all duration-300 ${collapsed ? 'w-0 ml-0 opacity-0' : 'w-auto ml-3 opacity-100'}`}>{tab.label}</span>
+                <span className={`transition-all duration-150 ${collapsed ? 'w-0 ml-0 opacity-0' : 'w-auto ml-3 opacity-100'}`}>{tab.label}</span>
               </div>
             </li>
           ))}
@@ -243,7 +245,7 @@ export default function Sidebar({
           >
             <div className="flex items-center pointer-events-none flex-shrink-0">
               <TagIcon className={`flex-shrink-0 translate-y-[1px] transition-opacity ${activeTab === "tags" && viewMode !== "settings" ? 'opacity-100' : 'opacity-40'}`} />
-              <span className={`transition-all duration-300 ${collapsed ? 'w-0 ml-0 opacity-0' : 'w-auto ml-3 opacity-100'}`}>{t("sidebar.tags", "Tags")}</span>
+              <span className={`transition-all duration-150 ${collapsed ? 'w-0 ml-0 opacity-0' : 'w-auto ml-3 opacity-100'}`}>{t("sidebar.tags", "Tags")}</span>
             </div>
           </li>
 
@@ -324,7 +326,7 @@ export default function Sidebar({
                 ) : (
                   <div className="flex items-center pointer-events-none flex-shrink-0">
                     <TagDotIcon className={`flex-shrink-0 transition-opacity ${activeTab === tag && viewMode !== "settings" ? 'opacity-100' : 'opacity-40'}`} />
-                    <span className={`relative z-50 truncate flex-1 font-bold transition-all duration-300 ${collapsed ? 'w-0 ml-0 opacity-0' : 'w-auto ml-3 opacity-100'}`}>{tag}</span>
+                    <span className={`relative z-50 font-bold transition-all duration-150 ${collapsed ? 'w-0 ml-0 opacity-0' : 'w-auto ml-3 opacity-100 truncate'}`}>{tag}</span>
                   </div>
                 )}
               </li>
@@ -400,7 +402,7 @@ export default function Sidebar({
         </button>
       </div>
       {!collapsed && (
-        <div className={`pr-[14px] flex justify-end h-4 transition-all duration-300 ${isHoveringRefresh ? "opacity-100 translate-y-0" : "opacity-0 translate-y-1"}`}>
+        <div className={`pr-[14px] flex justify-end h-4 transition-all duration-150 ${isHoveringRefresh ? "opacity-100 translate-y-0" : "opacity-0 translate-y-1"}`}>
           <span className="text-[12px] uppercase tracking-[0.1em] text-quaternary select-none flex items-center whitespace-nowrap">
             {isRefreshing ? (
               <span className="font-bold">{t("sidebar.scanning", "Scanning...")}</span>
