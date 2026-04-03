@@ -275,7 +275,7 @@ mod native_popup {
                     if let Ok(state) = STATE.lock() {
                         if let Some(s) = state.as_ref() {
                             let (idx, btn) = hit_test(x, y, &s.scripts);
-                            if idx >= 0 && (idx as usize) < s.scripts.len() {
+                            if idx >= 0 && (idx as usize) < s.scripts.len() && btn >= 0 {
                                 let path = &s.scripts[idx as usize].path;
                                 match btn {
                                     0 => Some(format!("show_ui|{}", path)),
@@ -291,7 +291,10 @@ mod native_popup {
                     } else { None }
                 };
                 if let Some(action) = action {
-                    ShowWindow(hwnd, SW_HIDE);
+                    let should_hide = action == "show_window" || action == "quit";
+                    if should_hide {
+                        ShowWindow(hwnd, SW_HIDE);
+                    }
                     if let Ok(cb) = ACTION_CB.lock() {
                         if let Some(f) = cb.as_ref() { f(&action); }
                     }
