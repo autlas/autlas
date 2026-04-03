@@ -85,7 +85,7 @@ const HubScriptCard = memo(function HubScriptCard({
                         <HighlightText text={s.filename.replace(/\.ahk$/i, '')} variant="file" />
                     </span>
                 </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
+                <div className="flex items-center gap-4 flex-shrink-0">
                     {showFileSize && (
                         <span className="text-xs text-tertiary/50 font-mono">{formatSize(s.size)}</span>
                     )}
