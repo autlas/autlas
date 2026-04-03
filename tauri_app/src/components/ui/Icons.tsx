@@ -124,6 +124,14 @@ export function TagIcon({ size = 16, strokeWidth = 2, className }: IconProps) {
     );
 }
 
+export function TagDotIcon({ size = 16, className }: IconProps) {
+    return (
+        <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className}>
+            <circle cx="8" cy="8" r="5.5" stroke="currentColor" strokeWidth="1.5" strokeDasharray="3 2.5" />
+        </svg>
+    );
+}
+
 export function TagOffIcon({ size = 16, strokeWidth = 2, className }: IconProps) {
     return (
         <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className}>

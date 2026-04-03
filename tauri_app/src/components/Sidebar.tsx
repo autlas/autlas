@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useTranslation } from "react-i18next";
-import { GearIcon, TagIcon, LayersIcon, TagOffIcon } from "./ui/Icons";
+import { GearIcon, TagIcon, TagDotIcon, LayersIcon, TagOffIcon } from "./ui/Icons";
 import { useTreeStore } from "../store/useTreeStore";
 import logoImg from "../assets/logo.png";
 
@@ -49,7 +49,7 @@ interface SidebarProps {
 
 function navItemClass(tab: string, isTag: boolean, state: Pick<SidebarProps, "activeTab" | "draggedScript" | "draggedTag" | "dragOverTag" | "activeTabPressed">): string {
   return `
-    px-6 h-11 rounded-2xl cursor-pointer text-sm font-bold transition-all flex items-center justify-between relative z-50
+    px-4 h-11 rounded-2xl cursor-pointer text-sm font-bold transition-all flex items-center justify-between relative z-50
     will-change-transform select-none long-press-shrink ${state.activeTabPressed === tab ? "active-left" : ""}
     ${state.draggedTag === tab
       ? "opacity-0 invisible pointer-events-none"
@@ -162,7 +162,7 @@ export default function Sidebar({
               key={tab.id}
               onMouseEnter={() => { if (!collapsed && draggedScript && !draggedScript.tags.includes("hub")) setDragOverTag(tab.id); }}
               onMouseLeave={() => { if (!collapsed && draggedScript && dragOverTag === tab.id) setDragOverTag(null); }}
-              className={`h-[52px] rounded-2xl cursor-pointer text-sm font-bold transition-all flex items-center overflow-hidden whitespace-nowrap px-3
+              className={`h-[52px] rounded-2xl cursor-pointer text-sm font-bold transition-all flex items-center overflow-hidden whitespace-nowrap px-4
                 justify-between
                 ${draggedScript && !collapsed
                   ? (draggedScript.tags.includes("hub")
@@ -179,7 +179,7 @@ export default function Sidebar({
               }}
               onClick={() => !draggedScript && onTabClick(tab.id)}
             >
-              <div className={`flex items-center pointer-events-none flex-shrink-0 ${collapsed ? '' : 'space-x-3'}`}>
+              <div className="flex items-center pointer-events-none flex-shrink-0">
                 <img src={logoImg} alt="Hub" className="w-8 h-8 flex-shrink-0" />
                 <span className={`text-lg tracking-tight transition-all duration-300 ${collapsed ? 'w-0 opacity-0' : 'w-auto opacity-100'}`}>{tab.label}</span>
               </div>
@@ -217,10 +217,10 @@ export default function Sidebar({
               style={{ backgroundColor: activeTab === tab.id && viewMode !== "settings" ? "var(--bg-tag-active)" : "var(--bg-tag)" }}
               onClick={() => !draggedScript && onTabClick(tab.id)}
             >
-              <div className={`flex items-center pointer-events-none flex-shrink-0 ${collapsed ? '' : 'space-x-3'}`}>
+              <div className="flex items-center pointer-events-none flex-shrink-0">
                 {tab.id === "all" && <LayersIcon className={`flex-shrink-0 transition-opacity ${activeTab === tab.id && viewMode !== "settings" ? 'opacity-100' : 'opacity-40'}`} />}
                 {tab.id === "no_tags" && <TagOffIcon className={`flex-shrink-0 translate-y-[1px] transition-opacity ${activeTab === tab.id && viewMode !== "settings" ? 'opacity-100' : 'opacity-40'}`} />}
-                <span className={`transition-all duration-300 ${collapsed ? 'w-0 opacity-0' : 'w-auto opacity-100'}`}>{tab.label}</span>
+                <span className={`transition-all duration-300 ${collapsed ? 'w-0 ml-0 opacity-0' : 'w-auto ml-3 opacity-100'}`}>{tab.label}</span>
               </div>
             </li>
           ))}
@@ -241,9 +241,9 @@ export default function Sidebar({
             style={{ backgroundColor: activeTab === "tags" && viewMode !== "settings" ? "var(--bg-tag-active)" : "var(--bg-tag)", listStyle: "none" }}
             onClick={() => !draggedScript && onTabClick("tags")}
           >
-            <div className={`flex items-center pointer-events-none flex-shrink-0 ${collapsed ? '' : 'space-x-3'}`}>
+            <div className="flex items-center pointer-events-none flex-shrink-0">
               <TagIcon className={`flex-shrink-0 translate-y-[1px] transition-opacity ${activeTab === "tags" && viewMode !== "settings" ? 'opacity-100' : 'opacity-40'}`} />
-              <span className={`transition-all duration-300 ${collapsed ? 'w-0 opacity-0' : 'w-auto opacity-100'}`}>{t("sidebar.tags", "Tags")}</span>
+              <span className={`transition-all duration-300 ${collapsed ? 'w-0 ml-0 opacity-0' : 'w-auto ml-3 opacity-100'}`}>{t("sidebar.tags", "Tags")}</span>
             </div>
           </li>
 
@@ -279,10 +279,10 @@ export default function Sidebar({
                   draggedScript && dragOverTag === tag && setDragOverTag(null);
                 }}
                 className={collapsed
-                  ? `h-11 rounded-2xl cursor-pointer text-xs font-bold uppercase transition-all flex items-center justify-center overflow-hidden
+                  ? `px-4 h-11 rounded-2xl cursor-pointer text-sm font-bold transition-all flex items-center justify-between overflow-hidden whitespace-nowrap
                     ${activeTab === tag && viewMode !== "settings"
-                    ? "text-indigo-400 shadow-lg bg-white/5"
-                    : "text-tertiary hover:text-secondary hover:bg-white/5"
+                    ? "text-indigo-400 shadow-lg tag-active"
+                    : "text-tertiary hover:text-secondary tag-hover"
                   }`
                   : navItemClass(tag, true, { activeTab, draggedScript, draggedTag, dragOverTag, activeTabPressed })
                 }
@@ -298,9 +298,7 @@ export default function Sidebar({
                 }
                 onClick={() => { if (!draggedScript) onTabClick(tag); }}
               >
-                {collapsed ? (
-                  tag.slice(0, 2)
-                ) : isRenamingTag === tag ? (
+                {isRenamingTag === tag && !collapsed ? (
                   <input
                     autoFocus
                     className="bg-transparent border-none outline-none text-sm font-bold w-full text-white"
@@ -324,7 +322,10 @@ export default function Sidebar({
                     }}
                   />
                 ) : (
-                  <span className="relative z-50 pointer-events-none truncate flex-1 font-bold">{tag}</span>
+                  <div className="flex items-center pointer-events-none flex-shrink-0">
+                    <TagDotIcon className={`flex-shrink-0 transition-opacity ${activeTab === tag && viewMode !== "settings" ? 'opacity-100' : 'opacity-40'}`} />
+                    <span className={`relative z-50 truncate flex-1 font-bold transition-all duration-300 ${collapsed ? 'w-0 ml-0 opacity-0' : 'w-auto ml-3 opacity-100'}`}>{tag}</span>
+                  </div>
                 )}
               </li>
             ))}
