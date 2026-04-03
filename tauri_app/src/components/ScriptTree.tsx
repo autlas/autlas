@@ -15,7 +15,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
     const lastGTimeRef = useRef(0);
     const lastFTimeRef = useRef(0);
     const isInstantScrollRef = useRef(false);
-    const [sortBy, setSortBy] = useState<"name" | "path">("name");
+    const [sortBy, setSortBy] = useState<"name" | "size">("name");
 
     const {
         loading, isFetching, allScripts, filtered, tree, groupedHub,
@@ -163,7 +163,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
     useHotkeys('q', () => onViewModeChange('tree'));
     useHotkeys('w', () => onViewModeChange('tiles'));
     useHotkeys('e', () => onViewModeChange('list'));
-    useHotkeys('s', () => setSortBy(prev => prev === 'name' ? 'path' : 'name'));
+    useHotkeys('s', () => setSortBy(prev => prev === 'name' ? 'size' : 'name'));
 
     useHotkeys('i', (e) => {
         const now = performance.now();

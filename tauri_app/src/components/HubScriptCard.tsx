@@ -8,6 +8,12 @@ import ActionButton from "./ui/ActionButton";
 import { useTreeStore } from "../store/useTreeStore";
 
 
+function formatSize(bytes: number): string {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 const HubScriptCard = memo(function HubScriptCard({
     s, isDragging, draggedScriptPath, editingScript, pendingScripts, removingTags,
     isContextMenuOpen, allUniqueTags, popoverRef, visibilityMode, onMouseDown, onToggle, onStartEditing, onAddTag, onRemoveTag, onCloseEditing,
@@ -16,6 +22,7 @@ const HubScriptCard = memo(function HubScriptCard({
 }: HubScriptCardProps) {
     const isFocused = useTreeStore(store => store.focusedPath === s.path);
     const isVimMode = useTreeStore(store => store.isVimMode);
+    const showFileSize = useTreeStore(store => store.showFileSize);
     const { t } = useTranslation();
     const cardRef = React.useRef<HTMLDivElement>(null);
 
@@ -59,7 +66,7 @@ const HubScriptCard = memo(function HubScriptCard({
             }}
             onDoubleClick={() => !isDragging && onToggle(s)}
             id={`script-${s.path}`}
-            className={`p-6 rounded-[24px] border flex flex-col select-none relative long-press-shrink ${isEditing ? 'z-[200]' : 'z-10'}
+            className={`pt-[21px] pb-6 px-6 rounded-[24px] border flex flex-col select-none relative long-press-shrink ${isEditing ? 'z-[200]' : 'z-10'}
                 ${isFocused && isVimMode ? 'vim-focus-instant !bg-indigo-500/20 shadow-[0_0_40px_rgba(99,102,241,0.2)] ring-2 ring-indigo-500/30' : 'transition-all duration-300'}
                 ${!draggedScriptPath
                     ? `${isVimMode ? '' : 'group hover:z-[100] hover:bg-white/[0.06]'} ${isEditing || isContextMenuOpen ? 'shadow-2xl bg-white/[0.05]' : (isVimMode ? 'bg-white/[0.03]' : 'bg-white/[0.03] hover:shadow-2xl cursor-pointer')}`
@@ -78,7 +85,12 @@ const HubScriptCard = memo(function HubScriptCard({
                         <HighlightText text={s.filename.replace(/\.ahk$/i, '')} variant="file" />
                     </span>
                 </div>
-                <div className={`w-3 h-3 rounded-full transition-all duration-500 ${isPending ? 'bg-yellow-500 animate-pulse shadow-[0_0_10px_rgba(234,179,8,0.6)]' : s.is_running ? 'bg-green-500 animate-status-glow shadow-[0_0_12px_rgba(34,197,94,0.8)]' : 'bg-white/10'} ${isDragging ? 'opacity-20' : ''}`}></div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                    {showFileSize && (
+                        <span className="text-xs text-tertiary/50 font-mono">{formatSize(s.size)}</span>
+                    )}
+                    <div className={`w-3 h-3 rounded-full transition-all duration-500 ${isPending ? 'bg-yellow-500 animate-pulse shadow-[0_0_10px_rgba(234,179,8,0.6)]' : s.is_running ? 'bg-green-500 animate-status-glow shadow-[0_0_12px_rgba(34,197,94,0.8)]' : 'bg-white/10'} ${isDragging ? 'opacity-20' : ''}`}></div>
+                </div>
             </div>
 
             <div className="mt-4 mb-4">

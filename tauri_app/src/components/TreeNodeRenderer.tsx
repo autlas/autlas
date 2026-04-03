@@ -244,7 +244,7 @@ export const TreeNodeRenderer = memo(function TreeNodeRenderer({
                                         depth={depth + 1}
                                     />
                                 ))}
-                                {node.scripts.sort((a, b) => a.filename.localeCompare(b.filename)).map(s => {
+                                {node.scripts.map(s => {
                                     const removingTagKeys = Array.from(removingTags as Set<string>).filter(k => k.startsWith(s.path + '-'));
                                     return (
                                         <ScriptRow

@@ -35,7 +35,7 @@ interface UseScriptTreeOptions {
     manualRefresh?: boolean;
     onScanComplete?: (timestamp: number) => void;
     viewMode: "tree" | "tiles" | "list";
-    sortBy: "name" | "path";
+    sortBy: "name" | "size";
 }
 
 export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, searchQuery, setSearchQuery, onRunningCountChange, manualRefresh, onScanComplete, viewMode, sortBy }: UseScriptTreeOptions) {
@@ -431,51 +431,17 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
 
             return true;
         });
-        if (sortBy === "name") {
-            return list.sort((a, b) => a.filename.localeCompare(b.filename));
+        if (sortBy === "size") {
+            return list.sort((a, b) => b.size - a.size);
         }
-
-        // Tree-aware path sorting (DFS order)
-        const result: Script[] = [];
-        const root: TreeNode = { name: "Root", fullName: "Root", scripts: [], children: {} };
-
-        // Temporarily build a tree to compute DFS order
-        list.forEach(script => {
-            const pathParts = script.path.split(/[\\\/]/);
-            const desktopIdx = pathParts.findIndex(p => p === "Desktop");
-            const ahkIdx = pathParts.findIndex(p => p === "AHKmanager");
-            let startIdx = 0;
-            if (desktopIdx !== -1) startIdx = desktopIdx;
-            else if (ahkIdx !== -1) startIdx = ahkIdx;
-
-            let current = root;
-            for (let i = startIdx; i < pathParts.length - 1; i++) {
-                const part = pathParts[i];
-                if (!part) continue;
-                if (!current.children[part]) {
-                    current.children[part] = { name: part, fullName: pathParts.slice(0, i + 1).join("\\"), scripts: [], children: {} };
-                }
-                current = current.children[part];
-            }
-            current.scripts.push(script);
-        });
-
-        const traverse = (node: TreeNode) => {
-            // First traverse children folders (DFS)
-            Object.values(node.children)
-                .sort((a, b) => a.name.localeCompare(b.name))
-                .forEach(traverse);
-
-            // Then add scripts in current folder
-            [...node.scripts]
-                .sort((a, b) => a.filename.localeCompare(b.filename))
-                .forEach(s => result.push(s));
-        };
-        traverse(root);
-        return result;
+        return list.sort((a, b) => a.filename.localeCompare(b.filename));
     }, [allScripts, filterTag, showHidden, searchQuery, sortBy]);
 
     const tree = useMemo(() => {
+        const scriptSort = sortBy === "size"
+            ? (a: Script, b: Script) => b.size - a.size
+            : (a: Script, b: Script) => a.filename.localeCompare(b.filename);
+
         const root: TreeNode = { name: "Root", fullName: "Root", scripts: [], children: {} };
         filtered.forEach(script => {
             const pathParts = script.path.split(/[\\\/]/);
@@ -502,6 +468,7 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
         });
 
         const compact = (node: TreeNode): TreeNode => {
+            node.scripts.sort(scriptSort);
             const childKeys = Object.keys(node.children);
             for (const key of childKeys) {
                 node.children[key] = compact(node.children[key]);
@@ -532,7 +499,7 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
         };
 
         return compact(root);
-    }, [filtered, showHidden]);
+    }, [filtered, showHidden, sortBy]);
 
     const groupedHub = useMemo(() => {
         if (filterTag !== "hub") return null;
@@ -553,16 +520,16 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
         const sortedTags = Object.keys(groups).sort((a, b) => a.localeCompare(b));
         const result: { tag: string; scripts: Script[] }[] = sortedTags.map(tag => ({
             tag,
-            scripts: groups[tag].sort((a, b) => a.filename.localeCompare(b.filename))
+            scripts: groups[tag].sort(sortBy === "size" ? (a, b) => b.size - a.size : (a, b) => a.filename.localeCompare(b.filename))
         }));
         if (scriptsWithoutTags.length > 0) {
             result.push({
                 tag: t("hub.other", "other"),
-                scripts: scriptsWithoutTags.sort((a, b) => a.filename.localeCompare(b.filename))
+                scripts: scriptsWithoutTags.sort(sortBy === "size" ? (a, b) => b.size - a.size : (a, b) => a.filename.localeCompare(b.filename))
             });
         }
         return result;
-    }, [filtered, filterTag]);
+    }, [filtered, filterTag, sortBy]);
 
     const allFolderPaths = useMemo(() => {
         const paths: string[] = [];
@@ -630,10 +597,8 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
                         .sort((a, b) => a.name.localeCompare(b.name))
                         .forEach(traverse);
 
-                    // Then add scripts in current folder
-                    [...node.scripts]
-                        .sort((a, b) => a.filename.localeCompare(b.filename))
-                        .forEach(s => {
+                    // Then add scripts in current folder (already sorted in tree build)
+                    node.scripts.forEach(s => {
                             items.push({ path: s.path, type: 'script', data: s });
                         });
                 }

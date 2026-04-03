@@ -9,8 +9,8 @@ interface ScriptTreeToolbarProps {
     onViewModeChange: (mode: "tree" | "tiles" | "list") => void;
     isDragging: boolean;
     draggedScriptPath: string | null;
-    sortBy: "name" | "path";
-    setSortBy: (s: "name" | "path") => void;
+    sortBy: "name" | "size";
+    setSortBy: (s: "name" | "size") => void;
     isAllExpanded: boolean;
     toggleAll: () => void;
     searchQuery: string;
@@ -68,10 +68,22 @@ export default function ScriptTreeToolbar({
         },
     ], [t]);
 
-    const sortOptions = useMemo(() => [
-        { id: "name" as const, label: "Name" },
-        { id: "path" as const, label: "Path" },
-    ], []);
+    const [sortOpen, setSortOpen] = useState(false);
+    const sortRef = useRef<HTMLDivElement>(null);
+    const sortOptions: { id: "name" | "size"; label: string }[] = [
+        { id: "name", label: t("toolbar.sort_name", "Name") },
+        { id: "size", label: t("toolbar.sort_size", "Size") },
+    ];
+    const currentSortLabel = sortOptions.find(o => o.id === sortBy)?.label ?? sortBy;
+
+    useEffect(() => {
+        if (!sortOpen) return;
+        const handleClick = (e: MouseEvent) => {
+            if (sortRef.current && !sortRef.current.contains(e.target as Node)) setSortOpen(false);
+        };
+        document.addEventListener("mousedown", handleClick);
+        return () => document.removeEventListener("mousedown", handleClick);
+    }, [sortOpen]);
 
     const lowerSearch = searchQuery.toLowerCase();
     const prefixMatch = lowerSearch.startsWith("path:") ? "path:" :
@@ -97,7 +109,7 @@ export default function ScriptTreeToolbar({
 
     return (
         <div className={`flex items-end justify-between pt-3 pb-2 border-b transition-all duration-300 ${draggedScriptPath ? 'opacity-20 blur-[1px] pointer-events-none' : ''}`} style={{ borderColor: 'var(--border-color)' }}>
-            <div className="flex-1 min-w-0 flex items-end relative overflow-hidden">
+            <div className="flex-1 min-w-0 flex items-end relative">
                 <div className={`flex flex-col flex-shrink-0 overflow-hidden transition-all duration-300 ease-in-out ${searchActive ? 'w-0 opacity-0 pointer-events-none' : 'opacity-100'}`}>
                     <SectionLabel className="ml-3 mb-0.5">{t("toolbar.view", "View")}</SectionLabel>
                     <ToggleGroup
@@ -109,15 +121,35 @@ export default function ScriptTreeToolbar({
                 </div>
 
                 {/* SORTING CONTROLS */}
-                <div className={`flex flex-col overflow-hidden transition-all duration-300 ease-in-out ${searchActive ? 'w-0 opacity-0 pointer-events-none ml-0' : viewMode !== "tree" ? 'w-[145px] opacity-100 ml-2' : 'w-0 opacity-0 pointer-events-none ml-0'}`}>
+                <div className={`flex flex-col overflow-visible transition-all duration-300 ease-in-out ${searchActive ? 'w-0 opacity-0 pointer-events-none ml-0' : 'opacity-100 ml-2'}`}>
                     <SectionLabel className="ml-3 mb-0.5">{t("toolbar.sort", "Sort")}</SectionLabel>
-                    <ToggleGroup
-                        options={sortOptions}
-                        value={sortBy}
-                        onChange={setSortBy}
-                        disabled={isDragging}
-                        className="flex-shrink-0 w-[145px]"
-                    />
+                    <div ref={sortRef} className="relative">
+                        <button
+                            onClick={() => !isDragging && setSortOpen(!sortOpen)}
+                            className={`h-[42px] px-4 flex items-center gap-2 rounded-xl bg-white/[0.03] border border-white/5 transition-all cursor-pointer
+                                ${!isDragging ? 'hover:bg-white/[0.06] hover:border-white/10' : 'opacity-20 pointer-events-none'}
+                                ${sortOpen ? 'border-indigo-500/50 bg-white/[0.05]' : ''}`}
+                        >
+                            <span className="text-sm text-secondary font-medium">{currentSortLabel}</span>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-tertiary">
+                                <polyline points="6 9 12 15 18 9" />
+                            </svg>
+                        </button>
+                        {sortOpen && (
+                            <div className="absolute top-full left-0 mt-1 py-1 min-w-[120px] rounded-xl bg-[var(--bg-primary)] border border-white/10 shadow-xl shadow-black/50 z-50">
+                                {sortOptions.map(opt => (
+                                    <button
+                                        key={opt.id}
+                                        onClick={() => { setSortBy(opt.id); setSortOpen(false); }}
+                                        className={`w-full text-left px-4 py-2 text-sm transition-colors cursor-pointer
+                                            ${sortBy === opt.id ? 'text-indigo-400 bg-indigo-500/10' : 'text-secondary hover:bg-white/5'}`}
+                                    >
+                                        {opt.label}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 <div className={`flex items-end overflow-hidden transition-all duration-[150ms] ease-in-out ${searchActive ? 'w-0 opacity-0 pointer-events-none ml-0' : viewMode === "tree" ? 'w-[42px] opacity-100 ml-2' : 'w-0 opacity-0 pointer-events-none ml-0'}`}>
