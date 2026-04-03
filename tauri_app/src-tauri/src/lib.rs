@@ -697,6 +697,7 @@ struct Script {
     is_hidden: bool,
     is_running: bool,
     has_ui: bool,
+    size: u64,
 }
 
 struct ManagerMetadata {
@@ -954,6 +955,8 @@ async fn get_scripts(force_scan: bool) -> Vec<Script> {
             } else { false }
         } else { false };
 
+        let size = fs::metadata(&path_buf).map(|m| m.len()).unwrap_or(0);
+
         scripts.push(Script {
             path: path_str,
             filename,
@@ -962,6 +965,7 @@ async fn get_scripts(force_scan: bool) -> Vec<Script> {
             is_hidden,
             is_running,
             has_ui,
+            size,
         });
     }
 

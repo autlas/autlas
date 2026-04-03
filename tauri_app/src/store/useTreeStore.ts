@@ -56,6 +56,11 @@ interface TreeStore {
   removingTags: Set<string>;
   addRemovingTag: (key: string) => void;
   clearRemovingTag: (key: string) => void;
+
+  // Show file size
+  showFileSize: boolean;
+  setShowFileSize: (v: boolean) => void;
+  toggleShowFileSize: () => void;
 }
 
 export const useTreeStore = create<TreeStore>((set) => ({
@@ -134,6 +139,15 @@ export const useTreeStore = create<TreeStore>((set) => ({
     const next = { ...s.folderDurations };
     delete next[path];
     return { folderDurations: next };
+  }),
+
+  // Show file size
+  showFileSize: localStorage.getItem("ahk_show_file_size") === "true",
+  setShowFileSize: (v) => { localStorage.setItem("ahk_show_file_size", String(v)); set({ showFileSize: v }); },
+  toggleShowFileSize: () => set((s) => {
+    const v = !s.showFileSize;
+    localStorage.setItem("ahk_show_file_size", String(v));
+    return { showFileSize: v };
   }),
 
   // Removing tags

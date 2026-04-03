@@ -8,6 +8,7 @@ export interface Script {
     is_hidden: boolean;
     is_running: boolean;
     has_ui?: boolean;
+    size: number;
 }
 
 export async function getScripts(forceScan: boolean = false): Promise<Script[]> {

@@ -7,6 +7,12 @@ import { useTranslation } from "react-i18next";
 import { PlusIcon, CloseIcon, RestartIcon, PlayIcon, InterfaceIcon } from "./ui/Icons";
 import ActionButton from "./ui/ActionButton";
 
+function formatSize(bytes: number): string {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 const ScriptRow = memo(function ScriptRow({
     s, isDragging, draggedScriptPath, isEditing, isPending, pendingType, isContextMenuOpen, removingTagKeys,
     allUniqueTags, popoverRef, visibilityMode,
@@ -17,6 +23,7 @@ const ScriptRow = memo(function ScriptRow({
     const { t } = useTranslation();
     const isFocused = useTreeStore(store => store.focusedPath === s.path);
     const isVimMode = useTreeStore(store => store.isVimMode);
+    const showFileSize = useTreeStore(store => store.showFileSize);
 
     const [isLeftPressed, setIsLeftPressed] = useState(false);
     const [visibleCount, setVisibleCount] = useState(s.tags.length);
@@ -212,9 +219,14 @@ const ScriptRow = memo(function ScriptRow({
                 )}
             </div>
 
-            {
-                !isDragging && (
-                    <div className={`transition-opacity flex items-center space-x-2 pointer-events-auto ${isFocused && isVimMode ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+            {!isDragging && (
+                <div className="relative flex items-center pointer-events-auto">
+                    {showFileSize && (
+                        <span className={`text-xs text-tertiary/50 font-mono flex-shrink-0 transition-opacity ${isFocused && isVimMode ? 'opacity-0' : 'opacity-100 group-hover:opacity-0'}`}>
+                            {formatSize(s.size)}
+                        </span>
+                    )}
+                    <div className={`${showFileSize ? 'absolute right-0' : ''} transition-opacity flex items-center space-x-2 ${isFocused && isVimMode ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
                         {s.is_running && !isPending && s.has_ui && (
                             <ActionButton color="indigo" onClick={() => onShowUI(s)} title="Interface">
                                 <InterfaceIcon />
@@ -228,7 +240,7 @@ const ScriptRow = memo(function ScriptRow({
                         <button
                             onClick={(e) => { e.stopPropagation(); !isPending && onToggle(s); }}
                             onMouseDown={(e) => e.stopPropagation()}
-                            className={`w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-lg transition-all transform cursor-pointer active:scale-95 pointer-events-auto border 
+                            className={`w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-lg transition-all transform cursor-pointer active:scale-95 pointer-events-auto border
                             ${isPending ? (
                                     pendingType === 'restart' ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20 animate-pulse' :
                                         pendingType === 'kill' ? 'bg-red-500/10 text-red-500 border-red-500/20 animate-pulse' :
@@ -246,8 +258,8 @@ const ScriptRow = memo(function ScriptRow({
                             )}
                         </button>
                     </div>
-                )
-            }
+                </div>
+            )}
         </div >
     );
 }, (prev, next) => {
