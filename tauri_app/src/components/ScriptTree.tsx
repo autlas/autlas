@@ -294,7 +294,6 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
 
     // Set module-level callbacks for TreeNodeRenderer (bypasses useContext → prevents memo bypass)
     setTreeCallbacks(treeContextValue);
-    console.log(`[PERF] ScriptTree render at ${performance.now().toFixed(1)}ms, filterTag=${filterTag}, tree children=${Object.keys(tree.children).length}, scripts=${filtered.length}`);
 
     const masonryColumns = useMemo(() => {
         const cols: import("../api").Script[][] = Array.from({ length: columnsCount }, () => []);

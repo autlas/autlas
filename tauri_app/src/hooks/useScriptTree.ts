@@ -374,7 +374,6 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
     }, [onCustomDragStart]);
 
     const filtered = useMemo(() => {
-        const _t0 = performance.now();
         const rawQuery = searchQuery.trim().toLowerCase();
         const hubTags = new Set(["hub", "fav", "favourites"]);
 
@@ -419,15 +418,12 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
             return true;
         });
 
-        const result = sortList(applySearch(list));
-        console.log(`[PERF] filtered: ${(performance.now() - _t0).toFixed(1)}ms (${result.length} scripts)`);
-        return result;
+        return sortList(applySearch(list));
     }, [allScripts, filterTag, showHidden, searchQuery, sortBy]);
 
     const prevTreeRef = useRef<TreeNode | null>(null);
 
     const tree = useMemo(() => {
-        const _t0 = performance.now();
         const scriptSort = sortBy === "size"
             ? (a: Script, b: Script) => b.size - a.size
             : (a: Script, b: Script) => a.filename.localeCompare(b.filename);
@@ -529,12 +525,10 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
             };
             const stabilized = stabilize(newTree, prev);
             prevTreeRef.current = stabilized;
-            console.log(`[PERF] tree build: ${(performance.now() - _t0).toFixed(1)}ms (stabilized=${stabilized === prev})`);
             return stabilized;
         }
 
         prevTreeRef.current = newTree;
-        console.log(`[PERF] tree build: ${(performance.now() - _t0).toFixed(1)}ms (no prev cache)`);
         return newTree;
     }, [filtered, showHidden, sortBy]);
 
