@@ -38,11 +38,9 @@ function App() {
   const [lastScanTimestamp, setLastScanTimestamp] = useState<number>(() => {
     const saved = localStorage.getItem("ahk_last_scan_timestamp");
     if (saved) {
-      console.log("[App] Initializing lastScanTimestamp from localStorage:", new Date(parseInt(saved)).toLocaleTimeString());
       return parseInt(saved);
     }
     const now = Date.now();
-    console.log("[App] No saved timestamp. Initializing as just now:", new Date(now).toLocaleTimeString());
     localStorage.setItem("ahk_last_scan_timestamp", now.toString());
     return now;
   });
@@ -61,6 +59,12 @@ function App() {
 
   const refreshIconRef = useRef<HTMLDivElement>(null);
   const activeAnimRef = useRef<Animation | null>(null);
+  const [visitedTabs, setVisitedTabs] = useState<Set<string>>(() => new Set([activeTab]));
+  useEffect(() => {
+    if (activeTab !== "settings") {
+      setVisitedTabs(prev => prev.has(activeTab) ? prev : new Set(prev).add(activeTab));
+    }
+  }, [activeTab]);
 
   const ghostRef = useRef<HTMLDivElement>(null);
   const [dragGhostSize, setDragGhostSize] = useState({ w: 0, h: 0 });
@@ -259,10 +263,8 @@ function App() {
   }, []);
 
   const handleShowUI = useCallback(async (s: any) => {
-    console.log("[frontend] Requesting UI for script:", s.path);
     try {
-      const result = await invoke("show_script_ui", { path: s.path });
-      console.log("[frontend] show_script_ui result:", result);
+      await invoke("show_script_ui", { path: s.path });
     } catch (err) {
       console.error("[frontend] Failed to show UI:", err);
     }
@@ -379,49 +381,52 @@ function App() {
           </div>
 
           <div className={viewMode !== "settings" ? "flex-1 flex flex-col min-h-0" : "hidden"}>
-            <MemoizedScriptTree
-              key={`script-tree-${refreshKey}`}
-              filterTag={activeTab}
-              onTagsLoaded={handleTagsLoaded}
-              onLoadingChange={handleLoadingChange}
-              onRunningCountChange={setRunningCount}
-              viewMode={displayMode}
-              onViewModeChange={toggleDisplayMode}
-              onCustomDragStart={startCustomDrag}
-              isDragging={draggedScript !== null}
-              draggedScriptPath={draggedScript?.path || null}
-              animationsEnabled={animationsEnabled}
-              searchQuery={searchQuery}
-              setSearchQuery={setSearchQuery}
-              contextMenu={contextMenu}
-              onScriptContextMenu={(e, s) => {
-                e.preventDefault();
-                setContextMenu({ x: e.clientX, y: e.clientY, type: "script", data: s });
-              }}
-              onFolderContextMenu={(e, folderData) => {
-                e.preventDefault();
-                setContextMenu({ x: e.clientX, y: e.clientY, type: "folder", data: folderData });
-              }}
-              onShowUI={handleShowUI}
-              manualRefresh={refreshKey > 0}
-              onScanComplete={handleScanComplete}
-              isPathsEmpty={scanPaths.length === 0}
-              onAddPath={handleAddScanPath}
-              onRefresh={() => setRefreshKey(p => p + 1)}
-              onSelectScript={handleSelectScript}
-              onExposeActions={handleExposeActions}
-              onOpenSettings={() => {
-                handleTabClick("settings");
-                setTimeout(() => {
-                  const el = document.getElementById("settings-add-folder-btn");
-                  if (el) {
-                    el.scrollIntoView({ behavior: "smooth", block: "center" });
-                    el.classList.add("highlight-pulse-once");
-                    el.addEventListener("animationend", () => el.classList.remove("highlight-pulse-once"), { once: true });
-                  }
-                }, 350);
-              }}
-            />
+            {Array.from(visitedTabs).map(tab => (
+              <div key={`script-tree-${tab}-${refreshKey}`} className={tab === activeTab ? "flex-1 flex flex-col min-h-0" : "hidden"}>
+                <MemoizedScriptTree
+                  filterTag={tab}
+                  onTagsLoaded={handleTagsLoaded}
+                  onLoadingChange={tab === activeTab ? handleLoadingChange : () => {}}
+                  onRunningCountChange={tab === activeTab ? setRunningCount : () => {}}
+                  viewMode={displayMode}
+                  onViewModeChange={toggleDisplayMode}
+                  onCustomDragStart={startCustomDrag}
+                  isDragging={draggedScript !== null}
+                  draggedScriptPath={draggedScript?.path || null}
+                  animationsEnabled={animationsEnabled}
+                  searchQuery={tab === activeTab ? searchQuery : ""}
+                  setSearchQuery={setSearchQuery}
+                  contextMenu={tab === activeTab ? contextMenu : null}
+                  onScriptContextMenu={(e, s) => {
+                    e.preventDefault();
+                    setContextMenu({ x: e.clientX, y: e.clientY, type: "script", data: s });
+                  }}
+                  onFolderContextMenu={(e, folderData) => {
+                    e.preventDefault();
+                    setContextMenu({ x: e.clientX, y: e.clientY, type: "folder", data: folderData });
+                  }}
+                  onShowUI={handleShowUI}
+                  manualRefresh={refreshKey > 0}
+                  onScanComplete={handleScanComplete}
+                  isPathsEmpty={scanPaths.length === 0}
+                  onAddPath={handleAddScanPath}
+                  onRefresh={() => setRefreshKey(p => p + 1)}
+                  onSelectScript={handleSelectScript}
+                  onExposeActions={handleExposeActions}
+                  onOpenSettings={() => {
+                    handleTabClick("settings");
+                    setTimeout(() => {
+                      const el = document.getElementById("settings-add-folder-btn");
+                      if (el) {
+                        el.scrollIntoView({ behavior: "smooth", block: "center" });
+                        el.classList.add("highlight-pulse-once");
+                        el.addEventListener("animationend", () => el.classList.remove("highlight-pulse-once"), { once: true });
+                      }
+                    }, 350);
+                  }}
+                />
+              </div>
+            ))}
           </div>
         </div>
       </div>

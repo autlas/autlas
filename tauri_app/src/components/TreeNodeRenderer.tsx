@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef, createContext, memo } from "react";
-import { flushSync } from "react-dom";
 import { useTreeStore } from "../store/useTreeStore";
 import { HighlightText } from "./HighlightText";
 import ScriptRow from "./ScriptRow";
@@ -67,7 +66,6 @@ export const TreeNodeRenderer = memo(function TreeNodeRenderer({
     }, [node.fullName]);
     const isFolderFocused = false; // never causes re-render, CSS class handles it
 
-    console.log(`[Tree] ${performance.now().toFixed(1)}ms render: ${node.name} (depth=${depth}, exp=${isExpanded}, focus=${isFolderFocused})`);
 
     // Everything else: read on demand, no subscription
     const st = useTreeStore.getState();
@@ -110,9 +108,9 @@ export const TreeNodeRenderer = memo(function TreeNodeRenderer({
         if (isExpanded) {
             if (animated) {
                 // Frame 1: display:grid + 0fr + no transition
-                flushSync(() => setAnim('expanding'));
+                setAnim('expanding');
                 // Frame 2: enable transition + 1fr → animate open
-                requestAnimationFrame(() => flushSync(() => setAnim('expanded')));
+                requestAnimationFrame(() => setAnim('expanded'));
             } else {
                 setAnim('expanded');
             }

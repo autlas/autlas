@@ -1,4 +1,4 @@
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import type { MutableRefObject } from "react";
 
@@ -23,12 +23,12 @@ export function useNavigation(userTags: string[], physics: PhysicsRefs) {
     return (localStorage.getItem(key) as "tree" | "tiles" | "list") || (isHub ? "tiles" : "tree");
   });
   const [searchQuery, setSearchQuery] = useState("");
-  const [, startTransition] = useTransition();
 
   const handleTabClick = (tab: string) => {
-    // Sidebar highlight updates immediately (high priority)
     localStorage.setItem("ahk_active_tab", tab);
 
+    // All state updates batched into one render (React 18 auto-batching)
+    setActiveTab(tab);
     if (tab === "hub") {
       setViewMode("hub");
       setDisplayMode((localStorage.getItem("ahk_hub_display_mode") as any) || "tiles");
@@ -42,11 +42,6 @@ export function useNavigation(userTags: string[], physics: PhysicsRefs) {
       setViewMode("tree");
       setDisplayMode((localStorage.getItem("ahk_tree_display_mode") as any) || "tree");
     }
-
-    // Tree re-render deferred (low priority) — UI stays responsive
-    startTransition(() => {
-      setActiveTab(tab);
-    });
   };
 
   const toggleDisplayMode = (mode: "tree" | "tiles" | "list") => {

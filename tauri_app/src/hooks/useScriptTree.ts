@@ -374,6 +374,7 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
     }, [onCustomDragStart]);
 
     const filtered = useMemo(() => {
+        const _t0 = performance.now();
         const rawQuery = searchQuery.trim().toLowerCase();
         const hubTags = new Set(["hub", "fav", "favourites"]);
 
@@ -418,10 +419,15 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
             return true;
         });
 
-        return sortList(applySearch(list));
+        const result = sortList(applySearch(list));
+        console.log(`[PERF] filtered: ${(performance.now() - _t0).toFixed(1)}ms (${result.length} scripts)`);
+        return result;
     }, [allScripts, filterTag, showHidden, searchQuery, sortBy]);
 
+    const prevTreeRef = useRef<TreeNode | null>(null);
+
     const tree = useMemo(() => {
+        const _t0 = performance.now();
         const scriptSort = sortBy === "size"
             ? (a: Script, b: Script) => b.size - a.size
             : (a: Script, b: Script) => a.filename.localeCompare(b.filename);
@@ -482,7 +488,54 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
             return node;
         };
 
-        return compact(root);
+        const newTree = compact(root);
+
+        // Stabilize node references: reuse previous node objects where structure is identical
+        // This makes React.memo in TreeNodeRenderer skip re-renders for unchanged subtrees
+        const prev = prevTreeRef.current;
+        if (prev) {
+            const stabilize = (newNode: TreeNode, oldNode: TreeNode): TreeNode => {
+                // Check if scripts are identical (same paths in same order)
+                let scriptsMatch = newNode.scripts.length === oldNode.scripts.length &&
+                    newNode.scripts.every((s, i) => {
+                        const o = oldNode.scripts[i];
+                        return s.path === o.path && s.is_running === o.is_running && s.has_ui === o.has_ui &&
+                            s.tags.length === o.tags.length && s.tags.every((t, j) => t === o.tags[j]) &&
+                            s.is_hidden === o.is_hidden && s.size === o.size;
+                    });
+
+                // Stabilize children recursively
+                const newChildKeys = Object.keys(newNode.children);
+                const oldChildKeys = Object.keys(oldNode.children);
+                let childrenMatch = newChildKeys.length === oldChildKeys.length;
+
+                if (childrenMatch) {
+                    for (const key of newChildKeys) {
+                        if (oldNode.children[key]) {
+                            newNode.children[key] = stabilize(newNode.children[key], oldNode.children[key]);
+                            if (newNode.children[key] !== oldNode.children[key]) childrenMatch = false;
+                        } else {
+                            childrenMatch = false;
+                        }
+                    }
+                }
+
+                // If everything matches, reuse old node reference entirely
+                if (scriptsMatch && childrenMatch && newNode.name === oldNode.name &&
+                    newNode.is_hidden === oldNode.is_hidden) {
+                    return oldNode;
+                }
+                return newNode;
+            };
+            const stabilized = stabilize(newTree, prev);
+            prevTreeRef.current = stabilized;
+            console.log(`[PERF] tree build: ${(performance.now() - _t0).toFixed(1)}ms (stabilized=${stabilized === prev})`);
+            return stabilized;
+        }
+
+        prevTreeRef.current = newTree;
+        console.log(`[PERF] tree build: ${(performance.now() - _t0).toFixed(1)}ms (no prev cache)`);
+        return newTree;
     }, [filtered, showHidden, sortBy]);
 
     const groupedHub = useMemo(() => {
