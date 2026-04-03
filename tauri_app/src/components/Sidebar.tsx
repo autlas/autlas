@@ -49,7 +49,7 @@ interface SidebarProps {
 
 function navItemClass(tab: string, isTag: boolean, state: Pick<SidebarProps, "activeTab" | "draggedScript" | "draggedTag" | "dragOverTag" | "activeTabPressed">): string {
   return `
-    px-4 h-11 rounded-2xl cursor-pointer text-sm font-bold transition-all flex items-center justify-between relative z-50
+    px-4 h-12 rounded-2xl cursor-pointer text-sm font-bold transition-all flex items-center justify-between relative z-50
     will-change-transform select-none long-press-shrink ${state.activeTabPressed === tab ? "active-left" : ""}
     ${state.draggedTag === tab
       ? "opacity-0 invisible pointer-events-none"
@@ -145,7 +145,7 @@ export default function Sidebar({
       {/* Toggle button — right edge */}
       <button
         onClick={toggleSidebarCollapsed}
-        className="absolute top-[32px] w-[22px] h-[42px] rounded-lg flex items-center justify-center transition-all cursor-pointer z-[110] border border-white/10 opacity-0 pointer-events-none group-hover/sidebar:opacity-100 group-hover/sidebar:pointer-events-auto bg-[var(--bg-secondary)] text-tertiary hover:text-secondary"
+        className="absolute top-[25px] w-[22px] h-[42px] rounded-lg flex items-center justify-center transition-all cursor-pointer z-[110] border border-white/10 opacity-0 pointer-events-none group-hover/sidebar:opacity-100 group-hover/sidebar:pointer-events-auto bg-[var(--bg-secondary)] text-tertiary hover:text-secondary"
         style={{ right: "-11px" }}
         title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
       >
@@ -154,7 +154,7 @@ export default function Sidebar({
         </svg>
       </button>
 
-      <div className="flex flex-col space-y-1.5 flex-1 pt-5 pb-5 overflow-y-auto custom-scrollbar overflow-x-hidden pr-[6px] pl-4">
+      <div className={`flex flex-col space-y-1.5 flex-1 pt-5 pb-5 overflow-y-auto custom-scrollbar overflow-x-hidden pl-4 ${collapsed ? 'pr-4' : 'pr-[6px]'}`}>
         {/* Group 1: Hub */}
         <ul className="space-y-1.5 w-full">
           {[{ id: "hub", label: t("sidebar.hub", "Hub") }].map((tab) => (
@@ -162,7 +162,7 @@ export default function Sidebar({
               key={tab.id}
               onMouseEnter={() => { if (!collapsed && draggedScript && !draggedScript.tags.includes("hub")) setDragOverTag(tab.id); }}
               onMouseLeave={() => { if (!collapsed && draggedScript && dragOverTag === tab.id) setDragOverTag(null); }}
-              className={`h-[52px] rounded-2xl cursor-pointer text-sm font-bold transition-all flex items-center overflow-hidden whitespace-nowrap px-4
+              className={`h-[52px] rounded-2xl cursor-pointer text-sm font-bold transition-all flex items-center whitespace-nowrap relative px-[10px] -ml-[2px] ${collapsed && 'w-[52px]'}
                 justify-between
                 ${draggedScript && !collapsed
                   ? (draggedScript.tags.includes("hub")
@@ -179,9 +179,9 @@ export default function Sidebar({
               }}
               onClick={() => !draggedScript && onTabClick(tab.id)}
             >
-              <div className="flex items-center pointer-events-none flex-shrink-0">
+              <div className="flex items-center pointer-events-none flex-shrink-0 overflow-hidden">
                 <img src={logoImg} alt="Hub" className="w-8 h-8 flex-shrink-0" />
-                <span className={`text-lg tracking-tight transition-all duration-300 ${collapsed ? 'w-0 opacity-0' : 'w-auto opacity-100'}`}>{tab.label}</span>
+                <span className={`text-lg tracking-tight transition-all duration-300 ${collapsed ? 'w-0 ml-0 opacity-0' : 'w-auto ml-3 opacity-100'}`}>{tab.label}</span>
               </div>
               {!collapsed && activeTab !== "hub" && (
                 <div className={`flex items-center justify-center rounded-full bg-indigo-400 transition-all duration-500 flex-shrink-0 ${runningCount > 0 ? "w-5 h-5 shadow-[0_0_12px_rgba(99,102,241,0.6)]" : "w-2 h-2 animate-pulse shadow-[0_0_8px_rgba(79,70,229,0.5)]"}`}>
@@ -189,7 +189,7 @@ export default function Sidebar({
                 </div>
               )}
               {collapsed && activeTab !== "hub" && runningCount > 0 && (
-                <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-indigo-400 flex items-center justify-center shadow-[0_0_12px_rgba(99,102,241,0.6)]">
+                <div className="absolute top-0 right-0 w-4 h-4 rounded-full bg-indigo-400 flex items-center justify-center shadow-[0_0_12px_rgba(99,102,241,0.6)]">
                   <span className="text-[10px] font-bold leading-none" style={{ color: "var(--bg-secondary)" }}>{runningCount}</span>
                 </div>
               )}
@@ -207,7 +207,7 @@ export default function Sidebar({
           ].map((tab) => (
             <li
               key={tab.id}
-              className={`h-11 rounded-2xl cursor-pointer text-sm font-bold transition-all flex items-center overflow-hidden whitespace-nowrap px-4
+              className={`h-12 rounded-2xl cursor-pointer text-sm font-bold transition-all flex items-center overflow-hidden whitespace-nowrap ${collapsed ? 'w-12' : ''} px-4
                 justify-between
                 ${!collapsed && draggedScript && tab.id !== dragOverTag ? "opacity-20 blur-[1px]" : ""}
                 ${activeTab === tab.id && viewMode !== "settings"
@@ -231,7 +231,7 @@ export default function Sidebar({
         {/* Group 3: Tags */}
         <div className="flex flex-col space-y-1.5 w-full">
           <li
-            className={`h-11 rounded-2xl cursor-pointer text-sm font-bold transition-all flex items-center overflow-hidden whitespace-nowrap px-4
+            className={`h-12 rounded-2xl cursor-pointer text-sm font-bold transition-all flex items-center overflow-hidden whitespace-nowrap ${collapsed ? 'w-12' : ''} px-4
               justify-between
               ${!collapsed && draggedScript ? "opacity-20 blur-[1px]" : ""}
               ${activeTab === "tags" && viewMode !== "settings"
@@ -279,7 +279,7 @@ export default function Sidebar({
                   draggedScript && dragOverTag === tag && setDragOverTag(null);
                 }}
                 className={collapsed
-                  ? `px-4 h-11 rounded-2xl cursor-pointer text-sm font-bold transition-all flex items-center justify-between overflow-hidden whitespace-nowrap
+                  ? `w-12 px-4 h-12 rounded-2xl cursor-pointer text-sm font-bold transition-all flex items-center justify-between overflow-hidden whitespace-nowrap
                     ${activeTab === tag && viewMode !== "settings"
                     ? "text-indigo-400 shadow-lg tag-active"
                     : "text-tertiary hover:text-secondary tag-hover"
