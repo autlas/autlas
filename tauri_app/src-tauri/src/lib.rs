@@ -993,7 +993,7 @@ async fn kill_script(path: String) -> Result<(), String> {
             });
             if matched {
                 let _ = Command::new("taskkill")
-                    .args(["/F", "/PID", &pid.as_u32().to_string()])
+                    .args(["/F", "/T", "/PID", &pid.as_u32().to_string()])
                     .output();
             }
         }
@@ -1019,12 +1019,12 @@ async fn restart_script(path: String) -> Result<(), String> {
             });
             if matched {
                 let _ = Command::new("taskkill")
-                    .args(["/F", "/PID", &pid.as_u32().to_string()])
+                    .args(["/F", "/T", "/PID", &pid.as_u32().to_string()])
                     .output();
             }
         }
     }
-    
+
     // 2. Wait a bit for the process to fully close
     std::thread::sleep(std::time::Duration::from_millis(150));
     
@@ -1679,7 +1679,7 @@ pub fn run() {
                                 });
                                 if matched {
                                     let _ = Command::new("taskkill")
-                                        .args(["/F", "/PID", &pid.as_u32().to_string()])
+                                        .args(["/F", "/T", "/PID", &pid.as_u32().to_string()])
                                         .output();
                                 }
                             }
