@@ -374,25 +374,32 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
     }, [onCustomDragStart]);
 
     const filtered = useMemo(() => {
-        let list = [...allScripts];
-        if (filterTag === "hub") {
-            list = list.filter(s => s.is_running || s.tags.some(t => t.toLowerCase() === "hub" || t.toLowerCase() === "fav" || t.toLowerCase() === "favourites"));
-            const rawQuery = searchQuery.trim().toLowerCase();
-            if (rawQuery) {
-                if (rawQuery.startsWith("file:")) {
-                    const q = rawQuery.replace("file:", "").trim();
-                    if (q) list = list.filter(s => s.filename.toLowerCase().includes(q));
-                } else if (rawQuery.startsWith("path:")) {
-                    const q = rawQuery.replace("path:", "").trim();
-                    if (q) list = list.filter(s => s.path.toLowerCase().replace(s.filename.toLowerCase(), "").includes(q));
-                } else {
-                    list = list.filter(s => s.filename.toLowerCase().includes(rawQuery) || s.path.toLowerCase().includes(rawQuery));
-                }
+        const rawQuery = searchQuery.trim().toLowerCase();
+        const hubTags = new Set(["hub", "fav", "favourites"]);
+
+        const applySearch = (list: Script[]) => {
+            if (!rawQuery) return list;
+            if (rawQuery.startsWith("file:")) {
+                const q = rawQuery.slice(5).trim();
+                return q ? list.filter(s => s.filename.toLowerCase().includes(q)) : list;
             }
-            return list;
+            if (rawQuery.startsWith("path:")) {
+                const q = rawQuery.slice(5).trim();
+                return q ? list.filter(s => s.path.toLowerCase().replace(s.filename.toLowerCase(), "").includes(q)) : list;
+            }
+            return list.filter(s => s.filename.toLowerCase().includes(rawQuery) || s.path.toLowerCase().includes(rawQuery));
+        };
+
+        const sortList = (list: Script[]) => {
+            if (sortBy === "size") return list.sort((a, b) => b.size - a.size);
+            return list.sort((a, b) => a.filename.localeCompare(b.filename));
+        };
+
+        if (filterTag === "hub") {
+            return applySearch(allScripts.filter(s => s.is_running || s.tags.some(t => hubTags.has(t.toLowerCase()))));
         }
 
-        list = list.filter(s => {
+        let list = allScripts.filter(s => {
             if (filterTag === "running") {
                 if (!s.is_running) return false;
             } else if (filterTag === "no_tags") {
@@ -408,33 +415,10 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
             if (showHidden === 'none' && s.is_hidden) return false;
             if (showHidden === 'only' && !s.is_hidden) return false;
 
-            const rawQuery = searchQuery.trim().toLowerCase();
-            if (rawQuery) {
-                if (rawQuery.startsWith("file:")) {
-                    const q = rawQuery.replace("file:", "").trim();
-                    if (q) {
-                        const matchesName = s.filename.toLowerCase().includes(q);
-                        if (!matchesName) return false;
-                    }
-                } else if (rawQuery.startsWith("path:")) {
-                    const q = rawQuery.replace("path:", "").trim();
-                    if (q) {
-                        const folderPath = s.path.toLowerCase().replace(s.filename.toLowerCase(), "");
-                        if (!folderPath.includes(q)) return false;
-                    }
-                } else {
-                    const matchesName = s.filename.toLowerCase().includes(rawQuery);
-                    const matchesPath = s.path.toLowerCase().includes(rawQuery);
-                    if (!matchesName && !matchesPath) return false;
-                }
-            }
-
             return true;
         });
-        if (sortBy === "size") {
-            return list.sort((a, b) => b.size - a.size);
-        }
-        return list.sort((a, b) => a.filename.localeCompare(b.filename));
+
+        return sortList(applySearch(list));
     }, [allScripts, filterTag, showHidden, searchQuery, sortBy]);
 
     const tree = useMemo(() => {
