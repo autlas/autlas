@@ -157,11 +157,11 @@ const HubScriptCard = memo(function HubScriptCard({
                                 <InterfaceIcon size={17} />
                             </ActionButton>
                         )}
-                        <ActionButton color="red" variant="wide" onClick={() => onToggle(s)} title="Kill Script" className="shadow-xl active:scale-95">
-                            <CloseIcon size={17} />
-                        </ActionButton>
                         <ActionButton color="yellow" variant="wide" onClick={() => onRestart(s)} title="Restart Script">
                             <RestartIcon size={17} />
+                        </ActionButton>
+                        <ActionButton color="red" variant="wide" onClick={() => onToggle(s)} title="Kill Script" className="shadow-xl active:scale-95">
+                            <CloseIcon size={17} />
                         </ActionButton>
                     </div>
                 ) : (

@@ -163,6 +163,24 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
 
       {/* Actions */}
       <div className="flex gap-2 px-5 mb-4">
+        {script.is_running && !pendingType && script.has_ui && (
+          <button
+            onClick={() => onShowUI(script)}
+            className="w-[80px] h-[42px] flex items-center justify-center rounded-2xl bg-white/5 text-[#71717a] border border-white/5 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-500/30 transition-all cursor-pointer"
+            title="Interface"
+          >
+            <InterfaceIcon />
+          </button>
+        )}
+        {script.is_running && !pendingType && (
+          <button
+            onClick={() => onRestart(script)}
+            className="w-[80px] h-[42px] flex items-center justify-center rounded-2xl bg-white/5 text-[#71717a] border border-white/5 hover:bg-yellow-500/10 hover:text-yellow-500 hover:border-yellow-500/30 transition-all cursor-pointer"
+            title="Restart"
+          >
+            <RestartIcon />
+          </button>
+        )}
         <button
           onClick={() => !pendingType && onToggle(script)}
           className={`w-[80px] h-[42px] flex items-center justify-center rounded-2xl transition-all cursor-pointer border
@@ -180,24 +198,6 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
             <span className="text-[10px] font-bold">...</span>
           ) : script.is_running ? <CloseIcon /> : <PlayIcon />}
         </button>
-        {script.is_running && !pendingType && (
-          <button
-            onClick={() => onRestart(script)}
-            className="w-[80px] h-[42px] flex items-center justify-center rounded-2xl bg-white/5 text-[#71717a] border border-white/5 hover:bg-yellow-500/10 hover:text-yellow-500 hover:border-yellow-500/30 transition-all cursor-pointer"
-            title="Restart"
-          >
-            <RestartIcon />
-          </button>
-        )}
-        {script.is_running && !pendingType && script.has_ui && (
-          <button
-            onClick={() => onShowUI(script)}
-            className="w-[80px] h-[42px] flex items-center justify-center rounded-2xl bg-white/5 text-[#71717a] border border-white/5 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-500/30 transition-all cursor-pointer"
-            title="Interface"
-          >
-            <InterfaceIcon />
-          </button>
-        )}
         <div className="flex-1" />
         <button
           onClick={handleEdit}
