@@ -14,6 +14,8 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
     const searchInputRef = useRef<HTMLInputElement>(null);
     const lastGTimeRef = useRef(0);
     const lastFTimeRef = useRef(0);
+    const [gridEverMounted, setGridEverMounted] = useState(viewMode !== "tree");
+    const lastGridMode = useRef<"tiles" | "list">(viewMode !== "tree" ? viewMode as "tiles" | "list" : "tiles");
     const isInstantScrollRef = useRef(false);
     const [sortBy, setSortBy] = useState<"name" | "size">("name");
 
@@ -229,6 +231,13 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
     }, []);
 
     useEffect(() => {
+        if (viewMode !== "tree") {
+            setGridEverMounted(true);
+            lastGridMode.current = viewMode as "tiles" | "list";
+        }
+    }, [viewMode]);
+
+    useEffect(() => {
         if (onLoadingChange) onLoadingChange(isFetching);
     }, [isFetching, onLoadingChange]);
 
@@ -294,6 +303,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
 
     // Set module-level callbacks for TreeNodeRenderer (bypasses useContext → prevents memo bypass)
     setTreeCallbacks(treeContextValue);
+    console.log(`[PERF] ScriptTree render: viewMode=${viewMode}, filterTag=${filterTag}, scripts=${filtered.length}, at ${performance.now().toFixed(1)}ms`);
 
     const masonryColumns = useMemo(() => {
         const cols: import("../api").Script[][] = Array.from({ length: columnsCount }, () => []);
@@ -351,9 +361,9 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
                     className={`flex-1 overflow-y-auto custom-scrollbar -mx-8 px-8 transition-all duration-300 ${draggedScriptPath ? 'opacity-30 blur-[1px]' : ''}`}
                     id="script-list-container"
                 >
-                    <div className={viewMode !== "tree" ? "" : "hidden"}>
+                    {gridEverMounted && <div className={viewMode !== "tree" ? "" : "hidden"}>
                         <ScriptGridView
-                            mode={viewMode as "tiles" | "list"}
+                            mode={viewMode !== "tree" ? viewMode as "tiles" | "list" : lastGridMode.current}
                             filtered={filtered}
                             groupedHub={groupedHub}
                             filterTag={filterTag}
@@ -388,7 +398,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
                             setFocusedPath={setFocusedPath}
                             onSelectScript={onSelectScript}
                         />
-                    </div>
+                    </div>}
                     <div className={viewMode === "tree" ? "flex flex-col space-y-0.5 select-none min-h-full" : "hidden"}>
                         <TreeContext.Provider value={treeContextValue}>
                             {!hasContent ? (

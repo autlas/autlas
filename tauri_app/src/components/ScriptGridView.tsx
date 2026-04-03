@@ -51,7 +51,7 @@ interface ScriptGridViewProps {
     onSelectScript?: (s: Script) => void;
 }
 
-export default function ScriptGridView({
+export default React.memo(function ScriptGridView({
     mode, filtered, groupedHub, filterTag, columnsCount, masonryColumns,
     isPathsEmpty, hasContent, searchQuery, onAddPath, onRefresh, onOpenSettings,
     isDragging, draggedScriptPath, editingScript, pendingScripts, removingTags, allUniqueTags,
@@ -59,6 +59,7 @@ export default function ScriptGridView({
     startEditing, addTag, removeTag, stopEditing, onScriptContextMenu,
     onShowUI, onRestart, setFocusedPath, onSelectScript,
 }: ScriptGridViewProps) {
+    console.log(`[PERF] ScriptGridView render: mode=${mode}, scripts=${filtered.length}, at ${performance.now().toFixed(1)}ms`);
     const isTiles = mode === "tiles";
     const gridGap = isTiles ? "gap-6" : "gap-x-8 gap-y-1";
     const colClass = isTiles ? "flex flex-col gap-6" : "flex flex-col gap-y-1";
@@ -170,4 +171,4 @@ export default function ScriptGridView({
             )}
         </div>
     );
-}
+})
