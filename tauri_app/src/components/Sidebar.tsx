@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useTranslation } from "react-i18next";
 import { GearIcon, TagIcon, TagDotIcon, LayersIcon, TagOffIcon } from "./ui/Icons";
@@ -136,16 +136,39 @@ export default function Sidebar({
   };
 
   const collapsed = sidebarCollapsed;
+  const sidebarWidth = useTreeStore(s => s.sidebarWidth);
+  const setSidebarWidth = useTreeStore(s => s.setSidebarWidth);
+  const [isResizing, setIsResizing] = useState(false);
+
+  const handleResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+    const startX = e.clientX;
+    const startWidth = sidebarWidth;
+    let currentWidth = startWidth;
+
+    const onMouseMove = (ev: MouseEvent) => {
+      currentWidth = Math.min(400, Math.max(200, startWidth + (ev.clientX - startX)));
+      setSidebarWidth(currentWidth);
+    };
+    const onMouseUp = () => {
+      setIsResizing(false);
+      document.removeEventListener("mousemove", onMouseMove);
+      document.removeEventListener("mouseup", onMouseUp);
+    };
+    document.addEventListener("mousemove", onMouseMove);
+    document.addEventListener("mouseup", onMouseUp);
+  }, [sidebarWidth, setSidebarWidth]);
 
   return (
     <div
-      className={`group/sidebar flex flex-col border-r transition-all duration-300 relative z-[100] ${collapsed ? 'w-20' : 'w-72'}`}
-      style={{ backgroundColor: "var(--bg-secondary)", borderColor: "var(--border-color)" }}
+      className={`group/sidebar flex flex-col border-r relative z-[100] ${collapsed ? 'w-20 transition-all duration-300' : ''} ${isResizing ? '' : 'transition-all duration-300'}`}
+      style={{ backgroundColor: "var(--bg-secondary)", borderColor: "var(--border-color)", ...(!collapsed ? { width: `${sidebarWidth}px` } : {}) }}
     >
       {/* Toggle button — right edge */}
       <button
         onClick={toggleSidebarCollapsed}
-        className="absolute top-[25px] w-[22px] h-[42px] rounded-lg flex items-center justify-center transition-all cursor-pointer z-[110] border border-white/10 opacity-0 pointer-events-none group-hover/sidebar:opacity-100 group-hover/sidebar:pointer-events-auto bg-[var(--bg-secondary)] text-tertiary hover:text-secondary"
+        className="absolute top-[25px] w-[22px] h-[42px] rounded-lg flex items-center justify-center transition-all cursor-pointer z-[112] border border-white/10 opacity-0 pointer-events-none group-hover/sidebar:opacity-100 group-hover/sidebar:pointer-events-auto bg-[var(--bg-secondary)] text-tertiary hover:text-secondary"
         style={{ right: "-11px" }}
         title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
       >
@@ -153,6 +176,14 @@ export default function Sidebar({
           <polyline points="9 18 15 12 9 6" />
         </svg>
       </button>
+
+      {/* Resize handle — right edge */}
+      {!collapsed && (
+        <div
+          onMouseDown={handleResizeStart}
+          className="absolute top-0 right-0 w-1 h-full cursor-col-resize z-[111] hover:bg-indigo-500/50 transition-colors"
+        />
+      )}
 
       <div className={`flex flex-col space-y-1.5 flex-1 pt-5 pb-5 overflow-x-hidden pl-4 ${collapsed ? 'scrollbar-overlay custom-scrollbar pr-[13px]' : 'overflow-y-auto custom-scrollbar pr-[6px]'}`}>
         {/* Group 1: Hub */}

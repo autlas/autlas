@@ -66,6 +66,10 @@ interface TreeStore {
   sidebarCollapsed: boolean;
   setSidebarCollapsed: (v: boolean) => void;
   toggleSidebarCollapsed: () => void;
+
+  // Sidebar width
+  sidebarWidth: number;
+  setSidebarWidth: (v: number) => void;
 }
 
 export const useTreeStore = create<TreeStore>((set) => ({
@@ -163,6 +167,10 @@ export const useTreeStore = create<TreeStore>((set) => ({
     localStorage.setItem("ahk_sidebar_collapsed", String(v));
     return { sidebarCollapsed: v };
   }),
+
+  // Sidebar width
+  sidebarWidth: parseInt(localStorage.getItem("ahk_sidebar_width") ?? "288"),
+  setSidebarWidth: (v) => { localStorage.setItem("ahk_sidebar_width", String(v)); set({ sidebarWidth: v }); },
 
   // Removing tags
   removingTags: new Set(),
