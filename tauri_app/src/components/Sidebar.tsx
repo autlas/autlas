@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useTranslation } from "react-i18next";
-import { GearIcon, RocketIcon, LayersIcon, TagOffIcon } from "./ui/Icons";
+import { GearIcon, TagIcon, LayersIcon, TagOffIcon } from "./ui/Icons";
+import { useTreeStore } from "../store/useTreeStore";
+import logoImg from "../assets/logo.png";
 
 interface SidebarProps {
   activeTab: string;
@@ -47,19 +49,19 @@ interface SidebarProps {
 
 function navItemClass(tab: string, isTag: boolean, state: Pick<SidebarProps, "activeTab" | "draggedScript" | "draggedTag" | "dragOverTag" | "activeTabPressed">): string {
   return `
-    px-6 h-11 rounded-2xl cursor-pointer text-sm font-bold transition-all border-b-2 flex items-center justify-between relative z-50
+    px-6 h-11 rounded-2xl cursor-pointer text-sm font-bold transition-all flex items-center justify-between relative z-50
     will-change-transform select-none long-press-shrink ${state.activeTabPressed === tab ? "active-left" : ""}
     ${state.draggedTag === tab
       ? "opacity-0 invisible pointer-events-none"
       : (state.draggedScript && isTag && state.draggedScript.tags.includes(tab))
-        ? "text-white/10 border-transparent opacity-30 shadow-none blur-[1px]"
+        ? "text-white/10 opacity-30 shadow-none blur-[1px]"
         : (state.draggedScript && isTag)
-          ? `text-indigo-400 border-indigo-500/20 tag-pulse-target ${state.dragOverTag === tab ? "tag-drop-hover" : ""}`
+          ? `text-indigo-400 tag-pulse-target ${state.dragOverTag === tab ? "tag-drop-hover" : ""}`
           : state.activeTab === tab
-            ? "text-indigo-400 border-indigo-500 shadow-lg tag-active"
+            ? "text-indigo-400 shadow-lg tag-active"
             : state.draggedScript
-              ? "text-white/10 border-transparent opacity-30 shadow-none blur-[1px]"
-              : "text-tertiary border-transparent hover:text-secondary tag-hover"}
+              ? "text-white/10 opacity-30 shadow-none blur-[1px]"
+              : "text-tertiary hover:text-secondary tag-hover"}
   `;
 }
 
@@ -71,6 +73,8 @@ export default function Sidebar({
   settingsIconRef, refreshIconRef, ghostRef, tagDragOffsetYRef, tagDragOffsetXRef, pendingTagDragRef, formatLastScan,
 }: SidebarProps) {
   const { t } = useTranslation();
+  const sidebarCollapsed = useTreeStore(s => s.sidebarCollapsed);
+  const toggleSidebarCollapsed = useTreeStore(s => s.toggleSidebarCollapsed);
   const [currentTime, setCurrentTime] = useState(Date.now());
   useEffect(() => {
     const ticker = setInterval(() => setCurrentTime(Date.now()), 1000);
@@ -131,92 +135,125 @@ export default function Sidebar({
     }
   };
 
+  const collapsed = sidebarCollapsed;
+
   return (
     <div
-      className="w-72 flex flex-col pt-6 pb-2 border-r overflow-y-auto custom-scrollbar transition-colors duration-300 relative z-[100]"
-      style={{ backgroundColor: "var(--bg-secondary)", borderColor: "var(--border-color)", paddingLeft: "16px", paddingRight: "0" }}
+      className={`group/sidebar flex flex-col border-r transition-all duration-300 relative z-[100] ${collapsed ? 'w-20' : 'w-72'}`}
+      style={{ backgroundColor: "var(--bg-secondary)", borderColor: "var(--border-color)" }}
     >
-      <div className="flex flex-col space-y-10 flex-1 pr-[6px]">
+      {/* Toggle button — right edge */}
+      <button
+        onClick={toggleSidebarCollapsed}
+        className="absolute top-[32px] w-[22px] h-[42px] rounded-lg flex items-center justify-center transition-all cursor-pointer z-[110] border border-white/10 opacity-0 pointer-events-none group-hover/sidebar:opacity-100 group-hover/sidebar:pointer-events-auto bg-[var(--bg-secondary)] text-tertiary hover:text-secondary"
+        style={{ right: "-11px" }}
+        title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+      >
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className={`transition-transform duration-300 ${collapsed ? '' : 'rotate-180'}`}>
+          <polyline points="9 18 15 12 9 6" />
+        </svg>
+      </button>
+
+      <div className="flex flex-col space-y-1.5 flex-1 pt-5 pb-5 overflow-y-auto custom-scrollbar overflow-x-hidden pr-[6px] pl-4">
         {/* Group 1: Hub */}
-        <ul className="space-y-1.5">
+        <ul className="space-y-1.5 w-full">
           {[{ id: "hub", label: t("sidebar.hub", "Hub") }].map((tab) => (
             <li
               key={tab.id}
-              onMouseEnter={() => { if (draggedScript && !draggedScript.tags.includes("hub")) setDragOverTag(tab.id); }}
-              onMouseLeave={() => { if (draggedScript && dragOverTag === tab.id) setDragOverTag(null); }}
-              className={`px-6 h-[62px] rounded-2xl cursor-pointer text-sm font-bold border-b-2 transition-all flex items-center justify-between
-                ${draggedScript
+              onMouseEnter={() => { if (!collapsed && draggedScript && !draggedScript.tags.includes("hub")) setDragOverTag(tab.id); }}
+              onMouseLeave={() => { if (!collapsed && draggedScript && dragOverTag === tab.id) setDragOverTag(null); }}
+              className={`h-[52px] rounded-2xl cursor-pointer text-sm font-bold transition-all flex items-center overflow-hidden whitespace-nowrap px-3
+                justify-between
+                ${draggedScript && !collapsed
                   ? (draggedScript.tags.includes("hub")
-                    ? "opacity-20 blur-[1px] border-transparent"
-                    : `text-indigo-400 border-indigo-500/20 tag-pulse-target ${dragOverTag === tab.id ? "tag-drop-hover" : ""}`)
+                    ? "opacity-20 blur-[1px]"
+                    : `text-indigo-400 tag-pulse-target ${dragOverTag === tab.id ? "tag-drop-hover" : ""}`)
                   : (activeTab === tab.id && viewMode !== "settings"
-                    ? "bg-gradient-to-r from-indigo-500 to-purple-500 border-indigo-400 shadow-xl shadow-indigo-900/40 text-white"
-                    : "text-tertiary border-transparent hover:text-secondary tag-hover")
+                    ? "bg-gradient-to-r from-indigo-500 to-purple-500 shadow-xl shadow-indigo-900/40 text-white"
+                    : "text-tertiary hover:text-secondary tag-hover")
                 }`}
               style={{
                 backgroundColor: (activeTab === tab.id && viewMode !== "settings") ? "transparent"
-                  : (draggedScript && dragOverTag === tab.id) ? undefined
+                  : (!collapsed && draggedScript && dragOverTag === tab.id) ? undefined
                     : "var(--bg-tag)",
               }}
               onClick={() => !draggedScript && onTabClick(tab.id)}
             >
-              <div className="flex items-center space-x-3 pointer-events-none">
-                <RocketIcon className={`translate-y-[2px] transition-opacity ${activeTab === tab.id && viewMode !== "settings" ? 'opacity-100' : 'opacity-40'}`} />
-                <span className="text-lg tracking-tight">{tab.label}</span>
+              <div className={`flex items-center pointer-events-none flex-shrink-0 ${collapsed ? '' : 'space-x-3'}`}>
+                <img src={logoImg} alt="Hub" className="w-8 h-8 flex-shrink-0" />
+                <span className={`text-lg tracking-tight transition-all duration-300 ${collapsed ? 'w-0 opacity-0' : 'w-auto opacity-100'}`}>{tab.label}</span>
               </div>
-              {activeTab !== "hub" && (
-                <div className={`flex items-center justify-center rounded-full bg-indigo-400 transition-all duration-500 ${runningCount > 0 ? "w-5 h-5 shadow-[0_0_12px_rgba(99,102,241,0.6)]" : "w-2 h-2 animate-pulse shadow-[0_0_8px_rgba(79,70,229,0.5)]"}`}>
+              {!collapsed && activeTab !== "hub" && (
+                <div className={`flex items-center justify-center rounded-full bg-indigo-400 transition-all duration-500 flex-shrink-0 ${runningCount > 0 ? "w-5 h-5 shadow-[0_0_12px_rgba(99,102,241,0.6)]" : "w-2 h-2 animate-pulse shadow-[0_0_8px_rgba(79,70,229,0.5)]"}`}>
                   {runningCount > 0 && <span className="text-[15px] font-bold leading-none mt-[1px]" style={{ color: "var(--bg-secondary)" }}>{runningCount}</span>}
+                </div>
+              )}
+              {collapsed && activeTab !== "hub" && runningCount > 0 && (
+                <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-indigo-400 flex items-center justify-center shadow-[0_0_12px_rgba(99,102,241,0.6)]">
+                  <span className="text-[10px] font-bold leading-none" style={{ color: "var(--bg-secondary)" }}>{runningCount}</span>
                 </div>
               )}
             </li>
           ))}
         </ul>
 
-        <div className="h-[1px] bg-white/5 mx-2" />
+        <div className="h-[1px] bg-white/5 mx-2 my-2" />
 
         {/* Group 2: Global Filters */}
-        <ul className="space-y-1.5">
+        <ul className="space-y-1.5 w-full">
           {[
             { id: "all", label: t("sidebar.all", "All") },
             { id: "no_tags", label: t("sidebar.no_tags", "Untagged") },
           ].map((tab) => (
             <li
               key={tab.id}
-              className={`px-6 h-11 rounded-2xl cursor-pointer text-sm font-bold transition-all border-b-2 flex items-center justify-between ${draggedScript && tab.id !== dragOverTag ? "opacity-20 blur-[1px]" : ""
-                } ${activeTab === tab.id && viewMode !== "settings"
-                  ? "text-indigo-400 border-indigo-500 shadow-lg tag-active"
-                  : "text-tertiary border-transparent hover:text-secondary tag-hover"
+              className={`h-11 rounded-2xl cursor-pointer text-sm font-bold transition-all flex items-center overflow-hidden whitespace-nowrap px-4
+                justify-between
+                ${!collapsed && draggedScript && tab.id !== dragOverTag ? "opacity-20 blur-[1px]" : ""}
+                ${activeTab === tab.id && viewMode !== "settings"
+                  ? "text-indigo-400 shadow-lg tag-active"
+                  : "text-tertiary hover:text-secondary tag-hover"
                 }`}
               style={{ backgroundColor: activeTab === tab.id && viewMode !== "settings" ? "var(--bg-tag-active)" : "var(--bg-tag)" }}
               onClick={() => !draggedScript && onTabClick(tab.id)}
             >
-              <div className="flex items-center space-x-3 pointer-events-none">
-                {tab.id === "all" && <LayersIcon className={`transition-opacity ${activeTab === tab.id && viewMode !== "settings" ? 'opacity-100' : 'opacity-40'}`} />}
-                {tab.id === "no_tags" && <TagOffIcon className={`translate-y-[1px] transition-opacity ${activeTab === tab.id && viewMode !== "settings" ? 'opacity-100' : 'opacity-40'}`} />}
-                <span>{tab.label}</span>
+              <div className={`flex items-center pointer-events-none flex-shrink-0 ${collapsed ? '' : 'space-x-3'}`}>
+                {tab.id === "all" && <LayersIcon className={`flex-shrink-0 transition-opacity ${activeTab === tab.id && viewMode !== "settings" ? 'opacity-100' : 'opacity-40'}`} />}
+                {tab.id === "no_tags" && <TagOffIcon className={`flex-shrink-0 translate-y-[1px] transition-opacity ${activeTab === tab.id && viewMode !== "settings" ? 'opacity-100' : 'opacity-40'}`} />}
+                <span className={`transition-all duration-300 ${collapsed ? 'w-0 opacity-0' : 'w-auto opacity-100'}`}>{tab.label}</span>
               </div>
             </li>
           ))}
         </ul>
 
-        <div className="h-[1px] bg-white/5 mx-2" />
+        <div className="h-[1px] bg-white/5 mx-2 my-2" />
 
         {/* Group 3: Tags */}
-        <div className="flex flex-col space-y-4">
-          <div
-            className={`px-6 flex items-center justify-between group cursor-pointer ${activeTab === "tags" ? "text-indigo-400" : "text-tertiary"}`}
-            onClick={() => onTabClick("tags")}
+        <div className="flex flex-col space-y-1.5 w-full">
+          <li
+            className={`h-11 rounded-2xl cursor-pointer text-sm font-bold transition-all flex items-center overflow-hidden whitespace-nowrap px-4
+              justify-between
+              ${!collapsed && draggedScript ? "opacity-20 blur-[1px]" : ""}
+              ${activeTab === "tags" && viewMode !== "settings"
+                ? "text-indigo-400 shadow-lg tag-active"
+                : "text-tertiary hover:text-secondary tag-hover"
+              }`}
+            style={{ backgroundColor: activeTab === "tags" && viewMode !== "settings" ? "var(--bg-tag-active)" : "var(--bg-tag)", listStyle: "none" }}
+            onClick={() => !draggedScript && onTabClick("tags")}
           >
-            <span className={`text-[14px] font-bold uppercase tracking-[0.1em] group-hover:opacity-100 ${activeTab === "tags" ? "opacity-80" : "opacity-50"} transition-opacity`}>{t("sidebar.tags", "TAGS")}</span>
-          </div>
+            <div className={`flex items-center pointer-events-none flex-shrink-0 ${collapsed ? '' : 'space-x-3'}`}>
+              <TagIcon className={`flex-shrink-0 translate-y-[1px] transition-opacity ${activeTab === "tags" && viewMode !== "settings" ? 'opacity-100' : 'opacity-40'}`} />
+              <span className={`transition-all duration-300 ${collapsed ? 'w-0 opacity-0' : 'w-auto opacity-100'}`}>{t("sidebar.tags", "Tags")}</span>
+            </div>
+          </li>
 
           <ul className="flex flex-col space-y-1.5 px-0 w-full">
             {userTags.map((tag) => (
               <li
                 key={tag}
-                onMouseDown={(e) => handleTagDragStart(e, tag)}
+                onMouseDown={(e) => !collapsed && handleTagDragStart(e, tag)}
                 onMouseEnter={() => {
+                  if (collapsed) return;
                   if (draggedTag && draggedTag !== tag) {
                     const newOrder = [...userTags];
                     const dragIdx = newOrder.indexOf(draggedTag);
@@ -237,20 +274,33 @@ export default function Sidebar({
                   }
                 }}
                 onMouseLeave={() => {
+                  if (collapsed) return;
                   setActiveTabPressed(null);
                   draggedScript && dragOverTag === tag && setDragOverTag(null);
                 }}
-                className={navItemClass(tag, true, { activeTab, draggedScript, draggedTag, dragOverTag, activeTabPressed })}
-                style={{
-                  backgroundColor: (dragOverTag === tag || (draggedScript && !draggedScript.tags.includes(tag)))
-                    ? undefined
-                    : (activeTab === tag ? "var(--bg-tag-active)" : "var(--bg-tag)"),
-                  // @ts-ignore
-                  viewTransitionName: `tag-${tag.replace(/\s+/g, "-")}`,
-                }}
+                className={collapsed
+                  ? `h-11 rounded-2xl cursor-pointer text-xs font-bold uppercase transition-all flex items-center justify-center overflow-hidden
+                    ${activeTab === tag && viewMode !== "settings"
+                    ? "text-indigo-400 shadow-lg bg-white/5"
+                    : "text-tertiary hover:text-secondary hover:bg-white/5"
+                  }`
+                  : navItemClass(tag, true, { activeTab, draggedScript, draggedTag, dragOverTag, activeTabPressed })
+                }
+                style={collapsed
+                  ? { backgroundColor: activeTab === tag ? "var(--bg-tag-active)" : "var(--bg-tag)" }
+                  : {
+                    backgroundColor: (dragOverTag === tag || (draggedScript && !draggedScript.tags.includes(tag)))
+                      ? undefined
+                      : (activeTab === tag ? "var(--bg-tag-active)" : "var(--bg-tag)"),
+                    // @ts-ignore
+                    viewTransitionName: `tag-${tag.replace(/\s+/g, "-")}`,
+                  }
+                }
                 onClick={() => { if (!draggedScript) onTabClick(tag); }}
               >
-                {isRenamingTag === tag ? (
+                {collapsed ? (
+                  tag.slice(0, 2)
+                ) : isRenamingTag === tag ? (
                   <input
                     autoFocus
                     className="bg-transparent border-none outline-none text-sm font-bold w-full text-white"
@@ -278,7 +328,7 @@ export default function Sidebar({
                 )}
               </li>
             ))}
-            {draggedScript && (
+            {!collapsed && draggedScript && (
               <li
                 className={navItemClass("new-tag", true, { activeTab, draggedScript, draggedTag, dragOverTag, activeTabPressed })}
                 onMouseEnter={() => setDragOverTag("new-tag")}
@@ -289,7 +339,7 @@ export default function Sidebar({
                 </span>
               </li>
             )}
-            {isCreatingTagFor && (
+            {!collapsed && isCreatingTagFor && (
               <li className={navItemClass("", true, { activeTab, draggedScript, draggedTag, dragOverTag, activeTabPressed })}>
                 <input
                   autoFocus
@@ -314,13 +364,14 @@ export default function Sidebar({
         </div>
       </div>
 
-      <div className="flex items-center space-x-3 w-full pr-[10px] mt-10">
+      {/* Bottom: settings + refresh */}
+      <div className={`flex w-full mt-auto pl-5 pr-[10px] ${collapsed ? 'flex-col items-center space-y-1.5 pb-5' : 'items-center space-x-3'}`}>
         <button
           onClick={() => onTabClick("settings")}
-          className={`flex-1 h-12 rounded-xl flex items-center justify-center transition-all border-b-2 group cursor-pointer ${draggedScript ? "opacity-20 blur-[1px]" : ""
+          className={`${collapsed ? 'w-11' : 'flex-1'} h-12 rounded-xl flex items-center justify-center transition-all group cursor-pointer ${!collapsed && draggedScript ? "opacity-20 blur-[1px]" : ""
             } ${viewMode === "settings"
-              ? "text-indigo-400 border-indigo-500 shadow-lg tag-active bg-white/5"
-              : "text-tertiary border-transparent hover:text-secondary tag-hover"
+              ? "text-indigo-400 shadow-lg tag-active bg-white/5"
+              : "text-tertiary hover:text-secondary tag-hover"
             }`}
           title={t("sidebar.settings", "Settings")}
           style={viewMode === "settings" ? { backgroundColor: "var(--bg-tag-active)" } : {}}
@@ -334,7 +385,7 @@ export default function Sidebar({
           onClick={() => { setRefreshKey(p => p + 1); onRefresh(); }}
           onMouseEnter={() => onHoveringRefresh(true)}
           onMouseLeave={() => onHoveringRefresh(false)}
-          className={`flex-1 h-12 rounded-xl flex items-center justify-center transition-all border group cursor-pointer ${draggedScript ? "opacity-20 blur-[1px]" : ""
+          className={`${collapsed ? 'w-11' : 'flex-1'} h-12 rounded-xl flex items-center justify-center transition-all border group cursor-pointer ${!collapsed && draggedScript ? "opacity-20 blur-[1px]" : ""
             } text-tertiary border-transparent hover:text-secondary tag-hover active:scale-95`}
           title={t("sidebar.refresh", "Refresh List")}
         >
@@ -347,18 +398,20 @@ export default function Sidebar({
           </div>
         </button>
       </div>
-      <div className={`pr-[14px] flex justify-end h-4 transition-all duration-300 ${isHoveringRefresh ? "opacity-100 translate-y-0" : "opacity-0 translate-y-1"}`}>
-        <span className="text-[12px] uppercase tracking-[0.1em] text-quaternary select-none flex items-center whitespace-nowrap">
-          {isRefreshing ? (
-            <span className="font-bold">{t("sidebar.scanning", "Scanning...")}</span>
-          ) : (
-            <>
-              <span className="font-normal opacity-80 lowercase mr-1.5">{t("sidebar.last_scan", "Last Scan")}:</span>
-              {formatLastScan(lastScanTimestamp, currentTime)}
-            </>
-          )}
-        </span>
-      </div>
+      {!collapsed && (
+        <div className={`pr-[14px] flex justify-end h-4 transition-all duration-300 ${isHoveringRefresh ? "opacity-100 translate-y-0" : "opacity-0 translate-y-1"}`}>
+          <span className="text-[12px] uppercase tracking-[0.1em] text-quaternary select-none flex items-center whitespace-nowrap">
+            {isRefreshing ? (
+              <span className="font-bold">{t("sidebar.scanning", "Scanning...")}</span>
+            ) : (
+              <>
+                <span className="font-normal opacity-80 lowercase mr-1.5">{t("sidebar.last_scan", "Last Scan")}:</span>
+                {formatLastScan(lastScanTimestamp, currentTime)}
+              </>
+            )}
+          </span>
+        </div>
+      )}
     </div>
   );
 }

@@ -61,6 +61,11 @@ interface TreeStore {
   showFileSize: boolean;
   setShowFileSize: (v: boolean) => void;
   toggleShowFileSize: () => void;
+
+  // Sidebar collapsed
+  sidebarCollapsed: boolean;
+  setSidebarCollapsed: (v: boolean) => void;
+  toggleSidebarCollapsed: () => void;
 }
 
 export const useTreeStore = create<TreeStore>((set) => ({
@@ -148,6 +153,15 @@ export const useTreeStore = create<TreeStore>((set) => ({
     const v = !s.showFileSize;
     localStorage.setItem("ahk_show_file_size", String(v));
     return { showFileSize: v };
+  }),
+
+  // Sidebar collapsed
+  sidebarCollapsed: localStorage.getItem("ahk_sidebar_collapsed") === "true",
+  setSidebarCollapsed: (v) => { localStorage.setItem("ahk_sidebar_collapsed", String(v)); set({ sidebarCollapsed: v }); },
+  toggleSidebarCollapsed: () => set((s) => {
+    const v = !s.sidebarCollapsed;
+    localStorage.setItem("ahk_sidebar_collapsed", String(v));
+    return { sidebarCollapsed: v };
   }),
 
   // Removing tags

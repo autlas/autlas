@@ -115,6 +115,15 @@ export function LayersIcon({ size = 16, strokeWidth = 2, className }: IconProps)
     );
 }
 
+export function TagIcon({ size = 16, strokeWidth = 2, className }: IconProps) {
+    return (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className}>
+            <path d="M21.59 14.41l-7.17 7.17a2 2 0 0 1-2.83 0L3 13V3h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+            <line x1="8" y1="8" x2="8.01" y2="8" />
+        </svg>
+    );
+}
+
 export function TagOffIcon({ size = 16, strokeWidth = 2, className }: IconProps) {
     return (
         <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className}>

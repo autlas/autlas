@@ -17,8 +17,8 @@ export default function DragGhost({ ghostRef, draggedScript, draggedTag, activeT
       className={`drag-ghost-container fixed z-[99999] flex items-center justify-between ${draggedScript || draggedTag ? "opacity-100" : "opacity-0 hidden"}
         ${draggedTag
           ? (draggedTag === activeTab
-            ? "w-[240px] px-6 h-11 rounded-2xl border-b-2 border-indigo-500 shadow-xl text-indigo-400 font-bold"
-            : "w-[240px] px-6 h-11 rounded-2xl border-b-2 border-transparent shadow-2xl text-secondary font-bold"
+            ? "w-[240px] px-6 h-11 rounded-2xl shadow-xl text-indigo-400 font-bold"
+            : "w-[240px] px-6 h-11 rounded-2xl shadow-2xl text-secondary font-bold"
           )
           : (draggedScript ? "bg-white/10 border border-white/20 shadow-2xl backdrop-blur-xl rounded-2xl px-6 py-3 text-white font-bold whitespace-nowrap space-x-3" : "")
         }
