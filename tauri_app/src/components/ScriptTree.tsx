@@ -351,7 +351,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
                     className={`flex-1 overflow-y-auto custom-scrollbar -mx-8 px-8 transition-all duration-300 ${draggedScriptPath ? 'opacity-30 blur-[1px]' : ''}`}
                     id="script-list-container"
                 >
-                    {viewMode !== "tree" ? (
+                    <div className={viewMode !== "tree" ? "" : "hidden"}>
                         <ScriptGridView
                             mode={viewMode as "tiles" | "list"}
                             filtered={filtered}
@@ -388,25 +388,24 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
                             setFocusedPath={setFocusedPath}
                             onSelectScript={onSelectScript}
                         />
-                    ) : (
-                        <div className="flex flex-col space-y-0.5 select-none min-h-full">
-                            <TreeContext.Provider value={treeContextValue}>
-                                {!hasContent ? (
-                                    <EmptyState
-                                        isPathsEmpty={!!isPathsEmpty}
-                                        hasContent={hasAnyContent}
-                                        searchQuery={searchQuery}
-                                        filterTag={filterTag}
-                                        onAddPath={onAddPath}
-                                        onRefresh={onRefresh}
-                                        onOpenSettings={onOpenSettings}
-                                    />
-                                ) : (
-                                    <TreeNodeRenderer node={tree} depth={0} />
-                                )}
-                            </TreeContext.Provider>
-                        </div>
-                    )}
+                    </div>
+                    <div className={viewMode === "tree" ? "flex flex-col space-y-0.5 select-none min-h-full" : "hidden"}>
+                        <TreeContext.Provider value={treeContextValue}>
+                            {!hasContent ? (
+                                <EmptyState
+                                    isPathsEmpty={!!isPathsEmpty}
+                                    hasContent={hasAnyContent}
+                                    searchQuery={searchQuery}
+                                    filterTag={filterTag}
+                                    onAddPath={onAddPath}
+                                    onRefresh={onRefresh}
+                                    onOpenSettings={onOpenSettings}
+                                />
+                            ) : (
+                                <TreeNodeRenderer node={tree} depth={0} />
+                            )}
+                        </TreeContext.Provider>
+                    </div>
                 </div>
             </SearchContext.Provider>
             <CheatSheet isOpen={isCheatSheetOpen} onClose={() => setIsCheatSheetOpen(false)} />
