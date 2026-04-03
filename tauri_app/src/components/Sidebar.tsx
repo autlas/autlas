@@ -160,7 +160,13 @@ export default function Sidebar({
               }}
               onClick={() => !draggedScript && onTabClick(tab.id)}
             >
-              <div className="flex items-center space-x-4 pointer-events-none">
+              <div className="flex items-center space-x-3 pointer-events-none">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="translate-y-[2px]">
+                  <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z" />
+                  <path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z" />
+                  <path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0" />
+                  <path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5" />
+                </svg>
                 <span className="text-lg tracking-tight">{tab.label}</span>
               </div>
               {activeTab !== "hub" && (
@@ -190,7 +196,21 @@ export default function Sidebar({
               style={{ backgroundColor: activeTab === tab.id && viewMode !== "settings" ? "var(--bg-tag-active)" : "var(--bg-tag)" }}
               onClick={() => !draggedScript && onTabClick(tab.id)}
             >
-              <div className="flex items-center space-x-4 pointer-events-none">
+              <div className="flex items-center space-x-3 pointer-events-none">
+                {tab.id === "all" && (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 2L2 7l10 5 10-5-10-5z" />
+                    <path d="M2 17l10 5 10-5" />
+                    <path d="M2 12l10 5 10-5" />
+                  </svg>
+                )}
+                {tab.id === "no_tags" && (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="translate-y-[2px]">
+                    <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+                    <line x1="7" y1="7" x2="7.01" y2="7" />
+                    <line x1="2" y1="22" x2="22" y2="2" />
+                  </svg>
+                )}
                 <span>{tab.label}</span>
               </div>
             </li>
