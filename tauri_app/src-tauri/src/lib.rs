@@ -554,7 +554,6 @@ struct TraySettingsState(Mutex<TraySettings>);
 #[derive(Serialize, Deserialize, Clone)]
 struct TraySettings {
     close_to_tray: bool,
-    click_to_toggle: bool,
 }
 
 #[derive(Serialize, Clone)]
@@ -1532,7 +1531,6 @@ fn load_tray_settings() -> TraySettings {
     let ini_path = get_ini_path();
     let content = fs::read_to_string(&ini_path).unwrap_or_default();
     let mut close_to_tray = true;
-    let mut click_to_toggle = true;
     let mut in_settings = false;
     for line in content.lines() {
         let trimmed = line.trim();
@@ -1551,13 +1549,12 @@ fn load_tray_settings() -> TraySettings {
                 let bool_val = val != "0" && val.to_lowercase() != "false";
                 match key.as_str() {
                     "close_to_tray" => close_to_tray = bool_val,
-                    "click_to_toggle" => click_to_toggle = bool_val,
                     _ => {}
                 }
             }
         }
     }
-    TraySettings { close_to_tray, click_to_toggle }
+    TraySettings { close_to_tray }
 }
 
 fn save_tray_settings(settings: &TraySettings) -> Result<(), String> {
@@ -1567,7 +1564,6 @@ fn save_tray_settings(settings: &TraySettings) -> Result<(), String> {
 
     let entries = vec![
         ("close_to_tray", settings.close_to_tray),
-        ("click_to_toggle", settings.click_to_toggle),
     ];
 
     // Ensure [Settings] section exists
