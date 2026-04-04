@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import ToggleGroup from "./ui/ToggleGroup";
 import { SearchIcon, CloseIcon } from "./ui/Icons";
 import SectionLabel from "./ui/SectionLabel";
+import Tooltip from "./ui/Tooltip";
 
 interface ScriptTreeToolbarProps {
     viewMode: "tree" | "tiles" | "list";
@@ -45,7 +46,7 @@ export default function ScriptTreeToolbar({
                     <circle cx="16" cy="20" r="2" />
                 </svg>
             ),
-            title: t("search.mode", { mode: "tree" }),
+            title: t("search.mode_tree"),
         },
         {
             id: "tiles" as const,
@@ -57,7 +58,7 @@ export default function ScriptTreeToolbar({
                     <rect x="3" y="14" width="7" height="7" rx="1" ry="1" />
                 </svg>
             ),
-            title: t("search.mode", { mode: "tiles" }),
+            title: t("search.mode_tiles"),
         },
         {
             id: "list" as const,
@@ -67,7 +68,7 @@ export default function ScriptTreeToolbar({
                     <line x1="14" y1="6" x2="21" y2="6" /><line x1="14" y1="12" x2="21" y2="12" /><line x1="14" y1="18" x2="21" y2="18" />
                 </svg>
             ),
-            title: t("search.mode", { mode: "list" }),
+            title: t("search.mode_list"),
         },
     ], [t]);
 
@@ -164,17 +165,18 @@ export default function ScriptTreeToolbar({
                     const onToggle = isHub ? toggleAllHub : toggleAll;
                     return (
                         <div className={`flex items-end overflow-hidden transition-all duration-[150ms] ease-in-out ${searchActive ? 'w-0 opacity-0 pointer-events-none ml-0' : showButton ? 'w-[42px] opacity-100 ml-2' : 'w-0 opacity-0 pointer-events-none ml-0'}`}>
+                            <Tooltip text={t(expanded ? "context.collapse_all" : "context.expand_all")}>
                             <button
                                 onClick={onToggle}
                                 className={`h-[42px] w-[42px] flex flex-shrink-0 flex-col items-center justify-center rounded-xl bg-white/[0.03] border border-white/5 transition-all cursor-pointer focus:outline-none
                                     ${!isDragging ? 'hover:bg-white/[0.06] hover:border-white/10 group/collapse' : 'opacity-20 pointer-events-none'}`}
-                                title={t(expanded ? "context.collapse_all" : "context.expand_all")}
                             >
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-25 transition-opacity duration-200 group-hover/collapse:opacity-50">
                                     <path style={{ d: `path("M 6 ${expanded ? 3 : 8} L 12 ${expanded ? 9 : 2} L 18 ${expanded ? 3 : 8}")`, transition: 'd 350ms cubic-bezier(0.4, 0, 0.2, 1)' } as React.CSSProperties} />
                                     <path style={{ d: `path("M 6 ${expanded ? 21 : 16} L 12 ${expanded ? 15 : 22} L 18 ${expanded ? 21 : 16}")`, transition: 'd 350ms cubic-bezier(0.4, 0, 0.2, 1)' } as React.CSSProperties} />
                                 </svg>
                             </button>
+                            </Tooltip>
                         </div>
                     );
                 })()}
@@ -182,16 +184,17 @@ export default function ScriptTreeToolbar({
                 {/* Search */}
                 <div ref={searchSizerRef} className="flex-1 min-w-0 ml-2">
                     {searchCollapsed && !searchActive ? (
-                        <button
-                            onClick={() => {
-                                setSearchFocused(true);
-                                setTimeout(() => searchInputRef.current?.focus(), 50);
-                            }}
-                            className="h-[42px] w-[42px] flex items-center justify-center rounded-xl bg-white/[0.03] border border-white/5 text-tertiary hover:text-secondary hover:bg-white/[0.06] transition-all cursor-pointer"
-                            title={t("search.placeholder")}
-                        >
-                            <SearchIcon />
-                        </button>
+                        <Tooltip text={t("search.placeholder")}>
+                            <button
+                                onClick={() => {
+                                    setSearchFocused(true);
+                                    setTimeout(() => searchInputRef.current?.focus(), 50);
+                                }}
+                                className="h-[42px] w-[42px] flex items-center justify-center rounded-xl bg-white/[0.03] border border-white/5 text-tertiary hover:text-secondary hover:bg-white/[0.06] transition-all cursor-pointer"
+                            >
+                                <SearchIcon />
+                            </button>
+                        </Tooltip>
                     ) : (
                         <div className="relative group flex items-center bg-white/[0.03] border border-white/5 rounded-xl h-[42px] transition-all focus-within:border-indigo-500/50 focus-within:bg-white/[0.05]">
                             <div className="pl-3 text-tertiary group-focus-within:text-indigo-400 transition-colors pointer-events-none">
@@ -247,6 +250,7 @@ export default function ScriptTreeToolbar({
 
             {filterTag !== "hub" && (
                 <div className="flex items-center space-x-3 ml-2">
+                    <Tooltip text={showHidden === 'none' ? t("context.show_hidden") : showHidden === 'all' ? t("context.hide_hidden") : t("context.show_only_hidden")}>
                     <button
                         onClick={() => {
                             if (isDragging) return;
@@ -259,7 +263,6 @@ export default function ScriptTreeToolbar({
                                 showHidden === 'all' ? "bg-white/10 border-white/20 text-white shadow-lg" :
                                     "bg-white/10 border-white/20 text-indigo-400 shadow-lg"}
                             ${isDragging ? 'opacity-20 pointer-events-none' : ''}`}
-                        title={showHidden === 'none' ? t("context.show_hidden") : showHidden === 'all' ? t("context.hide_hidden") : t("context.show_only_hidden")}
                     >
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                             {showHidden === 'none' ? (
@@ -271,6 +274,7 @@ export default function ScriptTreeToolbar({
                             )}
                         </svg>
                     </button>
+                    </Tooltip>
                 </div>
             )}
         </div>

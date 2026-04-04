@@ -5,6 +5,7 @@ import { HighlightText } from "./HighlightText";
 import { useTranslation } from "react-i18next";
 import { PlusIcon, CloseIcon, RestartIcon, PlayIcon, InterfaceIcon } from "./ui/Icons";
 import { useTreeStore } from "../store/useTreeStore";
+import Tooltip from "./ui/Tooltip";
 
 
 function formatSize(bytes: number): string {
@@ -115,20 +116,22 @@ const HubScriptCard = memo(function HubScriptCard({
                                 <div className={isRemoving ? 'animate-tag-out' : 'animate-tag-in'}>
                                     <span className={`h-[42px] text-xs px-5 bg-white/5 border border-white/5 text-secondary font-bold rounded-xl shadow-lg leading-none flex items-center transition-opacity ${isDragging ? 'opacity-20' : ''}`}>{tag}</span>
                                 </div>
+                                <Tooltip text={t("context.delete_tag_simple", { tag: tag })}>
                                 <button
                                     onClick={(e) => { e.stopPropagation(); onRemoveTag(s, tag); }}
                                     onMouseDown={(e) => e.stopPropagation()}
                                     onDoubleClick={(e) => e.stopPropagation()}
                                     className={`absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center transition-all shadow-xl hover:scale-125 active:scale-90 cursor-pointer z-50 border-none ${isDragging ? 'opacity-0 pointer-events-none' : 'opacity-0 group-hover/tag:opacity-100'}`}
-                                    title={t("context.delete_tag_simple", { tag: tag })}
                                 >
                                     <svg width="10" height="2" viewBox="0 0 10 2" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                                         <path d="M1 1h8" />
                                     </svg>
                                 </button>
+                                </Tooltip>
                             </div>
                         );
                     })}
+                    <Tooltip text={t("tooltips.add_tag")}>
                     <button
                         onClick={(e) => {
                             e.stopPropagation();
@@ -140,11 +143,12 @@ const HubScriptCard = memo(function HubScriptCard({
                         }}
                         onMouseDown={(e) => e.stopPropagation()}
                         onDoubleClick={(e) => e.stopPropagation()}
-                        className={`w-[42px] h-[42px] flex items-center justify-center border border-dashed border-white/10 rounded-xl transition-all cursor-pointer pointer-events-auto text-[#666] hover:text-[#aaa] hover:border-white/20 
+                        className={`w-[42px] h-[42px] flex items-center justify-center border border-dashed border-white/10 rounded-xl transition-all cursor-pointer pointer-events-auto text-[#666] hover:text-[#aaa] hover:border-white/20
                                 ${isDragging ? 'opacity-0 pointer-events-none' : (isEditing || (isFocused && isVimMode) ? 'opacity-100 bg-white/5' : 'opacity-0 group-hover:opacity-100')}`}
                     >
                         <PlusIcon />
                     </button>
+                    </Tooltip>
                 </div>
             </div>
 
@@ -152,15 +156,17 @@ const HubScriptCard = memo(function HubScriptCard({
                 {s.is_running ? (
                     <div className="flex items-center gap-2">
                         {s.has_ui && (
+                            <Tooltip text={t("tooltips.interface")}>
                             <button
                                 onClick={(e) => { e.stopPropagation(); onShowUI(s); }}
                                 onMouseDown={(e) => e.stopPropagation()}
                                 className={`h-[42px] rounded-2xl flex items-center justify-center bg-white/5 text-[#71717a] border border-white/5 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-500/30 transition-all duration-150 cursor-pointer pointer-events-auto overflow-hidden ${!isPending ? 'flex-1 opacity-100' : 'w-0 flex-[0] opacity-0 border-0 px-0'} ${!isPending ? 'animate-action-in' : ''}`}
-                                title={t("tooltips.interface")}
                             >
                                 <InterfaceIcon size={17} />
                             </button>
+                            </Tooltip>
                         )}
+                        <Tooltip text={pendingType === 'restart' ? t("tooltips.restarting") : t("tooltips.restart_script")}>
                         <button
                             onClick={(e) => { e.stopPropagation(); onRestart(s); }}
                             onMouseDown={(e) => e.stopPropagation()}
@@ -172,13 +178,14 @@ const HubScriptCard = memo(function HubScriptCard({
                                         : 'flex-1 bg-white/5 text-[#71717a] border border-white/5 hover:bg-yellow-500/10 hover:text-yellow-500 hover:border-yellow-500/30 animate-action-in'
                                 }`}
                             style={!isPending ? { animationDelay: `${s.has_ui ? 50 : 0}ms` } : undefined}
-                            title={pendingType === 'restart' ? t("tooltips.restarting") : t("tooltips.restart_script")}
                         >
                             {pendingType === 'restart'
                                 ? <span className="text-[14px] font-bold tracking-[0.1em]">{t("hub_card.restarting")}</span>
                                 : <RestartIcon size={17} />
                             }
                         </button>
+                        </Tooltip>
+                        <Tooltip text={pendingType === 'kill' ? t("tooltips.stopping") : t("tooltips.kill_script")}>
                         <button
                             onClick={(e) => { e.stopPropagation(); onToggle(s); }}
                             onMouseDown={(e) => e.stopPropagation()}
@@ -190,15 +197,16 @@ const HubScriptCard = memo(function HubScriptCard({
                                         : 'flex-1 bg-white/5 text-[#71717a] border border-white/5 hover:bg-red-500/15 hover:text-red-500 hover:border-red-500/30 animate-action-in'
                                 }`}
                             style={!isPending ? { animationDelay: `${s.has_ui ? 100 : 50}ms` } : undefined}
-                            title={pendingType === 'kill' ? t("tooltips.stopping") : t("tooltips.kill_script")}
                         >
                             {pendingType === 'kill'
                                 ? <span className="text-[14px] font-bold tracking-[0.1em]">{t("hub_card.killing")}</span>
                                 : <CloseIcon size={17} />
                             }
                         </button>
+                        </Tooltip>
                     </div>
                 ) : (
+                    <Tooltip text={isPending ? t("tooltips.starting") : t("tooltips.run")}>
                     <button
                         onClick={(e) => { e.stopPropagation(); !isPending && onToggle(s); }}
                         onMouseDown={(e) => e.stopPropagation()}
@@ -217,6 +225,7 @@ const HubScriptCard = memo(function HubScriptCard({
                             </div>
                         )}
                     </button>
+                    </Tooltip>
                 )}
             </div>
         </div>

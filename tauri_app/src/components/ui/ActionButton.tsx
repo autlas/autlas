@@ -1,4 +1,5 @@
 import React from "react";
+import Tooltip from "./Tooltip";
 
 const colorMap = {
     indigo: "hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-500/20",
@@ -31,15 +32,17 @@ export default function ActionButton({ color, variant = "compact", onClick, titl
         : "flex-1 h-[42px] rounded-2xl";
     const hoverClass = variant === "compact" ? colorMap[color] : colorMapWide[color];
 
-    return (
+    const btn = (
         <button
             onClick={(e) => { e.stopPropagation(); onClick(e); }}
             onMouseDown={(e) => e.stopPropagation()}
             className={`${sizeClass} flex items-center justify-center bg-white/5 text-[#71717a] border border-white/5 ${hoverClass} transition-all cursor-pointer pointer-events-auto ${animateIn ? 'animate-action-in' : ''} ${className ?? ""}`}
             style={animateIn ? { animationDelay: `${animationDelay}ms` } : undefined}
-            title={title}
         >
             {children}
         </button>
     );
+
+    if (title) return <Tooltip text={title}>{btn}</Tooltip>;
+    return btn;
 }

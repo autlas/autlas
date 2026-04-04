@@ -5,6 +5,7 @@ import { HighlightText } from "./HighlightText";
 import { useTreeStore } from "../store/useTreeStore";
 import { useTranslation } from "react-i18next";
 import { PlusIcon, CloseIcon, RestartIcon, PlayIcon, InterfaceIcon } from "./ui/Icons";
+import Tooltip from "./ui/Tooltip";
 import ActionButton from "./ui/ActionButton";
 
 function formatSize(bytes: number): string {
@@ -169,15 +170,16 @@ const ScriptRow = memo(function ScriptRow({
                                             {tag}
                                         </span>
                                     </div>
+                                    <Tooltip text={t("context.delete_tag_simple", { tag: tag })}>
                                     <button
                                         onClick={(e) => { e.stopPropagation(); onRemoveTag(s, tag); }}
                                         onMouseDown={(e) => e.stopPropagation()}
                                         onDoubleClick={(e) => e.stopPropagation()}
                                         className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover/tag:opacity-100 transition-all shadow-lg hover:scale-125 active:scale-90 cursor-pointer z-50 pointer-events-auto border-none"
-                                        title={t("context.delete_tag_simple", { tag: tag })}
                                     >
                                         <svg width="8" height="2" viewBox="0 0 8 2" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M1 1h6" /></svg>
                                     </button>
+                                    </Tooltip>
                                 </div>
                             );
                         })}
@@ -187,6 +189,7 @@ const ScriptRow = memo(function ScriptRow({
                             </span>
                         )}
 
+                        <Tooltip text={t("tooltips.add_tag")}>
                         <button
                             ref={addBtnRef}
                             onClick={(e) => {
@@ -203,6 +206,7 @@ const ScriptRow = memo(function ScriptRow({
                         >
                             <PlusIcon />
                         </button>
+                        </Tooltip>
 
                         {isEditing && (
                             <TagPickerPopover
@@ -237,26 +241,27 @@ const ScriptRow = memo(function ScriptRow({
                                 <RestartIcon />
                             </ActionButton>
                         )}
-                        <button
-                            onClick={(e) => { e.stopPropagation(); !isPending && onToggle(s); }}
-                            onMouseDown={(e) => e.stopPropagation()}
-                            className={`w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-lg transition-all transform cursor-pointer active:scale-95 pointer-events-auto border
-                            ${isPending ? (
-                                    pendingType === 'restart' ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20 animate-pulse' :
-                                        pendingType === 'kill' ? 'bg-red-500/10 text-red-500 border-red-500/20 animate-pulse' :
-                                            'bg-green-500/10 text-green-500 border-green-500/20 animate-pulse'
-                                ) : s.is_running ? 'bg-white/5 text-[#71717a] border-white/5 hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/20' : 'bg-white/5 text-[#71717a] border-white/5 hover:bg-green-500/10 hover:text-green-500 hover:border-green-500/20'}
-                        `}
-                            title={isPending ? (pendingType === 'restart' ? t("tooltips.restarting") : t("tooltips.toggling")) : (s.is_running ? t("tooltips.kill") : t("tooltips.run"))}
-                        >
-                            {isPending ? (
-                                <div className="text-[10px] items-center justify-center flex font-bold h-full">...</div>
-                            ) : s.is_running ? (
-                                <CloseIcon />
-                            ) : (
-                                <PlayIcon />
-                            )}
-                        </button>
+                        <Tooltip text={isPending ? (pendingType === 'restart' ? t("tooltips.restarting") : t("tooltips.toggling")) : (s.is_running ? t("tooltips.kill") : t("tooltips.run"))}>
+                            <button
+                                onClick={(e) => { e.stopPropagation(); !isPending && onToggle(s); }}
+                                onMouseDown={(e) => e.stopPropagation()}
+                                className={`w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-lg transition-all transform cursor-pointer active:scale-95 pointer-events-auto border
+                                ${isPending ? (
+                                        pendingType === 'restart' ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20 animate-pulse' :
+                                            pendingType === 'kill' ? 'bg-red-500/10 text-red-500 border-red-500/20 animate-pulse' :
+                                                'bg-green-500/10 text-green-500 border-green-500/20 animate-pulse'
+                                    ) : s.is_running ? 'bg-white/5 text-[#71717a] border-white/5 hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/20' : 'bg-white/5 text-[#71717a] border-white/5 hover:bg-green-500/10 hover:text-green-500 hover:border-green-500/20'}
+                            `}
+                            >
+                                {isPending ? (
+                                    <div className="text-[10px] items-center justify-center flex font-bold h-full">...</div>
+                                ) : s.is_running ? (
+                                    <CloseIcon />
+                                ) : (
+                                    <PlayIcon />
+                                )}
+                            </button>
+                        </Tooltip>
                     </div>
                 </div>
             )}

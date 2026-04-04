@@ -5,6 +5,7 @@ import { useHotkeys } from "react-hotkeys-hook";
 import { useTranslation } from "react-i18next";
 import TagPickerPopover from "./TagPickerPopover";
 import { CloseIcon, PlayIcon, RestartIcon, InterfaceIcon, PlusIcon, EditIcon, FolderIcon, OpenWithIcon } from "./ui/Icons";
+import Tooltip from "./ui/Tooltip";
 
 interface ScriptDetailPanelProps {
   script: Script;
@@ -130,22 +131,25 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
           <h2 className="text-lg font-semibold text-white truncate">{name}</h2>
         </div>
         <div className="flex items-center gap-1.5 flex-shrink-0">
-          <button
-            onClick={onPinToggle}
-            className="w-7 h-7 flex items-center justify-center rounded-lg transition-all cursor-pointer bg-white/5 text-white/25 hover:text-white/50 hover:bg-white/10"
-            title={pinned ? t("tooltips.unpin") : t("tooltips.pin")}
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill={pinned ? "#888" : "none"} stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="12" y1="17" x2="12" y2="22" />
-              <path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z" />
-            </svg>
-          </button>
+          <Tooltip text={pinned ? t("tooltips.unpin") : t("tooltips.pin")}>
+            <button
+              onClick={onPinToggle}
+              className="w-7 h-7 flex items-center justify-center rounded-lg transition-all cursor-pointer bg-white/5 text-white/25 hover:text-white/50 hover:bg-white/10"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill={pinned ? "#888" : "none"} stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="12" y1="17" x2="12" y2="22" />
+                <path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z" />
+              </svg>
+            </button>
+          </Tooltip>
+          <Tooltip text={t("tooltips.close")}>
           <button
             onClick={onClose}
             className="w-7 h-7 flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/10 transition-all cursor-pointer"
           >
             <CloseIcon size={12} strokeWidth={2.5} className="text-[#666] hover:text-white" />
           </button>
+          </Tooltip>
         </div>
       </div>
 
@@ -167,62 +171,68 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
       {/* Actions */}
       <div className="flex gap-2 px-5 mb-4">
         {script.is_running && !pendingType && script.has_ui && (
-          <button
-            onClick={() => onShowUI(script)}
-            className="w-[80px] h-[42px] flex items-center justify-center rounded-2xl bg-white/5 text-[#71717a] border border-white/5 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-500/30 transition-all cursor-pointer"
-            title={t("tooltips.interface")}
-          >
-            <InterfaceIcon />
-          </button>
+          <Tooltip text={t("tooltips.interface")}>
+            <button
+              onClick={() => onShowUI(script)}
+              className="w-[80px] h-[42px] flex items-center justify-center rounded-2xl bg-white/5 text-[#71717a] border border-white/5 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-500/30 transition-all cursor-pointer"
+            >
+              <InterfaceIcon />
+            </button>
+          </Tooltip>
         )}
         {script.is_running && !pendingType && (
-          <button
-            onClick={() => onRestart(script)}
-            className="w-[80px] h-[42px] flex items-center justify-center rounded-2xl bg-white/5 text-[#71717a] border border-white/5 hover:bg-yellow-500/10 hover:text-yellow-500 hover:border-yellow-500/30 transition-all cursor-pointer"
-            title={t("tooltips.restart")}
-          >
-            <RestartIcon />
-          </button>
+          <Tooltip text={t("tooltips.restart")}>
+            <button
+              onClick={() => onRestart(script)}
+              className="w-[80px] h-[42px] flex items-center justify-center rounded-2xl bg-white/5 text-[#71717a] border border-white/5 hover:bg-yellow-500/10 hover:text-yellow-500 hover:border-yellow-500/30 transition-all cursor-pointer"
+            >
+              <RestartIcon />
+            </button>
+          </Tooltip>
         )}
-        <button
-          onClick={() => !pendingType && onToggle(script)}
-          className={`w-[80px] h-[42px] flex items-center justify-center rounded-2xl transition-all cursor-pointer border
-            ${pendingType
-              ? pendingType === "kill" ? "bg-red-500/10 text-red-500 border-red-500/20 animate-pulse"
-                : pendingType === "restart" ? "bg-yellow-500/10 text-yellow-500 border-yellow-500/20 animate-pulse"
-                : "bg-green-500/10 text-green-500 border-green-500/20 animate-pulse"
-              : script.is_running
-                ? 'bg-white/5 text-[#71717a] border-white/5 hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/20'
-                : 'bg-white/5 text-[#71717a] border-white/5 hover:bg-green-500/10 hover:text-green-500 hover:border-green-500/20'
-            }`}
-          title={pendingType ? (pendingType === "restart" ? t("tooltips.restarting") : pendingType === "kill" ? t("tooltips.stopping") : t("tooltips.starting")) : (script.is_running ? t("tooltips.stop") : t("tooltips.run"))}
-        >
-          {pendingType ? (
-            <span className="text-[10px] font-bold">...</span>
-          ) : script.is_running ? <CloseIcon /> : <PlayIcon />}
-        </button>
+        <Tooltip text={pendingType ? (pendingType === "restart" ? t("tooltips.restarting") : pendingType === "kill" ? t("tooltips.stopping") : t("tooltips.starting")) : (script.is_running ? t("tooltips.stop") : t("tooltips.run"))}>
+          <button
+            onClick={() => !pendingType && onToggle(script)}
+            className={`w-[80px] h-[42px] flex items-center justify-center rounded-2xl transition-all cursor-pointer border
+              ${pendingType
+                ? pendingType === "kill" ? "bg-red-500/10 text-red-500 border-red-500/20 animate-pulse"
+                  : pendingType === "restart" ? "bg-yellow-500/10 text-yellow-500 border-yellow-500/20 animate-pulse"
+                  : "bg-green-500/10 text-green-500 border-green-500/20 animate-pulse"
+                : script.is_running
+                  ? 'bg-white/5 text-[#71717a] border-white/5 hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/20'
+                  : 'bg-white/5 text-[#71717a] border-white/5 hover:bg-green-500/10 hover:text-green-500 hover:border-green-500/20'
+              }`}
+          >
+            {pendingType ? (
+              <span className="text-[10px] font-bold">...</span>
+            ) : script.is_running ? <CloseIcon /> : <PlayIcon />}
+          </button>
+        </Tooltip>
         <div className="flex-1" />
-        <button
-          onClick={handleEdit}
-          className="w-[80px] h-[42px] flex items-center justify-center rounded-2xl bg-white/5 text-[#71717a] border border-white/5 hover:bg-white/10 hover:text-white/60 transition-all cursor-pointer"
-          title={t("tooltips.edit")}
-        >
-          <EditIcon />
-        </button>
-        <button
-          onClick={handleOpenWith}
-          className="w-[80px] h-[42px] flex items-center justify-center rounded-2xl bg-white/5 text-[#71717a] border border-white/5 hover:bg-white/10 hover:text-white/60 transition-all cursor-pointer"
-          title={t("tooltips.open_with")}
-        >
-          <OpenWithIcon />
-        </button>
-        <button
-          onClick={handleOpenFolder}
-          className="w-[80px] h-[42px] flex items-center justify-center rounded-2xl bg-white/5 text-[#71717a] border border-white/5 hover:bg-white/10 hover:text-white/60 transition-all cursor-pointer"
-          title={t("tooltips.show_in_folder")}
-        >
-          <FolderIcon />
-        </button>
+        <Tooltip text={t("tooltips.edit")}>
+          <button
+            onClick={handleEdit}
+            className="w-[80px] h-[42px] flex items-center justify-center rounded-2xl bg-white/5 text-[#71717a] border border-white/5 hover:bg-white/10 hover:text-white/60 transition-all cursor-pointer"
+          >
+            <EditIcon />
+          </button>
+        </Tooltip>
+        <Tooltip text={t("tooltips.open_with")}>
+          <button
+            onClick={handleOpenWith}
+            className="w-[80px] h-[42px] flex items-center justify-center rounded-2xl bg-white/5 text-[#71717a] border border-white/5 hover:bg-white/10 hover:text-white/60 transition-all cursor-pointer"
+          >
+            <OpenWithIcon />
+          </button>
+        </Tooltip>
+        <Tooltip text={t("tooltips.show_in_folder")}>
+          <button
+            onClick={handleOpenFolder}
+            className="w-[80px] h-[42px] flex items-center justify-center rounded-2xl bg-white/5 text-[#71717a] border border-white/5 hover:bg-white/10 hover:text-white/60 transition-all cursor-pointer"
+          >
+            <FolderIcon />
+          </button>
+        </Tooltip>
       </div>
 
       {/* Tags */}
@@ -235,14 +245,17 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
             <span className="text-sm font-bold px-4 h-[42px] rounded-2xl bg-white/5 text-tertiary border border-white/5 cursor-default flex items-center justify-center">
               {tag}
             </span>
+            <Tooltip text={t("context.delete_tag_simple", { tag })}>
             <button
               onClick={() => onRemoveTag(script, tag)}
               className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover/tag:opacity-100 transition-all shadow-lg hover:scale-125 active:scale-90 cursor-pointer z-50 border-none"
             >
               <svg width="8" height="2" viewBox="0 0 8 2" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M1 1h6" /></svg>
             </button>
+            </Tooltip>
           </div>
         ))}
+        <Tooltip text={t("tooltips.add_tag")}>
         <button
           ref={addBtnRef}
           onClick={() => setIsEditingTags(!isEditingTags)}
@@ -250,6 +263,7 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
         >
           <PlusIcon />
         </button>
+        </Tooltip>
         {isEditingTags && (
           <TagPickerPopover
             script={script}

@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { useTranslation } from "react-i18next";
 import { GearIcon, TagIcon, TagDotIcon, LayersIcon, TagOffIcon } from "./ui/Icons";
 import { useTreeStore } from "../store/useTreeStore";
+import Tooltip from "./ui/Tooltip";
 import logoImg from "../assets/logo.png";
 
 interface SidebarProps {
@@ -414,6 +415,7 @@ export default function Sidebar({
 
       {/* Bottom: settings + refresh */}
       <div className={`flex w-full mt-auto pl-5 pr-[10px] ${collapsed ? 'flex-col items-center space-y-1.5 pb-5' : 'items-center space-x-3'}`}>
+        <Tooltip text={t("sidebar.settings")}>
         <button
           onClick={() => onTabClick("settings")}
           className={`${collapsed ? 'w-11' : 'flex-1'} h-12 rounded-xl flex items-center justify-center transition-all group cursor-pointer ${!collapsed && draggedScript ? "opacity-20 blur-[1px]" : ""
@@ -421,21 +423,21 @@ export default function Sidebar({
               ? "text-indigo-400 shadow-lg tag-active bg-white/5"
               : "text-tertiary hover:text-secondary tag-hover"
             }`}
-          title={t("sidebar.settings", "Settings")}
           style={viewMode === "settings" ? { backgroundColor: "var(--bg-tag-active)" } : {}}
         >
           <div ref={settingsIconRef} className="flex items-center justify-center will-change-transform">
             <GearIcon className={viewMode === "settings" ? "stroke-white" : "stroke-current"} />
           </div>
         </button>
+        </Tooltip>
 
+        <Tooltip text={t("sidebar.refresh")}>
         <button
           onClick={() => { setRefreshKey(p => p + 1); onRefresh(); }}
           onMouseEnter={() => onHoveringRefresh(true)}
           onMouseLeave={() => onHoveringRefresh(false)}
           className={`${collapsed ? 'w-11' : 'flex-1'} h-12 rounded-xl flex items-center justify-center transition-all border group cursor-pointer ${!collapsed && draggedScript ? "opacity-20 blur-[1px]" : ""
             } text-tertiary border-transparent hover:text-secondary tag-hover active:scale-95`}
-          title={t("sidebar.refresh", "Refresh List")}
         >
           <div className="transition-transform duration-500 group-hover:-rotate-45">
             <div ref={refreshIconRef} className="flex items-center justify-center will-change-transform">
@@ -445,6 +447,7 @@ export default function Sidebar({
             </div>
           </div>
         </button>
+        </Tooltip>
       </div>
       {!collapsed && (
         <div className={`pr-[14px] flex justify-end h-4 transition-all duration-150 ${isHoveringRefresh ? "opacity-100 translate-y-0" : "opacity-0 translate-y-1"}`}>

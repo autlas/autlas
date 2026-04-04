@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import LanguageSelector from "./LanguageSelector";
 import ToggleGroup from "./ui/ToggleGroup";
 import { PlusIcon, CloseIcon, FolderIcon } from "./ui/Icons";
+import Tooltip from "./ui/Tooltip";
 import SettingsSection from "./ui/SettingsSection";
 import { useTreeStore } from "../store/useTreeStore";
 
@@ -268,20 +269,22 @@ export default function SettingsPanel({
                   <div className="w-1.5 h-1.5 rounded-full bg-indigo-500/50 group-hover:bg-indigo-500 shadow-lg shadow-indigo-500/20" />
                   <span className="flex-1 text-[16px] font-bold text-secondary truncate font-mono tracking-tight">{path}</span>
                   <div className="flex items-center gap-1">
-                    <button
-                      onClick={() => invoke("open_in_explorer", { path })}
-                      className="p-2 text-tertiary hover:text-white hover:bg-white/10 rounded-xl transition-all border-none bg-transparent cursor-pointer"
-                      title={t("context.show_in_folder")}
-                    >
-                      <FolderIcon />
-                    </button>
-                    <button
-                      onClick={() => onRemovePath(path)}
-                      className="p-2 text-tertiary hover:text-red-400 hover:bg-red-400/10 rounded-xl transition-all border-none bg-transparent cursor-pointer"
-                      title={t("settings.remove_path")}
-                    >
-                      <CloseIcon />
-                    </button>
+                    <Tooltip text={t("context.show_in_folder")}>
+                      <button
+                        onClick={() => invoke("open_in_explorer", { path })}
+                        className="p-2 text-tertiary hover:text-white hover:bg-white/10 rounded-xl transition-all border-none bg-transparent cursor-pointer"
+                      >
+                        <FolderIcon />
+                      </button>
+                    </Tooltip>
+                    <Tooltip text={t("settings.remove_path")}>
+                      <button
+                        onClick={() => onRemovePath(path)}
+                        className="p-2 text-tertiary hover:text-red-400 hover:bg-red-400/10 rounded-xl transition-all border-none bg-transparent cursor-pointer"
+                      >
+                        <CloseIcon />
+                      </button>
+                    </Tooltip>
                   </div>
                 </div>
               ))

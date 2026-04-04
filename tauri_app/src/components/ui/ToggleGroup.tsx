@@ -1,4 +1,5 @@
 import React, { useRef, useState, useLayoutEffect } from "react";
+import Tooltip from "./Tooltip";
 
 export interface ToggleOption<T extends string> {
     id: T;
@@ -89,7 +90,7 @@ export default function ToggleGroup<T extends string>({
 
             {options.map((opt) => {
                 const isActive = value === opt.id;
-                return (
+                const btn = (
                     <button
                         key={opt.id}
                         data-toggle-id={opt.id}
@@ -100,11 +101,11 @@ export default function ToggleGroup<T extends string>({
                                 ? "text-white"
                                 : `${opt.icon ? "" : "text-tertiary"} hover:text-white hover:bg-white/5`}
                             ${disabled ? "opacity-20 pointer-events-none" : ""}`}
-                        title={opt.title}
                     >
                         {opt.icon ? opt.icon(isActive) : opt.label}
                     </button>
                 );
+                return opt.title ? <Tooltip key={opt.id} text={opt.title}>{btn}</Tooltip> : btn;
             })}
         </div>
     );
