@@ -532,7 +532,7 @@ function App() {
             </button>
           ) : everythingToast === "not_installed" ? (
             <button
-              onClick={() => { invoke("open_with", { path: "https://www.voidtools.com/downloads/" }); hideEverythingToast(); }}
+              onClick={() => { invoke("open_url", { url: "https://www.voidtools.com/downloads/" }); hideEverythingToast(); }}
               className="px-3 py-1 text-[11px] font-bold uppercase tracking-wider bg-indigo-500/20 text-indigo-400 rounded-lg hover:bg-indigo-500/30 transition-colors cursor-pointer"
             >
               Download

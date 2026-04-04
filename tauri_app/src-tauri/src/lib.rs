@@ -1301,6 +1301,15 @@ async fn edit_script(path: String) -> Result<(), String> {
 }
 
 #[tauri::command]
+async fn open_url(url: String) -> Result<(), String> {
+    Command::new("cmd")
+        .args(&["/c", "start", "", &url])
+        .spawn()
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
 async fn open_with(path: String) -> Result<(), String> {
     Command::new("rundll32.exe")
         .arg("shell32.dll,OpenAs_RunDLL")
@@ -1969,6 +1978,7 @@ pub fn run() {
             show_script_ui,
             restart_script,
             open_with,
+            open_url,
             get_scan_paths,
             set_scan_paths,
             check_everything_status,
