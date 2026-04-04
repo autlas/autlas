@@ -131,7 +131,7 @@ export default function ScriptTreeToolbar({
                     <div ref={sortRef} className="relative">
                         <button
                             onClick={() => !isDragging && setSortOpen(!sortOpen)}
-                            className={`h-[42px] min-w-[110px] px-4 flex items-center gap-2 rounded-xl bg-white/[0.03] border border-white/5 transition-all cursor-pointer
+                            className={`h-[42px] min-w-[110px] px-4 flex items-center justify-between gap-2 rounded-xl bg-white/[0.03] border border-white/5 transition-all cursor-pointer
                                 ${!isDragging ? 'hover:bg-white/[0.06] hover:border-white/10' : 'opacity-20 pointer-events-none'}
                                 ${sortOpen ? 'border-indigo-500/50 bg-white/[0.05]' : ''}`}
                         >
