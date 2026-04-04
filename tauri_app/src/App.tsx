@@ -33,7 +33,8 @@ function App() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [scanToast, setScanToast] = useState(false);
   const scanToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [everythingToast, setEverythingToast] = useState<"installed" | "not_installed" | null>(null);
+  const [everythingToast, setEverythingToast] = useState<"installed" | "not_installed" | "launching" | "started" | null>(null);
+  const [everythingToastVisible, setEverythingToastVisible] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; type: "script" | "tag" | "folder" | "general"; data: any } | null>(null);
   const [activeTabPressed, setActiveTabPressed] = useState<string | null>(null);
   const [runningCount, setRunningCount] = useState(0);
@@ -144,10 +145,18 @@ function App() {
     };
   }, []);
 
+  const hideEverythingToast = useCallback(() => {
+    setEverythingToastVisible(false);
+    setTimeout(() => setEverythingToast(null), 500);
+  }, []);
+
   // Check Everything status on startup
   useEffect(() => {
     checkEverythingStatus().then(status => {
-      if (status !== "running") setEverythingToast(status);
+      if (status !== "running") {
+        setEverythingToast(status);
+        setEverythingToastVisible(true);
+      }
     });
   }, []);
 
@@ -482,47 +491,61 @@ function App() {
       />
 
       <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-[9999] transition-all duration-500 ${scanToast ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
-        <div className="flex items-center gap-2.5 px-4 py-2.5 bg-[#1a1a1f] border border-white/10 rounded-2xl shadow-2xl">
-          <div className="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]" />
-          <span className="text-[11px] font-bold tracking-widest uppercase text-white/60">Library synced</span>
+        <div className="flex items-center gap-3 px-5 py-3 bg-[#1a1a1f] border border-white/10 rounded-2xl shadow-2xl">
+          <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]" />
+          <span className="text-xs font-medium text-white/70">Library synced</span>
         </div>
       </div>
 
       {/* Everything status toast */}
-      <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-[9999] transition-all duration-500 ${everythingToast ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
+      <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-[9999] transition-all duration-500 ${everythingToastVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
         <div className="flex items-center gap-3 px-5 py-3 bg-[#1a1a1f] border border-white/10 rounded-2xl shadow-2xl">
-          <div className="w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.8)]" />
+          <div className={`w-2 h-2 rounded-full ${
+            everythingToast === "started"
+              ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]"
+              : everythingToast === "launching"
+              ? "bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.8)] animate-pulse"
+              : "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]"
+          }`} />
           <span className="text-xs font-medium text-white/70">
-            {everythingToast === "installed"
+            {everythingToast === "started"
+              ? "Everything is running — instant scan enabled"
+              : everythingToast === "launching"
+              ? "Starting Everything…"
+              : everythingToast === "installed"
               ? "Everything is not running — scan will be slower"
               : "Install Everything for instant file scanning"}
           </span>
           {everythingToast === "installed" ? (
             <button
               onClick={async () => {
+                setEverythingToast("launching");
                 try {
                   await launchEverything();
-                  setEverythingToast(null);
-                } catch (e) { console.error(e); }
+                  setEverythingToast("started");
+                  setTimeout(() => hideEverythingToast(), 3000);
+                } catch (e) { console.error(e); setEverythingToast("installed"); }
               }}
               className="px-3 py-1 text-[11px] font-bold uppercase tracking-wider bg-indigo-500/20 text-indigo-400 rounded-lg hover:bg-indigo-500/30 transition-colors cursor-pointer"
             >
               Launch
             </button>
-          ) : (
+          ) : everythingToast === "not_installed" ? (
             <button
-              onClick={() => { invoke("open_with", { path: "https://www.voidtools.com/downloads/" }); setEverythingToast(null); }}
+              onClick={() => { invoke("open_with", { path: "https://www.voidtools.com/downloads/" }); hideEverythingToast(); }}
               className="px-3 py-1 text-[11px] font-bold uppercase tracking-wider bg-indigo-500/20 text-indigo-400 rounded-lg hover:bg-indigo-500/30 transition-colors cursor-pointer"
             >
               Download
             </button>
+          ) : null}
+          {everythingToast !== "launching" && (
+            <button
+              onClick={hideEverythingToast}
+              className="ml-1 text-white/30 hover:text-white/60 transition-colors cursor-pointer"
+            >
+              ✕
+            </button>
           )}
-          <button
-            onClick={() => setEverythingToast(null)}
-            className="ml-1 text-white/30 hover:text-white/60 transition-colors cursor-pointer"
-          >
-            ✕
-          </button>
         </div>
       </div>
     </div>

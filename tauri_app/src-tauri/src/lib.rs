@@ -926,7 +926,35 @@ fn find_everything_exe() -> Option<String> {
         }
     }
 
+    // 4. If es.exe is in PATH, find Everything.exe next to it
+    if let Ok(output) = Command::new("where.exe").arg("es.exe").output() {
+        if output.status.success() {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            if let Some(line) = stdout.lines().next() {
+                let es_path = std::path::Path::new(line.trim());
+                if let Some(parent) = es_path.parent() {
+                    let exe = parent.join("Everything.exe");
+                    if exe.exists() {
+                        return Some(exe.to_string_lossy().to_string());
+                    }
+                    let exe64 = parent.join("Everything64.exe");
+                    if exe64.exists() {
+                        return Some(exe64.to_string_lossy().to_string());
+                    }
+                }
+            }
+        }
+    }
+
     None
+}
+
+fn es_exe_available() -> bool {
+    std::process::Command::new("where.exe")
+        .arg("es.exe")
+        .output()
+        .map(|o| o.status.success())
+        .unwrap_or(false)
 }
 
 fn is_everything_running() -> bool {
@@ -943,7 +971,7 @@ fn is_everything_running() -> bool {
 async fn check_everything_status() -> String {
     if is_everything_running() {
         "running".to_string()
-    } else if find_everything_exe().is_some() {
+    } else if find_everything_exe().is_some() || es_exe_available() {
         "installed".to_string()
     } else {
         "not_installed".to_string()
@@ -954,6 +982,7 @@ async fn check_everything_status() -> String {
 async fn launch_everything() -> Result<(), String> {
     if let Some(exe_path) = find_everything_exe() {
         std::process::Command::new(&exe_path)
+            .arg("-startup")
             .spawn()
             .map_err(|e| format!("Failed to launch Everything: {}", e))?;
         // Give it a moment to start and build index

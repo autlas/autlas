@@ -224,11 +224,14 @@ export default function SettingsPanel({
                 ? "bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.8)]"
                 : "bg-red-500/50 shadow-[0_0_8px_rgba(239,68,68,0.4)]"
             }`} />
+            {everythingStatus === "running" && (
+              <span className="text-xs font-mono text-green-400 font-bold bg-green-400/10 px-4 py-1.5 rounded-full tracking-widest uppercase">Active</span>
+            )}
             {everythingStatus === "installed" && (
               <button
                 onClick={handleLaunchEverything}
                 disabled={everythingLoading}
-                className="px-4 py-1.5 text-[11px] font-bold uppercase tracking-wider bg-indigo-500/20 text-indigo-400 rounded-lg hover:bg-indigo-500/30 transition-colors cursor-pointer disabled:opacity-50"
+                className="text-xs font-mono text-amber-400 font-bold bg-amber-400/10 px-4 py-1.5 rounded-full tracking-widest uppercase hover:bg-amber-400/20 transition-colors cursor-pointer disabled:opacity-50"
               >
                 {everythingLoading ? "Starting..." : "Launch"}
               </button>
@@ -236,7 +239,7 @@ export default function SettingsPanel({
             {everythingStatus === "not_installed" && (
               <button
                 onClick={() => invoke("open_with", { path: "https://www.voidtools.com/downloads/" })}
-                className="px-4 py-1.5 text-[11px] font-bold uppercase tracking-wider bg-indigo-500/20 text-indigo-400 rounded-lg hover:bg-indigo-500/30 transition-colors cursor-pointer"
+                className="text-xs font-mono text-red-400 font-bold bg-red-400/10 px-4 py-1.5 rounded-full tracking-widest uppercase hover:bg-red-400/20 transition-colors cursor-pointer"
               >
                 Download
               </button>
