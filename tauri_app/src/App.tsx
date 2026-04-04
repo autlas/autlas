@@ -183,6 +183,19 @@ function App() {
     });
   }, []);
 
+  // Auto-hide toast when Everything starts running
+  useEffect(() => {
+    if (everythingToast !== "installed") return;
+    const interval = setInterval(async () => {
+      const status = await checkEverythingStatus();
+      if (status === "running") {
+        setEverythingToast("started");
+        setTimeout(() => hideEverythingToast(), 3000);
+      }
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [everythingToast, hideEverythingToast]);
+
   // Listen for Everything install progress events
   useEffect(() => {
     let unlisten: (() => void) | null = null;
@@ -416,7 +429,7 @@ function App() {
           className="flex-1 px-4 flex flex-col overflow-hidden transition-all duration-300"
           style={{ background: viewMode === "settings" ? "var(--bg-primary)" : "linear-gradient(to bottom right, var(--bg-primary), var(--bg-secondary))" }}
         >
-          <div className={`flex-1 flex flex-col min-h-0 ${viewMode === "settings" ? "overflow-y-auto custom-scrollbar" : ""}`}>
+          <div className={`flex-1 flex flex-col min-h-0 ${viewMode === "settings" ? "overflow-y-auto custom-scrollbar -mr-4 pr-4" : ""}`}>
             <div className={viewMode === "settings" ? "block" : "hidden"}>
               <SettingsPanel
                 brightness={brightness}

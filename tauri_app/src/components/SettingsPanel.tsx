@@ -59,6 +59,16 @@ export default function SettingsPanel({
     checkEverythingStatus().then(setEverythingStatus);
   }, []);
 
+  // Auto-detect when Everything starts running
+  useEffect(() => {
+    if (everythingStatus !== "installed") return;
+    const interval = setInterval(async () => {
+      const status = await checkEverythingStatus();
+      if (status === "running") setEverythingStatus("running");
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [everythingStatus]);
+
   const handleLaunchEverything = useCallback(async () => {
     setEverythingLoading(true);
     try {
