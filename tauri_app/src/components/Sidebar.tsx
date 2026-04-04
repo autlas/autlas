@@ -215,14 +215,14 @@ export default function Sidebar({
                 <span className={`text-lg tracking-tight transition-all duration-150 ${collapsed ? 'w-0 ml-0 opacity-0' : 'w-auto ml-3 opacity-100'}`}>{tab.label}</span>
               </div>
               {activeTab !== "hub" && (
-                <div className={`absolute flex items-center justify-center rounded-full bg-indigo-400 transition-all duration-300
+                <div className={`absolute flex items-center justify-center rounded-full bg-green-500 transition-all duration-300
                   ${collapsed
-                    ? (runningCount > 0 ? 'top-0 right-0 w-4 h-4 shadow-[0_0_12px_rgba(99,102,241,0.6)]' : 'top-[22px] right-2 w-2 h-2 animate-pulse shadow-[0_0_8px_rgba(79,70,229,0.5)] opacity-0')
-                    : (runningCount > 0 ? 'top-[16px] right-3 w-5 h-5 shadow-[0_0_12px_rgba(99,102,241,0.6)]' : 'top-[22px] right-4 w-2 h-2 animate-pulse shadow-[0_0_8px_rgba(79,70,229,0.5)]')
+                    ? (runningCount > 0 ? 'top-[-1px] right-[-1px] w-4.5 h-4.5 shadow-[0_0_12px_rgba(34,197,94,0.6)]' : 'top-[22px] right-2 w-2 h-2 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.5)] opacity-0')
+                    : (runningCount > 0 ? 'top-[16px] right-3 w-5 h-5 shadow-[0_0_12px_rgba(34,197,94,0.6)]' : 'top-[22px] right-4 w-2 h-2 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.5)]')
                   }`}
                 >
                   {runningCount > 0 && (
-                    <span className={`font-bold leading-none transition-all duration-300 ${collapsed ? 'text-[10px]' : 'text-[15px] mt-[1px]'}`} style={{ color: "var(--bg-secondary)" }}>{runningCount}</span>
+                    <span className={`font-bold leading-none transition-all duration-300 ${collapsed ? 'text-[14px]' : 'text-[15px]'}`} style={{ color: "var(--bg-secondary)" }}>{runningCount}</span>
                   )}
                 </div>
               )}
