@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { useEffect, useMemo, useState, useCallback } from "react";
-import { checkEverythingStatus, launchEverything, installEverything } from "../api";
+import { checkEverythingStatus, launchEverything } from "../api";
 import { useTranslation } from "react-i18next";
 import LanguageSelector from "./LanguageSelector";
 import ToggleGroup from "./ui/ToggleGroup";
@@ -22,6 +22,7 @@ interface SettingsPanelProps {
   scanPaths: string[];
   onAddPath: () => void;
   onRemovePath: (path: string) => void;
+  onInstallEverything?: () => void;
 }
 
 export default function SettingsPanel({
@@ -30,7 +31,7 @@ export default function SettingsPanel({
   fontScale, setFontScale,
   animationsEnabled, toggleAnimations,
   vimModeNav, setVimModeNav,
-  scanPaths, onAddPath, onRemovePath,
+  scanPaths, onAddPath, onRemovePath, onInstallEverything,
 }: SettingsPanelProps) {
   const { t } = useTranslation();
   const showFileSize = useTreeStore(s => s.showFileSize);
@@ -238,18 +239,10 @@ export default function SettingsPanel({
             )}
             {everythingStatus === "not_installed" && (
               <button
-                onClick={async () => {
-                  setEverythingLoading(true);
-                  try {
-                    await installEverything();
-                    setEverythingStatus("running");
-                  } catch (e) { console.error(e); }
-                  setEverythingLoading(false);
-                }}
-                disabled={everythingLoading}
-                className="text-xs font-mono text-red-400 font-bold bg-red-400/10 px-4 py-1.5 rounded-full tracking-widest uppercase hover:bg-red-400/20 transition-colors cursor-pointer disabled:opacity-50"
+                onClick={() => onInstallEverything?.()}
+                className="text-xs font-mono text-red-400 font-bold bg-red-400/10 px-4 py-1.5 rounded-full tracking-widest uppercase hover:bg-red-400/20 transition-colors cursor-pointer"
               >
-                {everythingLoading ? "Installing..." : "Install"}
+                Install
               </button>
             )}
           </div>

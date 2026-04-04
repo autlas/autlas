@@ -36,6 +36,7 @@ function App() {
   const [everythingToast, setEverythingToast] = useState<"installed" | "not_installed" | "launching" | "installing" | "started" | null>(null);
   const [everythingToastVisible, setEverythingToastVisible] = useState(false);
   const [installProgress, setInstallProgress] = useState<{ phase: string; progress: number } | null>(null);
+  const [showInstallModal, setShowInstallModal] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; type: "script" | "tag" | "folder" | "general"; data: any } | null>(null);
   const [activeTabPressed, setActiveTabPressed] = useState<string | null>(null);
   const [runningCount, setRunningCount] = useState(0);
@@ -51,7 +52,7 @@ function App() {
   const [isHoveringRefresh, setIsHoveringRefresh] = useState(false);
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
   const [detailPinned, setDetailPinned] = useState(() => localStorage.getItem("ahk_detail_pinned") === "true");
-  const scriptActionsRef = useRef<{ toggle: (s: Script) => void; restart: (s: Script) => void; pendingScripts: Record<string, "run" | "kill" | "restart">; allScripts: Script[] }>({ toggle: () => {}, restart: () => {}, pendingScripts: {}, allScripts: [] });
+  const scriptActionsRef = useRef<{ toggle: (s: Script) => void; restart: (s: Script) => void; pendingScripts: Record<string, "run" | "kill" | "restart">; allScripts: Script[] }>({ toggle: () => { }, restart: () => { }, pendingScripts: {}, allScripts: [] });
   const [, setDataVersion] = useState(0);
 
   const { brightness, setBrightness, textContrast, setTextContrast, fontScale, setFontScale, animationsEnabled, toggleAnimations, vimModeNav, setVimModeNav } = useTheme();
@@ -390,101 +391,102 @@ function App() {
 
       {/* Main Content + Detail Panel */}
       <div className="flex-1 flex flex-row overflow-hidden relative z-10">
-      <div
-        className="flex-1 px-8 flex flex-col overflow-hidden transition-all duration-300"
-        style={{ background: viewMode === "settings" ? "var(--bg-primary)" : "linear-gradient(to bottom right, var(--bg-primary), var(--bg-secondary))" }}
-      >
-        <div className={`flex-1 flex flex-col min-h-0 ${viewMode === "settings" ? "overflow-y-auto custom-scrollbar" : ""}`}>
-          <div className={viewMode === "settings" ? "block" : "hidden"}>
-            <SettingsPanel
-              brightness={brightness}
-              setBrightness={setBrightness}
-              textContrast={textContrast}
-              setTextContrast={setTextContrast}
-              fontScale={fontScale}
-              setFontScale={setFontScale}
-              animationsEnabled={animationsEnabled}
-              toggleAnimations={toggleAnimations}
-              vimModeNav={vimModeNav}
-              setVimModeNav={setVimModeNav}
-              scanPaths={scanPaths}
-              onAddPath={handleAddScanPath}
-              onRemovePath={handleRemoveScanPath}
-            />
-          </div>
+        <div
+          className="flex-1 px-8 flex flex-col overflow-hidden transition-all duration-300"
+          style={{ background: viewMode === "settings" ? "var(--bg-primary)" : "linear-gradient(to bottom right, var(--bg-primary), var(--bg-secondary))" }}
+        >
+          <div className={`flex-1 flex flex-col min-h-0 ${viewMode === "settings" ? "overflow-y-auto custom-scrollbar" : ""}`}>
+            <div className={viewMode === "settings" ? "block" : "hidden"}>
+              <SettingsPanel
+                brightness={brightness}
+                setBrightness={setBrightness}
+                textContrast={textContrast}
+                setTextContrast={setTextContrast}
+                fontScale={fontScale}
+                setFontScale={setFontScale}
+                animationsEnabled={animationsEnabled}
+                toggleAnimations={toggleAnimations}
+                vimModeNav={vimModeNav}
+                setVimModeNav={setVimModeNav}
+                scanPaths={scanPaths}
+                onAddPath={handleAddScanPath}
+                onRemovePath={handleRemoveScanPath}
+                onInstallEverything={() => setShowInstallModal(true)}
+              />
+            </div>
 
-          <div className={viewMode !== "settings" ? "flex-1 flex flex-col min-h-0" : "hidden"}>
-            {Array.from(visitedTabs).map(tab => (
-              <div key={`script-tree-${tab}-${refreshKey}`} className={tab === activeTab ? "flex-1 flex flex-col min-h-0" : "hidden"}>
-                <MemoizedScriptTree
-                  isActive={tab === activeTab}
-                  filterTag={tab}
-                  onTagsLoaded={handleTagsLoaded}
-                  onLoadingChange={tab === activeTab ? handleLoadingChange : () => {}}
-                  onRunningCountChange={tab === activeTab ? setRunningCount : () => {}}
-                  viewMode={displayMode}
-                  onViewModeChange={toggleDisplayMode}
-                  onCustomDragStart={startCustomDrag}
-                  isDragging={draggedScript !== null}
-                  draggedScriptPath={draggedScript?.path || null}
-                  animationsEnabled={animationsEnabled}
-                  searchQuery={tab === activeTab ? searchQuery : ""}
-                  setSearchQuery={setSearchQuery}
-                  contextMenu={tab === activeTab ? contextMenu : null}
-                  onScriptContextMenu={(e, s) => {
-                    e.preventDefault();
-                    setContextMenu({ x: e.clientX, y: e.clientY, type: "script", data: s });
-                  }}
-                  onFolderContextMenu={(e, folderData) => {
-                    e.preventDefault();
-                    setContextMenu({ x: e.clientX, y: e.clientY, type: "folder", data: folderData });
-                  }}
-                  onShowUI={handleShowUI}
-                  manualRefresh={refreshKey > 0}
-                  onScanComplete={handleScanComplete}
-                  isPathsEmpty={scanPaths.length === 0}
-                  onAddPath={handleAddScanPath}
-                  onRefresh={() => setRefreshKey(p => p + 1)}
-                  onSelectScript={handleSelectScript}
-                  onExposeActions={handleExposeActions}
-                  onOpenSettings={() => {
-                    handleTabClick("settings");
-                    setTimeout(() => {
-                      const el = document.getElementById("settings-add-folder-btn");
-                      if (el) {
-                        el.scrollIntoView({ behavior: "smooth", block: "center" });
-                        el.classList.add("highlight-pulse-once");
-                        el.addEventListener("animationend", () => el.classList.remove("highlight-pulse-once"), { once: true });
-                      }
-                    }, 350);
-                  }}
-                />
-              </div>
-            ))}
+            <div className={viewMode !== "settings" ? "flex-1 flex flex-col min-h-0" : "hidden"}>
+              {Array.from(visitedTabs).map(tab => (
+                <div key={`script-tree-${tab}-${refreshKey}`} className={tab === activeTab ? "flex-1 flex flex-col min-h-0" : "hidden"}>
+                  <MemoizedScriptTree
+                    isActive={tab === activeTab}
+                    filterTag={tab}
+                    onTagsLoaded={handleTagsLoaded}
+                    onLoadingChange={tab === activeTab ? handleLoadingChange : () => { }}
+                    onRunningCountChange={tab === activeTab ? setRunningCount : () => { }}
+                    viewMode={displayMode}
+                    onViewModeChange={toggleDisplayMode}
+                    onCustomDragStart={startCustomDrag}
+                    isDragging={draggedScript !== null}
+                    draggedScriptPath={draggedScript?.path || null}
+                    animationsEnabled={animationsEnabled}
+                    searchQuery={tab === activeTab ? searchQuery : ""}
+                    setSearchQuery={setSearchQuery}
+                    contextMenu={tab === activeTab ? contextMenu : null}
+                    onScriptContextMenu={(e, s) => {
+                      e.preventDefault();
+                      setContextMenu({ x: e.clientX, y: e.clientY, type: "script", data: s });
+                    }}
+                    onFolderContextMenu={(e, folderData) => {
+                      e.preventDefault();
+                      setContextMenu({ x: e.clientX, y: e.clientY, type: "folder", data: folderData });
+                    }}
+                    onShowUI={handleShowUI}
+                    manualRefresh={refreshKey > 0}
+                    onScanComplete={handleScanComplete}
+                    isPathsEmpty={scanPaths.length === 0}
+                    onAddPath={handleAddScanPath}
+                    onRefresh={() => setRefreshKey(p => p + 1)}
+                    onSelectScript={handleSelectScript}
+                    onExposeActions={handleExposeActions}
+                    onOpenSettings={() => {
+                      handleTabClick("settings");
+                      setTimeout(() => {
+                        const el = document.getElementById("settings-add-folder-btn");
+                        if (el) {
+                          el.scrollIntoView({ behavior: "smooth", block: "center" });
+                          el.classList.add("highlight-pulse-once");
+                          el.addEventListener("animationend", () => el.classList.remove("highlight-pulse-once"), { once: true });
+                        }
+                      }, 350);
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
 
-      {(() => {
-        if (!selectedPath || viewMode === "settings") return null;
-        const script = scriptActionsRef.current.allScripts.find(s => s.path === selectedPath);
-        if (!script) return null;
-        return (
-          <ScriptDetailPanel
-            script={script}
-            allUniqueTags={userTags}
-            pinned={detailPinned}
-            pendingType={scriptActionsRef.current.pendingScripts[selectedPath] ?? null}
-            onPinToggle={() => setDetailPinned(p => { const v = !p; localStorage.setItem("ahk_detail_pinned", String(v)); return v; })}
-            onClose={() => setSelectedPath(null)}
-            onToggle={handleDetailToggle}
-            onRestart={handleDetailRestart}
-            onShowUI={handleShowUI}
-            onAddTag={handleDetailAddTag}
-            onRemoveTag={handleDetailRemoveTag}
-          />
-        );
-      })()}
+        {(() => {
+          if (!selectedPath || viewMode === "settings") return null;
+          const script = scriptActionsRef.current.allScripts.find(s => s.path === selectedPath);
+          if (!script) return null;
+          return (
+            <ScriptDetailPanel
+              script={script}
+              allUniqueTags={userTags}
+              pinned={detailPinned}
+              pendingType={scriptActionsRef.current.pendingScripts[selectedPath] ?? null}
+              onPinToggle={() => setDetailPinned(p => { const v = !p; localStorage.setItem("ahk_detail_pinned", String(v)); return v; })}
+              onClose={() => setSelectedPath(null)}
+              onToggle={handleDetailToggle}
+              onRestart={handleDetailRestart}
+              onShowUI={handleShowUI}
+              onAddTag={handleDetailAddTag}
+              onRemoveTag={handleDetailRemoveTag}
+            />
+          );
+        })()}
       </div>
 
       <DragGhost
@@ -512,25 +514,24 @@ function App() {
       {/* Everything status toast */}
       <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-[9999] transition-all duration-500 ${everythingToastVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
         <div className="flex items-center gap-3 px-5 py-3 bg-[#1a1a1f] border border-white/10 rounded-2xl shadow-2xl">
-          <div className={`w-2 h-2 rounded-full ${
-            everythingToast === "started"
+          <div className={`w-2 h-2 rounded-full ${everythingToast === "started"
               ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]"
               : everythingToast === "launching" || everythingToast === "installing"
-              ? "bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.8)] animate-pulse"
-              : "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]"
-          }`} />
+                ? "bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.8)] animate-pulse"
+                : "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]"
+            }`} />
           <span className="text-xs font-medium text-white/70">
             {everythingToast === "started"
               ? "Everything is running — instant scan enabled"
               : everythingToast === "launching"
-              ? "Starting Everything…"
-              : everythingToast === "installing"
-              ? installProgress?.phase === "installing"
-                ? "Installing Everything…"
-                : `Downloading Everything… ${installProgress?.progress ?? 0}%`
-              : everythingToast === "installed"
-              ? "Everything is not running — scan will be slower"
-              : "Install Everything for instant file scanning"}
+                ? "Starting Everything…"
+                : everythingToast === "installing"
+                  ? installProgress?.phase === "installing"
+                    ? "Installing Everything…"
+                    : `Downloading Everything… ${installProgress?.progress ?? 0}%`
+                  : everythingToast === "installed"
+                    ? "Everything is not running — scan will be slower"
+                    : "Install Everything for instant file scanning"}
           </span>
           {everythingToast === "installing" && (
             <div className="w-24 h-1.5 bg-white/10 rounded-full overflow-hidden">
@@ -556,16 +557,7 @@ function App() {
             </button>
           ) : everythingToast === "not_installed" ? (
             <button
-              onClick={async () => {
-                setEverythingToast("installing");
-                setInstallProgress({ phase: "downloading", progress: 0 });
-                try {
-                  await installEverything();
-                  setInstallProgress(null);
-                  setEverythingToast("started");
-                  setTimeout(() => hideEverythingToast(), 3000);
-                } catch (e) { console.error(e); setInstallProgress(null); setEverythingToast("not_installed"); }
-              }}
+              onClick={() => setShowInstallModal(true)}
               className="px-3 py-1 text-[11px] font-bold uppercase tracking-wider bg-indigo-500/20 text-indigo-400 rounded-lg hover:bg-indigo-500/30 transition-colors cursor-pointer"
             >
               Install
@@ -581,6 +573,80 @@ function App() {
           )}
         </div>
       </div>
+
+      {/* Everything Install Modal */}
+      {showInstallModal && (
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => !installProgress && setShowInstallModal(false)} />
+          <div className="relative bg-[#1a1a1f] border border-white/10 rounded-3xl shadow-2xl w-[400px] p-6 space-y-5">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-bold tracking-widest text-white/60 uppercase">Install Everything</h3>
+              {!installProgress && (
+                <button onClick={() => setShowInstallModal(false)} className="text-white/30 hover:text-white/60 transition-colors cursor-pointer">✕</button>
+              )}
+            </div>
+
+            <p className="text-xs text-white/50 leading-relaxed">
+              Everything enables instant file scanning — 30–100x faster than regular disk scan. Choose how to install:
+            </p>
+
+            {!installProgress ? (
+              <div className="space-y-3">
+                <button
+                  onClick={async () => {
+                    setInstallProgress({ phase: "downloading", progress: 0 });
+                    setEverythingToast("installing");
+                    try {
+                      await installEverything();
+                      setInstallProgress(null);
+                      setShowInstallModal(false);
+                      setEverythingToast("started");
+                      setEverythingToastVisible(true);
+                      setTimeout(() => hideEverythingToast(), 3000);
+                    } catch (e) {
+                      console.error(e);
+                      setInstallProgress(null);
+                      setEverythingToast("not_installed");
+                    }
+                  }}
+                  className="w-full py-3 bg-indigo-500/20 hover:bg-indigo-500/30 border border-indigo-500/20 hover:border-indigo-500/40 rounded-2xl transition-all cursor-pointer group"
+                >
+                  <div className="text-sm font-bold text-indigo-400 group-hover:text-indigo-300 transition-colors">Install Automatically</div>
+                  <div className="text-[14px] text-white/40 mt-1">Download and install silently via direct link</div>
+                </button>
+
+                <button
+                  onClick={() => {
+                    invoke("open_url", { url: "https://www.voidtools.com/downloads/" });
+                    setShowInstallModal(false);
+                  }}
+                  className="w-full py-3 bg-white/[0.03] hover:bg-white/[0.06] border border-white/10 hover:border-white/20 rounded-2xl transition-all cursor-pointer group"
+                >
+                  <div className="text-sm font-bold text-white/70 group-hover:text-white/90 transition-colors">Install Manually</div>
+                  <div className="text-[14px] text-white/40 mt-1">Open voidtools.com downloads page</div>
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-4 py-2">
+                <div className="flex items-center gap-3">
+                  <div className="w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.8)] animate-pulse" />
+                  <span className="text-xs font-medium text-white/70">
+                    {installProgress.phase === "installing"
+                      ? "Installing Everything…"
+                      : `Downloading… ${installProgress.progress}%`}
+                  </span>
+                </div>
+                <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-indigo-500 rounded-full transition-all duration-300"
+                    style={{ width: `${installProgress.phase === "installing" ? 100 : installProgress.progress}%` }}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
