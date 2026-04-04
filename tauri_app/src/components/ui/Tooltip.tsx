@@ -94,10 +94,10 @@ export default function Tooltip({ text, children, delay = 0 }: TooltipProps) {
                         <div
                             className="absolute w-0 h-0"
                             style={{
-                                left: pos ? pos.arrowX - 9 : "50%",
+                                left: pos ? pos.arrowX - 10 : "50%",
                                 ...(pos?.side === "top"
-                                    ? { bottom: -9, borderLeft: "9px solid transparent", borderRight: "9px solid transparent", borderTop: "9px solid #303032" }
-                                    : { top: -9, borderLeft: "9px solid transparent", borderRight: "9px solid transparent", borderBottom: "9px solid #303032" }
+                                    ? { bottom: -10, borderLeft: "10px solid transparent", borderRight: "10px solid transparent", borderTop: "10px solid #303032" }
+                                    : { top: -10, borderLeft: "10px solid transparent", borderRight: "10px solid transparent", borderBottom: "10px solid #303032" }
                                 ),
                             }}
                         />
