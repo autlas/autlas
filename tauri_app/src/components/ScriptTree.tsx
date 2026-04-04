@@ -382,7 +382,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
                     ref={containerRef}
                     onScroll={handleScroll}
                     onMouseMove={() => { if (useTreeStore.getState().isVimMode) setIsVimMode(false); }}
-                    className={`flex-1 overflow-y-auto custom-scrollbar -mx-8 px-8 transition-all duration-300 ${draggedScriptPath ? 'opacity-30 blur-[1px]' : ''}`}
+                    className={`flex-1 overflow-y-auto custom-scrollbar -mx-4 pl-4 pr-[6px] transition-all duration-300 ${draggedScriptPath ? 'opacity-30 blur-[1px]' : ''}`}
                     id="script-list-container"
                 >
                     {gridEverMounted && <div className={viewMode !== "tree" ? "" : "hidden"}>

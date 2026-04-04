@@ -138,7 +138,7 @@ const ScriptRow = memo(function ScriptRow({
             {isFocused && isVimMode && (
                 <div className="absolute left-0 top-1 bottom-1 w-[3.5px] bg-indigo-500 rounded-full shadow-[0_0_15px_rgba(99,102,241,0.6)] z-20" />
             )}
-            <div className="flex items-center space-x-4 overflow-visible flex-1 mr-4">
+            <div className="flex items-center space-x-4 overflow-visible flex-1 mr-20">
                 <div className={`w-2 h-2 rounded-full flex-shrink-0 transition-all duration-500
                     ${isPending ? (pendingType === 'kill' ? 'bg-red-500 animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.6)]' : 'bg-yellow-500 animate-pulse shadow-[0_0_10px_rgba(234,179,8,0.6)]') :
                         s.is_running ? 'bg-green-500 animate-status-glow shadow-[0_0_12px_rgba(34,197,94,0.8)]' : 'bg-white/10'}
@@ -202,7 +202,7 @@ const ScriptRow = memo(function ScriptRow({
                             }}
                             onMouseDown={(e) => e.stopPropagation()}
                             onDoubleClick={(e) => e.stopPropagation()}
-                            className={`h-[28px] flex-shrink-0 flex items-center justify-center border border-dashed border-white/10 rounded-lg transition-all cursor-pointer pointer-events-auto text-[#666] hover:text-[#aaa] hover:border-white/20 overflow-hidden ${isEditing || (isFocused && isVimMode) ? 'w-[28px] opacity-100 bg-white/5' : 'w-0 opacity-0 group-hover:w-[28px] group-hover:opacity-100'}`}
+                            className={`w-[28px] h-[28px] flex-shrink-0 flex items-center justify-center border border-dashed border-white/10 rounded-lg transition-all cursor-pointer pointer-events-auto text-[#666] hover:text-[#aaa] hover:border-white/20 ${isEditing || (isFocused && isVimMode) ? 'opacity-100 bg-white/5' : 'opacity-0 group-hover:opacity-100'}`}
                         >
                             <PlusIcon />
                         </button>
@@ -224,7 +224,7 @@ const ScriptRow = memo(function ScriptRow({
             </div>
 
             {!isDragging && (
-                <div className="relative flex items-center pointer-events-auto">
+                <div className="absolute right-3 flex items-center pointer-events-auto">
                     {showFileSize && (
                         <span className={`text-xs text-tertiary/50 font-mono flex-shrink-0 transition-opacity ${isFocused && isVimMode ? 'opacity-0' : 'opacity-100 group-hover:opacity-0'}`}>
                             {formatSize(s.size)}
