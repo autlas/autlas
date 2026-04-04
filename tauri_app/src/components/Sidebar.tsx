@@ -74,7 +74,7 @@ export default function Sidebar({
 }: SidebarProps) {
   const { t } = useTranslation();
   const sidebarCollapsed = useTreeStore(s => s.sidebarCollapsed);
-  const toggleSidebarCollapsed = useTreeStore(s => s.toggleSidebarCollapsed);
+
   const [currentTime, setCurrentTime] = useState(Date.now());
   useEffect(() => {
     const ticker = setInterval(() => setCurrentTime(Date.now()), 1000);
@@ -181,18 +181,6 @@ export default function Sidebar({
       className={`group/sidebar flex flex-col border-r relative z-[100] ${collapsed ? 'w-20 transition-all duration-300' : ''} ${isResizing ? '' : 'transition-all duration-300'}`}
       style={{ backgroundColor: "var(--bg-secondary)", borderColor: "var(--border-color)", ...(!collapsed ? { width: `${sidebarWidth}px` } : {}) }}
     >
-      {/* Toggle button — right edge */}
-      <button
-        onClick={toggleSidebarCollapsed}
-        className="absolute top-[25px] w-[22px] h-[42px] rounded-lg flex items-center justify-center transition-all cursor-pointer z-[112] border border-white/10 opacity-0 pointer-events-none group-hover/sidebar:opacity-100 group-hover/sidebar:pointer-events-auto bg-[var(--bg-secondary)] text-tertiary hover:text-secondary"
-        style={{ right: "-11px" }}
-        title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-      >
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className={`transition-transform duration-300 ${collapsed ? '' : 'rotate-180'}`}>
-          <polyline points="9 18 15 12 9 6" />
-        </svg>
-      </button>
-
       {/* Resize handle — right edge */}
       <div
         onMouseDown={handleResizeStart}
