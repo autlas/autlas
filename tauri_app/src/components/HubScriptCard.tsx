@@ -3,7 +3,7 @@ import { HubScriptCardProps } from "../types/script";
 import TagPickerPopover from "./TagPickerPopover";
 import { HighlightText } from "./HighlightText";
 import { useTranslation } from "react-i18next";
-import { PlusIcon, CloseIcon, RestartIcon, PlayIcon, InterfaceIcon } from "./ui/Icons";
+import { PlusIcon, CloseIcon, RestartIcon, PlayIcon, InterfaceIcon, MinusIcon } from "./ui/Icons";
 import { useTreeStore } from "../store/useTreeStore";
 import Tooltip from "./ui/Tooltip";
 
@@ -123,9 +123,7 @@ const HubScriptCard = memo(function HubScriptCard({
                                     onDoubleClick={(e) => e.stopPropagation()}
                                     className={`absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center transition-all shadow-xl hover:scale-125 active:scale-90 cursor-pointer z-50 border-none ${isDragging ? 'opacity-0 pointer-events-none' : 'opacity-0 group-hover/tag:opacity-100'}`}
                                 >
-                                    <svg width="10" height="2" viewBox="0 0 10 2" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                                        <path d="M1 1h8" />
-                                    </svg>
+                                    <MinusIcon size={10} />
                                 </button>
                                 </Tooltip>
                             </div>

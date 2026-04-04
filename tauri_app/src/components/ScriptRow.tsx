@@ -4,7 +4,7 @@ import TagPickerPopover from "./TagPickerPopover";
 import { HighlightText } from "./HighlightText";
 import { useTreeStore } from "../store/useTreeStore";
 import { useTranslation } from "react-i18next";
-import { PlusIcon, CloseIcon, RestartIcon, PlayIcon, InterfaceIcon } from "./ui/Icons";
+import { PlusIcon, CloseIcon, RestartIcon, PlayIcon, InterfaceIcon, MinusIcon } from "./ui/Icons";
 import Tooltip from "./ui/Tooltip";
 import ActionButton from "./ui/ActionButton";
 
@@ -177,7 +177,7 @@ const ScriptRow = memo(function ScriptRow({
                                         onDoubleClick={(e) => e.stopPropagation()}
                                         className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover/tag:opacity-100 transition-all shadow-lg hover:scale-125 active:scale-90 cursor-pointer z-50 pointer-events-auto border-none"
                                     >
-                                        <svg width="8" height="2" viewBox="0 0 8 2" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M1 1h6" /></svg>
+                                        <MinusIcon />
                                     </button>
                                     </Tooltip>
                                 </div>

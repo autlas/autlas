@@ -1,5 +1,6 @@
 import React from "react";
 import { createPortal } from "react-dom";
+import { HelpIcon } from "./ui/Icons";
 
 const ShortcutItem = ({ keys, desc, sets }: { keys?: string[], desc: string, sets?: string[][] }) => (
     <div className="flex items-center justify-between group/item min-h-[40px]">
@@ -48,7 +49,7 @@ const CheatSheet = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void 
 
                 <h2 className="text-3xl font-black mb-8 text-white tracking-tight flex items-center">
                     <div className="w-10 h-10 rounded-2xl bg-indigo-600 flex items-center justify-center mr-4 text-white shadow-[0_0_20px_rgba(79,70,229,0.4)]">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
+                        <HelpIcon size={24} strokeWidth={3} />
                     </div>
                     AHK Manager Shortcuts
                 </h2>

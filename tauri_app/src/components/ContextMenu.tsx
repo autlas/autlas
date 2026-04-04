@@ -1,7 +1,7 @@
 import { useState, ReactNode } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useTranslation } from "react-i18next";
-import { EditIcon, FolderIcon, OpenWithIcon, CopyIcon, PinIcon, UnpinIcon, PlusIcon, CloseIcon } from "./ui/Icons";
+import { EditIcon, FolderIcon, OpenWithIcon, CopyIcon, PinIcon, UnpinIcon, PlusIcon, CloseIcon, EyeOffIcon } from "./ui/Icons";
 
 interface ContextMenuState {
   x: number;
@@ -140,7 +140,7 @@ export default function ContextMenu({ contextMenu, onClose, onStartRenameTag, on
             <ContextMenuItem label={t("context.expand_all")} icon={<PlusIcon size={12} strokeWidth={3} />} onClick={() => { contextMenu.data.onExpandAll(); onClose(); }} />
             <ContextMenuItem
               label={contextMenu.data.is_hidden ? t("context.show_hidden") : t("context.hide_folder")}
-              icon={<svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" /><line x1="1" y1="1" x2="23" y2="23" /></svg>}
+              icon={<EyeOffIcon size={14} strokeWidth={2} />}
               onClick={async () => {
                 await invoke("toggle_hide_folder", { path: contextMenu.data.fullName });
                 onClose();

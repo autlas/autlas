@@ -4,7 +4,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useTranslation } from "react-i18next";
 import TagPickerPopover from "./TagPickerPopover";
-import { CloseIcon, PlayIcon, RestartIcon, InterfaceIcon, PlusIcon, EditIcon, FolderIcon, OpenWithIcon } from "./ui/Icons";
+import { CloseIcon, PlayIcon, RestartIcon, InterfaceIcon, PlusIcon, EditIcon, FolderIcon, OpenWithIcon, MinusIcon, PinIcon, CopyIcon } from "./ui/Icons";
 import Tooltip from "./ui/Tooltip";
 import { createHighlighterCore } from "shiki/core";
 import { createOnigurumaEngine } from "shiki/engine/oniguruma";
@@ -170,10 +170,7 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
               onClick={onPinToggle}
               className="w-7 h-7 flex items-center justify-center rounded-lg transition-all cursor-pointer bg-white/5 text-white/25 hover:text-white/50 hover:bg-white/10"
             >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill={pinned ? "#888" : "none"} stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="12" y1="17" x2="12" y2="22" />
-                <path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z" />
-              </svg>
+              <PinIcon size={12} fill={pinned ? "#888" : "none"} />
             </button>
           </Tooltip>
           <Tooltip text={t("tooltips.close")}>
@@ -197,9 +194,7 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
           {script.path.split(/(?<=[\\/])/).map((seg, i) => <span key={i} style={{ display: 'inline-block' }}>{seg}</span>)}
         </span>
         <span className={`absolute right-2 top-1/2 -translate-y-1/2 transition-opacity ${copied ? 'opacity-0' : 'opacity-0 group-hover/path:opacity-50'}`}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-white">
-            <rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-          </svg>
+          <CopyIcon size={14} className="text-white" />
         </span>
         {copied && (
           <span className="absolute inset-0 flex items-center justify-center text-[13px] font-bold text-white/50">
@@ -291,7 +286,7 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
               onClick={() => onRemoveTag(script, tag)}
               className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover/tag:opacity-100 transition-all shadow-lg hover:scale-125 active:scale-90 cursor-pointer z-50 border-none"
             >
-              <svg width="8" height="2" viewBox="0 0 8 2" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M1 1h6" /></svg>
+              <MinusIcon />
             </button>
             </Tooltip>
           </div>

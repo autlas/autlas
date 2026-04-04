@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import ToggleGroup from "./ui/ToggleGroup";
-import { SearchIcon, CloseIcon } from "./ui/Icons";
+import { SearchIcon, CloseIcon, ChevronDownIcon } from "./ui/Icons";
 import SectionLabel from "./ui/SectionLabel";
 import Tooltip from "./ui/Tooltip";
 
@@ -64,8 +64,7 @@ export default function ScriptTreeToolbar({
             id: "list" as const,
             icon: (isActive: boolean) => (
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={`transition-opacity duration-200 ${isActive ? 'opacity-100' : 'opacity-25'}`}>
-                    <line x1="3" y1="6" x2="10" y2="6" /><line x1="3" y1="12" x2="10" y2="12" /><line x1="3" y1="18" x2="10" y2="18" />
-                    <line x1="14" y1="6" x2="21" y2="6" /><line x1="14" y1="12" x2="21" y2="12" /><line x1="14" y1="18" x2="21" y2="18" />
+                    <path d="M3 6h7M3 12h7M3 18h7M14 6h7M14 12h7M14 18h7" />
                 </svg>
             ),
             title: t("search.mode_list"),
@@ -136,9 +135,7 @@ export default function ScriptTreeToolbar({
                                 ${sortOpen ? 'border-indigo-500/50 bg-white/[0.05]' : ''}`}
                         >
                             <span className="text-sm text-secondary font-medium">{currentSortLabel}</span>
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-tertiary">
-                                <polyline points="6 9 12 15 18 9" />
-                            </svg>
+                            <ChevronDownIcon size={12} className="text-tertiary" />
                         </button>
                         {sortOpen && (
                             <div className="absolute top-full left-0 mt-1 py-1 min-w-[120px] rounded-xl bg-[var(--bg-primary)] border border-white/10 shadow-xl shadow-black/50 z-50">
@@ -267,7 +264,7 @@ export default function ScriptTreeToolbar({
                     >
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                             {showHidden === 'none' ? (
-                                <><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" /><line x1="1" y1="1" x2="23" y2="23" /></>
+                                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24M1 1l22 22" />
                             ) : showHidden === 'all' ? (
                                 <><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></>
                             ) : (

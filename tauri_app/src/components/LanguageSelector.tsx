@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
+import { ChevronDownIcon } from "./ui/Icons";
 
 const LanguageSelector = () => {
     const { i18n, t } = useTranslation();
@@ -41,19 +42,7 @@ const LanguageSelector = () => {
                         {currentLang.sub}
                     </span>
                 </div>
-                <svg
-                    width="12"
-                    height="12"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="3"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className={`text-tertiary transition-transform duration-300 ${isOpen ? "rotate-180 text-indigo-400" : ""}`}
-                >
-                    <path d="M6 9l6 6 6-6" />
-                </svg>
+                <ChevronDownIcon size={12} strokeWidth={3} className={`text-tertiary transition-transform duration-300 ${isOpen ? "rotate-180 text-indigo-400" : ""}`} />
             </button>
 
             {isOpen && (

@@ -3,16 +3,14 @@ import HubScriptCard from "./HubScriptCard";
 import ScriptRow from "./ScriptRow";
 import EmptyState from "./EmptyState";
 import { Script } from "../api";
+import { ChevronDownIcon } from "./ui/Icons";
 
 const TagSectionHeader = ({ tag, isCollapsed, onToggle, runningCount }: { tag: string; isCollapsed: boolean; onToggle: () => void; runningCount: number }) => (
     <div className="flex items-center mb-4 mt-12 first:mt-2 px-2 sticky top-0 z-40 py-4 cursor-pointer select-none group" onClick={onToggle}>
         <span className="text-[22px] font-black uppercase tracking-[0.15em] text-white/30 flex items-center leading-none">
             {tag}
         </span>
-        <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round"
-            className={`ml-3 text-white/15 group-hover:text-white/30 transition-all duration-200 ${isCollapsed ? '-rotate-90' : ''}`}>
-            <polyline points="6 9 12 15 18 9" />
-        </svg>
+        <ChevronDownIcon size={14} strokeWidth={3} className={`ml-3 text-white/15 group-hover:text-white/30 transition-all duration-200 ${isCollapsed ? '-rotate-90' : ''}`} />
         <div className={`ml-3 w-5 h-5 rounded-full bg-green-500 shadow-[0_0_12px_rgba(34,197,94,0.6)] flex items-center justify-center transition-all duration-300 ease-[cubic-bezier(0.34,1.3,0.64,1)] origin-center ${isCollapsed && runningCount > 0 ? 'scale-100 opacity-100' : 'scale-0 opacity-0'}`}>
             <span className="text-[15px] font-bold leading-none" style={{ color: "var(--bg-secondary)" }}>{runningCount}</span>
         </div>
