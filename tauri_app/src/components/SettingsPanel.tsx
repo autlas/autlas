@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
+import { checkEverythingStatus, launchEverything } from "../api";
 import { useTranslation } from "react-i18next";
 import LanguageSelector from "./LanguageSelector";
 import ToggleGroup from "./ui/ToggleGroup";
@@ -48,6 +49,22 @@ export default function SettingsPanel({
     setCloseToTray(next);
     invoke("set_tray_settings", { settings: { close_to_tray: next } });
   };
+
+  const [everythingStatus, setEverythingStatus] = useState<"running" | "installed" | "not_installed" | null>(null);
+  const [everythingLoading, setEverythingLoading] = useState(false);
+
+  useEffect(() => {
+    checkEverythingStatus().then(setEverythingStatus);
+  }, []);
+
+  const handleLaunchEverything = useCallback(async () => {
+    setEverythingLoading(true);
+    try {
+      await launchEverything();
+      setEverythingStatus("running");
+    } catch (e) { console.error(e); }
+    setEverythingLoading(false);
+  }, []);
 
   const vimNavOptions = useMemo(() => [
     { id: "hjkl" as const, label: "hjkl" },
@@ -184,6 +201,48 @@ export default function SettingsPanel({
           </button>
         </div>
 
+      </SettingsSection>
+
+      <SettingsSection>
+        <h3 className="text-sm font-bold tracking-widest text-tertiary uppercase">Everything Search</h3>
+        <div className="flex justify-between items-center px-2">
+          <div className="flex flex-col">
+            <span className="text-base font-bold text-secondary">Everything Integration</span>
+            <span className="text-xs text-tertiary mt-1">
+              {everythingStatus === "running"
+                ? "Everything is running — instant file scanning enabled"
+                : everythingStatus === "installed"
+                ? "Everything is installed but not running"
+                : "Everything is not installed — using slower disk scan"}
+            </span>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className={`w-2 h-2 rounded-full ${
+              everythingStatus === "running"
+                ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]"
+                : everythingStatus === "installed"
+                ? "bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.8)]"
+                : "bg-red-500/50 shadow-[0_0_8px_rgba(239,68,68,0.4)]"
+            }`} />
+            {everythingStatus === "installed" && (
+              <button
+                onClick={handleLaunchEverything}
+                disabled={everythingLoading}
+                className="px-4 py-1.5 text-[11px] font-bold uppercase tracking-wider bg-indigo-500/20 text-indigo-400 rounded-lg hover:bg-indigo-500/30 transition-colors cursor-pointer disabled:opacity-50"
+              >
+                {everythingLoading ? "Starting..." : "Launch"}
+              </button>
+            )}
+            {everythingStatus === "not_installed" && (
+              <button
+                onClick={() => invoke("open_with", { path: "https://www.voidtools.com/downloads/" })}
+                className="px-4 py-1.5 text-[11px] font-bold uppercase tracking-wider bg-indigo-500/20 text-indigo-400 rounded-lg hover:bg-indigo-500/30 transition-colors cursor-pointer"
+              >
+                Download
+              </button>
+            )}
+          </div>
+        </div>
       </SettingsSection>
 
       <SettingsSection>

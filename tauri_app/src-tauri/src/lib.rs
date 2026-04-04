@@ -879,6 +879,91 @@ fn save_cache(paths: &[String]) {
     let _ = fs::write(cache_path, content);
 }
 
+fn find_everything_exe() -> Option<String> {
+    use std::process::Command;
+
+    // 1. Check if Everything.exe is in PATH
+    if let Ok(output) = Command::new("where.exe").arg("Everything.exe").output() {
+        if output.status.success() {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            if let Some(line) = stdout.lines().next() {
+                let p = line.trim();
+                if !p.is_empty() && std::path::Path::new(p).exists() {
+                    return Some(p.to_string());
+                }
+            }
+        }
+    }
+
+    // 2. Check registry via reg.exe
+    if let Ok(output) = Command::new("reg.exe")
+        .args(&["query", r"HKCU\Software\voidtools\Everything", "/v", "InstallFolder"])
+        .output()
+    {
+        if output.status.success() {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            // Parse: "    InstallFolder    REG_SZ    C:\Program Files\Everything"
+            for line in stdout.lines() {
+                if let Some(idx) = line.find("REG_SZ") {
+                    let folder = line[idx + 6..].trim();
+                    let exe = std::path::PathBuf::from(folder).join("Everything.exe");
+                    if exe.exists() {
+                        return Some(exe.to_string_lossy().to_string());
+                    }
+                }
+            }
+        }
+    }
+
+    // 3. Common paths
+    for path in &[
+        r"C:\Program Files\Everything\Everything.exe",
+        r"C:\Program Files (x86)\Everything\Everything.exe",
+        r"C:\Program Files\Everything 1.5a\Everything.exe",
+    ] {
+        if std::path::Path::new(path).exists() {
+            return Some(path.to_string());
+        }
+    }
+
+    None
+}
+
+fn is_everything_running() -> bool {
+    let mut sys = System::new();
+    sys.refresh_processes(sysinfo::ProcessesToUpdate::All, true);
+    sys.processes().values().any(|p| {
+        let name = p.name().to_string_lossy().to_lowercase();
+        name == "everything.exe" || name == "everything64.exe"
+    })
+}
+
+// Returns: "running" | "installed" | "not_installed"
+#[tauri::command]
+async fn check_everything_status() -> String {
+    if is_everything_running() {
+        "running".to_string()
+    } else if find_everything_exe().is_some() {
+        "installed".to_string()
+    } else {
+        "not_installed".to_string()
+    }
+}
+
+#[tauri::command]
+async fn launch_everything() -> Result<(), String> {
+    if let Some(exe_path) = find_everything_exe() {
+        std::process::Command::new(&exe_path)
+            .spawn()
+            .map_err(|e| format!("Failed to launch Everything: {}", e))?;
+        // Give it a moment to start and build index
+        std::thread::sleep(std::time::Duration::from_millis(1500));
+        Ok(())
+    } else {
+        Err("Everything.exe not found".to_string())
+    }
+}
+
 fn scan_with_everything(scan_dirs: &[std::path::PathBuf]) -> Option<Vec<String>> {
     use std::process::Command;
 
@@ -1857,6 +1942,8 @@ pub fn run() {
             open_with,
             get_scan_paths,
             set_scan_paths,
+            check_everything_status,
+            launch_everything,
             read_script_content,
             get_script_status,
             get_tray_settings,

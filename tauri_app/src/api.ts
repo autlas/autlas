@@ -30,3 +30,11 @@ export async function toggleHideFolder(path: string): Promise<void> {
 export async function readScriptContent(path: string): Promise<string> {
     return await invoke("read_script_content", { path });
 }
+
+export async function checkEverythingStatus(): Promise<"running" | "installed" | "not_installed"> {
+    return await invoke("check_everything_status");
+}
+
+export async function launchEverything(): Promise<void> {
+    return await invoke("launch_everything");
+}
