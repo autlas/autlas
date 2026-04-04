@@ -154,12 +154,18 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
       </div>
 
       {/* Path */}
+      <Tooltip text={t("context.copy_path")}>
       <button
         onClick={copyPath}
-        className="mx-5 mb-4 px-3 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.06] text-left cursor-pointer hover:bg-white/[0.06] transition-all relative"
+        className="group/path mx-5 mb-4 px-3 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.06] text-left cursor-pointer hover:bg-white/[0.06] transition-all relative"
       >
         <span className={`text-[14px] font-mono text-white/30 leading-relaxed transition-opacity ${copied ? 'opacity-0' : ''}`}>
           {script.path.split(/(?<=[\\/])/).map((seg, i) => <span key={i} style={{ display: 'inline-block' }}>{seg}</span>)}
+        </span>
+        <span className={`absolute right-2 top-1/2 -translate-y-1/2 transition-opacity ${copied ? 'opacity-0' : 'opacity-0 group-hover/path:opacity-50'}`}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-white">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+          </svg>
         </span>
         {copied && (
           <span className="absolute inset-0 flex items-center justify-center text-[13px] font-bold text-white/50">
@@ -167,6 +173,7 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
           </span>
         )}
       </button>
+      </Tooltip>
 
       {/* Actions */}
       <div className="flex gap-2 px-5 mb-4">
