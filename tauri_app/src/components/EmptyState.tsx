@@ -1,5 +1,6 @@
+import { useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { PlusIcon, RefreshIcon, CloseIcon, FolderIcon } from "./ui/Icons";
+import { PlusIcon, CloseIcon, FolderIcon } from "./ui/Icons";
 import EmptyStateIcon from "./ui/EmptyStateIcon";
 import { invoke } from "@tauri-apps/api/core";
 import Tooltip from "./ui/Tooltip";
@@ -10,13 +11,57 @@ interface EmptyStateProps {
     searchQuery: string;
     filterTag: string;
     scanPaths?: string[];
+    isRefreshing?: boolean;
     onAddPath?: () => void;
     onRemovePath?: (path: string) => void;
     onRefresh?: () => void;
     onOpenSettings?: () => void;
 }
 
-export default function EmptyState({ isPathsEmpty, hasContent, searchQuery, filterTag, scanPaths = [], onAddPath, onRemovePath, onRefresh, onOpenSettings }: EmptyStateProps) {
+function RefreshSyncIcon({ isRefreshing }: { isRefreshing?: boolean }) {
+    const iconRef = useRef<HTMLDivElement>(null);
+    const animRef = useRef<Animation | null>(null);
+
+    useEffect(() => {
+        const el = iconRef.current;
+        if (!el) return;
+
+        if (isRefreshing) {
+            if (animRef.current) animRef.current.cancel();
+            animRef.current = el.animate(
+                [{ transform: "rotate(0deg)" }, { transform: "rotate(360deg)" }],
+                { duration: 800, iterations: Infinity, easing: "linear" }
+            );
+        } else {
+            if (animRef.current && animRef.current.playState !== "idle") {
+                const style = window.getComputedStyle(el);
+                const matrix = new DOMMatrix(style.transform);
+                const currentAngle = Math.round(Math.atan2(matrix.b, matrix.a) * (180 / Math.PI));
+                animRef.current.cancel();
+                animRef.current = null;
+
+                const startDeg = currentAngle < 0 ? currentAngle + 360 : currentAngle;
+                let targetDeg = startDeg + 360;
+                targetDeg = Math.ceil(targetDeg / 180) * 180;
+
+                el.animate(
+                    [{ transform: `rotate(${startDeg}deg)` }, { transform: `rotate(${targetDeg}deg)` }],
+                    { duration: 800, easing: "cubic-bezier(0.34, 1.56, 0.64, 1)", fill: "forwards" }
+                ).onfinish = () => { el.style.transform = `rotate(${targetDeg % 360}deg)`; };
+            }
+        }
+    }, [isRefreshing]);
+
+    return (
+        <div ref={iconRef} className="flex items-center justify-center will-change-transform">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2" />
+            </svg>
+        </div>
+    );
+}
+
+export default function EmptyState({ isPathsEmpty, hasContent, searchQuery, filterTag, scanPaths = [], isRefreshing, onAddPath, onRemovePath, onRefresh, onOpenSettings }: EmptyStateProps) {
     const { t } = useTranslation();
     const isSearching = !!searchQuery.trim();
 
@@ -46,7 +91,7 @@ export default function EmptyState({ isPathsEmpty, hasContent, searchQuery, filt
                     </button>
                 </div>
             ) : !hasContent ? (
-                <div className="max-w-[460px] space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700 w-full">
+                <div className="max-w-[1024px] space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
                     <EmptyStateIcon groupName="ghost">
                         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#555560" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="relative z-10">
                             <circle cx="11" cy="11" r="8" />
@@ -95,7 +140,7 @@ export default function EmptyState({ isPathsEmpty, hasContent, searchQuery, filt
                         <button
                             onClick={onAddPath}
                             style={{ flex: '1 1 auto', minWidth: 'fit-content' }}
-                            className="h-11 px-[10px] bg-indigo-600/10 hover:bg-indigo-600 text-indigo-400 hover:text-white rounded-xl text-[10px] font-black tracking-widest uppercase transition-all border border-indigo-500/20 hover:border-indigo-500 active:scale-95 cursor-pointer flex items-center justify-center gap-2"
+                            className="h-11 px-[10px] bg-indigo-600/10 hover:bg-indigo-600 text-indigo-400 hover:text-white rounded-xl text-xs font-bold transition-all border border-indigo-500/20 hover:border-indigo-500 active:scale-95 cursor-pointer flex items-center justify-center gap-2"
                         >
                             <PlusIcon size={14} strokeWidth={3} />
                             {t("settings.add_path")}
@@ -103,9 +148,9 @@ export default function EmptyState({ isPathsEmpty, hasContent, searchQuery, filt
                         <button
                             onClick={onRefresh}
                             style={{ flex: '1 1 auto', minWidth: 'fit-content' }}
-                            className="h-11 px-[20px] bg-white/5 hover:bg-white/10 text-white/70 hover:text-white rounded-xl text-[10px] font-black tracking-widest uppercase transition-all border border-white/5 active:scale-95 cursor-pointer flex items-center justify-center gap-2"
+                            className="h-11 px-[20px] bg-white/5 hover:bg-white/10 text-white/70 hover:text-white rounded-xl text-xs font-bold transition-all border border-white/5 active:scale-95 cursor-pointer flex items-center justify-center gap-2"
                         >
-                            <RefreshIcon />
+                            <RefreshSyncIcon isRefreshing={isRefreshing} />
                             {t("settings.manual_scan", "Refresh Scan")}
                         </button>
                     </div>
@@ -129,7 +174,7 @@ export default function EmptyState({ isPathsEmpty, hasContent, searchQuery, filt
                             onClick={onRefresh}
                             className="h-12 px-6 bg-white/5 hover:bg-white/10 text-white/70 hover:text-white rounded-xl text-[10px] font-black tracking-widest uppercase transition-all border border-white/5 active:scale-95 cursor-pointer flex items-center justify-center gap-2"
                         >
-                            <RefreshIcon />
+                            <RefreshSyncIcon isRefreshing={isRefreshing} />
                             {t("settings.manual_scan", "Refresh Scan")}
                         </button>
                         <button

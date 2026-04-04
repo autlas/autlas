@@ -470,6 +470,7 @@ function App() {
                     onAddPath={handleAddScanPath}
                     onRemovePath={handleRemoveScanPath}
                     onRefresh={triggerScan}
+                    isRefreshing={isRefreshing}
                     onSelectScript={handleSelectScript}
                     onExposeActions={handleExposeActions}
                     onOpenSettings={() => {

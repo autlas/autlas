@@ -34,6 +34,7 @@ interface ScriptGridViewProps {
     onRemovePath?: (path: string) => void;
     scanPaths?: string[];
     onRefresh?: () => void;
+    isRefreshing?: boolean;
     onViewModeChange: (mode: any) => void;
     onOpenSettings?: () => void;
     setSearchQuery: (q: string) => void;
@@ -64,7 +65,7 @@ interface ScriptGridViewProps {
 
 export default React.memo(function ScriptGridView({
     mode, filtered, groupedHub, filterTag, columnsCount, masonryColumns,
-    isPathsEmpty, hasContent, searchQuery, onAddPath, onRemovePath, scanPaths, onRefresh, onOpenSettings,
+    isPathsEmpty, hasContent, searchQuery, onAddPath, onRemovePath, scanPaths, onRefresh, isRefreshing, onOpenSettings,
     isDragging, draggedScriptPath, editingScript, pendingScripts, removingTags, allUniqueTags,
     popoverRef, showHidden, contextMenu, handleCustomMouseDown, handleToggle,
     startEditing, addTag, removeTag, stopEditing, onScriptContextMenu,
@@ -148,6 +149,7 @@ export default React.memo(function ScriptGridView({
                     onAddPath={onAddPath}
                     onRemovePath={onRemovePath}
                     onRefresh={onRefresh}
+                    isRefreshing={isRefreshing}
                     onOpenSettings={onOpenSettings}
                 />
             ) : (filterTag === "hub" && groupedHub) ? (

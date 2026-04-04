@@ -34,6 +34,7 @@ export interface ScriptTreeProps {
     onRemovePath?: (path: string) => void;
     scanPaths?: string[];
     onRefresh?: () => void;
+    isRefreshing?: boolean;
     onOpenSettings?: () => void;
     onSelectScript?: (s: Script) => void;
     onExposeActions?: (actions: { toggle: (s: Script) => void; restart: (s: Script) => void; pendingScripts: Record<string, "run" | "kill" | "restart">; allScripts: Script[] }) => void;
