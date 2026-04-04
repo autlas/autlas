@@ -1,14 +1,33 @@
-import React from "react";
+import React, { useState, useCallback } from "react";
 import HubScriptCard from "./HubScriptCard";
 import ScriptRow from "./ScriptRow";
 import EmptyState from "./EmptyState";
 import { Script } from "../api";
 
-const TagSectionHeader = ({ tag }: { tag: string }) => (
-    <div className="flex items-center mb-4 mt-12 first:mt-2 px-2 sticky top-0 z-40 py-4">
+function useCollapsedSections() {
+    const [collapsed, setCollapsed] = useState<Set<string>>(() => {
+        try { return new Set(JSON.parse(localStorage.getItem("ahk_hub_collapsed") || "[]")); } catch { return new Set(); }
+    });
+    const toggle = useCallback((tag: string) => {
+        setCollapsed(prev => {
+            const next = new Set(prev);
+            next.has(tag) ? next.delete(tag) : next.add(tag);
+            localStorage.setItem("ahk_hub_collapsed", JSON.stringify([...next]));
+            return next;
+        });
+    }, []);
+    return { collapsed, toggle };
+}
+
+const TagSectionHeader = ({ tag, isCollapsed, onToggle }: { tag: string; isCollapsed: boolean; onToggle: () => void }) => (
+    <div className="flex items-center mb-4 mt-12 first:mt-2 px-2 sticky top-0 z-40 py-4 cursor-pointer select-none group" onClick={onToggle}>
         <span className="text-[22px] font-black uppercase tracking-[0.15em] text-white/30 flex items-center leading-none">
             {tag}
         </span>
+        <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round"
+            className={`ml-3 text-white/15 group-hover:text-white/30 transition-all duration-200 ${isCollapsed ? '-rotate-90' : ''}`}>
+            <polyline points="6 9 12 15 18 9" />
+        </svg>
     </div>
 );
 
@@ -59,6 +78,7 @@ export default React.memo(function ScriptGridView({
     startEditing, addTag, removeTag, stopEditing, onScriptContextMenu,
     onShowUI, onRestart, setFocusedPath, onSelectScript,
 }: ScriptGridViewProps) {
+    const { collapsed: collapsedSections, toggle: toggleSection } = useCollapsedSections();
     const isTiles = mode === "tiles";
     const gridGap = isTiles ? "gap-6" : "gap-x-8 gap-y-1";
     const colClass = isTiles ? "flex flex-col gap-6" : "flex flex-col gap-y-1";
@@ -138,20 +158,23 @@ export default React.memo(function ScriptGridView({
                 />
             ) : (filterTag === "hub" && groupedHub) ? (
                 groupedHub.map(({ tag, scripts }) => {
+                    const isCollapsed = collapsedSections.has(tag);
                     const sectionMasonry: Script[][] = Array.from({ length: columnsCount }, () => []);
                     scripts.forEach((s, i) => sectionMasonry[i % columnsCount].push(s));
                     return (
-                        <div key={tag} className={`flex flex-col ${isTiles ? 'mb-10' : 'mb-8'} last:pb-10`}>
-                            <TagSectionHeader tag={tag} />
-                            <div
-                                className={`grid ${gridGap} items-start`}
-                                style={{ gridTemplateColumns: `repeat(${columnsCount}, minmax(0, 1fr))` }}
-                            >
-                                {sectionMasonry.map((col, colIdx) => (
-                                    <div key={colIdx} className={colClass}>
-                                        {col.map(s => renderCard(s))}
-                                    </div>
-                                ))}
+                        <div key={tag} className={`flex flex-col ${isCollapsed ? 'mb-0' : isTiles ? 'mb-10' : 'mb-8'} last:pb-10`}>
+                            <TagSectionHeader tag={tag} isCollapsed={isCollapsed} onToggle={() => toggleSection(tag)} />
+                            <div className={`transition-all duration-300 overflow-hidden ${isCollapsed ? 'max-h-0 opacity-0' : 'max-h-[10000px] opacity-100'}`}>
+                                <div
+                                    className={`grid ${gridGap} items-start`}
+                                    style={{ gridTemplateColumns: `repeat(${columnsCount}, minmax(0, 1fr))` }}
+                                >
+                                    {sectionMasonry.map((col, colIdx) => (
+                                        <div key={colIdx} className={colClass}>
+                                            {col.map(s => renderCard(s))}
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
                         </div>
                     );

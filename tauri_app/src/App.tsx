@@ -273,7 +273,7 @@ function App() {
   }, []);
 
   const handleSelectScript = useCallback((s: Script) => {
-    setSelectedPath(s.path);
+    setSelectedPath(prev => prev === s.path ? null : s.path);
   }, []);
 
   const handleDetailToggle = useCallback((s: Script) => {

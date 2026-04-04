@@ -139,6 +139,7 @@ export default function Sidebar({
   const sidebarWidth = useTreeStore(s => s.sidebarWidth);
   const setSidebarWidth = useTreeStore(s => s.setSidebarWidth);
   const [isResizing, setIsResizing] = useState(false);
+  const [tagsCollapsed, setTagsCollapsed] = useState(() => localStorage.getItem("ahk_tags_collapsed") === "true");
 
   const setSidebarCollapsed = useTreeStore(s => s.setSidebarCollapsed);
   const handleResizeStart = useCallback((e: React.MouseEvent) => {
@@ -280,9 +281,20 @@ export default function Sidebar({
               <TagIcon className={`flex-shrink-0 translate-y-[1px] transition-opacity ${activeTab === "tags" && viewMode !== "settings" ? 'opacity-100' : 'opacity-40'}`} />
               <span className={`transition-all duration-150 ${collapsed ? 'w-0 ml-0 opacity-0' : 'w-auto ml-3 opacity-100'}`}>{t("sidebar.tags", "Tags")}</span>
             </div>
+            {!collapsed && (
+              <button
+                onClick={(e) => { e.stopPropagation(); setTagsCollapsed(v => { const next = !v; localStorage.setItem("ahk_tags_collapsed", String(next)); return next; }); }}
+                className="text-white/20 hover:text-white/50 transition-colors cursor-pointer p-1"
+              >
+                <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round"
+                  className={`transition-transform duration-200 ${tagsCollapsed ? '-rotate-90' : ''}`}>
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+            )}
           </li>
 
-          <ul className="flex flex-col space-y-1.5 px-0 w-full">
+          <ul className={`flex flex-col space-y-1.5 px-0 w-full transition-all duration-300 overflow-hidden ${tagsCollapsed && !collapsed ? 'max-h-0 opacity-0' : 'max-h-[2000px] opacity-100'}`}>
             {userTags.map((tag) => (
               <li
                 key={tag}

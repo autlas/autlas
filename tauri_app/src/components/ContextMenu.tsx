@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, ReactNode } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useTranslation } from "react-i18next";
+import { EditIcon, FolderIcon, OpenWithIcon, CopyIcon, PinIcon, UnpinIcon, PlusIcon, CloseIcon } from "./ui/Icons";
 
 interface ContextMenuState {
   x: number;
@@ -16,7 +17,7 @@ interface ContextMenuProps {
   onRefresh: () => void;
 }
 
-function ContextMenuItem({ label, icon, onClick, danger = false }: { label: string; icon: string; onClick: () => void; danger?: boolean }) {
+function ContextMenuItem({ label, icon, onClick, danger = false }: { label: string; icon: ReactNode; onClick: () => void; danger?: boolean }) {
   return (
     <button
       onClick={(e) => {
@@ -90,7 +91,7 @@ export default function ContextMenu({ contextMenu, onClose, onStartRenameTag, on
             {contextMenu.data.tags.some((tag: string) => ["hub", "fav", "favourites"].includes(tag.toLowerCase())) ? (
               <ContextMenuItem
                 label={t("context.unpin")}
-                icon="✖"
+                icon={<UnpinIcon size={14} />}
                 onClick={async () => {
                   const tagToRemove = contextMenu.data.tags.find((tag: string) => ["hub", "fav", "favourites"].includes(tag.toLowerCase()));
                   if (tagToRemove) await invoke("remove_script_tag", { path: contextMenu.data.path, tag: tagToRemove });
@@ -100,7 +101,7 @@ export default function ContextMenu({ contextMenu, onClose, onStartRenameTag, on
             ) : (
               <ContextMenuItem
                 label={t("context.pin")}
-                icon="📌"
+                icon={<PinIcon size={14} />}
                 onClick={async () => {
                   await invoke("add_script_tag", { path: contextMenu.data.path, tag: "hub" });
                   onClose();
@@ -108,11 +109,11 @@ export default function ContextMenu({ contextMenu, onClose, onStartRenameTag, on
               />
             )}
             <div className="h-[1px] bg-white/5 my-1" />
-            <ContextMenuItem label={t("context.edit")} icon="📝" onClick={() => { invoke("edit_script", { path: contextMenu.data.path }); onClose(); }} />
-            <ContextMenuItem label={t("context.show_in_folder")} icon="📂" onClick={() => { invoke("open_in_explorer", { path: contextMenu.data.path }); onClose(); }} />
-            <ContextMenuItem label={t("context.open_with")} icon="🪄" onClick={() => { invoke("open_with", { path: contextMenu.data.path }); onClose(); }} />
+            <ContextMenuItem label={t("context.edit")} icon={<EditIcon size={14} />} onClick={() => { invoke("edit_script", { path: contextMenu.data.path }); onClose(); }} />
+            <ContextMenuItem label={t("context.show_in_folder")} icon={<FolderIcon size={14} />} onClick={() => { invoke("open_in_explorer", { path: contextMenu.data.path }); onClose(); }} />
+            <ContextMenuItem label={t("context.open_with")} icon={<OpenWithIcon size={14} />} onClick={() => { invoke("open_with", { path: contextMenu.data.path }); onClose(); }} />
             <div className="h-[1px] bg-white/5 my-1" />
-            <ContextMenuItem label={t("context.copy_path")} icon="🔗" onClick={() => { navigator.clipboard.writeText(contextMenu.data.path); onClose(); }} />
+            <ContextMenuItem label={t("context.copy_path")} icon={<CopyIcon size={14} />} onClick={() => { navigator.clipboard.writeText(contextMenu.data.path); onClose(); }} />
           </>
         )}
 
@@ -120,12 +121,12 @@ export default function ContextMenu({ contextMenu, onClose, onStartRenameTag, on
           <>
             <ContextMenuItem
               label={t("context.rename")}
-              icon="✏️"
+              icon={<EditIcon size={14} />}
               onClick={() => { onStartRenameTag(contextMenu.data); onClose(); }}
             />
             <ContextMenuItem
               label={t("context.delete_tag")}
-              icon="🗑️"
+              icon={<CloseIcon size={14} />}
               danger
               onClick={() => setConfirmTag(contextMenu.data)}
             />
@@ -134,12 +135,12 @@ export default function ContextMenu({ contextMenu, onClose, onStartRenameTag, on
 
         {contextMenu.type === "folder" && (
           <>
-            <ContextMenuItem label={t("context.show_in_folder")} icon="📂" onClick={() => { invoke("open_in_explorer", { path: contextMenu.data.fullName }); onClose(); }} />
+            <ContextMenuItem label={t("context.show_in_folder")} icon={<FolderIcon size={14} />} onClick={() => { invoke("open_in_explorer", { path: contextMenu.data.fullName }); onClose(); }} />
             <div className="h-[1px] bg-white/5 my-1" />
-            <ContextMenuItem label={t("context.expand_all")} icon="➕" onClick={() => { contextMenu.data.onExpandAll(); onClose(); }} />
+            <ContextMenuItem label={t("context.expand_all")} icon={<PlusIcon size={12} strokeWidth={3} />} onClick={() => { contextMenu.data.onExpandAll(); onClose(); }} />
             <ContextMenuItem
               label={contextMenu.data.is_hidden ? t("context.show_hidden") : t("context.hide_folder")}
-              icon={contextMenu.data.is_hidden ? "👁️" : "👁️‍🗨️"}
+              icon={<svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" /><line x1="1" y1="1" x2="23" y2="23" /></svg>}
               onClick={async () => {
                 await invoke("toggle_hide_folder", { path: contextMenu.data.fullName });
                 onClose();
@@ -147,7 +148,7 @@ export default function ContextMenu({ contextMenu, onClose, onStartRenameTag, on
               }}
             />
             <div className="h-[1px] bg-white/5 my-1" />
-            <ContextMenuItem label={t("context.copy_path")} icon="🔗" onClick={() => { navigator.clipboard.writeText(contextMenu.data.fullName); onClose(); }} />
+            <ContextMenuItem label={t("context.copy_path")} icon={<CopyIcon size={14} />} onClick={() => { navigator.clipboard.writeText(contextMenu.data.fullName); onClose(); }} />
           </>
         )}
       </div>

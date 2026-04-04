@@ -3,7 +3,7 @@ import { Script, readScriptContent } from "../api";
 import { invoke } from "@tauri-apps/api/core";
 import { useHotkeys } from "react-hotkeys-hook";
 import TagPickerPopover from "./TagPickerPopover";
-import { CloseIcon, PlayIcon, RestartIcon, InterfaceIcon, PlusIcon, EditIcon, FolderIcon } from "./ui/Icons";
+import { CloseIcon, PlayIcon, RestartIcon, InterfaceIcon, PlusIcon, EditIcon, FolderIcon, OpenWithIcon } from "./ui/Icons";
 
 interface ScriptDetailPanelProps {
   script: Script;
@@ -102,6 +102,7 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
 
   const handleEdit = () => invoke("edit_script", { path: script.path });
   const handleOpenFolder = () => invoke("open_in_explorer", { path: script.path });
+  const handleOpenWith = () => invoke("open_with", { path: script.path });
 
   const name = script.filename.replace(/\.ahk$/i, "");
   const lines = content?.split("\n") ?? [];
@@ -205,6 +206,13 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
           title="Edit"
         >
           <EditIcon />
+        </button>
+        <button
+          onClick={handleOpenWith}
+          className="w-[80px] h-[42px] flex items-center justify-center rounded-2xl bg-white/5 text-[#71717a] border border-white/5 hover:bg-white/10 hover:text-white/60 transition-all cursor-pointer"
+          title="Open with..."
+        >
+          <OpenWithIcon />
         </button>
         <button
           onClick={handleOpenFolder}
