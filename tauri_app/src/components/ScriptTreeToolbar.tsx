@@ -125,11 +125,12 @@ export default function ScriptTreeToolbar({
 
                 {/* SORTING CONTROLS */}
                 <div className={`flex flex-col overflow-visible transition-all duration-300 ease-in-out ${searchActive ? 'w-0 opacity-0 pointer-events-none ml-0' : 'opacity-100 ml-2'}`}>
-                    <SectionLabel className="ml-3 mb-0.5">{t("toolbar.sort")}</SectionLabel>
+                    <div className="relative">
+                    <SectionLabel className="ml-3 mb-0.5 absolute bottom-full left-0 whitespace-nowrap">{t("toolbar.sort")}</SectionLabel>
                     <div ref={sortRef} className="relative">
                         <button
                             onClick={() => !isDragging && setSortOpen(!sortOpen)}
-                            className={`h-[42px] px-4 flex items-center gap-2 rounded-xl bg-white/[0.03] border border-white/5 transition-all cursor-pointer
+                            className={`h-[42px] min-w-[110px] px-4 flex items-center gap-2 rounded-xl bg-white/[0.03] border border-white/5 transition-all cursor-pointer
                                 ${!isDragging ? 'hover:bg-white/[0.06] hover:border-white/10' : 'opacity-20 pointer-events-none'}
                                 ${sortOpen ? 'border-indigo-500/50 bg-white/[0.05]' : ''}`}
                         >
@@ -152,6 +153,7 @@ export default function ScriptTreeToolbar({
                                 ))}
                             </div>
                         )}
+                    </div>
                     </div>
                 </div>
 
