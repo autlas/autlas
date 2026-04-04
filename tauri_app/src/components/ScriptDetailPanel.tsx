@@ -145,9 +145,9 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
           <Tooltip text={t("tooltips.close")}>
           <button
             onClick={onClose}
-            className="w-7 h-7 flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/10 transition-all cursor-pointer"
+            className="w-7 h-7 flex items-center justify-center rounded-lg bg-white/5 text-[#666] hover:bg-white/10 hover:text-white/60 transition-all cursor-pointer"
           >
-            <CloseIcon size={12} strokeWidth={2.5} className="text-[#666] hover:text-white" />
+            <CloseIcon size={12} strokeWidth={2.5} className="pointer-events-none" />
           </button>
           </Tooltip>
         </div>

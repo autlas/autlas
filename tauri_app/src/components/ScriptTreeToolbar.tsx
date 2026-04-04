@@ -146,10 +146,11 @@ export default function ScriptTreeToolbar({
                                     <button
                                         key={opt.id}
                                         onClick={() => { setSortBy(opt.id); setSortOpen(false); }}
-                                        className={`w-full text-left px-4 py-2 text-sm transition-colors cursor-pointer
+                                        className={`w-full flex items-center justify-between px-4 py-2 text-sm transition-colors cursor-pointer
                                             ${sortBy === opt.id ? 'text-indigo-400 bg-indigo-500/10' : 'text-secondary hover:bg-white/5'}`}
                                     >
                                         {opt.label}
+                                        {sortBy === opt.id && <span className="text-indigo-400 ml-4">✓</span>}
                                     </button>
                                 ))}
                             </div>
