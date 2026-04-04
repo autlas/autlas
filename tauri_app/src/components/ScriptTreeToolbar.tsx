@@ -250,7 +250,7 @@ export default function ScriptTreeToolbar({
 
             {filterTag !== "hub" && (
                 <div className="flex items-center space-x-3 ml-2">
-                    <Tooltip text={showHidden === 'none' ? t("context.show_hidden") : showHidden === 'all' ? t("context.hide_hidden") : t("context.show_only_hidden")}>
+                    <Tooltip text={showHidden === 'none' ? t("context.show_hidden") : showHidden === 'all' ? t("context.show_only_hidden") : t("context.hide_hidden")}>
                     <button
                         onClick={() => {
                             if (isDragging) return;

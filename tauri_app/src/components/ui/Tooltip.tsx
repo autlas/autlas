@@ -34,7 +34,7 @@ export default function Tooltip({ text, children, delay = 0 }: TooltipProps) {
 
             const tr = trigger.getBoundingClientRect();
             const tt = tooltip.getBoundingClientRect();
-            const GAP = 8;
+            const GAP = 10;
             const EDGE_PAD = 8;
 
             let side: "top" | "bottom" = "top";
@@ -94,10 +94,20 @@ export default function Tooltip({ text, children, delay = 0 }: TooltipProps) {
                         <div
                             className="absolute w-0 h-0"
                             style={{
-                                left: pos ? pos.arrowX - 5 : "50%",
+                                left: pos ? pos.arrowX - 9 : "50%",
                                 ...(pos?.side === "top"
-                                    ? { bottom: -5, borderLeft: "5px solid transparent", borderRight: "5px solid transparent", borderTop: "5px solid rgba(26,26,28,0.95)" }
-                                    : { top: -5, borderLeft: "5px solid transparent", borderRight: "5px solid transparent", borderBottom: "5px solid rgba(26,26,28,0.95)" }
+                                    ? { bottom: -9, borderLeft: "9px solid transparent", borderRight: "9px solid transparent", borderTop: "9px solid #303032" }
+                                    : { top: -9, borderLeft: "9px solid transparent", borderRight: "9px solid transparent", borderBottom: "9px solid #303032" }
+                                ),
+                            }}
+                        />
+                        <div
+                            className="absolute w-0 h-0"
+                            style={{
+                                left: pos ? pos.arrowX - 8 : "50%",
+                                ...(pos?.side === "top"
+                                    ? { bottom: -8, borderLeft: "8px solid transparent", borderRight: "8px solid transparent", borderTop: "8px solid rgba(26,26,28,0.95)" }
+                                    : { top: -8, borderLeft: "8px solid transparent", borderRight: "8px solid transparent", borderBottom: "8px solid rgba(26,26,28,0.95)" }
                                 ),
                             }}
                         />
