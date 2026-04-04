@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, MouseEvent as ReactMouseEvent } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo, MouseEvent as ReactMouseEvent } from "react";
 import { Script, readScriptContent } from "../api";
 import { invoke } from "@tauri-apps/api/core";
 import { useHotkeys } from "react-hotkeys-hook";
@@ -6,6 +6,16 @@ import { useTranslation } from "react-i18next";
 import TagPickerPopover from "./TagPickerPopover";
 import { CloseIcon, PlayIcon, RestartIcon, InterfaceIcon, PlusIcon, EditIcon, FolderIcon, OpenWithIcon } from "./ui/Icons";
 import Tooltip from "./ui/Tooltip";
+import { createHighlighterCoreSync } from "shiki/core";
+import { createJavaScriptRegexEngine } from "shiki/engine/javascript";
+import githubDark from "shiki/themes/github-dark-default.mjs";
+import ahk2Grammar from "../syntaxes/ahk2.tmLanguage.json";
+
+const shiki = createHighlighterCoreSync({
+  themes: [githubDark],
+  langs: [ahk2Grammar as any],
+  engine: createJavaScriptRegexEngine(),
+});
 
 interface ScriptDetailPanelProps {
   script: Script;
@@ -108,7 +118,21 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
   const handleOpenWith = () => invoke("open_with", { path: script.path });
 
   const name = script.filename.replace(/\.ahk$/i, "");
-  const lines = content?.split("\n") ?? [];
+  const highlightedLines = useMemo(() => {
+    if (!content) return [];
+    try {
+      const tokens = shiki.codeToTokensBase(content, { lang: "autohotkey2" });
+      return tokens.map(line =>
+        line.map(token => {
+          const color = token.color && token.color !== "#e1e4e8" ? ` style="color:${token.color}"` : "";
+          const escaped = token.content.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+          return color ? `<span${color}>${escaped}</span>` : escaped;
+        }).join("")
+      );
+    } catch {
+      return content.split("\n").map(l => l.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"));
+    }
+  }, [content]);
   const displayedTags = script.tags.filter(t => !["hub", "fav", "favourites"].includes(t.toLowerCase()));
 
   const panelContent = (
@@ -297,10 +321,10 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
           <pre className="text-[12px] leading-[1.6] font-mono text-white/60 select-text">
             <table className="border-collapse">
               <tbody>
-                {lines.map((line, i) => (
+                {highlightedLines.map((line, i) => (
                   <tr key={i} className="hover:bg-white/[0.03]">
                     <td className="text-right pr-4 text-white/15 select-none align-top w-[1%] whitespace-nowrap">{i + 1}</td>
-                    <td className="whitespace-pre">{line || " "}</td>
+                    <td className="whitespace-pre" dangerouslySetInnerHTML={{ __html: line || " " }} />
                   </tr>
                 ))}
               </tbody>
