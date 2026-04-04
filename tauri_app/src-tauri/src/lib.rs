@@ -959,12 +959,15 @@ fn es_exe_available() -> bool {
 }
 
 fn is_everything_running() -> bool {
-    let mut sys = System::new();
-    sys.refresh_processes(sysinfo::ProcessesToUpdate::All, true);
-    sys.processes().values().any(|p| {
-        let name = p.name().to_string_lossy().to_lowercase();
-        name == "everything.exe" || name == "everything64.exe"
-    })
+    // Check if Everything IPC is actually available (not just the process)
+    if let Ok(output) = std::process::Command::new("es.exe")
+        .arg("-get-result-count")
+        .output()
+    {
+        output.status.success()
+    } else {
+        false
+    }
 }
 
 // Returns: "running" | "installed" | "not_installed"
