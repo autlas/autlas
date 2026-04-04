@@ -879,6 +879,45 @@ fn save_cache(paths: &[String]) {
     let _ = fs::write(cache_path, content);
 }
 
+fn scan_with_everything(scan_dirs: &[std::path::PathBuf]) -> Option<Vec<String>> {
+    use std::process::Command;
+
+    if scan_dirs.is_empty() {
+        return Some(Vec::new());
+    }
+
+    // Build query: ext:ahk under each scan path
+    // es.exe supports multiple path: filters with OR logic, but simpler to call once per dir
+    let mut all_paths = Vec::new();
+    for dir in scan_dirs {
+        let dir_str = dir.to_string_lossy();
+        let output = Command::new("es.exe")
+            .args(&["ext:ahk", &format!("path:{}", dir_str)])
+            .output();
+
+        match output {
+            Ok(out) if out.status.success() => {
+                let stdout = String::from_utf8_lossy(&out.stdout);
+                for line in stdout.lines() {
+                    let trimmed = line.trim();
+                    if !trimmed.is_empty() {
+                        all_paths.push(trimmed.to_string());
+                    }
+                }
+            }
+            Ok(out) => {
+                println!("[Rust] Everything es.exe returned error: {}", String::from_utf8_lossy(&out.stderr));
+                return None;
+            }
+            Err(e) => {
+                println!("[Rust] Everything es.exe not available: {}", e);
+                return None;
+            }
+        }
+    }
+    Some(all_paths)
+}
+
 #[tauri::command]
 async fn get_scripts(force_scan: bool) -> Vec<Script> {
     let mut sys = System::new_all();
@@ -927,15 +966,23 @@ async fn get_scripts(force_scan: bool) -> Vec<Script> {
             }
         }
 
-        for dir in scan_dirs {
-            for entry in WalkDir::new(&dir).into_iter().filter_map(|e| e.ok()) {
-                if entry.path().extension().map_or(false, |ext| ext == "ahk") {
-                    script_paths.push(entry.path().to_string_lossy().to_string());
+        // Try Everything first, fallback to WalkDir
+        let everything_result = scan_with_everything(&scan_dirs);
+        if let Some(paths) = everything_result {
+            script_paths = paths;
+            let scan_elapsed = scan_start.elapsed();
+            println!("[Rust] Everything scan completed: {} scripts found in {:.1?}", script_paths.len(), scan_elapsed);
+        } else {
+            for dir in scan_dirs {
+                for entry in WalkDir::new(&dir).into_iter().filter_map(|e| e.ok()) {
+                    if entry.path().extension().map_or(false, |ext| ext == "ahk") {
+                        script_paths.push(entry.path().to_string_lossy().to_string());
+                    }
                 }
             }
+            let scan_elapsed = scan_start.elapsed();
+            println!("[Rust] WalkDir scan completed: {} scripts found in {:.1?}", script_paths.len(), scan_elapsed);
         }
-        let scan_elapsed = scan_start.elapsed();
-        println!("[Rust] WalkDir scan completed: {} scripts found in {:.1?}", script_paths.len(), scan_elapsed);
         // Save the result to cache for next time
         save_cache(&script_paths);
     }
