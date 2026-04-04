@@ -140,16 +140,32 @@ export default function Sidebar({
   const setSidebarWidth = useTreeStore(s => s.setSidebarWidth);
   const [isResizing, setIsResizing] = useState(false);
 
+  const setSidebarCollapsed = useTreeStore(s => s.setSidebarCollapsed);
   const handleResizeStart = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
-    setIsResizing(true);
     const startX = e.clientX;
-    const startWidth = sidebarWidth;
-    let currentWidth = startWidth;
+    const wasCollapsed = useTreeStore.getState().sidebarCollapsed;
+    const startWidth = wasCollapsed ? 80 : sidebarWidth;
+    let didCollapse = wasCollapsed;
+    if (!wasCollapsed) setIsResizing(true);
 
     const onMouseMove = (ev: MouseEvent) => {
-      currentWidth = Math.min(400, Math.max(200, startWidth + (ev.clientX - startX)));
-      setSidebarWidth(currentWidth);
+      const raw = startWidth + (ev.clientX - startX);
+      if (raw < 100) {
+        if (!didCollapse) {
+          didCollapse = true;
+          setIsResizing(false);
+          setSidebarCollapsed(true);
+        }
+      } else {
+        if (didCollapse) {
+          didCollapse = false;
+          setSidebarCollapsed(false);
+          // Let transition animate expand, then switch to resize mode
+          setTimeout(() => setIsResizing(true), 300);
+        }
+        setSidebarWidth(Math.min(400, Math.max(200, raw)));
+      }
     };
     const onMouseUp = () => {
       setIsResizing(false);
@@ -158,7 +174,7 @@ export default function Sidebar({
     };
     document.addEventListener("mousemove", onMouseMove);
     document.addEventListener("mouseup", onMouseUp);
-  }, [sidebarWidth, setSidebarWidth]);
+  }, [sidebarWidth, setSidebarWidth, setSidebarCollapsed]);
 
   return (
     <div
@@ -178,12 +194,10 @@ export default function Sidebar({
       </button>
 
       {/* Resize handle — right edge */}
-      {!collapsed && (
-        <div
-          onMouseDown={handleResizeStart}
-          className="absolute top-0 right-0 w-1 h-full cursor-col-resize z-[111] hover:bg-indigo-500/50 transition-colors"
-        />
-      )}
+      <div
+        onMouseDown={handleResizeStart}
+        className="absolute top-0 right-0 w-1 h-full cursor-col-resize z-[111] hover:bg-indigo-500/50 transition-colors"
+      />
 
       <div className={`flex flex-col space-y-1.5 flex-1 pt-5 pb-5 overflow-x-hidden pl-4 ${collapsed ? 'scrollbar-overlay custom-scrollbar pr-[13px]' : 'overflow-y-auto custom-scrollbar pr-[6px]'}`}>
         {/* Group 1: Hub */}
