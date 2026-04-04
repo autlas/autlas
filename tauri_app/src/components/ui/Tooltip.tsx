@@ -62,8 +62,15 @@ export default function Tooltip({ text, children, delay = 0 }: TooltipProps) {
 
     if (!text || !isValidElement(children)) return <>{children}</>;
 
+    const mergedRef = (node: HTMLElement | null) => {
+        (triggerRef as React.MutableRefObject<HTMLElement | null>).current = node;
+        const childRef = (children as any).ref;
+        if (typeof childRef === 'function') childRef(node);
+        else if (childRef && typeof childRef === 'object') (childRef as React.MutableRefObject<HTMLElement | null>).current = node;
+    };
+
     const child = cloneElement(children as ReactElement<any>, {
-        ref: triggerRef,
+        ref: mergedRef,
         onMouseEnter: (e: MouseEvent) => {
             show();
             (children.props as any).onMouseEnter?.(e);

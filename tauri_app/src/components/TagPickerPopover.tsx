@@ -18,9 +18,12 @@ const TagPickerPopover = memo(function TagPickerPopover({ script, allUniqueTags,
         if (anchorRef?.current) {
             const rect = anchorRef.current.getBoundingClientRect();
             if (variant === "tree") {
+                const popoverWidth = 256; // w-64
+                const centerX = rect.left + rect.width / 2;
+                const left = Math.max(8, Math.min(centerX - popoverWidth / 2, window.innerWidth - popoverWidth - 8));
                 setPos({
                     top: rect.bottom + 8,
-                    right: window.innerWidth - rect.right,
+                    right: window.innerWidth - left - popoverWidth,
                     width: 0,
                     height: 0
                 });
