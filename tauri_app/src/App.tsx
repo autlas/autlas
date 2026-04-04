@@ -35,6 +35,7 @@ function App() {
   const scanToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [everythingToast, setEverythingToast] = useState<"installed" | "not_installed" | "launching" | "installing" | "started" | null>(null);
   const [everythingToastVisible, setEverythingToastVisible] = useState(false);
+  const [installProgress, setInstallProgress] = useState<{ phase: string; progress: number } | null>(null);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; type: "script" | "tag" | "folder" | "general"; data: any } | null>(null);
   const [activeTabPressed, setActiveTabPressed] = useState<string | null>(null);
   const [runningCount, setRunningCount] = useState(0);
@@ -158,6 +159,17 @@ function App() {
         setEverythingToastVisible(true);
       }
     });
+  }, []);
+
+  // Listen for Everything install progress events
+  useEffect(() => {
+    let unlisten: (() => void) | null = null;
+    import('@tauri-apps/api/event').then(({ listen }) => {
+      listen<{ phase: string; progress: number }>('everything-install-progress', (event) => {
+        setInstallProgress(event.payload);
+      }).then(fn => { unlisten = fn; });
+    });
+    return () => { if (unlisten) unlisten(); };
   }, []);
 
   // Sync contextMenu to store for TreeNodeRenderer
@@ -513,11 +525,21 @@ function App() {
               : everythingToast === "launching"
               ? "Starting Everything…"
               : everythingToast === "installing"
-              ? "Installing Everything…"
+              ? installProgress?.phase === "installing"
+                ? "Installing Everything…"
+                : `Downloading Everything… ${installProgress?.progress ?? 0}%`
               : everythingToast === "installed"
               ? "Everything is not running — scan will be slower"
               : "Install Everything for instant file scanning"}
           </span>
+          {everythingToast === "installing" && (
+            <div className="w-24 h-1.5 bg-white/10 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-amber-500 rounded-full transition-all duration-300"
+                style={{ width: `${installProgress?.phase === "installing" ? 100 : installProgress?.progress ?? 0}%` }}
+              />
+            </div>
+          )}
           {everythingToast === "installed" ? (
             <button
               onClick={async () => {
@@ -536,11 +558,13 @@ function App() {
             <button
               onClick={async () => {
                 setEverythingToast("installing");
+                setInstallProgress({ phase: "downloading", progress: 0 });
                 try {
                   await installEverything();
+                  setInstallProgress(null);
                   setEverythingToast("started");
                   setTimeout(() => hideEverythingToast(), 3000);
-                } catch (e) { console.error(e); setEverythingToast("not_installed"); }
+                } catch (e) { console.error(e); setInstallProgress(null); setEverythingToast("not_installed"); }
               }}
               className="px-3 py-1 text-[11px] font-bold uppercase tracking-wider bg-indigo-500/20 text-indigo-400 rounded-lg hover:bg-indigo-500/30 transition-colors cursor-pointer"
             >

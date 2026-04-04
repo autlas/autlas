@@ -995,27 +995,67 @@ async fn launch_everything() -> Result<(), String> {
 }
 
 #[tauri::command]
-async fn install_everything() -> Result<(), String> {
-    let output = std::process::Command::new("winget")
-        .args(&["install", "voidtools.Everything", "--silent", "--accept-package-agreements", "--accept-source-agreements"])
-        .output()
-        .map_err(|e| format!("Failed to run winget: {}", e))?;
+async fn install_everything(window: tauri::Window) -> Result<(), String> {
+    use futures_util::StreamExt;
+    use tauri::Emitter;
 
-    if output.status.success() {
-        // Launch Everything in tray mode after install
-        std::thread::sleep(std::time::Duration::from_millis(1000));
-        if let Some(exe_path) = find_everything_exe() {
-            let _ = std::process::Command::new(&exe_path)
-                .arg("-startup")
-                .spawn();
-            std::thread::sleep(std::time::Duration::from_millis(1500));
+    let url = "https://www.voidtools.com/Everything-1.4.1.1026.x64-Setup.exe";
+    let temp_dir = std::env::temp_dir();
+    let installer_path = temp_dir.join("EverythingSetup.exe");
+
+    // Download with progress
+    let response = reqwest::get(url).await.map_err(|e| format!("Download failed: {}", e))?;
+    let total_size = response.content_length().unwrap_or(0);
+    let mut downloaded: u64 = 0;
+    let mut stream = response.bytes_stream();
+
+    let mut file = tokio::fs::File::create(&installer_path).await
+        .map_err(|e| format!("Failed to create temp file: {}", e))?;
+
+    use tokio::io::AsyncWriteExt;
+    while let Some(chunk) = stream.next().await {
+        let chunk = chunk.map_err(|e| format!("Download error: {}", e))?;
+        file.write_all(&chunk).await.map_err(|e| format!("Write error: {}", e))?;
+        downloaded += chunk.len() as u64;
+        if total_size > 0 {
+            let progress = (downloaded as f64 / total_size as f64 * 100.0) as u32;
+            let _ = window.emit("everything-install-progress", serde_json::json!({
+                "phase": "downloading",
+                "progress": progress
+            }));
         }
-        Ok(())
-    } else {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        let stdout = String::from_utf8_lossy(&output.stdout);
-        Err(format!("winget failed: {} {}", stdout, stderr))
     }
+    file.flush().await.map_err(|e| format!("Flush error: {}", e))?;
+    drop(file);
+
+    // Install silently
+    let _ = window.emit("everything-install-progress", serde_json::json!({
+        "phase": "installing",
+        "progress": 100
+    }));
+
+    let status = std::process::Command::new(&installer_path)
+        .arg("/S")
+        .status()
+        .map_err(|e| format!("Installer failed: {}", e))?;
+
+    // Cleanup
+    let _ = std::fs::remove_file(&installer_path);
+
+    if !status.success() {
+        return Err("Installer exited with error".to_string());
+    }
+
+    // Launch Everything in tray mode
+    std::thread::sleep(std::time::Duration::from_millis(500));
+    if let Some(exe_path) = find_everything_exe() {
+        let _ = std::process::Command::new(&exe_path)
+            .arg("-startup")
+            .spawn();
+        std::thread::sleep(std::time::Duration::from_millis(1500));
+    }
+
+    Ok(())
 }
 
 fn scan_with_everything(scan_dirs: &[std::path::PathBuf]) -> Option<Vec<String>> {
