@@ -1,25 +1,10 @@
-import React, { useState, useCallback } from "react";
+import React from "react";
 import HubScriptCard from "./HubScriptCard";
 import ScriptRow from "./ScriptRow";
 import EmptyState from "./EmptyState";
 import { Script } from "../api";
 
-function useCollapsedSections() {
-    const [collapsed, setCollapsed] = useState<Set<string>>(() => {
-        try { return new Set(JSON.parse(localStorage.getItem("ahk_hub_collapsed") || "[]")); } catch { return new Set(); }
-    });
-    const toggle = useCallback((tag: string) => {
-        setCollapsed(prev => {
-            const next = new Set(prev);
-            next.has(tag) ? next.delete(tag) : next.add(tag);
-            localStorage.setItem("ahk_hub_collapsed", JSON.stringify([...next]));
-            return next;
-        });
-    }, []);
-    return { collapsed, toggle };
-}
-
-const TagSectionHeader = ({ tag, isCollapsed, onToggle }: { tag: string; isCollapsed: boolean; onToggle: () => void }) => (
+const TagSectionHeader = ({ tag, isCollapsed, onToggle, runningCount }: { tag: string; isCollapsed: boolean; onToggle: () => void; runningCount: number }) => (
     <div className="flex items-center mb-4 mt-12 first:mt-2 px-2 sticky top-0 z-40 py-4 cursor-pointer select-none group" onClick={onToggle}>
         <span className="text-[22px] font-black uppercase tracking-[0.15em] text-white/30 flex items-center leading-none">
             {tag}
@@ -28,6 +13,9 @@ const TagSectionHeader = ({ tag, isCollapsed, onToggle }: { tag: string; isColla
             className={`ml-3 text-white/15 group-hover:text-white/30 transition-all duration-200 ${isCollapsed ? '-rotate-90' : ''}`}>
             <polyline points="6 9 12 15 18 9" />
         </svg>
+        <div className={`ml-3 w-5 h-5 rounded-full bg-green-500 shadow-[0_0_12px_rgba(34,197,94,0.6)] flex items-center justify-center transition-all duration-300 ease-[cubic-bezier(0.34,1.3,0.64,1)] origin-center ${isCollapsed && runningCount > 0 ? 'scale-100 opacity-100' : 'scale-0 opacity-0'}`}>
+            <span className="text-[15px] font-bold leading-none" style={{ color: "var(--bg-secondary)" }}>{runningCount}</span>
+        </div>
     </div>
 );
 
@@ -68,6 +56,8 @@ interface ScriptGridViewProps {
     onRestart: (s: Script) => void;
     setFocusedPath: (path: string | null) => void;
     onSelectScript?: (s: Script) => void;
+    collapsedSections: Set<string>;
+    toggleSection: (tag: string) => void;
 }
 
 export default React.memo(function ScriptGridView({
@@ -77,8 +67,8 @@ export default React.memo(function ScriptGridView({
     popoverRef, showHidden, contextMenu, handleCustomMouseDown, handleToggle,
     startEditing, addTag, removeTag, stopEditing, onScriptContextMenu,
     onShowUI, onRestart, setFocusedPath, onSelectScript,
+    collapsedSections, toggleSection,
 }: ScriptGridViewProps) {
-    const { collapsed: collapsedSections, toggle: toggleSection } = useCollapsedSections();
     const isTiles = mode === "tiles";
     const gridGap = isTiles ? "gap-6" : "gap-x-8 gap-y-1";
     const colClass = isTiles ? "flex flex-col gap-6" : "flex flex-col gap-y-1";
@@ -163,7 +153,7 @@ export default React.memo(function ScriptGridView({
                     scripts.forEach((s, i) => sectionMasonry[i % columnsCount].push(s));
                     return (
                         <div key={tag} className={`flex flex-col ${isCollapsed ? 'mb-0' : isTiles ? 'mb-10' : 'mb-8'} last:pb-10`}>
-                            <TagSectionHeader tag={tag} isCollapsed={isCollapsed} onToggle={() => toggleSection(tag)} />
+                            <TagSectionHeader tag={tag} isCollapsed={isCollapsed} onToggle={() => toggleSection(tag)} runningCount={scripts.filter(s => s.is_running).length} />
                             <div className={`transition-all duration-300 overflow-hidden ${isCollapsed ? 'max-h-0 opacity-0' : 'max-h-[10000px] opacity-100'}`}>
                                 <div
                                     className={`grid ${gridGap} items-start`}

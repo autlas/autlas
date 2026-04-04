@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import CheatSheet from "./CheatSheet";
 import { SearchContext } from "../context/SearchContext";
 import { ScriptTreeProps } from "../types/script";
@@ -19,6 +19,19 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
     const isInstantScrollRef = useRef(false);
     const [sortBy, setSortBy] = useState<"name" | "size">("name");
 
+    // Hub collapsed sections
+    const [hubCollapsed, setHubCollapsed] = useState<Set<string>>(() => {
+        try { return new Set(JSON.parse(localStorage.getItem("ahk_hub_collapsed") || "[]")); } catch { return new Set(); }
+    });
+    const toggleHubSection = useCallback((tag: string) => {
+        setHubCollapsed(prev => {
+            const next = new Set(prev);
+            next.has(tag) ? next.delete(tag) : next.add(tag);
+            localStorage.setItem("ahk_hub_collapsed", JSON.stringify([...next]));
+            return next;
+        });
+    }, []);
+
     const {
         loading, isFetching, allScripts, filtered, tree, groupedHub,
         isAllExpanded, allUniqueTags,
@@ -28,6 +41,16 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
         addTag, removeTag, handleCustomMouseDown,
         visibleItems, moveFocus
     } = useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, searchQuery, setSearchQuery, onRunningCountChange, manualRefresh, onScanComplete, viewMode, sortBy });
+
+    const hubTags = useMemo(() => groupedHub?.map(g => g.tag) ?? [], [groupedHub]);
+    const isAllHubCollapsed = useMemo(() => hubTags.length > 0 && hubTags.every(t => hubCollapsed.has(t)), [hubTags, hubCollapsed]);
+    const toggleAllHub = useCallback(() => {
+        setHubCollapsed(() => {
+            const next = new Set(isAllHubCollapsed ? [] : hubTags);
+            localStorage.setItem("ahk_hub_collapsed", JSON.stringify([...next]));
+            return next;
+        });
+    }, [isAllHubCollapsed, hubTags]);
 
     const pendingScripts = useTreeStore(s => s.pendingScripts);
     const showHidden = useTreeStore(s => s.showHidden);
@@ -338,6 +361,8 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
                 setSortBy={setSortBy}
                 isAllExpanded={isAllExpanded}
                 toggleAll={toggleAll}
+                isAllHubCollapsed={isAllHubCollapsed}
+                toggleAllHub={toggleAllHub}
                 searchQuery={searchQuery}
                 setSearchQuery={setSearchQuery}
                 showHidden={showHidden}
@@ -396,6 +421,8 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
                             onRestart={handleRestart}
                             setFocusedPath={setFocusedPath}
                             onSelectScript={onSelectScript}
+                            collapsedSections={hubCollapsed}
+                            toggleSection={toggleHubSection}
                         />
                     </div>}
                     <div className={viewMode === "tree" ? "flex flex-col space-y-0.5 select-none min-h-full" : "hidden"}>

@@ -13,6 +13,8 @@ interface ScriptTreeToolbarProps {
     setSortBy: (s: "name" | "size") => void;
     isAllExpanded: boolean;
     toggleAll: () => void;
+    isAllHubCollapsed?: boolean;
+    toggleAllHub?: () => void;
     searchQuery: string;
     setSearchQuery: (q: string) => void;
     showHidden: 'none' | 'all' | 'only';
@@ -26,6 +28,7 @@ interface ScriptTreeToolbarProps {
 export default function ScriptTreeToolbar({
     viewMode, onViewModeChange, isDragging, draggedScriptPath,
     sortBy, setSortBy, isAllExpanded, toggleAll,
+    isAllHubCollapsed, toggleAllHub,
     searchQuery, setSearchQuery, showHidden, setShowHidden,
     filterTag, searchInputRef, onSearchFocus, onSearchBlur,
 }: ScriptTreeToolbarProps) {
@@ -152,19 +155,27 @@ export default function ScriptTreeToolbar({
                     </div>
                 </div>
 
-                <div className={`flex items-end overflow-hidden transition-all duration-[150ms] ease-in-out ${searchActive ? 'w-0 opacity-0 pointer-events-none ml-0' : viewMode === "tree" ? 'w-[42px] opacity-100 ml-2' : 'w-0 opacity-0 pointer-events-none ml-0'}`}>
-                    <button
-                        onClick={toggleAll}
-                        className={`h-[42px] w-[42px] flex flex-shrink-0 flex-col items-center justify-center rounded-xl bg-white/[0.03] border border-white/5 transition-all cursor-pointer focus:outline-none
-                            ${!isDragging ? 'hover:bg-white/[0.06] hover:border-white/10 group/collapse' : 'opacity-20 pointer-events-none'}`}
-                        title={t(isAllExpanded ? "context.collapse_all" : "context.expand_all")}
-                    >
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-25 transition-opacity duration-200 group-hover/collapse:opacity-50">
-                            <path style={{ d: `path("M 6 ${isAllExpanded ? 3 : 8} L 12 ${isAllExpanded ? 9 : 2} L 18 ${isAllExpanded ? 3 : 8}")`, transition: 'd 350ms cubic-bezier(0.4, 0, 0.2, 1)' } as React.CSSProperties} />
-                            <path style={{ d: `path("M 6 ${isAllExpanded ? 21 : 16} L 12 ${isAllExpanded ? 15 : 22} L 18 ${isAllExpanded ? 21 : 16}")`, transition: 'd 350ms cubic-bezier(0.4, 0, 0.2, 1)' } as React.CSSProperties} />
-                        </svg>
-                    </button>
-                </div>
+                {(() => {
+                    const isHub = filterTag === "hub" && viewMode !== "tree";
+                    const showButton = viewMode === "tree" || isHub;
+                    const expanded = isHub ? !isAllHubCollapsed : isAllExpanded;
+                    const onToggle = isHub ? toggleAllHub : toggleAll;
+                    return (
+                        <div className={`flex items-end overflow-hidden transition-all duration-[150ms] ease-in-out ${searchActive ? 'w-0 opacity-0 pointer-events-none ml-0' : showButton ? 'w-[42px] opacity-100 ml-2' : 'w-0 opacity-0 pointer-events-none ml-0'}`}>
+                            <button
+                                onClick={onToggle}
+                                className={`h-[42px] w-[42px] flex flex-shrink-0 flex-col items-center justify-center rounded-xl bg-white/[0.03] border border-white/5 transition-all cursor-pointer focus:outline-none
+                                    ${!isDragging ? 'hover:bg-white/[0.06] hover:border-white/10 group/collapse' : 'opacity-20 pointer-events-none'}`}
+                                title={t(expanded ? "context.collapse_all" : "context.expand_all")}
+                            >
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-25 transition-opacity duration-200 group-hover/collapse:opacity-50">
+                                    <path style={{ d: `path("M 6 ${expanded ? 3 : 8} L 12 ${expanded ? 9 : 2} L 18 ${expanded ? 3 : 8}")`, transition: 'd 350ms cubic-bezier(0.4, 0, 0.2, 1)' } as React.CSSProperties} />
+                                    <path style={{ d: `path("M 6 ${expanded ? 21 : 16} L 12 ${expanded ? 15 : 22} L 18 ${expanded ? 21 : 16}")`, transition: 'd 350ms cubic-bezier(0.4, 0, 0.2, 1)' } as React.CSSProperties} />
+                                </svg>
+                            </button>
+                        </div>
+                    );
+                })()}
 
                 {/* Search */}
                 <div ref={searchSizerRef} className="flex-1 min-w-0 ml-2">
