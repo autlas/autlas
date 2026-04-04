@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo, MouseEvent as ReactMouseEvent } from "react";
+import { useState, useEffect, useCallback, useRef, MouseEvent as ReactMouseEvent } from "react";
 import { Script, readScriptContent } from "../api";
 import { invoke } from "@tauri-apps/api/core";
 import { useHotkeys } from "react-hotkeys-hook";
@@ -6,15 +6,15 @@ import { useTranslation } from "react-i18next";
 import TagPickerPopover from "./TagPickerPopover";
 import { CloseIcon, PlayIcon, RestartIcon, InterfaceIcon, PlusIcon, EditIcon, FolderIcon, OpenWithIcon } from "./ui/Icons";
 import Tooltip from "./ui/Tooltip";
-import { createHighlighterCoreSync } from "shiki/core";
-import { createJavaScriptRegexEngine } from "shiki/engine/javascript";
+import { createHighlighterCore } from "shiki/core";
+import { createOnigurumaEngine } from "shiki/engine/oniguruma";
 import githubDark from "shiki/themes/github-dark-default.mjs";
 import ahk2Grammar from "../syntaxes/ahk2.tmLanguage.json";
 
-const shiki = createHighlighterCoreSync({
+const shikiPromise = createHighlighterCore({
   themes: [githubDark],
   langs: [ahk2Grammar as any],
-  engine: createJavaScriptRegexEngine(),
+  engine: createOnigurumaEngine(import("shiki/wasm")),
 });
 
 interface ScriptDetailPanelProps {
@@ -118,20 +118,28 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
   const handleOpenWith = () => invoke("open_with", { path: script.path });
 
   const name = script.filename.replace(/\.ahk$/i, "");
-  const highlightedLines = useMemo(() => {
-    if (!content) return [];
-    try {
-      const tokens = shiki.codeToTokensBase(content, { lang: "autohotkey2" });
-      return tokens.map(line =>
-        line.map(token => {
-          const color = token.color && token.color !== "#e1e4e8" ? ` style="color:${token.color}"` : "";
-          const escaped = token.content.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-          return color ? `<span${color}>${escaped}</span>` : escaped;
-        }).join("")
-      );
-    } catch {
-      return content.split("\n").map(l => l.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"));
-    }
+  const [highlightedLines, setHighlightedLines] = useState<string[]>([]);
+  useEffect(() => {
+    if (!content) { setHighlightedLines([]); return; }
+    const plain = content.split("\n").map(l => l.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"));
+    setHighlightedLines(plain);
+    let cancelled = false;
+    shikiPromise.then(shiki => {
+      if (cancelled) return;
+      try {
+        const tokens = shiki.codeToTokensBase(content, { lang: "autohotkey2" });
+        setHighlightedLines(tokens.map(line =>
+          line.map(token => {
+            const color = token.color && token.color !== "#e1e4e8" ? ` style="color:${token.color}"` : "";
+            const escaped = token.content.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            return color ? `<span${color}>${escaped}</span>` : escaped;
+          }).join("")
+        ));
+      } catch (e) {
+        console.error("Shiki highlight error:", e);
+      }
+    });
+    return () => { cancelled = true; };
   }, [content]);
   const displayedTags = script.tags.filter(t => !["hub", "fav", "favourites"].includes(t.toLowerCase()));
 
