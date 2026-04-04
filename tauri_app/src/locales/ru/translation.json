@@ -50,7 +50,22 @@
         "close_to_tray": "Сворачивать в трей",
         "close_to_tray_desc": "Скрывать окно вместо закрытия приложения",
         "click_to_toggle": "Клик для показа окна",
-        "click_to_toggle_desc": "Левый клик по иконке в трее показывает/скрывает окно"
+        "click_to_toggle_desc": "Левый клик по иконке в трее показывает/скрывает окно",
+        "vim_nav": "Стиль навигации Vim",
+        "vim_nav_desc": "hjkl (2D сетка) vs jk (1D список)",
+        "system_tray": "Системный трей",
+        "everything_search": "Поиск Everything",
+        "everything_integration": "Интеграция Everything",
+        "everything_running": "Everything запущен — мгновенное сканирование",
+        "everything_installed": "Everything установлен, но не запущен",
+        "everything_not_installed": "Everything не установлен — используется медленное сканирование",
+        "everything_active": "Активен",
+        "everything_starting": "Запуск...",
+        "everything_installing": "Установка...",
+        "everything_install": "Установить",
+        "everything_launch": "Запустить",
+        "show_file_size": "Размер файлов",
+        "show_file_size_desc": "Показывать размер файла рядом с именем скрипта"
     },
     "context": {
         "stop": "Остановить",
@@ -131,23 +146,6 @@
         "sort": "Сортировка",
         "name": "Имя",
         "size": "Размер"
-    },
-    "settings": {
-        "vim_nav": "Стиль навигации Vim",
-        "vim_nav_desc": "hjkl (2D сетка) vs jk (1D список)",
-        "system_tray": "Системный трей",
-        "everything_search": "Поиск Everything",
-        "everything_integration": "Интеграция Everything",
-        "everything_running": "Everything запущен — мгновенное сканирование",
-        "everything_installed": "Everything установлен, но не запущен",
-        "everything_not_installed": "Everything не установлен — используется медленное сканирование",
-        "everything_active": "Активен",
-        "everything_starting": "Запуск...",
-        "everything_installing": "Установка...",
-        "everything_install": "Установить",
-        "everything_launch": "Запустить",
-        "show_file_size": "Размер файлов",
-        "show_file_size_desc": "Показывать размер файла рядом с именем скрипта"
     },
     "hub_card": {
         "restarting": "ПЕРЕЗАПУСК...",

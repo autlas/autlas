@@ -50,7 +50,22 @@
         "close_to_tray": "Close to tray",
         "close_to_tray_desc": "Hide window instead of quitting when closing",
         "click_to_toggle": "Click to toggle window",
-        "click_to_toggle_desc": "Left-click tray icon to show/hide window"
+        "click_to_toggle_desc": "Left-click tray icon to show/hide window",
+        "vim_nav": "Vim Navigation Style",
+        "vim_nav_desc": "hjkl (2D grid) vs jk (1D list)",
+        "system_tray": "System Tray",
+        "everything_search": "Everything Search",
+        "everything_integration": "Everything Integration",
+        "everything_running": "Everything is running — instant file scanning enabled",
+        "everything_installed": "Everything is installed but not running",
+        "everything_not_installed": "Everything is not installed — using slower disk scan",
+        "everything_active": "Active",
+        "everything_starting": "Starting...",
+        "everything_installing": "Installing...",
+        "everything_install": "Install",
+        "everything_launch": "Launch",
+        "show_file_size": "Show file size",
+        "show_file_size_desc": "Display script file size next to name"
     },
     "context": {
         "stop": "Stop",
@@ -131,23 +146,6 @@
         "sort": "Sort",
         "name": "Name",
         "size": "Size"
-    },
-    "settings": {
-        "vim_nav": "Vim Navigation Style",
-        "vim_nav_desc": "hjkl (2D grid) vs jk (1D list)",
-        "system_tray": "System Tray",
-        "everything_search": "Everything Search",
-        "everything_integration": "Everything Integration",
-        "everything_running": "Everything is running — instant file scanning enabled",
-        "everything_installed": "Everything is installed but not running",
-        "everything_not_installed": "Everything is not installed — using slower disk scan",
-        "everything_active": "Active",
-        "everything_starting": "Starting...",
-        "everything_installing": "Installing...",
-        "everything_install": "Install",
-        "everything_launch": "Launch",
-        "show_file_size": "Show file size",
-        "show_file_size_desc": "Display script file size next to name"
     },
     "hub_card": {
         "restarting": "RESTARTING...",
