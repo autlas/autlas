@@ -13,6 +13,7 @@ import { useNavigation } from "./hooks/useNavigation";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { useTranslation } from "react-i18next";
+import { useTreeStore } from "./store/useTreeStore";
 import "./App.css";
 
 const MemoizedScriptTree = React.memo(ScriptTree);
@@ -141,6 +142,9 @@ function App() {
       if (animationFrameId) cancelAnimationFrame(animationFrameId);
     };
   }, []);
+
+  // Sync contextMenu to store for TreeNodeRenderer
+  useEffect(() => { useTreeStore.getState().setContextMenu(contextMenu); }, [contextMenu]);
 
   // Global listeners: click-out context menu, devtools shortcut
   useEffect(() => {

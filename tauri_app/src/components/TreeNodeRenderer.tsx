@@ -67,15 +67,17 @@ export const TreeNodeRenderer = memo(function TreeNodeRenderer({
     const isFolderFocused = false; // never causes re-render, CSS class handles it
 
 
+    // These need subscriptions so tree view reacts to changes
+    const editingScript = useTreeStore(s => s.editingScript);
+    const contextMenu = useTreeStore(s => s.contextMenu);
+
     // Everything else: read on demand, no subscription
     const st = useTreeStore.getState();
     const isDragging = st.isDragging;
     const draggedScriptPath = st.draggedScriptPath;
-    const editingScript = st.editingScript;
     const pendingScripts = st.pendingScripts;
     const removingTags = st.removingTags;
     const showHidden = st.showHidden;
-    const contextMenu = st.contextMenu;
     const isVimMode = st.isVimMode;
     const folderDurations = st.folderDurations;
 

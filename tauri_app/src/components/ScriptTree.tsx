@@ -378,7 +378,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
                             setSearchQuery={setSearchQuery}
                             isDragging={isDragging}
                             draggedScriptPath={draggedScriptPath}
-                            editingScript={editingScript}
+                            editingScript={viewMode !== "tree" ? editingScript : null}
                             pendingScripts={pendingScripts}
                             removingTags={removingTags}
                             allUniqueTags={allUniqueTags}
