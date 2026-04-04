@@ -71,8 +71,8 @@ export default function ScriptTreeToolbar({
     const [sortOpen, setSortOpen] = useState(false);
     const sortRef = useRef<HTMLDivElement>(null);
     const sortOptions: { id: "name" | "size"; label: string }[] = [
-        { id: "name", label: t("toolbar.sort_name", "Name") },
-        { id: "size", label: t("toolbar.sort_size", "Size") },
+        { id: "name", label: t("toolbar.name") },
+        { id: "size", label: t("toolbar.size") },
     ];
     const currentSortLabel = sortOptions.find(o => o.id === sortBy)?.label ?? sortBy;
 
@@ -111,7 +111,7 @@ export default function ScriptTreeToolbar({
         <div className={`flex items-end justify-between pt-3 pb-2 border-b transition-all duration-300 ${draggedScriptPath ? 'opacity-20 blur-[1px] pointer-events-none' : ''}`} style={{ borderColor: 'var(--border-color)' }}>
             <div className="flex-1 min-w-0 flex items-end relative">
                 <div className={`flex flex-col flex-shrink-0 overflow-hidden transition-all duration-300 ease-in-out ${searchActive ? 'w-0 opacity-0 pointer-events-none' : 'opacity-100'}`}>
-                    <SectionLabel className="ml-3 mb-0.5">{t("toolbar.view", "View")}</SectionLabel>
+                    <SectionLabel className="ml-3 mb-0.5">{t("toolbar.view")}</SectionLabel>
                     <ToggleGroup
                         options={viewOptions}
                         value={viewMode}
@@ -122,7 +122,7 @@ export default function ScriptTreeToolbar({
 
                 {/* SORTING CONTROLS */}
                 <div className={`flex flex-col overflow-visible transition-all duration-300 ease-in-out ${searchActive ? 'w-0 opacity-0 pointer-events-none ml-0' : 'opacity-100 ml-2'}`}>
-                    <SectionLabel className="ml-3 mb-0.5">{t("toolbar.sort", "Sort")}</SectionLabel>
+                    <SectionLabel className="ml-3 mb-0.5">{t("toolbar.sort")}</SectionLabel>
                     <div ref={sortRef} className="relative">
                         <button
                             onClick={() => !isDragging && setSortOpen(!sortOpen)}
@@ -246,7 +246,7 @@ export default function ScriptTreeToolbar({
                                 showHidden === 'all' ? "bg-white/10 border-white/20 text-white shadow-lg" :
                                     "bg-white/10 border-white/20 text-indigo-400 shadow-lg"}
                             ${isDragging ? 'opacity-20 pointer-events-none' : ''}`}
-                        title={showHidden === 'none' ? t("context.show_hidden") : showHidden === 'all' ? t("context.hide_hidden") : t("context.show_only_hidden", "Show Only Hidden")}
+                        title={showHidden === 'none' ? t("context.show_hidden") : showHidden === 'all' ? t("context.hide_hidden") : t("context.show_only_hidden")}
                     >
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                             {showHidden === 'none' ? (

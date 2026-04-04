@@ -153,14 +153,14 @@ const HubScriptCard = memo(function HubScriptCard({
                 {s.is_running && !isPending ? (
                     <div className="flex items-center gap-2">
                         {s.has_ui && (
-                            <ActionButton color="indigo" variant="wide" onClick={() => onShowUI(s)} title="Interface">
+                            <ActionButton color="indigo" variant="wide" onClick={() => onShowUI(s)} title={t("tooltips.interface")}>
                                 <InterfaceIcon size={17} />
                             </ActionButton>
                         )}
-                        <ActionButton color="yellow" variant="wide" onClick={() => onRestart(s)} title="Restart Script">
+                        <ActionButton color="yellow" variant="wide" onClick={() => onRestart(s)} title={t("tooltips.restart_script")}>
                             <RestartIcon size={17} />
                         </ActionButton>
-                        <ActionButton color="red" variant="wide" onClick={() => onToggle(s)} title="Kill Script" className="shadow-xl active:scale-95">
+                        <ActionButton color="red" variant="wide" onClick={() => onToggle(s)} title={t("tooltips.kill_script")} className="shadow-xl active:scale-95">
                             <CloseIcon size={17} />
                         </ActionButton>
                     </div>
@@ -179,8 +179,8 @@ const HubScriptCard = memo(function HubScriptCard({
                         `}
                     >
                         {isPending ? (
-                            pendingType === 'restart' ? "RESTARTING..." :
-                                pendingType === 'kill' ? "KILLING..." : "IGNITING..."
+                            pendingType === 'restart' ? t("hub_card.restarting") :
+                                pendingType === 'kill' ? t("hub_card.killing") : t("hub_card.igniting")
                         ) : (
                             <div className="flex items-center justify-center">
                                 <PlayIcon size={17} />

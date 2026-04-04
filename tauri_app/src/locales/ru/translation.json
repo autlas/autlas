@@ -8,7 +8,9 @@
         "tags": "Теги",
         "settings": "Настройки",
         "refresh": "Обновить список",
-        "scripts": "Скрипты"
+        "scripts": "Скрипты",
+        "scanning": "Сканирование...",
+        "last_scan": "Последнее сканирование"
     },
     "settings": {
         "title": "Настройки",
@@ -40,6 +42,7 @@
         "remove_path": "Удалить из библиотеки",
         "no_paths": "Список пуст. Добавьте папку, чтобы начать сканирование.",
         "select_folder": "Выберите папку со скриптами",
+        "manual_scan": "Обновить сканирование",
         "browse": "Обзор",
         "devtools": "DevTools",
         "devtools_desc": "Открыть консоль разработчика",
@@ -66,7 +69,10 @@
         "collapse_all": "Свернуть все",
         "hide_hidden": "Скрыть 'Скрытые'",
         "show_hidden": "Показать 'Скрытые'",
-        "hide_folder": "Скрыть папку"
+        "hide_folder": "Скрыть папку",
+        "show_only_hidden": "Только скрытые",
+        "cancel": "Отмена",
+        "delete": "Удалить"
     },
     "hub": {
         "empty_channel": "В этом канале пусто...",
@@ -89,5 +95,59 @@
     "actions": {
         "run": "Запустить",
         "running": "Работает"
+    },
+    "tooltips": {
+        "pin": "Закрепить",
+        "unpin": "Открепить",
+        "edit": "Редактировать",
+        "show_in_folder": "Показать в папке",
+        "open_with": "Открыть с помощью...",
+        "interface": "Интерфейс",
+        "restart": "Перезапустить",
+        "stop": "Остановить",
+        "run": "Запустить",
+        "restarting": "Перезапуск...",
+        "stopping": "Остановка...",
+        "starting": "Запуск...",
+        "toggling": "Переключение...",
+        "kill": "Остановить",
+        "kill_script": "Остановить скрипт",
+        "restart_script": "Перезапустить скрипт",
+        "expand_all": "Развернуть все",
+        "collapse_all": "Свернуть все"
+    },
+    "detail": {
+        "tags": "Теги",
+        "copied": "Скопировано!",
+        "loading": "Загрузка...",
+        "read_error": "Не удалось прочитать файл"
+    },
+    "toolbar": {
+        "view": "Вид",
+        "sort": "Сортировка",
+        "name": "Имя",
+        "size": "Размер"
+    },
+    "settings": {
+        "vim_nav": "Стиль навигации Vim",
+        "vim_nav_desc": "hjkl (2D сетка) vs jk (1D список)",
+        "system_tray": "Системный трей",
+        "everything_search": "Поиск Everything",
+        "everything_integration": "Интеграция Everything",
+        "everything_running": "Everything запущен — мгновенное сканирование",
+        "everything_installed": "Everything установлен, но не запущен",
+        "everything_not_installed": "Everything не установлен — используется медленное сканирование",
+        "everything_active": "Активен",
+        "everything_starting": "Запуск...",
+        "everything_installing": "Установка...",
+        "everything_install": "Установить",
+        "everything_launch": "Запустить",
+        "show_file_size": "Размер файлов",
+        "show_file_size_desc": "Показывать размер файла рядом с именем скрипта"
+    },
+    "hub_card": {
+        "restarting": "ПЕРЕЗАПУСК...",
+        "killing": "ОСТАНОВКА...",
+        "igniting": "ЗАПУСК..."
     }
 }

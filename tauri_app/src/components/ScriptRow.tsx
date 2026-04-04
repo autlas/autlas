@@ -228,12 +228,12 @@ const ScriptRow = memo(function ScriptRow({
                     )}
                     <div className={`${showFileSize ? 'absolute right-0' : ''} transition-opacity flex items-center space-x-2 ${isFocused && isVimMode ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
                         {s.is_running && !isPending && s.has_ui && (
-                            <ActionButton color="indigo" onClick={() => onShowUI(s)} title="Interface">
+                            <ActionButton color="indigo" onClick={() => onShowUI(s)} title={t("tooltips.interface")}>
                                 <InterfaceIcon />
                             </ActionButton>
                         )}
                         {s.is_running && !isPending && (
-                            <ActionButton color="yellow" onClick={() => onRestart(s)} title="Restart">
+                            <ActionButton color="yellow" onClick={() => onRestart(s)} title={t("tooltips.restart")}>
                                 <RestartIcon />
                             </ActionButton>
                         )}
@@ -247,7 +247,7 @@ const ScriptRow = memo(function ScriptRow({
                                             'bg-green-500/10 text-green-500 border-green-500/20 animate-pulse'
                                 ) : s.is_running ? 'bg-white/5 text-[#71717a] border-white/5 hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/20' : 'bg-white/5 text-[#71717a] border-white/5 hover:bg-green-500/10 hover:text-green-500 hover:border-green-500/20'}
                         `}
-                            title={isPending ? (pendingType === 'restart' ? "Restarting..." : "Toggling...") : (s.is_running ? "Kill" : "Run")}
+                            title={isPending ? (pendingType === 'restart' ? t("tooltips.restarting") : t("tooltips.toggling")) : (s.is_running ? t("tooltips.kill") : t("tooltips.run"))}
                         >
                             {isPending ? (
                                 <div className="text-[10px] items-center justify-center flex font-bold h-full">...</div>

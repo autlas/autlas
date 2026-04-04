@@ -162,8 +162,8 @@ export default function SettingsPanel({
 
         <div className="flex justify-between items-center px-2 mt-8">
           <div className="flex flex-col">
-            <span className="text-base font-bold text-secondary">Vim Navigation Style</span>
-            <span className="text-xs text-tertiary mt-1">hjkl (2D grid) vs jk (1D list)</span>
+            <span className="text-base font-bold text-secondary">{t("settings.vim_nav")}</span>
+            <span className="text-xs text-tertiary mt-1">{t("settings.vim_nav_desc")}</span>
           </div>
           <ToggleGroup
               options={vimNavOptions}
@@ -175,8 +175,8 @@ export default function SettingsPanel({
 
         <div className="flex justify-between items-center px-2 pt-4 border-t border-white/5">
           <div className="flex flex-col">
-            <span className="text-base font-bold text-secondary">{t("settings.show_file_size", "Show file size")}</span>
-            <span className="text-xs text-tertiary mt-1">{t("settings.show_file_size_desc", "Display script file size next to name")}</span>
+            <span className="text-base font-bold text-secondary">{t("settings.show_file_size")}</span>
+            <span className="text-xs text-tertiary mt-1">{t("settings.show_file_size_desc")}</span>
           </div>
           <button
             onClick={toggleShowFileSize}
@@ -188,7 +188,7 @@ export default function SettingsPanel({
       </SettingsSection>
 
       <SettingsSection>
-        <h3 className="text-sm font-bold tracking-widest text-tertiary uppercase">System Tray</h3>
+        <h3 className="text-sm font-bold tracking-widest text-tertiary uppercase">{t("settings.system_tray")}</h3>
         <div className="flex justify-between items-center px-2">
           <div className="flex flex-col">
             <span className="text-base font-bold text-secondary">{t("settings.close_to_tray", "Close to tray")}</span>
@@ -205,16 +205,16 @@ export default function SettingsPanel({
       </SettingsSection>
 
       <SettingsSection>
-        <h3 className="text-sm font-bold tracking-widest text-tertiary uppercase">Everything Search</h3>
+        <h3 className="text-sm font-bold tracking-widest text-tertiary uppercase">{t("settings.everything_search")}</h3>
         <div className="flex justify-between items-center px-2">
           <div className="flex flex-col">
-            <span className="text-base font-bold text-secondary">Everything Integration</span>
+            <span className="text-base font-bold text-secondary">{t("settings.everything_integration")}</span>
             <span className="text-xs text-tertiary mt-1">
               {everythingStatus === "running"
-                ? "Everything is running — instant file scanning enabled"
+                ? t("settings.everything_running")
                 : everythingStatus === "installed"
-                ? "Everything is installed but not running"
-                : "Everything is not installed — using slower disk scan"}
+                ? t("settings.everything_installed")
+                : t("settings.everything_not_installed")}
             </span>
           </div>
           <div className="flex items-center gap-3">
@@ -226,7 +226,7 @@ export default function SettingsPanel({
                 : "bg-red-500/50 shadow-[0_0_8px_rgba(239,68,68,0.4)]"
             }`} />
             {everythingStatus === "running" && (
-              <span className="text-xs font-mono text-green-400 font-bold bg-green-400/10 px-4 py-1.5 rounded-full tracking-widest uppercase">Active</span>
+              <span className="text-xs font-mono text-green-400 font-bold bg-green-400/10 px-4 py-1.5 rounded-full tracking-widest uppercase">{t("settings.everything_active")}</span>
             )}
             {everythingStatus === "installed" && (
               <button
@@ -234,7 +234,7 @@ export default function SettingsPanel({
                 disabled={everythingLoading}
                 className="text-xs font-mono text-amber-400 font-bold bg-amber-400/10 px-4 py-1.5 rounded-full tracking-widest uppercase hover:bg-amber-400/20 transition-colors cursor-pointer disabled:opacity-50"
               >
-                {everythingLoading ? "Starting..." : "Launch"}
+                {everythingLoading ? t("settings.everything_starting") : t("settings.everything_launch")}
               </button>
             )}
             {everythingStatus === "not_installed" && (
@@ -242,7 +242,7 @@ export default function SettingsPanel({
                 onClick={() => onInstallEverything?.()}
                 className="text-xs font-mono text-red-400 font-bold bg-red-400/10 px-4 py-1.5 rounded-full tracking-widest uppercase hover:bg-red-400/20 transition-colors cursor-pointer"
               >
-                Install
+                {t("settings.everything_install")}
               </button>
             )}
           </div>

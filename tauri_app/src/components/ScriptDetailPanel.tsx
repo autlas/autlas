@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef, MouseEvent as ReactMouseEvent
 import { Script, readScriptContent } from "../api";
 import { invoke } from "@tauri-apps/api/core";
 import { useHotkeys } from "react-hotkeys-hook";
+import { useTranslation } from "react-i18next";
 import TagPickerPopover from "./TagPickerPopover";
 import { CloseIcon, PlayIcon, RestartIcon, InterfaceIcon, PlusIcon, EditIcon, FolderIcon, OpenWithIcon } from "./ui/Icons";
 
@@ -20,6 +21,7 @@ interface ScriptDetailPanelProps {
 }
 
 export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendingType, onPinToggle, onClose, onToggle, onRestart, onShowUI, onAddTag, onRemoveTag }: ScriptDetailPanelProps) {
+  const { t } = useTranslation();
   const [content, setContent] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
@@ -131,7 +133,7 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
           <button
             onClick={onPinToggle}
             className="w-7 h-7 flex items-center justify-center rounded-lg transition-all cursor-pointer bg-white/5 text-white/25 hover:text-white/50 hover:bg-white/10"
-            title={pinned ? "Unpin" : "Pin"}
+            title={pinned ? t("tooltips.unpin") : t("tooltips.pin")}
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill={pinned ? "#888" : "none"} stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <line x1="12" y1="17" x2="12" y2="22" />
@@ -157,7 +159,7 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
         </span>
         {copied && (
           <span className="absolute inset-0 flex items-center justify-center text-[13px] font-bold text-white/50">
-            Copied!
+            {t("detail.copied")}
           </span>
         )}
       </button>
@@ -168,7 +170,7 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
           <button
             onClick={() => onShowUI(script)}
             className="w-[80px] h-[42px] flex items-center justify-center rounded-2xl bg-white/5 text-[#71717a] border border-white/5 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-500/30 transition-all cursor-pointer"
-            title="Interface"
+            title={t("tooltips.interface")}
           >
             <InterfaceIcon />
           </button>
@@ -177,7 +179,7 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
           <button
             onClick={() => onRestart(script)}
             className="w-[80px] h-[42px] flex items-center justify-center rounded-2xl bg-white/5 text-[#71717a] border border-white/5 hover:bg-yellow-500/10 hover:text-yellow-500 hover:border-yellow-500/30 transition-all cursor-pointer"
-            title="Restart"
+            title={t("tooltips.restart")}
           >
             <RestartIcon />
           </button>
@@ -193,7 +195,7 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
                 ? 'bg-white/5 text-[#71717a] border-white/5 hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/20'
                 : 'bg-white/5 text-[#71717a] border-white/5 hover:bg-green-500/10 hover:text-green-500 hover:border-green-500/20'
             }`}
-          title={pendingType ? (pendingType === "restart" ? "Restarting..." : pendingType === "kill" ? "Stopping..." : "Starting...") : (script.is_running ? "Stop" : "Run")}
+          title={pendingType ? (pendingType === "restart" ? t("tooltips.restarting") : pendingType === "kill" ? t("tooltips.stopping") : t("tooltips.starting")) : (script.is_running ? t("tooltips.stop") : t("tooltips.run"))}
         >
           {pendingType ? (
             <span className="text-[10px] font-bold">...</span>
@@ -203,21 +205,21 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
         <button
           onClick={handleEdit}
           className="w-[80px] h-[42px] flex items-center justify-center rounded-2xl bg-white/5 text-[#71717a] border border-white/5 hover:bg-white/10 hover:text-white/60 transition-all cursor-pointer"
-          title="Edit"
+          title={t("tooltips.edit")}
         >
           <EditIcon />
         </button>
         <button
           onClick={handleOpenWith}
           className="w-[80px] h-[42px] flex items-center justify-center rounded-2xl bg-white/5 text-[#71717a] border border-white/5 hover:bg-white/10 hover:text-white/60 transition-all cursor-pointer"
-          title="Open with..."
+          title={t("tooltips.open_with")}
         >
           <OpenWithIcon />
         </button>
         <button
           onClick={handleOpenFolder}
           className="w-[80px] h-[42px] flex items-center justify-center rounded-2xl bg-white/5 text-[#71717a] border border-white/5 hover:bg-white/10 hover:text-white/60 transition-all cursor-pointer"
-          title="Show in Folder"
+          title={t("tooltips.show_in_folder")}
         >
           <FolderIcon />
         </button>
@@ -225,7 +227,7 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
 
       {/* Tags */}
       <div className="px-5 mb-1.5">
-        <span className="text-[11px] font-bold uppercase tracking-widest text-white/20">Tags</span>
+        <span className="text-[11px] font-bold uppercase tracking-widest text-white/20">{t("detail.tags")}</span>
       </div>
       <div className="flex flex-wrap items-center gap-2 px-5 mb-4">
         {displayedTags.map(tag => (
@@ -267,9 +269,9 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
       {/* Code Viewer */}
       <div className="flex-1 min-h-0 overflow-auto custom-scrollbar px-2">
         {loading ? (
-          <div className="flex items-center justify-center h-32 text-white/20 text-sm">Loading...</div>
+          <div className="flex items-center justify-center h-32 text-white/20 text-sm">{t("detail.loading")}</div>
         ) : content === null ? (
-          <div className="flex items-center justify-center h-32 text-red-400/60 text-sm">Failed to read file</div>
+          <div className="flex items-center justify-center h-32 text-red-400/60 text-sm">{t("detail.read_error")}</div>
         ) : (
           <pre className="text-[12px] leading-[1.6] font-mono text-white/60 select-text">
             <table className="border-collapse">

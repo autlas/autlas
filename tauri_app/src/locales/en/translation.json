@@ -8,7 +8,9 @@
         "tags": "Tags",
         "settings": "Settings",
         "refresh": "Refresh List",
-        "scripts": "Scripts"
+        "scripts": "Scripts",
+        "scanning": "Scanning...",
+        "last_scan": "Last Scan"
     },
     "settings": {
         "title": "Settings",
@@ -40,6 +42,7 @@
         "remove_path": "Remove from library",
         "no_paths": "No folders found. Add one to start scanning scripts.",
         "select_folder": "Select Script Folder",
+        "manual_scan": "Refresh Scan",
         "browse": "Browse",
         "devtools": "Open DevTools",
         "devtools_desc": "Open developer tools console",
@@ -66,7 +69,10 @@
         "collapse_all": "Collapse all",
         "hide_hidden": "Hide 'Hidden'",
         "show_hidden": "Show 'Hidden'",
-        "hide_folder": "Hide Folder"
+        "hide_folder": "Hide Folder",
+        "show_only_hidden": "Show Only Hidden",
+        "cancel": "Cancel",
+        "delete": "Delete"
     },
     "hub": {
         "empty_channel": "Empty channel...",
@@ -89,5 +95,59 @@
     "actions": {
         "run": "Run",
         "running": "Running"
+    },
+    "tooltips": {
+        "pin": "Pin",
+        "unpin": "Unpin",
+        "edit": "Edit",
+        "show_in_folder": "Show in Folder",
+        "open_with": "Open with...",
+        "interface": "Interface",
+        "restart": "Restart",
+        "stop": "Stop",
+        "run": "Run",
+        "restarting": "Restarting...",
+        "stopping": "Stopping...",
+        "starting": "Starting...",
+        "toggling": "Toggling...",
+        "kill": "Kill",
+        "kill_script": "Kill Script",
+        "restart_script": "Restart Script",
+        "expand_all": "Expand All",
+        "collapse_all": "Collapse All"
+    },
+    "detail": {
+        "tags": "Tags",
+        "copied": "Copied!",
+        "loading": "Loading...",
+        "read_error": "Failed to read file"
+    },
+    "toolbar": {
+        "view": "View",
+        "sort": "Sort",
+        "name": "Name",
+        "size": "Size"
+    },
+    "settings": {
+        "vim_nav": "Vim Navigation Style",
+        "vim_nav_desc": "hjkl (2D grid) vs jk (1D list)",
+        "system_tray": "System Tray",
+        "everything_search": "Everything Search",
+        "everything_integration": "Everything Integration",
+        "everything_running": "Everything is running — instant file scanning enabled",
+        "everything_installed": "Everything is installed but not running",
+        "everything_not_installed": "Everything is not installed — using slower disk scan",
+        "everything_active": "Active",
+        "everything_starting": "Starting...",
+        "everything_installing": "Installing...",
+        "everything_install": "Install",
+        "everything_launch": "Launch",
+        "show_file_size": "Show file size",
+        "show_file_size_desc": "Display script file size next to name"
+    },
+    "hub_card": {
+        "restarting": "RESTARTING...",
+        "killing": "KILLING...",
+        "igniting": "IGNITING..."
     }
 }
