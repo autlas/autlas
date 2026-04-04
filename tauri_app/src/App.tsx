@@ -384,6 +384,7 @@ function App() {
             {Array.from(visitedTabs).map(tab => (
               <div key={`script-tree-${tab}-${refreshKey}`} className={tab === activeTab ? "flex-1 flex flex-col min-h-0" : "hidden"}>
                 <MemoizedScriptTree
+                  isActive={tab === activeTab}
                   filterTag={tab}
                   onTagsLoaded={handleTagsLoaded}
                   onLoadingChange={tab === activeTab ? handleLoadingChange : () => {}}

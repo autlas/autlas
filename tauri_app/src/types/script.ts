@@ -35,6 +35,7 @@ export interface ScriptTreeProps {
     onOpenSettings?: () => void;
     onSelectScript?: (s: Script) => void;
     onExposeActions?: (actions: { toggle: (s: Script) => void; restart: (s: Script) => void; pendingScripts: Record<string, "run" | "kill" | "restart">; allScripts: Script[] }) => void;
+    isActive?: boolean;
 }
 
 export interface TagPickerProps {

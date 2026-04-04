@@ -10,7 +10,7 @@ import ScriptGridView from "./ScriptGridView";
 import { TreeContext, TreeNodeRenderer, setTreeCallbacks } from "./TreeNodeRenderer";
 import { useTreeStore } from "../store/useTreeStore";
 
-export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, onRunningCountChange, viewMode, onViewModeChange, onCustomDragStart, isDragging, draggedScriptPath, animationsEnabled, onScriptContextMenu, onFolderContextMenu, searchQuery, setSearchQuery, contextMenu, onShowUI, manualRefresh, onScanComplete, isPathsEmpty, onAddPath, onRefresh, onOpenSettings, onSelectScript, onExposeActions }: ScriptTreeProps) {
+export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, onRunningCountChange, viewMode, onViewModeChange, onCustomDragStart, isDragging, draggedScriptPath, animationsEnabled, onScriptContextMenu, onFolderContextMenu, searchQuery, setSearchQuery, contextMenu, onShowUI, manualRefresh, onScanComplete, isPathsEmpty, onAddPath, onRefresh, onOpenSettings, onSelectScript, onExposeActions, isActive = true }: ScriptTreeProps) {
     const searchInputRef = useRef<HTMLInputElement>(null);
     const lastGTimeRef = useRef(0);
     const lastFTimeRef = useRef(0);
@@ -51,24 +51,24 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
     useHotkeys('j', () => {
         const vimNav = localStorage.getItem("ahk_vim_mode_nav") || "hjkl";
         moveFocus('down', vimNav === 'jk' || viewMode === 'tree' ? 1 : columnsCount);
-    }, { preventDefault: true });
+    }, { preventDefault: true, enabled: isActive });
 
     useHotkeys('k', () => {
         const vimNav = localStorage.getItem("ahk_vim_mode_nav") || "hjkl";
         moveFocus('up', vimNav === 'jk' || viewMode === 'tree' ? 1 : columnsCount);
-    }, { preventDefault: true });
+    }, { preventDefault: true, enabled: isActive });
 
     useHotkeys('h', () => {
         const vimNav = localStorage.getItem("ahk_vim_mode_nav") || "hjkl";
         if (vimNav === 'jk' && viewMode !== 'tree') return;
         moveFocus('left', 1);
-    }, { preventDefault: true });
+    }, { preventDefault: true, enabled: isActive });
 
     useHotkeys('l', () => {
         const vimNav = localStorage.getItem("ahk_vim_mode_nav") || "hjkl";
         if (vimNav === 'jk' && viewMode !== 'tree') return;
         moveFocus('right', 1);
-    }, { preventDefault: true });
+    }, { preventDefault: true, enabled: isActive });
 
     useHotkeys('enter', () => {
         if (!useTreeStore.getState().focusedPath) return;
@@ -80,7 +80,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
                 toggleFolder(item.path);
             }
         }
-    }, { preventDefault: true });
+    }, { preventDefault: true, enabled: isActive });
 
     useHotkeys('space', () => {
         if (!useTreeStore.getState().focusedPath) return;
@@ -90,7 +90,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
         } else if (item) {
             toggleFolder(item.path);
         }
-    }, { preventDefault: true });
+    }, { preventDefault: true, enabled: isActive });
 
     useHotkeys('r', () => {
         if (!useTreeStore.getState().focusedPath) return;
@@ -98,7 +98,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
         if (item && item.type === 'script' && item.data.is_running) {
             handleRestart(item.data);
         }
-    }, { preventDefault: true });
+    }, { preventDefault: true, enabled: isActive });
 
     useHotkeys('t', () => {
         if (!useTreeStore.getState().focusedPath) return;
@@ -106,7 +106,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
         if (item && item.type === 'script') {
             startEditing(item.data);
         }
-    }, { preventDefault: true });
+    }, { preventDefault: true, enabled: isActive });
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -131,11 +131,11 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
 
     useHotkeys('shift+/', () => {
         setIsCheatSheetOpen(prev => !prev);
-    });
+    }, { enabled: isActive });
 
     useHotkeys('f', () => {
         lastFTimeRef.current = performance.now();
-    });
+    }, { enabled: isActive });
 
     useHotkeys('g', () => {
         const now = performance.now();
@@ -151,7 +151,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
         } else {
             lastGTimeRef.current = now;
         }
-    });
+    }, { enabled: isActive });
 
     useHotkeys('shift+g', (e) => {
         e.preventDefault();
@@ -160,12 +160,12 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
             setFocusedPath(visibleItems[visibleItems.length - 1].path);
             setIsVimMode(true);
         }
-    });
+    }, { enabled: isActive });
 
-    useHotkeys('q', () => onViewModeChange('tree'));
-    useHotkeys('w', () => onViewModeChange('tiles'));
-    useHotkeys('e', () => onViewModeChange('list'));
-    useHotkeys('s', () => setSortBy(prev => prev === 'name' ? 'size' : 'name'));
+    useHotkeys('q', () => onViewModeChange('tree'), { enabled: isActive });
+    useHotkeys('w', () => onViewModeChange('tiles'), { enabled: isActive });
+    useHotkeys('e', () => onViewModeChange('list'), { enabled: isActive });
+    useHotkeys('s', () => setSortBy(prev => prev === 'name' ? 'size' : 'name'), { enabled: isActive });
 
     useHotkeys('i', (e) => {
         const now = performance.now();
@@ -192,12 +192,12 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
                 onShowUI(item.data);
             }
         }
-    });
+    }, { enabled: isActive });
 
     useHotkeys('ctrl+f', (e) => {
         e.preventDefault();
         if (searchInputRef.current) searchInputRef.current.focus();
-    });
+    }, { enabled: isActive });
 
     useHotkeys('esc', () => {
         if (isCheatSheetOpen) {
@@ -210,7 +210,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
         }
         setFocusedPath(null);
         setIsVimMode(false);
-    }, { enableOnFormTags: true }, [isCheatSheetOpen]);
+    }, { enableOnFormTags: true, enabled: isActive }, [isCheatSheetOpen]);
 
     const lastScrollTimeRef = useRef(0);
 
@@ -303,7 +303,6 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
 
     // Set module-level callbacks for TreeNodeRenderer (bypasses useContext → prevents memo bypass)
     setTreeCallbacks(treeContextValue);
-    console.log(`[PERF] ScriptTree render: viewMode=${viewMode}, filterTag=${filterTag}, scripts=${filtered.length}, at ${performance.now().toFixed(1)}ms`);
 
     const masonryColumns = useMemo(() => {
         const cols: import("../api").Script[][] = Array.from({ length: columnsCount }, () => []);

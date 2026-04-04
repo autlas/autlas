@@ -656,6 +656,10 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
     const moveFocus = useCallback((direction: 'up' | 'down' | 'left' | 'right', cols: number = 1) => {
         useTreeStore.getState().setIsVimMode(true);
         const prev = useTreeStore.getState().focusedPath;
+        console.log(`[VIM] key=${direction} cols=${cols} | prev=${prev ? prev.split(/[/\\]/).pop() : 'null'} | visibleItems=${visibleItems.length}`);
+        if (!prev) {
+            console.log(`[VIM] visibleItems:`, visibleItems.map((item, i) => `${i}: [${item.type}] ${item.path.split(/[/\\]/).pop()}`).join('\n'));
+        }
         if (visibleItems.length === 0) { useTreeStore.getState().setFocusedPath(null); return; }
 
         const isNavigable = (item: { path: string, type: 'folder' | 'script' }) =>
@@ -685,7 +689,9 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
             for (let i = 0; i < len; i++) { const ci = (startFrom - i + len) % len; if (isNavigable(visibleItems[ci]) && (ci !== idx || len <= 1)) { nextIdx = ci; break; } }
         }
 
-        useTreeStore.getState().setFocusedPath(visibleItems[nextIdx].path);
+        const nextPath = visibleItems[nextIdx].path;
+        console.log(`[VIM] → focused: ${nextPath.split(/[/\\]/).pop()} (idx ${idx}→${nextIdx})`);
+        useTreeStore.getState().setFocusedPath(nextPath);
     }, [visibleItems]);
 
     return {
