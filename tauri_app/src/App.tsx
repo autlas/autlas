@@ -417,7 +417,7 @@ function App() {
 
             <div className={viewMode !== "settings" ? "flex-1 flex flex-col min-h-0" : "hidden"}>
               {Array.from(visitedTabs).map(tab => (
-                <div key={`script-tree-${tab}-${refreshKey}`} className={tab === activeTab ? "flex-1 flex flex-col min-h-0" : "hidden"}>
+                <div key={`script-tree-${tab}`} className={tab === activeTab ? "flex-1 flex flex-col min-h-0" : "hidden"}>
                   <MemoizedScriptTree
                     isActive={tab === activeTab}
                     filterTag={tab}
@@ -442,7 +442,7 @@ function App() {
                       setContextMenu({ x: e.clientX, y: e.clientY, type: "folder", data: folderData });
                     }}
                     onShowUI={handleShowUI}
-                    manualRefresh={refreshKey > 0}
+                    refreshKey={refreshKey}
                     onScanComplete={handleScanComplete}
                     isPathsEmpty={scanPaths.length === 0}
                     onAddPath={handleAddScanPath}

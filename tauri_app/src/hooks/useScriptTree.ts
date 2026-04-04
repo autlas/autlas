@@ -32,13 +32,13 @@ interface UseScriptTreeOptions {
     searchQuery: string;
     setSearchQuery: (query: string) => void;
     onRunningCountChange?: (count: number) => void;
-    manualRefresh?: boolean;
+    refreshKey?: number;
     onScanComplete?: (timestamp: number) => void;
     viewMode: "tree" | "tiles" | "list";
     sortBy: "name" | "size";
 }
 
-export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, searchQuery, setSearchQuery, onRunningCountChange, manualRefresh, onScanComplete, viewMode, sortBy }: UseScriptTreeOptions) {
+export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, searchQuery, setSearchQuery, onRunningCountChange, refreshKey, onScanComplete, viewMode, sortBy }: UseScriptTreeOptions) {
     const { t } = useTranslation();
     const [allScripts, setAllScripts] = useState<Script[]>(_cachedScripts);
     const [loading, setLoading] = useState(_cachedScripts.length === 0);
@@ -65,14 +65,14 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, [editingScript]);
 
-    const fetchData = async () => {
+    const fetchData = async (forceScan = false) => {
         setIsFetching(true);
         try {
             const t0 = performance.now();
-            const data = await getScripts(manualRefresh);
-            console.log(`[Scan] ${manualRefresh ? 'Full scan' : 'Cache load'}: ${data.length} scripts in ${(performance.now() - t0).toFixed(0)}ms`);
+            const data = await getScripts(forceScan);
+            console.log(`[Scan] ${forceScan ? 'Full scan' : 'Cache load'}: ${data.length} scripts in ${(performance.now() - t0).toFixed(0)}ms`);
             _cachedScripts = data;
-            if (manualRefresh && onScanComplete) {
+            if (forceScan && onScanComplete) {
                 onScanComplete(Date.now());
             }
             startTransition(() => {
@@ -177,6 +177,15 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
             if (unlistenStatus) unlistenStatus();
         };
     }, []);
+
+    // Re-scan when refreshKey changes (scan paths updated or manual refresh)
+    const prevRefreshKey = useRef(refreshKey);
+    useEffect(() => {
+        if (refreshKey !== undefined && refreshKey !== prevRefreshKey.current) {
+            prevRefreshKey.current = refreshKey;
+            fetchData(true);
+        }
+    }, [refreshKey]);
 
     const toggleFolder = useCallback((path: string) => {
         let collapseDuration = 150;

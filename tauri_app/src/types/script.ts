@@ -27,7 +27,7 @@ export interface ScriptTreeProps {
     contextMenu: { x: number, y: number, type: string, data: any } | null;
     onShowUI: (s: Script) => void;
     onRestart?: (s: Script) => void;
-    manualRefresh?: boolean;
+    refreshKey?: number;
     onScanComplete?: (timestamp: number) => void;
     isPathsEmpty?: boolean;
     onAddPath?: () => void;
