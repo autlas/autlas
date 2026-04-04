@@ -44,7 +44,7 @@ const ScriptRow = memo(function ScriptRow({
         const containerWidth = containerRef.current.offsetWidth;
         if (containerWidth < 30) return;
         const widths = tagWidthsRef.current;
-        const ADD_BTN_WIDTH = 36;
+        const ADD_BTN_WIDTH = 0;
         const COUNTER_WIDTH = 42;
         const available = containerWidth - ADD_BTN_WIDTH;
 
@@ -202,7 +202,7 @@ const ScriptRow = memo(function ScriptRow({
                             }}
                             onMouseDown={(e) => e.stopPropagation()}
                             onDoubleClick={(e) => e.stopPropagation()}
-                            className={`w-[28px] h-[28px] flex-shrink-0 flex items-center justify-center border border-dashed border-white/10 rounded-lg transition-all cursor-pointer pointer-events-auto text-[#666] hover:text-[#aaa] hover:border-white/20 ${isEditing || (isFocused && isVimMode) ? 'opacity-100 bg-white/5' : 'opacity-0 group-hover:opacity-100'}`}
+                            className={`h-[28px] flex-shrink-0 flex items-center justify-center border border-dashed border-white/10 rounded-lg transition-all cursor-pointer pointer-events-auto text-[#666] hover:text-[#aaa] hover:border-white/20 overflow-hidden ${isEditing || (isFocused && isVimMode) ? 'w-[28px] opacity-100 bg-white/5' : 'w-0 opacity-0 group-hover:w-[28px] group-hover:opacity-100'}`}
                         >
                             <PlusIcon />
                         </button>
