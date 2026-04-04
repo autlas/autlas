@@ -228,12 +228,12 @@ const ScriptRow = memo(function ScriptRow({
                     )}
                     <div className={`${showFileSize ? 'absolute right-0' : ''} transition-opacity flex items-center space-x-2 ${isFocused && isVimMode ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
                         {s.is_running && !isPending && s.has_ui && (
-                            <ActionButton color="indigo" onClick={() => onShowUI(s)} title={t("tooltips.interface")}>
+                            <ActionButton color="indigo" onClick={() => onShowUI(s)} title={t("tooltips.interface")} animateIn animationDelay={0}>
                                 <InterfaceIcon />
                             </ActionButton>
                         )}
                         {s.is_running && !isPending && (
-                            <ActionButton color="yellow" onClick={() => onRestart(s)} title={t("tooltips.restart")}>
+                            <ActionButton color="yellow" onClick={() => onRestart(s)} title={t("tooltips.restart")} animateIn animationDelay={s.has_ui ? 50 : 0}>
                                 <RestartIcon />
                             </ActionButton>
                         )}

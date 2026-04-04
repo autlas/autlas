@@ -210,6 +210,15 @@ body {
 }
 
 
+@keyframes action-in {
+    0% { opacity: 0; transform: scale(0.3); }
+    100% { opacity: 1; transform: scale(1); }
+}
+
+.animate-action-in {
+    animation: action-in 0.25s cubic-bezier(0.34, 1.2, 0.64, 1) both;
+}
+
 @keyframes smooth-pulse {
 
     0%,

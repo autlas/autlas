@@ -4,7 +4,6 @@ import TagPickerPopover from "./TagPickerPopover";
 import { HighlightText } from "./HighlightText";
 import { useTranslation } from "react-i18next";
 import { PlusIcon, CloseIcon, RestartIcon, PlayIcon, InterfaceIcon } from "./ui/Icons";
-import ActionButton from "./ui/ActionButton";
 import { useTreeStore } from "../store/useTreeStore";
 
 
@@ -67,7 +66,7 @@ const HubScriptCard = memo(function HubScriptCard({
             onDoubleClick={() => !isDragging && onToggle(s)}
             id={`script-${s.path}`}
             className={`pt-[21px] pb-6 px-6 rounded-[24px] border flex flex-col select-none relative long-press-shrink ${isEditing ? 'z-[200]' : 'z-10'}
-                ${isFocused && isVimMode ? 'vim-focus-instant !bg-indigo-500/20 shadow-[0_0_40px_rgba(99,102,241,0.2)] ring-2 ring-indigo-500/30' : 'transition-all duration-300'}
+                ${isFocused && isVimMode ? 'vim-focus-instant !bg-indigo-500/20 shadow-[0_0_40px_rgba(99,102,241,0.2)] ring-2 ring-indigo-500/30' : 'transition-all duration-150'}
                 ${!draggedScriptPath
                     ? `${isVimMode ? '' : 'group hover:z-[100] hover:bg-white/[0.06]'} ${isEditing || isContextMenuOpen ? 'shadow-2xl bg-white/[0.05]' : (isVimMode ? 'bg-white/[0.03]' : 'bg-white/[0.03] hover:shadow-2xl cursor-pointer')}`
 
@@ -150,37 +149,68 @@ const HubScriptCard = memo(function HubScriptCard({
             </div>
 
             <div className={`mt-auto transition-opacity duration-200 ${isDragging ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
-                {s.is_running && !isPending ? (
+                {s.is_running ? (
                     <div className="flex items-center gap-2">
                         {s.has_ui && (
-                            <ActionButton color="indigo" variant="wide" onClick={() => onShowUI(s)} title={t("tooltips.interface")}>
+                            <button
+                                onClick={(e) => { e.stopPropagation(); onShowUI(s); }}
+                                onMouseDown={(e) => e.stopPropagation()}
+                                className={`h-[42px] rounded-2xl flex items-center justify-center bg-white/5 text-[#71717a] border border-white/5 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-500/30 transition-all duration-150 cursor-pointer pointer-events-auto overflow-hidden ${!isPending ? 'flex-1 opacity-100' : 'w-0 flex-[0] opacity-0 border-0 px-0'} ${!isPending ? 'animate-action-in' : ''}`}
+                                title={t("tooltips.interface")}
+                            >
                                 <InterfaceIcon size={17} />
-                            </ActionButton>
+                            </button>
                         )}
-                        <ActionButton color="yellow" variant="wide" onClick={() => onRestart(s)} title={t("tooltips.restart_script")}>
-                            <RestartIcon size={17} />
-                        </ActionButton>
-                        <ActionButton color="red" variant="wide" onClick={() => onToggle(s)} title={t("tooltips.kill_script")} className="shadow-xl active:scale-95">
-                            <CloseIcon size={17} />
-                        </ActionButton>
+                        <button
+                            onClick={(e) => { e.stopPropagation(); onRestart(s); }}
+                            onMouseDown={(e) => e.stopPropagation()}
+                            className={`h-[42px] rounded-2xl flex items-center justify-center transition-all duration-150 cursor-pointer pointer-events-auto overflow-hidden whitespace-nowrap
+                                ${pendingType === 'restart'
+                                    ? 'flex-1 bg-yellow-500/10 text-yellow-500 border border-yellow-500/30 animate-pulse'
+                                    : isPending
+                                        ? 'w-0 flex-[0] opacity-0 border-0 px-0'
+                                        : 'flex-1 bg-white/5 text-[#71717a] border border-white/5 hover:bg-yellow-500/10 hover:text-yellow-500 hover:border-yellow-500/30 animate-action-in'
+                                }`}
+                            style={!isPending ? { animationDelay: `${s.has_ui ? 50 : 0}ms` } : undefined}
+                            title={pendingType === 'restart' ? t("tooltips.restarting") : t("tooltips.restart_script")}
+                        >
+                            {pendingType === 'restart'
+                                ? <span className="text-[14px] font-bold tracking-[0.1em]">{t("hub_card.restarting")}</span>
+                                : <RestartIcon size={17} />
+                            }
+                        </button>
+                        <button
+                            onClick={(e) => { e.stopPropagation(); onToggle(s); }}
+                            onMouseDown={(e) => e.stopPropagation()}
+                            className={`h-[42px] rounded-2xl flex items-center justify-center transition-all duration-150 cursor-pointer pointer-events-auto shadow-xl active:scale-95 overflow-hidden whitespace-nowrap
+                                ${pendingType === 'kill'
+                                    ? 'flex-1 bg-red-500/10 text-red-500 border border-red-500/30 animate-pulse'
+                                    : isPending
+                                        ? 'w-0 flex-[0] opacity-0 border-0 px-0'
+                                        : 'flex-1 bg-white/5 text-[#71717a] border border-white/5 hover:bg-red-500/15 hover:text-red-500 hover:border-red-500/30 animate-action-in'
+                                }`}
+                            style={!isPending ? { animationDelay: `${s.has_ui ? 100 : 50}ms` } : undefined}
+                            title={pendingType === 'kill' ? t("tooltips.stopping") : t("tooltips.kill_script")}
+                        >
+                            {pendingType === 'kill'
+                                ? <span className="text-[14px] font-bold tracking-[0.1em]">{t("hub_card.killing")}</span>
+                                : <CloseIcon size={17} />
+                            }
+                        </button>
                     </div>
                 ) : (
                     <button
                         onClick={(e) => { e.stopPropagation(); !isPending && onToggle(s); }}
                         onMouseDown={(e) => e.stopPropagation()}
-                        className={`w-full h-[42px] rounded-2xl text-[14px] font-bold tracking-[0.1em] transition-all transform cursor-pointer active:scale-95 pointer-events-auto shadow-xl 
-                            ${isPending ? (
-                                pendingType === 'restart' ? 'bg-yellow-500/10 text-yellow-500 border border-yellow-500/30 animate-pulse' :
-                                    pendingType === 'kill' ? 'bg-red-500/10 text-red-500 border border-red-500/30 animate-pulse' :
-                                        'bg-green-500/10 text-green-500 border border-green-500/30 animate-pulse'
-                            ) :
-                                "bg-white/5 text-[#71717a] border border-white/5 hover:bg-green-600/15 hover:text-green-500 hover:border-green-500/30 transition-all"
+                        className={`w-full h-[42px] rounded-2xl text-[14px] font-bold tracking-[0.1em] transition-all transform cursor-pointer active:scale-95 pointer-events-auto shadow-xl
+                            ${isPending
+                                ? 'bg-green-500/10 text-green-500 border border-green-500/30 animate-pulse'
+                                : "bg-white/5 text-[#71717a] border border-white/5 hover:bg-green-600/15 hover:text-green-500 hover:border-green-500/30"
                             }
                         `}
                     >
                         {isPending ? (
-                            pendingType === 'restart' ? t("hub_card.restarting") :
-                                pendingType === 'kill' ? t("hub_card.killing") : t("hub_card.igniting")
+                            t("hub_card.igniting")
                         ) : (
                             <div className="flex items-center justify-center">
                                 <PlayIcon size={17} />
