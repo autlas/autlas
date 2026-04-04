@@ -68,7 +68,9 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
     const fetchData = async () => {
         setIsFetching(true);
         try {
+            const t0 = performance.now();
             const data = await getScripts(manualRefresh);
+            console.log(`[Scan] ${manualRefresh ? 'Full scan' : 'Cache load'}: ${data.length} scripts in ${(performance.now() - t0).toFixed(0)}ms`);
             _cachedScripts = data;
             if (manualRefresh && onScanComplete) {
                 onScanComplete(Date.now());

@@ -917,8 +917,9 @@ async fn get_scripts(force_scan: bool) -> Vec<Script> {
         if !force_scan {
             println!("[Rust] No cached data available. Starting initial disk scan...");
         }
+        let scan_start = std::time::Instant::now();
         let mut scan_dirs = Vec::new();
-        
+
         for p in &metadata.scan_paths {
             let pb = std::path::PathBuf::from(p);
             if pb.exists() && pb.is_dir() {
@@ -933,6 +934,8 @@ async fn get_scripts(force_scan: bool) -> Vec<Script> {
                 }
             }
         }
+        let scan_elapsed = scan_start.elapsed();
+        println!("[Rust] WalkDir scan completed: {} scripts found in {:.1?}", script_paths.len(), scan_elapsed);
         // Save the result to cache for next time
         save_cache(&script_paths);
     }
