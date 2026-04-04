@@ -1,4 +1,4 @@
-import React, { useRef, useState, useLayoutEffect, useCallback } from "react";
+import React, { useRef, useState, useLayoutEffect } from "react";
 
 export interface ToggleOption<T extends string> {
     id: T;
@@ -19,36 +19,73 @@ export default function ToggleGroup<T extends string>({
     options, value, onChange, disabled, className,
 }: ToggleGroupProps<T>) {
     const containerRef = useRef<HTMLDivElement>(null);
-    const [pill, setPill] = useState({ left: 0, width: 0 });
+    const pillRef = useRef<HTMLDivElement>(null);
     const [ready, setReady] = useState(false);
+    const isFirstRender = useRef(true);
+    const wasHidden = useRef(false);
 
-    const measure = useCallback(() => {
+    function movePill(animate: boolean) {
         const container = containerRef.current;
-        if (!container) return;
+        const pill = pillRef.current;
+        if (!container || !pill) return;
         const activeBtn = container.querySelector<HTMLElement>(`[data-toggle-id="${value}"]`);
-        if (!activeBtn) return;
-        setPill({
-            left: activeBtn.offsetLeft,
-            width: activeBtn.offsetWidth,
-        });
+        if (!activeBtn || activeBtn.offsetWidth === 0) return;
+
+        if (!animate) {
+            pill.style.transition = 'none';
+            pill.offsetHeight;
+        } else {
+            pill.style.transition = '';
+        }
+        pill.style.left = `${activeBtn.offsetLeft}px`;
+        pill.style.width = `${activeBtn.offsetWidth}px`;
+        if (!animate) {
+            pill.offsetHeight;
+            pill.style.transition = '';
+        }
         setReady(true);
+    }
+
+    // On value change: first render = no animation, subsequent = animate
+    useLayoutEffect(() => {
+        if (isFirstRender.current) {
+            isFirstRender.current = false;
+            movePill(false);
+        } else if (wasHidden.current) {
+            wasHidden.current = false;
+            movePill(false);
+        } else {
+            movePill(true);
+        }
     }, [value]);
 
+    // Track visibility for display:none cached tabs
     useLayoutEffect(() => {
-        measure();
-    }, [measure]);
+        const container = containerRef.current;
+        if (!container) return;
+        let prevVisible = true;
+        const observer = new IntersectionObserver((entries) => {
+            const visible = entries[0]?.isIntersecting ?? false;
+            if (visible && !prevVisible) {
+                // Was hidden, now visible — restore position without animation
+                wasHidden.current = true;
+                movePill(false);
+            }
+            prevVisible = visible;
+        });
+        observer.observe(container);
+        return () => observer.disconnect();
+    }, []);
 
     return (
         <div
             ref={containerRef}
             className={`relative flex bg-white/[0.03] border border-white/5 rounded-xl p-1 gap-1 h-[42px] items-center ${className ?? ""}`}
         >
-            {ready && (
-                <div
-                    className="absolute top-1 h-[calc(100%-8px)] rounded-lg bg-white/10 shadow-lg shadow-white/5 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] pointer-events-none"
-                    style={{ left: pill.left, width: pill.width }}
-                />
-            )}
+            <div
+                ref={pillRef}
+                className={`absolute top-1 h-[calc(100%-8px)] rounded-lg bg-white/10 shadow-lg shadow-white/5 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] pointer-events-none ${ready ? '' : 'opacity-0'}`}
+            />
 
             {options.map((opt) => {
                 const isActive = value === opt.id;
