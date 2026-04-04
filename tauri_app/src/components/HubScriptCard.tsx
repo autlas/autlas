@@ -88,7 +88,7 @@ const HubScriptCard = memo(function HubScriptCard({
                     {showFileSize && (
                         <span className="text-xs text-tertiary/50 font-mono">{formatSize(s.size)}</span>
                     )}
-                    <div className={`w-3 h-3 rounded-full transition-all duration-500 ${isPending ? 'bg-yellow-500 animate-pulse shadow-[0_0_10px_rgba(234,179,8,0.6)]' : s.is_running ? 'bg-green-500 animate-status-glow shadow-[0_0_12px_rgba(34,197,94,0.8)]' : 'bg-white/10'} ${isDragging ? 'opacity-20' : ''}`}></div>
+                    <div className={`w-3 h-3 rounded-full transition-all duration-500 ${isPending ? (pendingType === 'kill' ? 'bg-red-500 animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.6)]' : 'bg-yellow-500 animate-pulse shadow-[0_0_10px_rgba(234,179,8,0.6)]') : s.is_running ? 'bg-green-500 animate-status-glow shadow-[0_0_12px_rgba(34,197,94,0.8)]' : 'bg-white/10'} ${isDragging ? 'opacity-20' : ''}`}></div>
                 </div>
             </div>
 

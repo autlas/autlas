@@ -116,10 +116,14 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
             onTagsLoaded(Array.from(tags).sort());
         }
 
-        if (onRunningCountChange) {
-            onRunningCountChange(allScripts.filter(s => s.is_running).length);
-        }
-    }, [allScripts, onTagsLoaded, onRunningCountChange]);
+    }, [allScripts, onTagsLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    const onRunningCountChangeRef = useRef(onRunningCountChange);
+    onRunningCountChangeRef.current = onRunningCountChange;
+
+    useEffect(() => {
+        onRunningCountChangeRef.current?.(allScripts.filter(s => s.is_running).length);
+    }, [allScripts]);
 
     useEffect(() => {
         fetchData();

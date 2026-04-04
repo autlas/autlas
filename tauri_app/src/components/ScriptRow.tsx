@@ -139,7 +139,7 @@ const ScriptRow = memo(function ScriptRow({
             )}
             <div className="flex items-center space-x-4 overflow-visible flex-1 mr-4">
                 <div className={`w-2 h-2 rounded-full flex-shrink-0 transition-all duration-500
-                    ${isPending ? 'bg-yellow-500 animate-pulse shadow-[0_0_10px_rgba(234,179,8,0.6)]' :
+                    ${isPending ? (pendingType === 'kill' ? 'bg-red-500 animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.6)]' : 'bg-yellow-500 animate-pulse shadow-[0_0_10px_rgba(234,179,8,0.6)]') :
                         s.is_running ? 'bg-green-500 animate-status-glow shadow-[0_0_12px_rgba(34,197,94,0.8)]' : 'bg-white/10'}
                 `}></div>
                 <span className={`text-base font-medium tracking-tight truncate min-w-0 transition-colors stabilize-text ${!isDragging ? (isEditing || isContextMenuOpen ? 'text-indigo-400' : 'text-secondary/90 group-hover:text-white') : 'text-secondary/50'

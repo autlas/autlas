@@ -123,7 +123,7 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
       <div className="flex items-center justify-between px-5 pt-5 pb-3">
         <div className="flex items-center gap-3 min-w-0 flex-1">
           <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 transition-all duration-500 ${
-            pendingType ? "bg-yellow-500 animate-pulse shadow-[0_0_10px_rgba(234,179,8,0.6)]"
+            pendingType ? (pendingType === "kill" ? "bg-red-500 animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.6)]" : "bg-yellow-500 animate-pulse shadow-[0_0_10px_rgba(234,179,8,0.6)]")
             : script.is_running ? "bg-green-500 animate-status-glow shadow-[0_0_12px_rgba(34,197,94,0.8)]"
             : "bg-white/10"
           }`} />
