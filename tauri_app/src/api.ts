@@ -38,3 +38,7 @@ export async function checkEverythingStatus(): Promise<"running" | "installed" |
 export async function launchEverything(): Promise<void> {
     return await invoke("launch_everything");
 }
+
+export async function installEverything(): Promise<void> {
+    return await invoke("install_everything");
+}

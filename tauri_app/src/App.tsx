@@ -5,7 +5,7 @@ import ContextMenu from "./components/ContextMenu";
 import SettingsPanel from "./components/SettingsPanel";
 import DragGhost from "./components/DragGhost";
 import Sidebar from "./components/Sidebar";
-import { Script, checkEverythingStatus, launchEverything } from "./api";
+import { Script, checkEverythingStatus, launchEverything, installEverything } from "./api";
 import { useTheme } from "./hooks/useTheme";
 import { useScanPaths } from "./hooks/useScanPaths";
 import { usePhysicsMotion } from "./hooks/usePhysicsMotion";
@@ -33,7 +33,7 @@ function App() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [scanToast, setScanToast] = useState(false);
   const scanToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [everythingToast, setEverythingToast] = useState<"installed" | "not_installed" | "launching" | "started" | null>(null);
+  const [everythingToast, setEverythingToast] = useState<"installed" | "not_installed" | "launching" | "installing" | "started" | null>(null);
   const [everythingToastVisible, setEverythingToastVisible] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; type: "script" | "tag" | "folder" | "general"; data: any } | null>(null);
   const [activeTabPressed, setActiveTabPressed] = useState<string | null>(null);
@@ -503,7 +503,7 @@ function App() {
           <div className={`w-2 h-2 rounded-full ${
             everythingToast === "started"
               ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]"
-              : everythingToast === "launching"
+              : everythingToast === "launching" || everythingToast === "installing"
               ? "bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.8)] animate-pulse"
               : "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]"
           }`} />
@@ -512,6 +512,8 @@ function App() {
               ? "Everything is running — instant scan enabled"
               : everythingToast === "launching"
               ? "Starting Everything…"
+              : everythingToast === "installing"
+              ? "Installing Everything…"
               : everythingToast === "installed"
               ? "Everything is not running — scan will be slower"
               : "Install Everything for instant file scanning"}
@@ -532,13 +534,20 @@ function App() {
             </button>
           ) : everythingToast === "not_installed" ? (
             <button
-              onClick={() => { invoke("open_url", { url: "https://www.voidtools.com/downloads/" }); hideEverythingToast(); }}
+              onClick={async () => {
+                setEverythingToast("installing");
+                try {
+                  await installEverything();
+                  setEverythingToast("started");
+                  setTimeout(() => hideEverythingToast(), 3000);
+                } catch (e) { console.error(e); setEverythingToast("not_installed"); }
+              }}
               className="px-3 py-1 text-[11px] font-bold uppercase tracking-wider bg-indigo-500/20 text-indigo-400 rounded-lg hover:bg-indigo-500/30 transition-colors cursor-pointer"
             >
-              Download
+              Install
             </button>
           ) : null}
-          {everythingToast !== "launching" && (
+          {everythingToast !== "launching" && everythingToast !== "installing" && (
             <button
               onClick={hideEverythingToast}
               className="ml-1 text-white/30 hover:text-white/60 transition-colors cursor-pointer"

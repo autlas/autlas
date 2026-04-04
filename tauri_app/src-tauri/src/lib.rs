@@ -950,8 +950,9 @@ fn find_everything_exe() -> Option<String> {
 }
 
 fn es_exe_available() -> bool {
-    std::process::Command::new("where.exe")
-        .arg("es.exe")
+    // Actually try running es.exe — WindowsApps stubs exist even after uninstall
+    std::process::Command::new("es.exe")
+        .arg("-get-everything-version")
         .output()
         .map(|o| o.status.success())
         .unwrap_or(false)
@@ -990,6 +991,30 @@ async fn launch_everything() -> Result<(), String> {
         Ok(())
     } else {
         Err("Everything.exe not found".to_string())
+    }
+}
+
+#[tauri::command]
+async fn install_everything() -> Result<(), String> {
+    let output = std::process::Command::new("winget")
+        .args(&["install", "voidtools.Everything", "--silent", "--accept-package-agreements", "--accept-source-agreements"])
+        .output()
+        .map_err(|e| format!("Failed to run winget: {}", e))?;
+
+    if output.status.success() {
+        // Launch Everything in tray mode after install
+        std::thread::sleep(std::time::Duration::from_millis(1000));
+        if let Some(exe_path) = find_everything_exe() {
+            let _ = std::process::Command::new(&exe_path)
+                .arg("-startup")
+                .spawn();
+            std::thread::sleep(std::time::Duration::from_millis(1500));
+        }
+        Ok(())
+    } else {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        Err(format!("winget failed: {} {}", stdout, stderr))
     }
 }
 
@@ -1983,6 +2008,7 @@ pub fn run() {
             set_scan_paths,
             check_everything_status,
             launch_everything,
+            install_everything,
             read_script_content,
             get_script_status,
             get_tray_settings,
