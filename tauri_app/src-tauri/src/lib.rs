@@ -996,6 +996,34 @@ async fn launch_everything() -> Result<(), String> {
 
 #[tauri::command]
 async fn install_everything(window: tauri::Window) -> Result<(), String> {
+    use tauri::Emitter;
+
+    // Try direct download first, fallback to winget
+    match install_everything_direct(&window).await {
+        Ok(()) => {}
+        Err(direct_err) => {
+            println!("[Rust] Direct download failed: {}. Trying winget...", direct_err);
+            let _ = window.emit("everything-install-progress", serde_json::json!({
+                "phase": "installing",
+                "progress": 0
+            }));
+            install_everything_winget().map_err(|e| format!("Both methods failed. Direct: {}. Winget: {}", direct_err, e))?;
+        }
+    }
+
+    // Launch Everything in tray mode
+    std::thread::sleep(std::time::Duration::from_millis(500));
+    if let Some(exe_path) = find_everything_exe() {
+        let _ = std::process::Command::new(&exe_path)
+            .arg("-startup")
+            .spawn();
+        std::thread::sleep(std::time::Duration::from_millis(1500));
+    }
+
+    Ok(())
+}
+
+async fn install_everything_direct(window: &tauri::Window) -> Result<(), String> {
     use futures_util::StreamExt;
     use tauri::Emitter;
 
@@ -1003,7 +1031,6 @@ async fn install_everything(window: tauri::Window) -> Result<(), String> {
     let temp_dir = std::env::temp_dir();
     let installer_path = temp_dir.join("EverythingSetup.exe");
 
-    // Download with progress
     let response = reqwest::get(url).await.map_err(|e| format!("Download failed: {}", e))?;
     let total_size = response.content_length().unwrap_or(0);
     let mut downloaded: u64 = 0;
@@ -1028,7 +1055,6 @@ async fn install_everything(window: tauri::Window) -> Result<(), String> {
     file.flush().await.map_err(|e| format!("Flush error: {}", e))?;
     drop(file);
 
-    // Install silently
     let _ = window.emit("everything-install-progress", serde_json::json!({
         "phase": "installing",
         "progress": 100
@@ -1039,23 +1065,28 @@ async fn install_everything(window: tauri::Window) -> Result<(), String> {
         .status()
         .map_err(|e| format!("Installer failed: {}", e))?;
 
-    // Cleanup
     let _ = std::fs::remove_file(&installer_path);
 
     if !status.success() {
         return Err("Installer exited with error".to_string());
     }
 
-    // Launch Everything in tray mode
-    std::thread::sleep(std::time::Duration::from_millis(500));
-    if let Some(exe_path) = find_everything_exe() {
-        let _ = std::process::Command::new(&exe_path)
-            .arg("-startup")
-            .spawn();
-        std::thread::sleep(std::time::Duration::from_millis(1500));
-    }
-
     Ok(())
+}
+
+fn install_everything_winget() -> Result<(), String> {
+    let output = std::process::Command::new("winget")
+        .args(&["install", "voidtools.Everything", "--silent", "--accept-package-agreements", "--accept-source-agreements"])
+        .output()
+        .map_err(|e| format!("Failed to run winget: {}", e))?;
+
+    if output.status.success() {
+        Ok(())
+    } else {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        Err(format!("winget failed: {} {}", stdout, stderr))
+    }
 }
 
 fn scan_with_everything(scan_dirs: &[std::path::PathBuf]) -> Option<Vec<String>> {
