@@ -451,7 +451,7 @@ export default function Sidebar({
       </div>
       {!collapsed && (
         <div className={`pr-[14px] flex justify-end h-4 transition-all duration-150 ${isHoveringRefresh ? "opacity-100 translate-y-0" : "opacity-0 translate-y-1"}`}>
-          <span className="text-[12px] uppercase tracking-[0.1em] text-quaternary select-none flex items-center whitespace-nowrap">
+          <span className="text-[12px] uppercase tracking-[0.1em] text-tertiary/50 select-none flex items-center whitespace-nowrap">
             {isRefreshing ? (
               <span className="font-bold">{t("sidebar.scanning", "Scanning...")}</span>
             ) : (

@@ -118,11 +118,11 @@ function App() {
     if (diff < 3600) {
       const m = Math.floor(diff / 60);
       const s = diff % 60;
-      timeText = `${m}m ${s}s`;
+      timeText = `${m}${t("sidebar.time_m")} ${s}${t("sidebar.time_s")}`;
     } else if (diff < 172800) {
-      timeText = `${Math.floor(diff / 3600)}h`;
+      timeText = `${Math.floor(diff / 3600)}${t("sidebar.time_h")}`;
     } else {
-      timeText = `${Math.floor(diff / 86400)}d`;
+      timeText = `${Math.floor(diff / 86400)}${t("sidebar.time_d")}`;
     }
 
     return (

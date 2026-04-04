@@ -12,7 +12,13 @@
         "scanning": "Scanning...",
         "scripts_found": "Scripts found:",
         "last_scan": "Last Scan",
-        "library_synced": "Library synced"
+        "library_synced": "Library synced",
+        "just_now": "just now",
+        "ago": "ago",
+        "time_s": "s",
+        "time_m": "m",
+        "time_h": "h",
+        "time_d": "d"
     },
     "settings": {
         "title": "Settings",
