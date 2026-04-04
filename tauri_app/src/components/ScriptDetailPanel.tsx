@@ -46,15 +46,17 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
   const addBtnRef = useRef<HTMLButtonElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
 
-  // Clamp panel width when window resizes
+  // Clamp panel width when available space changes (window resize or sidebar resize)
   useEffect(() => {
-    const handleResize = () => {
-      const parentWidth = panelRef.current?.parentElement?.clientWidth ?? 1200;
-      const maxWidth = parentWidth - 400;
+    const parent = panelRef.current?.parentElement;
+    if (!parent) return;
+    const clamp = () => {
+      const maxWidth = parent.clientWidth - 400;
       setPanelWidth(prev => Math.min(prev, Math.max(280, maxWidth)));
     };
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
+    const observer = new ResizeObserver(clamp);
+    observer.observe(parent);
+    return () => observer.disconnect();
   }, []);
 
   useEffect(() => {
