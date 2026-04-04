@@ -1417,12 +1417,27 @@ async fn open_url(url: String) -> Result<(), String> {
 
 #[tauri::command]
 async fn open_with(path: String) -> Result<(), String> {
+    // Convert to short (8.3) path to avoid rundll32 issues with spaces
+    let short_path = get_short_path(&path).unwrap_or_else(|| path.clone());
+
     Command::new("rundll32.exe")
         .arg("shell32.dll,OpenAs_RunDLL")
-        .arg(&path)
+        .arg(&short_path)
         .spawn()
         .map_err(|e| e.to_string())?;
     Ok(())
+}
+
+fn get_short_path(path: &str) -> Option<String> {
+    use std::os::windows::ffi::OsStrExt;
+    let wide: Vec<u16> = std::ffi::OsStr::new(path).encode_wide().chain(std::iter::once(0)).collect();
+    let len = unsafe { windows_sys::Win32::Storage::FileSystem::GetShortPathNameW(wide.as_ptr(), std::ptr::null_mut(), 0) };
+    if len == 0 { return None; }
+    let mut buf = vec![0u16; len as usize];
+    let written = unsafe { windows_sys::Win32::Storage::FileSystem::GetShortPathNameW(wide.as_ptr(), buf.as_mut_ptr(), len) };
+    if written == 0 || written >= len { return None; }
+    buf.truncate(written as usize);
+    Some(String::from_utf16_lossy(&buf))
 }
 
 #[tauri::command]
