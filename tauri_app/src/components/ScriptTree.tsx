@@ -10,7 +10,7 @@ import ScriptGridView from "./ScriptGridView";
 import { TreeContext, TreeNodeRenderer, setTreeCallbacks } from "./TreeNodeRenderer";
 import { useTreeStore } from "../store/useTreeStore";
 
-export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, onRunningCountChange, viewMode, onViewModeChange, onCustomDragStart, isDragging, draggedScriptPath, animationsEnabled, onScriptContextMenu, onFolderContextMenu, searchQuery, setSearchQuery, contextMenu, onShowUI, refreshKey, onScanComplete, isPathsEmpty, onAddPath, onRefresh, onOpenSettings, onSelectScript, onExposeActions, isActive = true }: ScriptTreeProps) {
+export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, onRunningCountChange, viewMode, onViewModeChange, onCustomDragStart, isDragging, draggedScriptPath, animationsEnabled, onScriptContextMenu, onFolderContextMenu, searchQuery, setSearchQuery, contextMenu, onShowUI, refreshKey, onScanComplete, isPathsEmpty, onAddPath, onRemovePath, scanPaths, onRefresh, onOpenSettings, onSelectScript, onExposeActions, isActive = true }: ScriptTreeProps) {
     const searchInputRef = useRef<HTMLInputElement>(null);
     const lastGTimeRef = useRef(0);
     const lastFTimeRef = useRef(0);
@@ -397,6 +397,8 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
                             hasContent={hasAnyContent}
                             searchQuery={searchQuery}
                             onAddPath={onAddPath}
+                            onRemovePath={onRemovePath}
+                            scanPaths={scanPaths}
                             onRefresh={onRefresh}
                             onViewModeChange={onViewModeChange}
                             onOpenSettings={onOpenSettings}
@@ -433,7 +435,9 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
                                     hasContent={hasAnyContent}
                                     searchQuery={searchQuery}
                                     filterTag={filterTag}
+                                    scanPaths={scanPaths}
                                     onAddPath={onAddPath}
+                                    onRemovePath={onRemovePath}
                                     onRefresh={onRefresh}
                                     onOpenSettings={onOpenSettings}
                                 />

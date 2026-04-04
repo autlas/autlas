@@ -75,23 +75,21 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
             if (forceScan && onScanComplete) {
                 onScanComplete(Date.now());
             }
-            startTransition(() => {
-                setAllScripts(prev => {
-                    if (prev.length !== data.length) return data;
+            setAllScripts(prev => {
+                if (prev.length !== data.length) return data;
 
-                    const prevMap = new Map(prev.map(s => [s.path, s]));
-                    let anyChanged = false;
+                const prevMap = new Map(prev.map(s => [s.path, s]));
+                let anyChanged = false;
 
-                    const merged = data.map(d => {
-                        const p = prevMap.get(d.path);
-                        if (!p) return d;
-                        if (p.is_running === d.is_running && p.is_hidden === d.is_hidden) return p;
-                        anyChanged = true;
-                        return { ...d, tags: p.tags };
-                    });
-
-                    return anyChanged ? merged : prev;
+                const merged = data.map(d => {
+                    const p = prevMap.get(d.path);
+                    if (!p) return d;
+                    if (p.is_running === d.is_running && p.is_hidden === d.is_hidden) return p;
+                    anyChanged = true;
+                    return { ...d, tags: p.tags };
                 });
+
+                return anyChanged ? merged : prev;
             });
         } catch (e) {
             // silence

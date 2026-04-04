@@ -31,6 +31,8 @@ export interface ScriptTreeProps {
     onScanComplete?: (timestamp: number) => void;
     isPathsEmpty?: boolean;
     onAddPath?: () => void;
+    onRemovePath?: (path: string) => void;
+    scanPaths?: string[];
     onRefresh?: () => void;
     onOpenSettings?: () => void;
     onSelectScript?: (s: Script) => void;

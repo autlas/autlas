@@ -1,23 +1,27 @@
 import { useTranslation } from "react-i18next";
-import { PlusIcon, GearIcon, RefreshIcon } from "./ui/Icons";
+import { PlusIcon, RefreshIcon, CloseIcon, FolderIcon } from "./ui/Icons";
 import EmptyStateIcon from "./ui/EmptyStateIcon";
+import { invoke } from "@tauri-apps/api/core";
+import Tooltip from "./ui/Tooltip";
 
 interface EmptyStateProps {
     isPathsEmpty: boolean;
     hasContent: boolean;
     searchQuery: string;
     filterTag: string;
+    scanPaths?: string[];
     onAddPath?: () => void;
+    onRemovePath?: (path: string) => void;
     onRefresh?: () => void;
     onOpenSettings?: () => void;
 }
 
-export default function EmptyState({ isPathsEmpty, hasContent, searchQuery, filterTag, onAddPath, onRefresh, onOpenSettings }: EmptyStateProps) {
+export default function EmptyState({ isPathsEmpty, hasContent, searchQuery, filterTag, scanPaths = [], onAddPath, onRemovePath, onRefresh, onOpenSettings }: EmptyStateProps) {
     const { t } = useTranslation();
     const isSearching = !!searchQuery.trim();
 
     return (
-        <div className="flex-1 flex flex-col items-center justify-start pt-[22%] p-12 text-center min-h-[400px]">
+        <div className="flex flex-col items-center justify-center p-12 text-center h-[calc(100vh-200px)] min-h-[400px]" style={{ paddingBottom: '12vh' }}>
             {isPathsEmpty ? (
                 <div className="max-w-[400px] space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-1000">
                     <EmptyStateIcon groupName="folder" hoverBg="bg-indigo-500/10">
@@ -42,7 +46,7 @@ export default function EmptyState({ isPathsEmpty, hasContent, searchQuery, filt
                     </button>
                 </div>
             ) : !hasContent ? (
-                <div className="max-w-[400px] space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                <div className="max-w-[460px] space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700 w-full">
                     <EmptyStateIcon groupName="ghost">
                         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#555560" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="relative z-10">
                             <circle cx="11" cy="11" r="8" />
@@ -57,20 +61,52 @@ export default function EmptyState({ isPathsEmpty, hasContent, searchQuery, filt
                             {t("hub.no_scripts_desc", "The selected folders don't contain any .ahk files. Try adding scripts or checking your paths.")}
                         </p>
                     </div>
-                    <div className="flex gap-4 justify-center">
+
+                    {scanPaths.length > 0 && (
+                        <div className="space-y-2 text-left">
+                            {scanPaths.map((path) => (
+                                <div key={path} className="flex items-center space-x-3 p-2.5 px-4 bg-white/[0.03] border border-white/10 rounded-2xl hover:bg-white/[0.05] transition-all group">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-indigo-500/50 group-hover:bg-indigo-500 shadow-lg shadow-indigo-500/20 flex-shrink-0" />
+                                    <span className="flex-1 text-[13px] font-bold text-secondary truncate font-mono tracking-tight">{path}</span>
+                                    <div className="flex items-center gap-1 flex-shrink-0">
+                                        <Tooltip text={t("context.show_in_folder")}>
+                                            <button
+                                                onClick={() => invoke("open_in_explorer", { path })}
+                                                className="p-1.5 text-tertiary hover:text-white hover:bg-white/10 rounded-lg transition-all border-none bg-transparent cursor-pointer"
+                                            >
+                                                <FolderIcon />
+                                            </button>
+                                        </Tooltip>
+                                        <Tooltip text={t("settings.remove_path")}>
+                                            <button
+                                                onClick={() => onRemovePath?.(path)}
+                                                className="p-1.5 text-tertiary hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-all border-none bg-transparent cursor-pointer"
+                                            >
+                                                <CloseIcon />
+                                            </button>
+                                        </Tooltip>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    <div className="flex flex-wrap gap-3 w-full">
+                        <button
+                            onClick={onAddPath}
+                            style={{ flex: '1 1 auto', minWidth: 'fit-content' }}
+                            className="h-11 px-[10px] bg-indigo-600/10 hover:bg-indigo-600 text-indigo-400 hover:text-white rounded-xl text-[10px] font-black tracking-widest uppercase transition-all border border-indigo-500/20 hover:border-indigo-500 active:scale-95 cursor-pointer flex items-center justify-center gap-2"
+                        >
+                            <PlusIcon size={14} strokeWidth={3} />
+                            {t("settings.add_path")}
+                        </button>
                         <button
                             onClick={onRefresh}
-                            className="h-12 px-6 bg-white/5 hover:bg-white/10 text-white/70 hover:text-white rounded-xl text-[10px] font-black tracking-widest uppercase transition-all border border-white/5 active:scale-95 cursor-pointer flex items-center justify-center gap-2"
+                            style={{ flex: '1 1 auto', minWidth: 'fit-content' }}
+                            className="h-11 px-[20px] bg-white/5 hover:bg-white/10 text-white/70 hover:text-white rounded-xl text-[10px] font-black tracking-widest uppercase transition-all border border-white/5 active:scale-95 cursor-pointer flex items-center justify-center gap-2"
                         >
                             <RefreshIcon />
                             {t("settings.manual_scan", "Refresh Scan")}
-                        </button>
-                        <button
-                            onClick={onOpenSettings}
-                            className="h-12 px-6 bg-white/5 hover:bg-white/10 text-white/70 hover:text-white rounded-xl text-[10px] font-black tracking-widest uppercase transition-all border border-white/5 active:scale-95 cursor-pointer flex items-center justify-center gap-2"
-                        >
-                            <GearIcon size={14} strokeWidth={3} />
-                            {t("sidebar.settings")}
                         </button>
                     </div>
                 </div>
@@ -100,7 +136,10 @@ export default function EmptyState({ isPathsEmpty, hasContent, searchQuery, filt
                             onClick={onOpenSettings}
                             className="h-12 px-6 bg-white/5 hover:bg-white/10 text-white/70 hover:text-white rounded-xl text-[10px] font-black tracking-widest uppercase transition-all border border-white/5 active:scale-95 cursor-pointer flex items-center justify-center gap-2"
                         >
-                            <GearIcon size={14} strokeWidth={3} />
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="relative z-10">
+                                <circle cx="12" cy="12" r="3" />
+                                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                            </svg>
                             {t("sidebar.settings")}
                         </button>
                     </div>

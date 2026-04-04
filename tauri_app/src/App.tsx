@@ -466,7 +466,9 @@ function App() {
                     refreshKey={refreshKey}
                     onScanComplete={handleScanComplete}
                     isPathsEmpty={scanPaths.length === 0}
+                    scanPaths={scanPaths}
                     onAddPath={handleAddScanPath}
+                    onRemovePath={handleRemoveScanPath}
                     onRefresh={triggerScan}
                     onSelectScript={handleSelectScript}
                     onExposeActions={handleExposeActions}
