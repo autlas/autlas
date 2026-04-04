@@ -13,7 +13,7 @@ interface ScriptTreeToolbarProps {
     setSortBy: (s: "name" | "size") => void;
     isAllExpanded: boolean;
     toggleAll: () => void;
-    isAllHubCollapsed?: boolean;
+    isAllHubExpanded?: boolean;
     toggleAllHub?: () => void;
     searchQuery: string;
     setSearchQuery: (q: string) => void;
@@ -28,7 +28,7 @@ interface ScriptTreeToolbarProps {
 export default function ScriptTreeToolbar({
     viewMode, onViewModeChange, isDragging, draggedScriptPath,
     sortBy, setSortBy, isAllExpanded, toggleAll,
-    isAllHubCollapsed, toggleAllHub,
+    isAllHubExpanded, toggleAllHub,
     searchQuery, setSearchQuery, showHidden, setShowHidden,
     filterTag, searchInputRef, onSearchFocus, onSearchBlur,
 }: ScriptTreeToolbarProps) {
@@ -158,7 +158,7 @@ export default function ScriptTreeToolbar({
                 {(() => {
                     const isHub = filterTag === "hub" && viewMode !== "tree";
                     const showButton = viewMode === "tree" || isHub;
-                    const expanded = isHub ? !isAllHubCollapsed : isAllExpanded;
+                    const expanded = isHub ? isAllHubExpanded : isAllExpanded;
                     const onToggle = isHub ? toggleAllHub : toggleAll;
                     return (
                         <div className={`flex items-end overflow-hidden transition-all duration-[150ms] ease-in-out ${searchActive ? 'w-0 opacity-0 pointer-events-none ml-0' : showButton ? 'w-[42px] opacity-100 ml-2' : 'w-0 opacity-0 pointer-events-none ml-0'}`}>

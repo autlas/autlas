@@ -43,14 +43,14 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
     } = useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, searchQuery, setSearchQuery, onRunningCountChange, manualRefresh, onScanComplete, viewMode, sortBy });
 
     const hubTags = useMemo(() => groupedHub?.map(g => g.tag) ?? [], [groupedHub]);
-    const isAllHubCollapsed = useMemo(() => hubTags.length > 0 && hubTags.every(t => hubCollapsed.has(t)), [hubTags, hubCollapsed]);
+    const isAllHubExpanded = useMemo(() => hubTags.length === 0 || hubTags.every(t => !hubCollapsed.has(t)), [hubTags, hubCollapsed]);
     const toggleAllHub = useCallback(() => {
         setHubCollapsed(() => {
-            const next = new Set(isAllHubCollapsed ? [] : hubTags);
+            const next = new Set(isAllHubExpanded ? hubTags : [] as string[]);
             localStorage.setItem("ahk_hub_collapsed", JSON.stringify([...next]));
             return next;
         });
-    }, [isAllHubCollapsed, hubTags]);
+    }, [isAllHubExpanded, hubTags]);
 
     const pendingScripts = useTreeStore(s => s.pendingScripts);
     const showHidden = useTreeStore(s => s.showHidden);
@@ -361,7 +361,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
                 setSortBy={setSortBy}
                 isAllExpanded={isAllExpanded}
                 toggleAll={toggleAll}
-                isAllHubCollapsed={isAllHubCollapsed}
+                isAllHubExpanded={isAllHubExpanded}
                 toggleAllHub={toggleAllHub}
                 searchQuery={searchQuery}
                 setSearchQuery={setSearchQuery}

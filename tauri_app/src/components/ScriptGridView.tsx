@@ -152,18 +152,20 @@ export default React.memo(function ScriptGridView({
                     const sectionMasonry: Script[][] = Array.from({ length: columnsCount }, () => []);
                     scripts.forEach((s, i) => sectionMasonry[i % columnsCount].push(s));
                     return (
-                        <div key={tag} className={`flex flex-col ${isCollapsed ? 'mb-0' : isTiles ? 'mb-10' : 'mb-8'} last:pb-10`}>
+                        <div key={tag} className="flex flex-col last:pb-10">
                             <TagSectionHeader tag={tag} isCollapsed={isCollapsed} onToggle={() => toggleSection(tag)} runningCount={scripts.filter(s => s.is_running).length} />
-                            <div className={`transition-all duration-300 overflow-hidden ${isCollapsed ? 'max-h-0 opacity-0' : 'max-h-[10000px] opacity-100'}`}>
-                                <div
-                                    className={`grid ${gridGap} items-start`}
-                                    style={{ gridTemplateColumns: `repeat(${columnsCount}, minmax(0, 1fr))` }}
-                                >
-                                    {sectionMasonry.map((col, colIdx) => (
-                                        <div key={colIdx} className={colClass}>
-                                            {col.map(s => renderCard(s))}
-                                        </div>
-                                    ))}
+                            <div className={`grid transition-[grid-template-rows,opacity] duration-300 ease-in-out overflow-hidden ${isCollapsed ? 'grid-rows-[0fr] opacity-0' : 'grid-rows-[1fr] opacity-100'}`}>
+                                <div className="min-h-0">
+                                    <div
+                                        className={`grid ${gridGap} items-start ${isTiles ? 'pb-10' : 'pb-8'}`}
+                                        style={{ gridTemplateColumns: `repeat(${columnsCount}, minmax(0, 1fr))` }}
+                                    >
+                                        {sectionMasonry.map((col, colIdx) => (
+                                            <div key={colIdx} className={colClass}>
+                                                {col.map(s => renderCard(s))}
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
                             </div>
                         </div>
