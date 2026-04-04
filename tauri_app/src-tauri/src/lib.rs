@@ -1132,7 +1132,8 @@ fn scan_with_everything(scan_dirs: &[std::path::PathBuf]) -> Option<Vec<String>>
 }
 
 #[tauri::command]
-async fn get_scripts(force_scan: bool) -> Vec<Script> {
+async fn get_scripts(app_handle: tauri::AppHandle, force_scan: bool) -> Vec<Script> {
+    use tauri::Emitter;
     let mut sys = System::new_all();
     sys.refresh_all();
     
@@ -1186,10 +1187,16 @@ async fn get_scripts(force_scan: bool) -> Vec<Script> {
             let scan_elapsed = scan_start.elapsed();
             println!("[Rust] Everything scan completed: {} scripts found in {:.1?}", script_paths.len(), scan_elapsed);
         } else {
+            let mut last_emitted = 0usize;
             for dir in scan_dirs {
                 for entry in WalkDir::new(&dir).into_iter().filter_map(|e| e.ok()) {
                     if entry.path().extension().map_or(false, |ext| ext == "ahk") {
                         script_paths.push(entry.path().to_string_lossy().to_string());
+                        let count = script_paths.len();
+                        if count >= last_emitted + 25 {
+                            last_emitted = count;
+                            let _ = app_handle.emit("scan-progress", count);
+                        }
                     }
                 }
             }

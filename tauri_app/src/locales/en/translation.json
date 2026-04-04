@@ -10,7 +10,9 @@
         "refresh": "Refresh List",
         "scripts": "Scripts",
         "scanning": "Scanning...",
-        "last_scan": "Last Scan"
+        "scripts_found": "Scripts found:",
+        "last_scan": "Last Scan",
+        "library_synced": "Library synced"
     },
     "settings": {
         "title": "Settings",

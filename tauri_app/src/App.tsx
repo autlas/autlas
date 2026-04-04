@@ -31,7 +31,8 @@ function App() {
   const [editTagName, setEditTagName] = useState("");
   const [refreshKey, setRefreshKey] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [scanToast, setScanToast] = useState(false);
+  const [scanToast, setScanToast] = useState<false | "scanning" | "done">(false);
+  const [scanProgress, setScanProgress] = useState(0);
   const scanToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [everythingToast, setEverythingToast] = useState<"installed" | "not_installed" | "launching" | "installing" | "started" | null>(null);
   const [everythingToastVisible, setEverythingToastVisible] = useState(false);
@@ -56,7 +57,15 @@ function App() {
   const [, setDataVersion] = useState(0);
 
   const { brightness, setBrightness, textContrast, setTextContrast, fontScale, setFontScale, animationsEnabled, toggleAnimations, vimModeNav, setVimModeNav } = useTheme();
-  const { scanPaths, handleAddScanPath, handleRemoveScanPath } = useScanPaths(() => setRefreshKey(p => p + 1));
+
+  const triggerScan = useCallback(() => {
+    setEverythingToastVisible(false);
+    setScanProgress(0);
+    if (scanToastTimerRef.current) clearTimeout(scanToastTimerRef.current);
+    setRefreshKey(p => p + 1);
+  }, []);
+
+  const { scanPaths, handleAddScanPath, handleRemoveScanPath } = useScanPaths(triggerScan);
 
   const { settingsIconRef, pendingImpulseRef, momentumRef, motionImpulseRef, motionImpulseInitialRef } = usePhysicsMotion();
   const navPhysics = { pendingImpulseRef, momentumRef, motionImpulseRef, motionImpulseInitialRef };
@@ -78,8 +87,20 @@ function App() {
     setLastScanTimestamp(timestamp);
     localStorage.setItem("ahk_last_scan_timestamp", timestamp.toString());
     if (scanToastTimerRef.current) clearTimeout(scanToastTimerRef.current);
-    setScanToast(true);
+    setScanToast("done");
     scanToastTimerRef.current = setTimeout(() => setScanToast(false), 2500);
+  }, []);
+
+  // Listen for scan progress events
+  useEffect(() => {
+    let unlisten: (() => void) | null = null;
+    import('@tauri-apps/api/event').then(({ listen }) => {
+      listen<number>('scan-progress', (event) => {
+        setScanProgress(event.payload);
+        setScanToast("scanning");
+      }).then(fn => { unlisten = fn; });
+    });
+    return () => { unlisten?.(); };
   }, []);
 
   const handleLoadingChange = useCallback((loading: boolean) => {
@@ -376,7 +397,7 @@ function App() {
         setDragGhostSize={setDragGhostSize}
         setContextMenu={setContextMenu}
         setUserTags={setUserTags}
-        setRefreshKey={setRefreshKey}
+        triggerScan={triggerScan}
         onRefresh={() => setIsRefreshing(true)}
         onHoveringRefresh={setIsHoveringRefresh}
         onCustomDrop={handleCustomDrop}
@@ -446,7 +467,7 @@ function App() {
                     onScanComplete={handleScanComplete}
                     isPathsEmpty={scanPaths.length === 0}
                     onAddPath={handleAddScanPath}
-                    onRefresh={() => setRefreshKey(p => p + 1)}
+                    onRefresh={triggerScan}
                     onSelectScript={handleSelectScript}
                     onExposeActions={handleExposeActions}
                     onOpenSettings={() => {
@@ -501,13 +522,15 @@ function App() {
         contextMenu={contextMenu}
         onClose={() => setContextMenu(null)}
         onStartRenameTag={(tag) => { setIsRenamingTag(tag); setEditTagName(tag); }}
-        onRefresh={() => setRefreshKey(p => p + 1)}
+        onRefresh={triggerScan}
       />
 
       <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-[9999] transition-all duration-500 ${scanToast ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
         <div className="flex items-center gap-3 px-5 py-3 bg-[#1a1a1f] border border-white/10 rounded-2xl shadow-2xl">
-          <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]" />
-          <span className="text-xs font-medium text-white/70">Library synced</span>
+          <div className={`w-2 h-2 rounded-full ${scanToast === "scanning" ? "bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.8)] animate-pulse" : "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]"}`} />
+          <span className="text-xs font-medium text-white/70">
+            {scanToast === "scanning" ? `${t("sidebar.scripts_found")} ${scanProgress}` : t("sidebar.library_synced")}
+          </span>
         </div>
       </div>
 

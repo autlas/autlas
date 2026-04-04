@@ -35,7 +35,7 @@ interface SidebarProps {
   setDragGhostSize: (size: { w: number; h: number }) => void;
   setContextMenu: (menu: any) => void;
   setUserTags: (tags: string[]) => void;
-  setRefreshKey: (fn: (p: number) => number) => void;
+  triggerScan: () => void;
   onRefresh: () => void;
   onHoveringRefresh: (hovering: boolean) => void;
   onCustomDrop: (path: string, tag: string) => void;
@@ -70,7 +70,7 @@ export default function Sidebar({
   activeTab, viewMode, userTags, draggedScript, draggedTag, dragOverTag, isCreatingTagFor, isRenamingTag, editTagName,
   runningCount, isRefreshing, isHoveringRefresh, lastScanTimestamp, activeTabPressed, newTagName,
   onTabClick, setActiveTab, setDragOverTag, setDraggedTag, setIsCreatingTagFor, setNewTagName, setIsRenamingTag, setEditTagName,
-  setActiveTabPressed, setDragGhostSize, setContextMenu, setUserTags, setRefreshKey, onRefresh, onHoveringRefresh, onCustomDrop,
+  setActiveTabPressed, setDragGhostSize, setContextMenu, setUserTags, triggerScan, onRefresh, onHoveringRefresh, onCustomDrop,
   settingsIconRef, refreshIconRef, ghostRef, tagDragOffsetYRef, tagDragOffsetXRef, pendingTagDragRef, formatLastScan,
 }: SidebarProps) {
   const { t } = useTranslation();
@@ -363,7 +363,7 @@ export default function Sidebar({
                         await invoke("save_tag_order", { order: newOrder });
                         if (activeTab === tag) setActiveTab(newName);
                         setIsRenamingTag(null);
-                        setRefreshKey(prev => prev + 1);
+                        triggerScan();
                       } else if (e.key === "Escape") {
                         setIsRenamingTag(null);
                       }
@@ -433,7 +433,7 @@ export default function Sidebar({
 
         <Tooltip text={t("sidebar.refresh")}>
         <button
-          onClick={() => { setRefreshKey(p => p + 1); onRefresh(); }}
+          onClick={() => { triggerScan(); onRefresh(); }}
           onMouseEnter={() => onHoveringRefresh(true)}
           onMouseLeave={() => onHoveringRefresh(false)}
           className={`${collapsed ? 'w-11' : 'flex-1'} h-12 rounded-xl flex items-center justify-center transition-all border group cursor-pointer ${!collapsed && draggedScript ? "opacity-20 blur-[1px]" : ""
