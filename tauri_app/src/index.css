@@ -251,6 +251,40 @@ body {
     /* Do NOT use animation: none, otherwise it restarts from 0% when hover ends */
 }
 
+@keyframes toast-in {
+    0% { opacity: 0; transform: translateY(20px) scale(0.95); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.animate-toast-in {
+    animation: toast-in 0.4s cubic-bezier(0.34, 1.3, 0.64, 1) both;
+}
+
+/* Toast exit: scale up + fade out */
+.toast-slot {
+    display: grid;
+    transition: grid-template-rows 0.5s ease-in-out;
+}
+.toast-slot > div {
+    overflow: hidden;
+}
+.toast-slot .toast-content {
+    transition: opacity 0.4s ease;
+}
+.toast-slot.toast-visible {
+    grid-template-rows: 1fr;
+}
+.toast-slot.toast-visible .toast-content {
+    opacity: 1;
+}
+.toast-slot.toast-hidden {
+    grid-template-rows: 0fr;
+    pointer-events: none;
+}
+.toast-slot.toast-hidden .toast-content {
+    opacity: 0;
+}
+
 /* Ensure drag ghost stays above reordering animations */
 ::view-transition-group(drag-ghost) {
     z-index: 999999;
