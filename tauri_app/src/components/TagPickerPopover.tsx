@@ -2,10 +2,12 @@ import React, { useState, useEffect, useMemo, useRef, memo } from "react";
 import { createPortal } from "react-dom";
 import { TagPickerProps } from "../types/script";
 import { useTranslation } from "react-i18next";
-import { PlusIcon } from "./ui/Icons";
+import { PlusIcon, TagDotIcon, TagIconSvg } from "./ui/Icons";
+import { useTreeStore } from "../store/useTreeStore";
 
 const TagPickerPopover = memo(function TagPickerPopover({ script, allUniqueTags, popoverRef, onAdd, onClose, variant, anchorRef }: TagPickerProps) {
     const { t } = useTranslation();
+    const tagIcons = useTreeStore(s => s.tagIcons);
     const [query, setQuery] = useState("");
     const [selectedIndex, setSelectedIndex] = useState(0);
     const [pos, setPos] = useState({ top: -9999, right: 0, width: 0, height: 0 });
@@ -111,7 +113,10 @@ const TagPickerPopover = memo(function TagPickerPopover({ script, allUniqueTags,
                     {availableTags.map((tag, index) => (
                         <button key={tag} onClick={(e) => { e.stopPropagation(); onAdd(script, tag); }} onMouseDown={(e) => e.stopPropagation()}
                             className={`cursor-pointer w-full text-left px-4 rounded-xl transition-all flex items-center justify-between group/suggest ${selectedIndex === index ? 'bg-white/10 text-primary h-[44px]' : 'hover:bg-white/5 text-xs text-secondary hover:text-primary h-[38px]'}`}>
-                            <span className="font-bold">{tag}</span>
+                            <div className="flex items-center gap-2.5">
+                                {tagIcons[tag] ? <TagIconSvg name={tagIcons[tag]} size={18} /> : <TagDotIcon size={18} />}
+                                <span className="font-bold">{tag}</span>
+                            </div>
                             <div className={`text-indigo-400 transition-opacity ${selectedIndex === index ? 'opacity-100' : 'opacity-0 group-hover/suggest:opacity-100'}`}>
                                 <PlusIcon size={18} />
                             </div>
@@ -173,7 +178,10 @@ const TagPickerPopover = memo(function TagPickerPopover({ script, allUniqueTags,
                     {availableTags.map((tag, index) => (
                         <button key={tag} onClick={(e) => { e.stopPropagation(); onAdd(script, tag); }} onMouseDown={(e) => e.stopPropagation()}
                             className={`cursor-pointer w-full text-left px-5 rounded-xl transition-all flex items-center justify-between group/suggest ${selectedIndex === index ? 'bg-white/10 text-primary h-[44px]' : 'hover:bg-white/5 text-xs text-secondary hover:text-primary h-[38px]'}`}>
-                            <span className="font-bold">{tag}</span>
+                            <div className="flex items-center gap-2.5">
+                                {tagIcons[tag] ? <TagIconSvg name={tagIcons[tag]} size={18} /> : <TagDotIcon size={18} />}
+                                <span className="font-bold">{tag}</span>
+                            </div>
                             <div className={`text-indigo-400 transition-opacity ${selectedIndex === index ? 'opacity-100' : 'opacity-0 group-hover/suggest:opacity-100'}`}>
                                 <PlusIcon size={18} />
                             </div>
