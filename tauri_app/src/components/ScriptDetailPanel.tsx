@@ -71,18 +71,8 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
     });
   }, [script.path]);
 
-  useEffect(() => {
-    const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.stopPropagation();
-        e.stopImmediatePropagation();
-        if (isEditingTags) setIsEditingTags(false);
-        else onClose();
-      }
-    };
-    window.addEventListener('keydown', handleEsc, true); // capture phase
-    return () => window.removeEventListener('keydown', handleEsc, true);
-  }, [isEditingTags, onClose]);
+  // Esc is handled centrally in ScriptTree with priority:
+  // cheatsheet → tagpicker → search → detail panel → vim mode
   useHotkeys('p', () => onPinToggle(), { preventDefault: true });
   useHotkeys('f', () => handleOpenFolder(), { preventDefault: true });
 

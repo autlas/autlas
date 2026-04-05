@@ -73,7 +73,7 @@ const TagPickerPopover = memo(function TagPickerPopover({ script, allUniqueTags,
                 if (selectedIndex < availableTags.length) onAdd(script, availableTags[selectedIndex]);
                 else if (showCreate) onAdd(script, query);
             }
-        } else if (e.key === "Escape") { onClose(); }
+        } else if (e.key === "Escape") { e.stopPropagation(); onClose(); }
     };
 
     if (variant === "tree") return createPortal(

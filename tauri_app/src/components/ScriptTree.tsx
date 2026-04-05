@@ -10,7 +10,7 @@ import ScriptGridView from "./ScriptGridView";
 import { TreeContext, TreeNodeRenderer, setTreeCallbacks } from "./TreeNodeRenderer";
 import { useTreeStore } from "../store/useTreeStore";
 
-export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, onRunningCountChange, viewMode, onViewModeChange, onCustomDragStart, isDragging, draggedScriptPath, animationsEnabled, onScriptContextMenu, onFolderContextMenu, searchQuery, setSearchQuery, contextMenu, onShowUI, refreshKey, onScanComplete, isPathsEmpty, onAddPath, onRemovePath, scanPaths, onRefresh, isRefreshing, onOpenSettings, onSelectScript, onExposeActions, isActive = true }: ScriptTreeProps) {
+export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, onRunningCountChange, viewMode, onViewModeChange, onCustomDragStart, isDragging, draggedScriptPath, animationsEnabled, onScriptContextMenu, onFolderContextMenu, searchQuery, setSearchQuery, contextMenu, onShowUI, refreshKey, onScanComplete, isPathsEmpty, onAddPath, onRemovePath, scanPaths, onRefresh, isRefreshing, onOpenSettings, onSelectScript, onExposeActions, isDetailOpen, onCloseDetail, isActive = true }: ScriptTreeProps) {
     const searchInputRef = useRef<HTMLInputElement>(null);
     const lastGTimeRef = useRef(0);
     const lastFTimeRef = useRef(0);
@@ -223,17 +223,26 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
     }, { enabled: isActive });
 
     useHotkeys('esc', () => {
+        // Priority: cheatsheet → tagpicker → search → detail panel → vim mode
         if (isCheatSheetOpen) {
             setIsCheatSheetOpen(false);
+            return;
+        }
+        if (editingScript) {
+            stopEditing();
             return;
         }
         if (isSearchActiveRef.current) {
             searchInputRef.current?.blur();
             return;
         }
+        if (isDetailOpen && onCloseDetail) {
+            onCloseDetail();
+            return;
+        }
         setFocusedPath(null);
         setIsVimMode(false);
-    }, { enableOnFormTags: true, enabled: isActive }, [isCheatSheetOpen]);
+    }, { enableOnFormTags: true, enabled: isActive }, [isCheatSheetOpen, editingScript, isDetailOpen]);
 
     const lastScrollTimeRef = useRef(0);
 

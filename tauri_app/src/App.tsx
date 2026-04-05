@@ -486,6 +486,8 @@ function App() {
                     isRefreshing={isRefreshing}
                     onSelectScript={handleSelectScript}
                     onExposeActions={handleExposeActions}
+                    isDetailOpen={!!selectedPath}
+                    onCloseDetail={() => setSelectedPath(null)}
                     onOpenSettings={() => {
                       handleTabClick("settings");
                       setTimeout(() => {
