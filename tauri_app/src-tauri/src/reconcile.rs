@@ -43,23 +43,31 @@ pub fn reconcile(conn: &Connection, disk_paths: &HashSet<String>) -> Vec<Pending
     }
 
     // Phase 2: Match new paths to orphans
-    let known_paths: HashSet<String> = db::get_all_active_scripts(conn)
-        .into_iter()
-        .map(|(_, p)| p)
-        .collect();
+    // Bulk-load all active scripts in one query (path → id, hash, last_seen_epoch)
+    let known_scripts = db::get_all_active_scripts_full(conn);
+    let known_paths: HashSet<String> = known_scripts.keys().cloned().collect();
 
     println!("[Reconcile] Phase 2: Processing {} disk paths ({} already known)", disk_paths.len(), known_paths.len());
 
+    // Batch update last_seen for all known paths (single SQL statement)
+    let _ = db::touch_all_last_seen(conn, &known_paths, &now);
+
     for disk_path in disk_paths {
-        if known_paths.contains(disk_path) {
-            // Already known — just update last_seen and hash
-            if let Some((id, _old_hash)) = db::get_script_by_path(conn, disk_path) {
-                let path_buf = std::path::PathBuf::from(disk_path);
+        if let Some(info) = known_scripts.get(disk_path) {
+            // Already known — rehash only if file was modified since last scan
+            let path_buf = std::path::PathBuf::from(disk_path);
+            let mtime = std::fs::metadata(&path_buf).ok()
+                .and_then(|m| m.modified().ok())
+                .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+                .map(|d| d.as_secs())
+                .unwrap_or(0);
+            if mtime > info.last_seen_epoch || info.hash.is_empty() {
                 let new_hash = db::compute_file_hash(&path_buf).unwrap_or_default();
                 let filename = path_buf.file_name()
                     .map(|f| f.to_string_lossy().to_string())
                     .unwrap_or_default();
-                let _ = db::upsert_script(conn, &id, disk_path, &filename, &new_hash, &now);
+                let _ = db::upsert_script(conn, &info.id, disk_path, &filename, &new_hash, &now);
+                stats.rehashed += 1;
             }
             stats.updated += 1;
             continue;
@@ -138,8 +146,8 @@ pub fn reconcile(conn: &Connection, disk_paths: &HashSet<String>) -> Vec<Pending
     }
 
     let elapsed = start.elapsed();
-    println!("[Reconcile] Done in {:.1?}: {} updated, {} new, {} hash-matched, {} filename-pending, {} orphaned",
-        elapsed, stats.updated, stats.new_scripts, stats.hash_matched, stats.filename_pending, stats.orphaned);
+    println!("[Reconcile] Done in {:.1?}: {} updated ({} rehashed), {} new, {} hash-matched, {} filename-pending, {} orphaned",
+        elapsed, stats.updated, stats.rehashed, stats.new_scripts, stats.hash_matched, stats.filename_pending, stats.orphaned);
 
     pending_matches
 }
@@ -147,6 +155,7 @@ pub fn reconcile(conn: &Connection, disk_paths: &HashSet<String>) -> Vec<Pending
 #[derive(Default)]
 struct ReconcileStats {
     updated: usize,
+    rehashed: usize,
     new_scripts: usize,
     hash_matched: usize,
     filename_pending: usize,

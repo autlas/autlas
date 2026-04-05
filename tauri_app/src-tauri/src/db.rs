@@ -125,6 +125,7 @@ pub fn set_setting(conn: &Connection, key: &str, value: &str) -> rusqlite::Resul
 
 // ── Scripts ──
 
+#[allow(dead_code)]
 pub fn get_script_by_path(conn: &Connection, path: &str) -> Option<(String, String)> {
     conn.query_row(
         "SELECT id, content_hash FROM scripts WHERE path = ?1 AND is_orphaned = 0",
@@ -140,6 +141,47 @@ pub fn upsert_script(conn: &Connection, id: &str, path: &str, filename: &str, co
          ON CONFLICT(id) DO UPDATE SET path = ?2, filename = ?3, content_hash = ?4, last_seen = ?5, is_orphaned = 0, orphaned_at = NULL
          ON CONFLICT(path) DO UPDATE SET filename = ?3, content_hash = ?4, last_seen = ?5, is_orphaned = 0, orphaned_at = NULL",
         params![id, path, filename, content_hash, now],
+    )?;
+    Ok(())
+}
+
+#[allow(dead_code)]
+pub fn get_last_seen_epoch(conn: &Connection, id: &str) -> Option<u64> {
+    let last_seen: String = conn.query_row(
+        "SELECT last_seen FROM scripts WHERE id = ?1",
+        params![id],
+        |row| row.get(0),
+    ).ok()?;
+    // Parse ISO 8601 "YYYY-MM-DDTHH:MM:SSZ" to epoch
+    parse_iso_to_epoch(&last_seen)
+}
+
+fn parse_iso_to_epoch(iso: &str) -> Option<u64> {
+    // Simple parser for our own format: "2026-04-05T08:05:36Z"
+    if iso.len() < 19 { return None; }
+    let year: i64 = iso[0..4].parse().ok()?;
+    let month: u64 = iso[5..7].parse().ok()?;
+    let day: u64 = iso[8..10].parse().ok()?;
+    let hour: u64 = iso[11..13].parse().ok()?;
+    let min: u64 = iso[14..16].parse().ok()?;
+    let sec: u64 = iso[17..19].parse().ok()?;
+    // Rough days-from-epoch calculation
+    let mut days: i64 = 0;
+    for y in 1970..year {
+        days += if y % 4 == 0 && (y % 100 != 0 || y % 400 == 0) { 366 } else { 365 };
+    }
+    let month_days = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
+    days += month_days[month.saturating_sub(1) as usize] as i64;
+    if month > 2 && year % 4 == 0 && (year % 100 != 0 || year % 400 == 0) { days += 1; }
+    days += day as i64 - 1;
+    Some((days as u64) * 86400 + hour * 3600 + min * 60 + sec)
+}
+
+#[allow(dead_code)]
+pub fn touch_last_seen(conn: &Connection, path: &str, now: &str) -> rusqlite::Result<()> {
+    conn.execute(
+        "UPDATE scripts SET last_seen = ?2 WHERE path = ?1 AND is_orphaned = 0",
+        params![path, now],
     )?;
     Ok(())
 }
@@ -191,6 +233,41 @@ pub fn find_orphans_by_filename(conn: &Connection, filename: &str) -> Vec<(Strin
     stmt.query_map(params![filename], |row| {
         Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
     }).unwrap().filter_map(|r| r.ok()).collect()
+}
+
+pub struct ActiveScriptInfo {
+    pub id: String,
+    pub hash: String,
+    pub last_seen_epoch: u64,
+}
+
+/// Bulk-load all active scripts: path → (id, hash, last_seen_epoch)
+pub fn get_all_active_scripts_full(conn: &Connection) -> HashMap<String, ActiveScriptInfo> {
+    let mut stmt = conn.prepare(
+        "SELECT path, id, content_hash, last_seen FROM scripts WHERE is_orphaned = 0"
+    ).unwrap();
+    let mut map = HashMap::new();
+    let rows = stmt.query_map([], |row| {
+        let path: String = row.get(0)?;
+        let id: String = row.get(1)?;
+        let hash: String = row.get::<_, Option<String>>(2)?.unwrap_or_default();
+        let last_seen: String = row.get::<_, Option<String>>(3)?.unwrap_or_default();
+        let epoch = parse_iso_to_epoch(&last_seen).unwrap_or(0);
+        Ok((path, ActiveScriptInfo { id, hash, last_seen_epoch: epoch }))
+    }).unwrap();
+    for row in rows.flatten() {
+        map.insert(row.0, row.1);
+    }
+    map
+}
+
+/// Batch update last_seen for all known paths
+pub fn touch_all_last_seen(conn: &Connection, paths: &std::collections::HashSet<String>, now: &str) -> rusqlite::Result<()> {
+    let mut stmt = conn.prepare("UPDATE scripts SET last_seen = ?1 WHERE path = ?2 AND is_orphaned = 0")?;
+    for path in paths {
+        stmt.execute(params![now, path])?;
+    }
+    Ok(())
 }
 
 /// Get all non-orphaned scripts (id, path)
@@ -272,13 +349,15 @@ pub fn remove_tag_from_script(conn: &Connection, script_id: &str, tag: &str) -> 
 
 pub fn rename_tag_all(conn: &Connection, old_tag: &str, new_tag: &str) -> rusqlite::Result<()> {
     let tx = conn.unchecked_transaction()?;
+    // First delete old_tag entries where script already has new_tag (prevents PK violation)
+    tx.execute(
+        "DELETE FROM script_tags WHERE LOWER(tag) = LOWER(?1) AND script_id IN (SELECT script_id FROM script_tags WHERE LOWER(tag) = LOWER(?2))",
+        params![old_tag, new_tag],
+    )?;
+    // Now safely rename remaining
     tx.execute(
         "UPDATE script_tags SET tag = ?2 WHERE LOWER(tag) = LOWER(?1)",
         params![old_tag, new_tag],
-    )?;
-    tx.execute(
-        "DELETE FROM script_tags WHERE rowid NOT IN (SELECT MIN(rowid) FROM script_tags GROUP BY script_id, LOWER(tag))",
-        [],
     )?;
     tx.execute(
         "UPDATE tag_meta SET tag = ?2 WHERE LOWER(tag) = LOWER(?1)",
