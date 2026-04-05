@@ -60,6 +60,11 @@ const TagPickerPopover = memo(function TagPickerPopover({ script, allUniqueTags,
     const showCreate = query && !allUniqueTags.some(t => t.toLowerCase() === query.toLowerCase());
     const totalCount = availableTags.length + (showCreate ? 1 : 0);
 
+    const handleCreateNew = (tagName: string) => {
+        onAdd(script, tagName);
+        useTreeStore.getState().setIconPickerTag(tagName);
+    };
+
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === "ArrowDown") {
             e.preventDefault();
@@ -73,7 +78,7 @@ const TagPickerPopover = memo(function TagPickerPopover({ script, allUniqueTags,
             e.preventDefault();
             if (totalCount > 0) {
                 if (selectedIndex < availableTags.length) onAdd(script, availableTags[selectedIndex]);
-                else if (showCreate) onAdd(script, query);
+                else if (showCreate) handleCreateNew(query);
             }
         } else if (e.key === "Escape") { e.stopPropagation(); onClose(); }
     };
@@ -123,7 +128,7 @@ const TagPickerPopover = memo(function TagPickerPopover({ script, allUniqueTags,
                         </button>
                     ))}
                     {showCreate && (
-                        <button onClick={(e) => { e.stopPropagation(); onAdd(script, query); }} onMouseDown={(e) => e.stopPropagation()}
+                        <button onClick={(e) => { e.stopPropagation(); handleCreateNew(query); }} onMouseDown={(e) => e.stopPropagation()}
                             className={`cursor-pointer w-full text-left px-4 rounded-xl transition-all flex items-center justify-between ${selectedIndex === availableTags.length ? 'bg-indigo-500/30 text-indigo-300 h-[44px]' : 'bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 text-xs h-[38px]'}`}>
                             <span className="font-bold">{t("search.create", { query })}</span>
                             <div className="font-bold">
@@ -188,7 +193,7 @@ const TagPickerPopover = memo(function TagPickerPopover({ script, allUniqueTags,
                         </button>
                     ))}
                     {showCreate && (
-                        <button onClick={(e) => { e.stopPropagation(); onAdd(script, query); }} onMouseDown={(e) => e.stopPropagation()}
+                        <button onClick={(e) => { e.stopPropagation(); handleCreateNew(query); }} onMouseDown={(e) => e.stopPropagation()}
                             className={`cursor-pointer w-full text-left px-5 rounded-xl transition-all flex items-center justify-between ${selectedIndex === availableTags.length ? 'bg-indigo-500/30 text-indigo-300 h-[44px]' : 'bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 text-xs h-[38px]'}`}>
                             <span className="font-bold">{t("search.create", { query })}</span>
                             <div className="font-bold">

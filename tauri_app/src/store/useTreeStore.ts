@@ -81,6 +81,10 @@ interface TreeStore {
   iconCache: Record<string, [string, string]>;
   setIconCache: (cache: Record<string, [string, string]>) => void;
   addToIconCache: (name: string, paths: [string, string]) => void;
+
+  // Icon picker
+  iconPickerTag: string | null;
+  setIconPickerTag: (tag: string | null) => void;
 }
 
 export const useTreeStore = create<TreeStore>((set) => ({
@@ -197,6 +201,10 @@ export const useTreeStore = create<TreeStore>((set) => ({
   iconCache: {},
   setIconCache: (cache) => set({ iconCache: cache }),
   addToIconCache: (name, paths) => set((s) => ({ iconCache: { ...s.iconCache, [name]: paths } })),
+
+  // Icon picker
+  iconPickerTag: null,
+  setIconPickerTag: (tag) => set({ iconPickerTag: tag }),
 
   // Removing tags
   removingTags: new Set(),

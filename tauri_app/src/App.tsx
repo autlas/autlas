@@ -41,7 +41,8 @@ function App() {
   const [showInstallModal, setShowInstallModal] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; type: "script" | "tag" | "folder" | "general"; data: any } | null>(null);
   const [activeTabPressed, setActiveTabPressed] = useState<string | null>(null);
-  const [iconPickerTag, setIconPickerTag] = useState<string | null>(null);
+  const iconPickerTag = useTreeStore(s => s.iconPickerTag);
+  const setIconPickerTag = useTreeStore(s => s.setIconPickerTag);
   const [runningCount, setRunningCount] = useState(0);
   const [lastScanTimestamp, setLastScanTimestamp] = useState<number>(() => {
     const saved = localStorage.getItem("ahk_last_scan_timestamp");
