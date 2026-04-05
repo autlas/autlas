@@ -315,6 +315,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
         scrollPositions.current[`${filterTag}-${viewMode}`] = e.currentTarget.scrollTop;
     };
 
+    const isTreeView = viewMode === "tree";
     const treeContextValue = useMemo(() => ({
         toggleFolder, setFolderExpansionRecursive, folderRefs,
         animationsEnabled, allUniqueTags,
@@ -323,14 +324,15 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
         startEditing, stopEditing, addTag, removeTag,
         onShowUI,
         onRestart: handleRestart,
-        onSelectScript
+        onSelectScript,
+        isTreeView
     }), [
         toggleFolder, setFolderExpansionRecursive,
         animationsEnabled, onFolderContextMenu, onScriptContextMenu,
         allUniqueTags,
         handleCustomMouseDown, handleToggle,
         startEditing, stopEditing, addTag, removeTag,
-        onShowUI, handleRestart, onSelectScript
+        onShowUI, handleRestart, onSelectScript, isTreeView
     ]);
 
     // Set module-level callbacks for TreeNodeRenderer (bypasses useContext → prevents memo bypass)

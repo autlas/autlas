@@ -24,6 +24,7 @@ export interface TreeContextValue {
     onShowUI: (s: Script) => void;
     onRestart: (s: Script) => void;
     onSelectScript?: (s: Script) => void;
+    isTreeView?: boolean;
 }
 
 export const TreeContext = createContext<TreeContextValue>(null as any);
@@ -252,7 +253,7 @@ export const TreeNodeRenderer = memo(function TreeNodeRenderer({
                                             s={s}
                                             isDragging={isDragging}
                                             draggedScriptPath={draggedScriptPath}
-                                            isEditing={editingScript === s.path}
+                                            isEditing={!!_treeCallbacks?.isTreeView && editingScript === s.path}
                                             isPending={!!pendingScripts[s.path]}
                                             pendingType={pendingScripts[s.path]}
                                             removingTagKeys={removingTagKeys}
