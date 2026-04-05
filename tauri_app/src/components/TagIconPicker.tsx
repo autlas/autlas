@@ -93,8 +93,8 @@ export default function TagIconPicker({ tag, currentIcon, onSelect, onReset, onC
                                         }`}
                                 >
                                     <svg
-                                        width={20}
-                                        height={20}
+                                        width={22}
+                                        height={22}
                                         viewBox="0 0 256 256"
                                         fill="currentColor"
                                         dangerouslySetInnerHTML={{ __html: TAG_ICONS[name][0] }}

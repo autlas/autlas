@@ -246,7 +246,7 @@ export default function Sidebar({
           ].map((tab) => (
             <li
               key={tab.id}
-              className={`h-12 rounded-2xl cursor-pointer text-sm font-bold transition-[background-color,opacity,filter,box-shadow] duration-200 flex items-center overflow-hidden whitespace-nowrap ${collapsed ? 'w-12' : ''} px-4
+              className={`h-12 rounded-2xl cursor-pointer text-sm font-bold transition-[background-color,opacity,filter,box-shadow] duration-200 flex items-center overflow-hidden whitespace-nowrap ${collapsed ? 'w-12' : ''} px-[13px]
                 justify-between
                 ${!collapsed && draggedScript && tab.id !== dragOverTag ? "opacity-20 blur-[1px]" : ""}
                 ${activeTab === tab.id && viewMode !== "settings"
@@ -257,8 +257,8 @@ export default function Sidebar({
               onClick={() => !draggedScript && onTabClick(tab.id)}
             >
               <div className="flex items-center pointer-events-none flex-shrink-0">
-                {tab.id === "all" && <LayersIcon weight={activeTab === tab.id && viewMode !== "settings" ? "fill" : "bold"} className="flex-shrink-0" />}
-                {tab.id === "no_tags" && <TagOffIcon weight={activeTab === tab.id && viewMode !== "settings" ? "fill" : "bold"} className="flex-shrink-0 translate-y-[1px]" />}
+                {tab.id === "all" && <LayersIcon size={22} weight={activeTab === tab.id && viewMode !== "settings" ? "fill" : "bold"} className="flex-shrink-0" />}
+                {tab.id === "no_tags" && <TagOffIcon size={22} weight={activeTab === tab.id && viewMode !== "settings" ? "fill" : "bold"} className="flex-shrink-0 translate-y-[1px]" />}
                 <span className={`transition-[width,margin,opacity] duration-150 ${collapsed ? 'w-0 ml-0 opacity-0' : 'w-auto ml-3 opacity-100'}`}>{tab.label}</span>
               </div>
             </li>
@@ -270,7 +270,7 @@ export default function Sidebar({
         {/* Group 3: Tags */}
         <div className="flex flex-col space-y-1.5 w-full">
           <li
-            className={`h-12 rounded-2xl cursor-pointer text-sm font-bold transition-[background-color,opacity,filter,box-shadow] duration-200 flex items-center overflow-hidden whitespace-nowrap ${collapsed ? 'w-12' : ''} px-4
+            className={`h-12 rounded-2xl cursor-pointer text-sm font-bold transition-[background-color,opacity,filter,box-shadow] duration-200 flex items-center overflow-hidden whitespace-nowrap ${collapsed ? 'w-12' : ''} px-[13px]
               justify-between
               ${!collapsed && draggedScript ? "opacity-20 blur-[1px]" : ""}
               ${activeTab === "tags" && viewMode !== "settings"
@@ -281,7 +281,7 @@ export default function Sidebar({
             onClick={() => !draggedScript && onTabClick("tags")}
           >
             <div className="flex items-center pointer-events-none flex-shrink-0">
-              <TagIcon weight={activeTab === "tags" && viewMode !== "settings" ? "fill" : "bold"} className="flex-shrink-0 translate-y-[1px]" />
+              <TagIcon size={22} weight={activeTab === "tags" && viewMode !== "settings" ? "fill" : "bold"} className="flex-shrink-0 translate-y-[1px]" />
               <span className={`transition-[width,margin,opacity] duration-150 ${collapsed ? 'w-0 ml-0 opacity-0' : 'w-auto ml-3 opacity-100'}`}>{t("sidebar.tags", "Tags")}</span>
             </div>
             {!collapsed && (
@@ -326,7 +326,7 @@ export default function Sidebar({
                   draggedScript && dragOverTag === tag && setDragOverTag(null);
                 }}
                 className={collapsed
-                  ? `w-12 px-4 h-12 rounded-2xl cursor-pointer text-sm font-bold transition-[background-color,opacity,filter,box-shadow] duration-200 flex items-center justify-between overflow-hidden whitespace-nowrap
+                  ? `w-12 px-[13px] h-12 rounded-2xl cursor-pointer text-sm font-bold transition-[background-color,opacity,filter,box-shadow] duration-200 flex items-center justify-between overflow-hidden whitespace-nowrap
                     ${activeTab === tag && viewMode !== "settings"
                     ? "text-indigo-400 shadow-lg tag-active"
                     : "text-tertiary hover:text-secondary tag-hover"
@@ -371,7 +371,7 @@ export default function Sidebar({
                 ) : (
                   <div className="flex items-center pointer-events-none flex-shrink-0">
                     {tagIcons[tag]
-                      ? <TagIconSvg name={tagIcons[tag]} weight={activeTab === tag && viewMode !== "settings" ? "fill" : "bold"} className="flex-shrink-0" />
+                      ? <TagIconSvg name={tagIcons[tag]} size={22} weight={activeTab === tag && viewMode !== "settings" ? "fill" : "bold"} className="flex-shrink-0" />
                       : <TagDotIcon weight={activeTab === tag && viewMode !== "settings" ? "fill" : "bold"} className="flex-shrink-0" />
                     }
                     <span className={`relative z-50 font-bold transition-[width,margin,opacity] duration-150 ${collapsed ? 'w-0 ml-0 opacity-0' : 'w-auto ml-3 opacity-100 truncate'}`}>{tag}</span>
