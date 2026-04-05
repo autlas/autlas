@@ -84,10 +84,11 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
 
                 const merged = data.map(d => {
                     const p = prevMap.get(d.path);
-                    if (!p) return d;
-                    if (p.is_running === d.is_running && p.is_hidden === d.is_hidden) return p;
+                    if (!p) { anyChanged = true; return d; }
+                    const tagsMatch = p.tags.length === d.tags.length && p.tags.every((t, i) => t === d.tags[i]);
+                    if (p.id === d.id && p.is_running === d.is_running && p.is_hidden === d.is_hidden && tagsMatch) return p;
                     anyChanged = true;
-                    return { ...d, tags: p.tags };
+                    return d;
                 });
 
                 return anyChanged ? merged : prev;
