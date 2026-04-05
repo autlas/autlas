@@ -1,4 +1,6 @@
 import React from "react";
+import { TagDotIcon, TagIconSvg } from "./ui/Icons";
+import { useTreeStore } from "../store/useTreeStore";
 
 interface DragGhostProps {
   ghostRef: React.RefObject<HTMLDivElement | null>;
@@ -17,7 +19,7 @@ export default function DragGhost({ ghostRef, draggedScript, draggedTag, activeT
       className={`drag-ghost-container fixed z-[99999] flex items-center justify-between ${draggedScript || draggedTag ? "opacity-100" : "opacity-0 hidden"}
         ${draggedTag
           ? (draggedTag === activeTab
-            ? "w-[240px] px-6 h-12 rounded-2xl shadow-xl text-indigo-400 font-bold"
+            ? "w-[240px] px-6 h-12 rounded-2xl shadow-xl text-white/80 font-bold"
             : "w-[240px] px-6 h-12 rounded-2xl shadow-2xl text-secondary font-bold"
           )
           : (draggedScript ? "bg-white/10 border border-white/20 shadow-2xl backdrop-blur-xl rounded-2xl px-6 py-3 text-white font-bold whitespace-nowrap space-x-3" : "")
@@ -28,8 +30,8 @@ export default function DragGhost({ ghostRef, draggedScript, draggedTag, activeT
         top: 0,
         width: draggedTag ? `${dragGhostSize.w + 12}px` : "auto",
         height: draggedTag ? `${dragGhostSize.h + 2}px` : "auto",
-        paddingLeft: draggedTag ? "30px" : undefined,
-        paddingRight: draggedTag ? "30px" : undefined,
+        paddingLeft: draggedTag ? "19px" : undefined,
+        paddingRight: draggedTag ? "19px" : undefined,
         willChange: "transform, opacity",
         backgroundColor: draggedTag
           ? (draggedTag === activeTab ? "var(--bg-tag-active-hover)" : "var(--bg-tag-drag)")
@@ -44,7 +46,15 @@ export default function DragGhost({ ghostRef, draggedScript, draggedTag, activeT
         </>
       )}
       {draggedTag && (
-        <span className="text-sm font-bold truncate flex-1">{draggedTag}</span>
+        <>
+          <span className="flex-shrink-0">
+            {useTreeStore.getState().tagIcons[draggedTag]
+              ? <TagIconSvg name={useTreeStore.getState().tagIcons[draggedTag]} size={22} weight={draggedTag === activeTab ? "fill" : "bold"} />
+              : <TagDotIcon size={22} weight={draggedTag === activeTab ? "fill" : "bold"} />
+            }
+          </span>
+          <span className="text-sm font-bold truncate flex-1 ml-3">{draggedTag}</span>
+        </>
       )}
     </div>
   );

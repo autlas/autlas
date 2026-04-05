@@ -345,28 +345,39 @@ export default function Sidebar({
                 onClick={() => { if (!draggedScript) onTabClick(tag); }}
               >
                 {isRenamingTag === tag && !collapsed ? (
+                  <div className="flex items-center flex-shrink-0 w-full">
+                    {tagIcons[tag]
+                      ? <TagIconSvg name={tagIcons[tag]} size={22} weight="bold" className="flex-shrink-0" />
+                      : <TagDotIcon size={22} weight="bold" className="flex-shrink-0" />
+                    }
                   <input
                     autoFocus
-                    className="bg-transparent border-none outline-none text-sm font-bold w-full text-white"
+                    className="bg-transparent border-none outline-none text-sm font-bold w-full text-white ml-3"
                     value={editTagName}
                     onChange={(e) => setEditTagName(e.target.value)}
                     onClick={(e) => e.stopPropagation()}
-                    onBlur={() => setIsRenamingTag(null)}
-                    onKeyDown={async (e) => {
-                      if (e.key === "Enter" && editTagName.trim() && editTagName !== tag) {
-                        const newName = editTagName.trim();
+                    onBlur={async () => {
+                      const newName = editTagName.trim();
+                      if (newName && newName !== tag) {
                         await invoke("rename_tag", { oldTag: tag, newTag: newName });
                         const newOrder = userTags.map(t => t === tag ? newName : t);
                         setUserTags(newOrder);
                         await invoke("save_tag_order", { order: newOrder });
                         if (activeTab === tag) setActiveTab(newName);
-                        setIsRenamingTag(null);
                         triggerScan();
+                      }
+                      setIsRenamingTag(null);
+                    }}
+                    onKeyDown={async (e) => {
+                      if (e.key === "Enter") {
+                        (e.target as HTMLInputElement).blur();
                       } else if (e.key === "Escape") {
+                        setEditTagName(tag);
                         setIsRenamingTag(null);
                       }
                     }}
                   />
+                  </div>
                 ) : (
                   <div className="flex items-center pointer-events-none flex-shrink-0">
                     {tagIcons[tag]
