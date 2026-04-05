@@ -1013,9 +1013,11 @@ async fn get_scripts(
     force_scan: bool,
 ) -> Result<Vec<Script>, String> {
     use tauri::Emitter;
+    let start = std::time::Instant::now();
+
+    // Collect running processes (always needed)
     let mut sys = System::new_all();
     sys.refresh_all();
-
     let mut running_cmds = Vec::new();
     for (_pid, process) in sys.processes() {
         let name = process.name().to_string_lossy().to_lowercase();
@@ -1025,49 +1027,31 @@ async fn get_scripts(
         }
     }
 
-    // Phase A: Read config from DB (short lock)
+    // Read config from DB (short lock)
     let (scan_paths_list, hidden_folders) = {
         let conn = state.0.lock().map_err(|e| e.to_string())?;
         (db::get_scan_paths(&conn), db::get_hidden_folders(&conn))
-    }; // lock released
-
-    // Phase B: Disk I/O without holding the lock
-    let mut script_paths = Vec::new();
-
-    let cache_hit = if !force_scan {
-        if let Some(cached) = load_cache() {
-            println!("[Rust] Loading scripts from cache ({} paths found)", cached.len());
-            script_paths = cached;
-            true
-        } else {
-            println!("[Rust] Cache file missing. Proceeding to scan.");
-            false
-        }
-    } else {
-        println!("[Rust] Manual refresh requested (force_scan=true). Starting full disk scan...");
-        false
     };
 
-    if !cache_hit {
-        if !force_scan {
-            println!("[Rust] No cached data available. Starting initial disk scan...");
-        }
+    // Resolve script paths
+    let mut script_paths: Vec<String>;
+
+    if force_scan {
+        // FULL SCAN: disk scan + reconciliation
+        println!("[Rust] Manual refresh requested (force_scan=true). Starting full disk scan...");
         let scan_start = std::time::Instant::now();
         let mut scan_dirs = Vec::new();
-
         for p in &scan_paths_list {
             let pb = std::path::PathBuf::from(p);
-            if pb.exists() && pb.is_dir() {
-                scan_dirs.push(pb);
-            }
+            if pb.exists() && pb.is_dir() { scan_dirs.push(pb); }
         }
 
         let everything_result = scan_with_everything(&scan_dirs);
         if let Some(paths) = everything_result {
             script_paths = paths;
-            let scan_elapsed = scan_start.elapsed();
-            println!("[Rust] Everything scan completed: {} scripts found in {:.1?}", script_paths.len(), scan_elapsed);
+            println!("[Rust] Everything scan completed: {} scripts in {:.1?}", script_paths.len(), scan_start.elapsed());
         } else {
+            script_paths = Vec::new();
             let mut last_emitted = 0usize;
             for dir in scan_dirs {
                 for entry in WalkDir::new(&dir).into_iter().filter_map(|e| e.ok()) {
@@ -1081,54 +1065,56 @@ async fn get_scripts(
                     }
                 }
             }
-            let scan_elapsed = scan_start.elapsed();
-            println!("[Rust] WalkDir scan completed: {} scripts found in {:.1?}", script_paths.len(), scan_elapsed);
+            println!("[Rust] WalkDir scan completed: {} scripts in {:.1?}", script_paths.len(), scan_start.elapsed());
         }
         save_cache(&script_paths);
+
+        // Deduplicate
+        let mut seen = HashSet::new();
+        script_paths.retain(|p| seen.insert(p.to_lowercase()));
+
+        let disk_paths: HashSet<String> = script_paths.iter()
+            .map(|p| p.to_lowercase())
+            .filter(|p| std::path::Path::new(p).exists())
+            .collect();
+
+        // Reconciliation (only on refresh)
+        let conn = state.0.lock().map_err(|e| e.to_string())?;
+        let pending = reconcile::reconcile(&conn, &disk_paths);
+        if !pending.is_empty() {
+            println!("[Rust] {} pending matches need user confirmation", pending.len());
+            let _ = app_handle.emit("orphan-matches-found", &pending);
+        }
+        drop(conn);
+    } else {
+        // FAST LOAD: cache only, no reconciliation
+        if let Some(cached) = load_cache() {
+            println!("[Rust] Fast load from cache ({} paths)", cached.len());
+            script_paths = cached;
+            let mut seen = HashSet::new();
+            script_paths.retain(|p| seen.insert(p.to_lowercase()));
+        } else {
+            println!("[Rust] No cache — returning empty (user should refresh or set up scan paths)");
+            script_paths = Vec::new();
+        }
     }
 
-    // Deduplicate by lowercase path
-    let before_dedup = script_paths.len();
-    let mut seen = HashSet::new();
-    script_paths.retain(|p| seen.insert(p.to_lowercase()));
-    let after_dedup = script_paths.len();
-    if before_dedup != after_dedup {
-        println!("[Rust] Deduplicated: {} → {} paths ({} duplicates removed)", before_dedup, after_dedup, before_dedup - after_dedup);
-    }
-
-    let disk_paths: HashSet<String> = script_paths.iter()
-        .map(|p| p.to_lowercase())
-        .filter(|p| std::path::Path::new(p).exists())
-        .collect();
-    println!("[Rust] {} paths exist on disk, running reconciliation...", disk_paths.len());
-
-    // Phase C: Re-acquire lock for reconciliation + data loading
+    // Load tags and IDs from DB (fast, single queries)
     let conn = state.0.lock().map_err(|e| e.to_string())?;
-
-    let pending = reconcile::reconcile(&conn, &disk_paths);
-    if !pending.is_empty() {
-        println!("[Rust] {} pending matches need user confirmation", pending.len());
-        let _ = app_handle.emit("orphan-matches-found", &pending);
-    }
-
     let tags_map = db::get_all_tags_map(&conn);
-    let tagged_count = tags_map.len();
-    let total_tags: usize = tags_map.values().map(|v| v.len()).sum();
-    println!("[Rust] Loaded tags: {} scripts with {} total tags", tagged_count, total_tags);
-
-    // Build ID map for enrichment (single query, no per-script DB call)
     let id_map: HashMap<String, String> = db::get_all_active_scripts(&conn)
         .into_iter().map(|(id, path)| (path, id)).collect();
+    drop(conn);
 
-    drop(conn); // Release lock before file I/O enrichment
+    let tagged_count = tags_map.len();
+    let total_tags: usize = tags_map.values().map(|v| v.len()).sum();
 
-    // Phase D: Enrich scripts (file I/O, no lock needed)
+    // Enrich scripts (file I/O for running scripts only)
     let mut scripts = Vec::new();
     for path_str in &script_paths {
         let path_buf = std::path::PathBuf::from(path_str);
-        if !path_buf.exists() { continue; }
-
         let path_lower = path_str.to_lowercase();
+
         let filename = path_buf.file_name().map_or("".to_string(), |f| f.to_string_lossy().to_string());
         let parent = path_buf.parent().map_or("".to_string(), |p| p.file_name().map_or("".to_string(), |f| f.to_string_lossy().to_string()));
 
@@ -1144,7 +1130,10 @@ async fn get_scripts(
             } else { false }
         } else { false };
 
-        let size = fs::metadata(&path_buf).map(|m| m.len()).unwrap_or(0);
+        // exists() + size from same syscall
+        let meta = fs::metadata(&path_buf);
+        if meta.is_err() { continue; } // skip deleted files
+        let size = meta.unwrap().len();
 
         scripts.push(Script {
             id: script_id,
@@ -1161,6 +1150,8 @@ async fn get_scripts(
 
     scripts.sort_by(|a, b| a.path.cmp(&b.path));
     scripts.dedup_by(|a, b| a.path == b.path);
+    println!("[Rust] get_scripts done: {} scripts, {} tagged ({} tags) in {:.1?}",
+        scripts.len(), tagged_count, total_tags, start.elapsed());
     Ok(scripts)
 }
 

@@ -75,7 +75,9 @@
         "everything_install": "Install",
         "everything_launch": "Launch",
         "show_file_size": "Show file size",
-        "show_file_size_desc": "Display script file size next to name"
+        "show_file_size_desc": "Display script file size next to name",
+        "auto_refresh": "Auto-refresh on startup",
+        "auto_refresh_desc": "Scan disk for changes when app opens"
     },
     "context": {
         "stop": "Stop",

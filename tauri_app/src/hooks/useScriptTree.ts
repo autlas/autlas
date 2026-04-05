@@ -151,7 +151,11 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
     }, []);
 
     useEffect(() => {
-        fetchData();
+        fetchData(); // Fast load from cache
+        // Auto-refresh on startup if setting enabled
+        if (localStorage.getItem("ahk_auto_refresh") === "true") {
+            fetchData(true);
+        }
 
         let unlisten: (() => void) | null = null;
         let unlistenStatus: (() => void) | null = null;

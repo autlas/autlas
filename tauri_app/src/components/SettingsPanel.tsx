@@ -55,6 +55,7 @@ export default function SettingsPanel({
   };
 
   const [everythingStatus, setEverythingStatus] = useState<"running" | "installed" | "not_installed" | null>(null);
+  const [autoRefresh, setAutoRefresh] = useState(() => localStorage.getItem("ahk_auto_refresh") === "true");
   const [everythingLoading, setEverythingLoading] = useState(false);
 
   useEffect(() => {
@@ -196,6 +197,19 @@ export default function SettingsPanel({
             className={`relative w-14 h-7 rounded-full transition-all duration-300 cursor-pointer border ${showFileSize ? "bg-indigo-500/30 border-indigo-400/40 shadow-[0_0_12px_rgba(99,102,241,0.3)]" : "bg-white/5 border-white/10"}`}
           >
             <div className={`absolute top-[3px] w-5 h-5 rounded-full transition-all duration-300 shadow-lg ${showFileSize ? "left-[30px] bg-indigo-400 shadow-indigo-500/50" : "left-[3px] bg-white/30"}`} />
+          </button>
+        </div>
+
+        <div className="flex justify-between items-center px-2 pt-4 border-t border-white/5">
+          <div className="flex flex-col">
+            <span className="text-base font-bold text-secondary">{t("settings.auto_refresh", "Auto-refresh on startup")}</span>
+            <span className="text-xs text-tertiary mt-1">{t("settings.auto_refresh_desc", "Scan disk for changes when app opens")}</span>
+          </div>
+          <button
+            onClick={() => { const v = localStorage.getItem("ahk_auto_refresh") !== "true"; localStorage.setItem("ahk_auto_refresh", String(v)); setAutoRefresh(v); }}
+            className={`relative w-14 h-7 rounded-full transition-all duration-300 cursor-pointer border ${autoRefresh ? "bg-indigo-500/30 border-indigo-400/40 shadow-[0_0_12px_rgba(99,102,241,0.3)]" : "bg-white/5 border-white/10"}`}
+          >
+            <div className={`absolute top-[3px] w-5 h-5 rounded-full transition-all duration-300 shadow-lg ${autoRefresh ? "left-[30px] bg-indigo-400 shadow-indigo-500/50" : "left-[3px] bg-white/30"}`} />
           </button>
         </div>
       </SettingsSection>
