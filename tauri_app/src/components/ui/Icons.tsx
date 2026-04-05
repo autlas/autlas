@@ -1,3 +1,4 @@
+import { useId } from "react";
 import {
     X, Minus, ArrowsCounterClockwise, Play, AppWindow,
     MagnifyingGlass, Gear, PencilSimple, Folder, ArrowClockwise,
@@ -104,17 +105,24 @@ export function TagDotIcon({ size = 18, className, weight = "bold" }: IconProps)
     return <CircleDashed size={size} weight={weight} className={className} />;
 }
 
-// TagOff — Phosphor tag + diagonal slash overlay
+// TagOff — mask approach: white shapes on black = no overlap, then fill with currentColor
 export function TagOffIcon({ size = 18, className, weight = "bold" }: IconProps) {
+    const id = useId();
+    const maskId = `tagoff-${id}`;
     const isFill = weight === "fill";
+    const tagPath = isFill
+        ? "M243.31 136L144 36.69A15.86 15.86 0 0 0 132.69 32H40a8 8 0 0 0-8 8v92.69A15.86 15.86 0 0 0 36.69 144L136 243.31a16 16 0 0 0 22.63 0l84.68-84.68a16 16 0 0 0 0-22.63M84 96a12 12 0 1 1 12-12a12 12 0 0 1-12 12"
+        : "m246.15 133.18l-99.32-99.32A19.85 19.85 0 0 0 132.69 28H40a12 12 0 0 0-12 12v92.69a19.85 19.85 0 0 0 5.86 14.14l99.32 99.32a20 20 0 0 0 28.28 0l84.69-84.69a20 20 0 0 0 0-28.28m-98.83 93.17L52 131V52h79l95.32 95.32ZM104 88a16 16 0 1 1-16-16a16 16 0 0 1 16 16";
+    const slashPath = "M228.49 19.51a12 12 0 0 1 0 17l-192 192a12 12 0 0 1-17-17l192-192a12 12 0 0 1 17 0Z";
     return (
-        <svg width={size} height={size} viewBox="0 0 256 256" fill="currentColor" className={className}>
-            {isFill ? (
-                <path d="M243.31 136L144 36.69A15.86 15.86 0 0 0 132.69 32H40a8 8 0 0 0-8 8v92.69A15.86 15.86 0 0 0 36.69 144L136 243.31a16 16 0 0 0 22.63 0l84.68-84.68a16 16 0 0 0 0-22.63M84 96a12 12 0 1 1 12-12a12 12 0 0 1-12 12" />
-            ) : (
-                <path d="m246.15 133.18l-99.32-99.32A19.85 19.85 0 0 0 132.69 28H40a12 12 0 0 0-12 12v92.69a19.85 19.85 0 0 0 5.86 14.14l99.32 99.32a20 20 0 0 0 28.28 0l84.69-84.69a20 20 0 0 0 0-28.28m-98.83 93.17L52 131V52h79l95.32 95.32ZM104 88a16 16 0 1 1-16-16a16 16 0 0 1 16 16" />
-            )}
-            <line x1="228" y1="28" x2="28" y2="228" stroke="currentColor" strokeWidth="24" strokeLinecap="round" />
+        <svg width={size} height={size} viewBox="0 0 256 256" className={className}>
+            <defs>
+                <mask id={maskId}>
+                    <path d={tagPath} fill="white" />
+                    <path d={slashPath} fill="white" />
+                </mask>
+            </defs>
+            <rect width="256" height="256" fill="currentColor" mask={`url(#${maskId})`} />
         </svg>
     );
 }
