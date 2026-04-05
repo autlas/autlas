@@ -2,6 +2,7 @@ import React, { useMemo, useState, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import ToggleGroup from "./ui/ToggleGroup";
 import { SearchIcon, CloseIcon, ChevronDownIcon } from "./ui/Icons";
+import { SquaresFour, EyeSlash, Eye } from "@phosphor-icons/react";
 import SectionLabel from "./ui/SectionLabel";
 import Tooltip from "./ui/Tooltip";
 
@@ -39,11 +40,12 @@ export default function ScriptTreeToolbar({
         {
             id: "tree" as const,
             icon: (isActive: boolean) => (
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={`transition-opacity duration-200 ${isActive ? 'opacity-100' : 'opacity-25'}`}>
-                    <circle cx="6" cy="6" r="2" />
-                    <path d="M6 8v12h8M6 13h8" />
-                    <circle cx="16" cy="13" r="2" />
-                    <circle cx="16" cy="20" r="2" />
+                <svg width="20" height="20" viewBox="0 0 256 256" className={`transition-opacity duration-200 ${isActive ? 'opacity-100' : 'opacity-25'}`}>
+                    {isActive ? (
+                        <path fill="currentColor" d="M160 136v-8H88v64a8 8 0 0 0 8 8h64v-8a16 16 0 0 1 16-16h32a16 16 0 0 1 16 16v32a16 16 0 0 1-16 16h-32a16 16 0 0 1-16-16v-8H96a24 24 0 0 1-24-24V80h-8a16 16 0 0 1-16-16V32a16 16 0 0 1 16-16h32a16 16 0 0 1 16 16v32a16 16 0 0 1-16 16h-8v32h72v-8a16 16 0 0 1 16-16h32a16 16 0 0 1 16 16v32a16 16 0 0 1-16 16h-32a16 16 0 0 1-16-16" />
+                    ) : (
+                        <path fill="currentColor" d="M176 156h32a20 20 0 0 0 20-20v-32a20 20 0 0 0-20-20h-32a20 20 0 0 0-20 20v4H92V84h4a20 20 0 0 0 20-20V32a20 20 0 0 0-20-20H64a20 20 0 0 0-20 20v32a20 20 0 0 0 20 20h4v108a28 28 0 0 0 28 28h60v4a20 20 0 0 0 20 20h32a20 20 0 0 0 20-20v-32a20 20 0 0 0-20-20h-32a20 20 0 0 0-20 20v4H96a4 4 0 0 1-4-4v-60h64v4a20 20 0 0 0 20 20M68 36h24v24H68Zm112 160h24v24h-24Zm0-88h24v24h-24Z" />
+                    )}
                 </svg>
             ),
             title: t("search.mode_tree"),
@@ -51,12 +53,7 @@ export default function ScriptTreeToolbar({
         {
             id: "tiles" as const,
             icon: (isActive: boolean) => (
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={`transition-opacity duration-200 ${isActive ? 'opacity-100' : 'opacity-25'}`}>
-                    <rect x="3" y="3" width="7" height="7" rx="1" ry="1" />
-                    <rect x="14" y="3" width="7" height="7" rx="1" ry="1" />
-                    <rect x="14" y="14" width="7" height="7" rx="1" ry="1" />
-                    <rect x="3" y="14" width="7" height="7" rx="1" ry="1" />
-                </svg>
+                <SquaresFour size={20} weight={isActive ? "fill" : "bold"} className={`transition-opacity duration-200 ${isActive ? 'opacity-100' : 'opacity-25'}`} />
             ),
             title: t("search.mode_tiles"),
         },
@@ -262,15 +259,13 @@ export default function ScriptTreeToolbar({
                                     "bg-white/10 border-white/20 text-indigo-400 shadow-lg"}
                             ${isDragging ? 'opacity-20 pointer-events-none' : ''}`}
                     >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                            {showHidden === 'none' ? (
-                                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24M1 1l22 22" />
-                            ) : showHidden === 'all' ? (
-                                <><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></>
-                            ) : (
-                                <><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" fill="currentColor" /></>
-                            )}
-                        </svg>
+                        {showHidden === 'none' ? (
+                            <EyeSlash size={16} weight="bold" />
+                        ) : showHidden === 'all' ? (
+                            <Eye size={16} weight="bold" />
+                        ) : (
+                            <Eye size={16} weight="fill" />
+                        )}
                     </button>
                     </Tooltip>
                 </div>
