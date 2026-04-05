@@ -160,7 +160,7 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
               onClick={onPinToggle}
               className="w-7 h-7 flex items-center justify-center rounded-lg transition-all cursor-pointer bg-white/5 text-white/25 hover:text-white/50 hover:bg-white/10"
             >
-              <PinIcon size={12} fill={pinned ? "#888" : "none"} />
+              <PinIcon size={14} fill={pinned ? "#888" : "none"} />
             </button>
           </Tooltip>
           <Tooltip text={t("tooltips.close")}>
@@ -168,7 +168,7 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
             onClick={onClose}
             className="w-7 h-7 flex items-center justify-center rounded-lg bg-white/5 text-[#666] hover:bg-white/10 hover:text-white/60 transition-all cursor-pointer"
           >
-            <CloseIcon size={12} strokeWidth={2.5} className="pointer-events-none" />
+            <CloseIcon className="pointer-events-none" />
           </button>
           </Tooltip>
         </div>
@@ -184,7 +184,7 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
           {script.path.split(/(?<=[\\/])/).map((seg, i) => <span key={i} style={{ display: 'inline-block' }}>{seg}</span>)}
         </span>
         <span className={`absolute right-2 top-1/2 -translate-y-1/2 transition-opacity ${copied ? 'opacity-0' : 'opacity-0 group-hover/path:opacity-50'}`}>
-          <CopyIcon size={14} className="text-white" />
+          <CopyIcon className="text-white" />
         </span>
         {copied && (
           <span className="absolute inset-0 flex items-center justify-center text-[13px] font-bold text-white/50">
@@ -202,7 +202,7 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
               onClick={() => onShowUI(script)}
               className="w-[80px] h-[42px] flex items-center justify-center rounded-2xl bg-white/5 text-[#71717a] border border-white/5 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-500/30 transition-all cursor-pointer"
             >
-              <InterfaceIcon />
+              <InterfaceIcon size={22} />
             </button>
           </Tooltip>
         )}
@@ -212,7 +212,7 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
               onClick={() => onRestart(script)}
               className="w-[80px] h-[42px] flex items-center justify-center rounded-2xl bg-white/5 text-[#71717a] border border-white/5 hover:bg-yellow-500/10 hover:text-yellow-500 hover:border-yellow-500/30 transition-all cursor-pointer"
             >
-              <RestartIcon />
+              <RestartIcon size={22} />
             </button>
           </Tooltip>
         )}
@@ -231,7 +231,7 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
           >
             {pendingType ? (
               <span className="text-[10px] font-bold">...</span>
-            ) : script.is_running ? <CloseIcon /> : <PlayIcon />}
+            ) : script.is_running ? <CloseIcon size={22} /> : <PlayIcon size={22} />}
           </button>
         </Tooltip>
         <div className="flex-1" />
@@ -240,7 +240,7 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
             onClick={handleEdit}
             className="w-[80px] h-[42px] flex items-center justify-center rounded-2xl bg-white/5 text-[#71717a] border border-white/5 hover:bg-white/10 hover:text-white/60 transition-all cursor-pointer"
           >
-            <EditIcon />
+            <EditIcon size={22} />
           </button>
         </Tooltip>
         <Tooltip text={t("tooltips.open_with")}>
@@ -248,7 +248,7 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
             onClick={handleOpenWith}
             className="w-[80px] h-[42px] flex items-center justify-center rounded-2xl bg-white/5 text-[#71717a] border border-white/5 hover:bg-white/10 hover:text-white/60 transition-all cursor-pointer"
           >
-            <OpenWithIcon />
+            <OpenWithIcon size={22} />
           </button>
         </Tooltip>
         <Tooltip text={t("tooltips.show_in_folder")}>
@@ -256,7 +256,7 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
             onClick={handleOpenFolder}
             className="w-[80px] h-[42px] flex items-center justify-center rounded-2xl bg-white/5 text-[#71717a] border border-white/5 hover:bg-white/10 hover:text-white/60 transition-all cursor-pointer"
           >
-            <FolderIcon />
+            <FolderIcon size={22} />
           </button>
         </Tooltip>
       </div>

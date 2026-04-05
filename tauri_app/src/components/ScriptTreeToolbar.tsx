@@ -40,7 +40,7 @@ export default function ScriptTreeToolbar({
         {
             id: "tree" as const,
             icon: (isActive: boolean) => (
-                <svg width="20" height="20" viewBox="0 0 256 256" className={`transition-opacity duration-200 ${isActive ? 'opacity-100' : 'opacity-25'}`}>
+                <svg width="22" height="22" viewBox="0 0 256 256" className={`transition-opacity duration-200 ${isActive ? 'opacity-100' : 'opacity-25'}`}>
                     {isActive ? (
                         <path fill="currentColor" d="M160 136v-8H88v64a8 8 0 0 0 8 8h64v-8a16 16 0 0 1 16-16h32a16 16 0 0 1 16 16v32a16 16 0 0 1-16 16h-32a16 16 0 0 1-16-16v-8H96a24 24 0 0 1-24-24V80h-8a16 16 0 0 1-16-16V32a16 16 0 0 1 16-16h32a16 16 0 0 1 16 16v32a16 16 0 0 1-16 16h-8v32h72v-8a16 16 0 0 1 16-16h32a16 16 0 0 1 16 16v32a16 16 0 0 1-16 16h-32a16 16 0 0 1-16-16" />
                     ) : (
@@ -53,14 +53,14 @@ export default function ScriptTreeToolbar({
         {
             id: "tiles" as const,
             icon: (isActive: boolean) => (
-                <SquaresFour size={20} weight={isActive ? "fill" : "bold"} className={`transition-opacity duration-200 ${isActive ? 'opacity-100' : 'opacity-25'}`} />
+                <SquaresFour size={22} weight={isActive ? "fill" : "bold"} className={`transition-opacity duration-200 ${isActive ? 'opacity-100' : 'opacity-25'}`} />
             ),
             title: t("search.mode_tiles"),
         },
         {
             id: "list" as const,
             icon: (isActive: boolean) => (
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={`transition-opacity duration-200 ${isActive ? 'opacity-100' : 'opacity-25'}`}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={`transition-opacity duration-200 ${isActive ? 'opacity-100' : 'opacity-25'}`}>
                     <path d="M3 6h7M3 12h7M3 18h7M14 6h7M14 12h7M14 18h7" />
                 </svg>
             ),
@@ -132,7 +132,7 @@ export default function ScriptTreeToolbar({
                                 ${sortOpen ? 'border-indigo-500/50 bg-white/[0.05]' : ''}`}
                         >
                             <span className="text-sm text-secondary font-medium">{currentSortLabel}</span>
-                            <ChevronDownIcon size={12} className="text-tertiary" />
+                            <ChevronDownIcon className="text-tertiary" />
                         </button>
                         {sortOpen && (
                             <div className="absolute top-full left-0 mt-1 py-1 min-w-[120px] rounded-xl bg-[var(--bg-primary)] border border-white/10 shadow-xl shadow-black/50 z-50">
@@ -166,7 +166,7 @@ export default function ScriptTreeToolbar({
                                 className={`h-[42px] w-[42px] flex flex-shrink-0 flex-col items-center justify-center rounded-xl bg-white/[0.03] border border-white/5 transition-all cursor-pointer focus:outline-none
                                     ${!isDragging ? 'hover:bg-white/[0.06] hover:border-white/10 group/collapse' : 'opacity-20 pointer-events-none'}`}
                             >
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-25 transition-opacity duration-200 group-hover/collapse:opacity-50">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-25 transition-opacity duration-200 group-hover/collapse:opacity-50">
                                     <path style={{ d: `path("M 6 ${expanded ? 3 : 8} L 12 ${expanded ? 9 : 2} L 18 ${expanded ? 3 : 8}")`, transition: 'd 350ms cubic-bezier(0.4, 0, 0.2, 1)' } as React.CSSProperties} />
                                     <path style={{ d: `path("M 6 ${expanded ? 21 : 16} L 12 ${expanded ? 15 : 22} L 18 ${expanded ? 21 : 16}")`, transition: 'd 350ms cubic-bezier(0.4, 0, 0.2, 1)' } as React.CSSProperties} />
                                 </svg>
@@ -260,11 +260,11 @@ export default function ScriptTreeToolbar({
                             ${isDragging ? 'opacity-20 pointer-events-none' : ''}`}
                     >
                         {showHidden === 'none' ? (
-                            <EyeSlash size={16} weight="bold" />
+                            <EyeSlash size={18} weight="bold" />
                         ) : showHidden === 'all' ? (
-                            <Eye size={16} weight="bold" />
+                            <Eye size={18} weight="bold" />
                         ) : (
-                            <Eye size={16} weight="fill" />
+                            <Eye size={18} weight="fill" />
                         )}
                     </button>
                     </Tooltip>

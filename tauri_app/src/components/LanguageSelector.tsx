@@ -42,7 +42,7 @@ const LanguageSelector = () => {
                         {currentLang.sub}
                     </span>
                 </div>
-                <ChevronDownIcon size={12} strokeWidth={3} className={`text-tertiary transition-transform duration-300 ${isOpen ? "rotate-180 text-indigo-400" : ""}`} />
+                <ChevronDownIcon className={`text-tertiary transition-transform duration-300 ${isOpen ? "rotate-180 text-indigo-400" : ""}`} />
             </button>
 
             {isOpen && (

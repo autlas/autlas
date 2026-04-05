@@ -84,7 +84,7 @@ export default function EmptyState({ isPathsEmpty, hasContent, searchQuery, filt
                         onClick={onAddPath}
                         className="h-14 px-8 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl text-[11px] font-black tracking-[0.2em] uppercase transition-all shadow-xl shadow-indigo-600/20 active:scale-95 border-none cursor-pointer flex items-center justify-center gap-3 mx-auto"
                     >
-                        <PlusIcon size={18} strokeWidth={3} />
+                        <PlusIcon size={18} />
                         {t("settings.add_path")}
                     </button>
                 </div>
@@ -140,7 +140,7 @@ export default function EmptyState({ isPathsEmpty, hasContent, searchQuery, filt
                             style={{ flex: '1 1 auto', minWidth: 'fit-content' }}
                             className="h-11 px-[10px] bg-indigo-600/10 hover:bg-indigo-600 text-indigo-400 hover:text-white rounded-xl text-xs font-bold transition-all border border-indigo-500/20 hover:border-indigo-500 active:scale-95 cursor-pointer flex items-center justify-center gap-2"
                         >
-                            <PlusIcon size={14} strokeWidth={3} />
+                            <PlusIcon />
                             {t("settings.add_path")}
                         </button>
                         <button
@@ -179,7 +179,7 @@ export default function EmptyState({ isPathsEmpty, hasContent, searchQuery, filt
                             onClick={onOpenSettings}
                             className="h-12 px-6 bg-white/5 hover:bg-white/10 text-white/70 hover:text-white rounded-xl text-[10px] font-black tracking-widest uppercase transition-all border border-white/5 active:scale-95 cursor-pointer flex items-center justify-center gap-2"
                         >
-                            <GearIcon size={14} strokeWidth={3} />
+                            <GearIcon size={14} />
                             {t("sidebar.settings")}
                         </button>
                     </div>

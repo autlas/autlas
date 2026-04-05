@@ -49,7 +49,7 @@ const CheatSheet = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void 
 
                 <h2 className="text-3xl font-black mb-8 text-white tracking-tight flex items-center">
                     <div className="w-10 h-10 rounded-2xl bg-indigo-600 flex items-center justify-center mr-4 text-white shadow-[0_0_20px_rgba(79,70,229,0.4)]">
-                        <HelpIcon size={24} strokeWidth={3} />
+                        <HelpIcon />
                     </div>
                     AHK Manager Shortcuts
                 </h2>

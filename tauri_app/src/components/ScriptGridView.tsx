@@ -10,7 +10,7 @@ const TagSectionHeader = ({ tag, isCollapsed, onToggle, runningCount }: { tag: s
         <span className="text-[22px] font-black uppercase tracking-[0.15em] text-white/30 flex items-center leading-none">
             {tag}
         </span>
-        <ChevronDownIcon size={14} strokeWidth={3} className={`ml-3 text-white/15 group-hover:text-white/30 transition-all duration-200 ${isCollapsed ? '-rotate-90' : ''}`} />
+        <ChevronDownIcon className={`ml-3 text-white/15 group-hover:text-white/30 transition-all duration-200 ${isCollapsed ? '-rotate-90' : ''}`} />
         <div className={`ml-3 w-5 h-5 rounded-full bg-green-500 shadow-[0_0_12px_rgba(34,197,94,0.6)] flex items-center justify-center transition-all duration-300 ease-[cubic-bezier(0.34,1.3,0.64,1)] origin-center ${isCollapsed && runningCount > 0 ? 'scale-100 opacity-100' : 'scale-0 opacity-0'}`}>
             <span className="text-[15px] font-bold leading-none" style={{ color: "var(--bg-secondary)" }}>{runningCount}</span>
         </div>

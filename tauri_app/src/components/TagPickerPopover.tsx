@@ -113,7 +113,7 @@ const TagPickerPopover = memo(function TagPickerPopover({ script, allUniqueTags,
                             className={`cursor-pointer w-full text-left px-4 rounded-xl transition-all flex items-center justify-between group/suggest ${selectedIndex === index ? 'bg-white/10 text-primary h-[44px]' : 'hover:bg-white/5 text-xs text-secondary hover:text-primary h-[38px]'}`}>
                             <span className="font-bold">{tag}</span>
                             <div className={`text-indigo-400 transition-opacity ${selectedIndex === index ? 'opacity-100' : 'opacity-0 group-hover/suggest:opacity-100'}`}>
-                                <PlusIcon size={18} strokeWidth={3} />
+                                <PlusIcon size={18} />
                             </div>
                         </button>
                     ))}
@@ -122,7 +122,7 @@ const TagPickerPopover = memo(function TagPickerPopover({ script, allUniqueTags,
                             className={`cursor-pointer w-full text-left px-4 rounded-xl transition-all flex items-center justify-between ${selectedIndex === availableTags.length ? 'bg-indigo-500/30 text-indigo-300 h-[44px]' : 'bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 text-xs h-[38px]'}`}>
                             <span className="font-bold">{t("search.create", { query })}</span>
                             <div className="font-bold">
-                                <PlusIcon size={20} strokeWidth={3} />
+                                <PlusIcon size={22} />
                             </div>
                         </button>
                     )}
@@ -175,7 +175,7 @@ const TagPickerPopover = memo(function TagPickerPopover({ script, allUniqueTags,
                             className={`cursor-pointer w-full text-left px-5 rounded-xl transition-all flex items-center justify-between group/suggest ${selectedIndex === index ? 'bg-white/10 text-primary h-[44px]' : 'hover:bg-white/5 text-xs text-secondary hover:text-primary h-[38px]'}`}>
                             <span className="font-bold">{tag}</span>
                             <div className={`text-indigo-400 transition-opacity ${selectedIndex === index ? 'opacity-100' : 'opacity-0 group-hover/suggest:opacity-100'}`}>
-                                <PlusIcon size={18} strokeWidth={3} />
+                                <PlusIcon size={18} />
                             </div>
                         </button>
                     ))}
@@ -184,7 +184,7 @@ const TagPickerPopover = memo(function TagPickerPopover({ script, allUniqueTags,
                             className={`cursor-pointer w-full text-left px-5 rounded-xl transition-all flex items-center justify-between ${selectedIndex === availableTags.length ? 'bg-indigo-500/30 text-indigo-300 h-[44px]' : 'bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 text-xs h-[38px]'}`}>
                             <span className="font-bold">{t("search.create", { query })}</span>
                             <div className="font-bold">
-                                <PlusIcon size={20} strokeWidth={3} />
+                                <PlusIcon size={22} />
                             </div>
                         </button>
                     )}

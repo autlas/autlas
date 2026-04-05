@@ -287,7 +287,7 @@ export default function Sidebar({
                 onClick={(e) => { e.stopPropagation(); setTagsCollapsed(v => { const next = !v; localStorage.setItem("ahk_tags_collapsed", String(next)); return next; }); }}
                 className="text-white/20 hover:text-white/50 transition-colors cursor-pointer p-1"
               >
-                <ChevronDownIcon size={12} strokeWidth={3} className={`transition-transform duration-200 ${tagsCollapsed ? '-rotate-90' : ''}`} />
+                <ChevronDownIcon className={`transition-transform duration-200 ${tagsCollapsed ? '-rotate-90' : ''}`} />
               </button>
             )}
           </li>

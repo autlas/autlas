@@ -160,7 +160,7 @@ const HubScriptCard = memo(function HubScriptCard({
                                 onMouseDown={(e) => e.stopPropagation()}
                                 className={`h-[42px] rounded-2xl flex items-center justify-center bg-white/5 text-[#71717a] border border-white/5 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-500/30 transition-all duration-150 cursor-pointer pointer-events-auto overflow-hidden ${!isPending ? 'flex-1 opacity-100' : 'w-0 flex-[0] opacity-0 border-0 px-0'} ${!isPending ? 'animate-action-in' : ''}`}
                             >
-                                <InterfaceIcon size={17} />
+                                <InterfaceIcon size={22} />
                             </button>
                             </Tooltip>
                         )}
@@ -179,7 +179,7 @@ const HubScriptCard = memo(function HubScriptCard({
                         >
                             {pendingType === 'restart'
                                 ? <span className="text-[14px] font-bold tracking-[0.1em]">{t("hub_card.restarting")}</span>
-                                : <RestartIcon size={17} />
+                                : <RestartIcon size={22} />
                             }
                         </button>
                         </Tooltip>
@@ -198,7 +198,7 @@ const HubScriptCard = memo(function HubScriptCard({
                         >
                             {pendingType === 'kill'
                                 ? <span className="text-[14px] font-bold tracking-[0.1em]">{t("hub_card.killing")}</span>
-                                : <CloseIcon size={17} />
+                                : <CloseIcon size={22} />
                             }
                         </button>
                         </Tooltip>
@@ -219,7 +219,7 @@ const HubScriptCard = memo(function HubScriptCard({
                             t("hub_card.igniting")
                         ) : (
                             <div className="flex items-center justify-center">
-                                <PlayIcon size={17} />
+                                <PlayIcon size={22} />
                             </div>
                         )}
                     </button>

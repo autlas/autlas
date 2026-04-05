@@ -306,7 +306,7 @@ export default function SettingsPanel({
             onClick={onAddPath}
             className="w-full h-12 bg-indigo-600/10 hover:bg-indigo-600 text-indigo-400 hover:text-white rounded-2xl text-xs font-bold tracking-widest transition-all shadow-xl hover:shadow-indigo-500/20 active:scale-[0.98] flex items-center justify-center gap-3 group border border-indigo-500/20 hover:border-indigo-500 cursor-pointer"
           >
-            <PlusIcon size={16} strokeWidth={3} className="group-hover:scale-110 transition-transform" />
+            <PlusIcon size={18} className="group-hover:scale-110 transition-transform" />
             {t("settings.add_path")}
           </button>
         </div>
