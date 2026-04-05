@@ -44,10 +44,11 @@ export function OrphanToast({ count, onReview, onDismiss }: { count: number; onR
     );
 }
 
-export default function OrphanReconcileDialog({ matches, onClose, onResolved }: {
+export default function OrphanReconcileDialog({ matches, onClose, onResolved, onMatchResolved }: {
     matches: PendingMatch[];
     onClose: () => void;
     onResolved: () => void;
+    onMatchResolved?: (orphanId: string) => void;
 }) {
     const { t } = useTranslation();
     const [resolving, setResolving] = useState<Set<string>>(new Set());
@@ -58,6 +59,7 @@ export default function OrphanReconcileDialog({ matches, onClose, onResolved }: 
         try {
             await invoke("resolve_orphan", { orphanId: match_.orphan_id, action: "link", newPath: match_.new_path });
             setResolved(prev => new Set(prev).add(match_.orphan_id));
+            onMatchResolved?.(match_.orphan_id);
         } catch (e) {
             console.error("Failed to link orphan:", e);
         } finally {
@@ -70,6 +72,7 @@ export default function OrphanReconcileDialog({ matches, onClose, onResolved }: 
         try {
             await invoke("resolve_orphan", { orphanId: match_.orphan_id, action: "discard" });
             setResolved(prev => new Set(prev).add(match_.orphan_id));
+            onMatchResolved?.(match_.orphan_id);
         } catch (e) {
             console.error("Failed to discard orphan:", e);
         } finally {

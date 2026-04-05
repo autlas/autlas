@@ -585,6 +585,7 @@ function App() {
           matches={orphanMatches}
           onClose={() => setShowOrphanDialog(false)}
           onResolved={() => { setOrphanMatches([]); setOrphanToastDismissed(true); }}
+          onMatchResolved={(orphanId) => setOrphanMatches(prev => prev.filter(m => m.orphan_id !== orphanId))}
         />
       )}
 
