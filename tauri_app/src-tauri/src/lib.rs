@@ -1157,8 +1157,13 @@ async fn get_scripts(
 }
 
 #[tauri::command]
-async fn run_script(path: String) -> Result<(), String> {
+async fn run_script(
+    state: tauri::State<'_, db::DbState>,
+    path: String,
+) -> Result<(), String> {
     Command::new("explorer").arg(&path).spawn().map_err(|e| e.to_string())?;
+    let conn = state.0.lock().map_err(|e| e.to_string())?;
+    let _ = db::set_last_run(&conn, &path.to_lowercase(), &db::now_iso());
     Ok(())
 }
 
@@ -1188,7 +1193,10 @@ async fn kill_script(path: String) -> Result<(), String> {
 }
 
 #[tauri::command]
-async fn restart_script(path: String) -> Result<(), String> {
+async fn restart_script(
+    state: tauri::State<'_, db::DbState>,
+    path: String,
+) -> Result<(), String> {
     // 1. Kill the script
     let mut sys = System::new_all();
     sys.refresh_all();
@@ -1216,7 +1224,8 @@ async fn restart_script(path: String) -> Result<(), String> {
     
     // 3. Run it again
     Command::new("explorer").arg(&path).spawn().map_err(|e| e.to_string())?;
-    
+    let conn = state.0.lock().map_err(|e| e.to_string())?;
+    let _ = db::set_last_run(&conn, &path.to_lowercase(), &db::now_iso());
     Ok(())
 }
 
@@ -1614,10 +1623,37 @@ async fn read_script_content(path: String) -> Result<String, String> {
     fs::read_to_string(&path).map_err(|e| format!("Failed to read {}: {}", path, e))
 }
 
+#[derive(Serialize)]
+struct ScriptMeta {
+    hash: String,
+    created: String,
+    modified: String,
+    last_run: String,
+}
+
+fn format_system_time(t: std::time::SystemTime) -> String {
+    let d = t.duration_since(std::time::UNIX_EPOCH).unwrap_or_default();
+    let secs = d.as_secs();
+    let (y, m, day) = db::days_to_date((secs / 86400) as i64);
+    let time_of_day = secs % 86400;
+    let h = time_of_day / 3600;
+    let min = (time_of_day % 3600) / 60;
+    format!("{:04}-{:02}-{:02} {:02}:{:02}", y, m, day, h, min)
+}
+
 #[tauri::command]
-async fn get_script_hash(path: String) -> Result<String, String> {
+async fn get_script_meta(
+    state: tauri::State<'_, db::DbState>,
+    path: String,
+) -> Result<ScriptMeta, String> {
     let path_buf = std::path::PathBuf::from(&path);
-    db::compute_file_hash(&path_buf).ok_or_else(|| "Failed to compute hash".to_string())
+    let hash = db::compute_file_hash(&path_buf).unwrap_or_default();
+    let meta = fs::metadata(&path_buf).map_err(|e| e.to_string())?;
+    let created = meta.created().map(format_system_time).unwrap_or_default();
+    let modified = meta.modified().map(format_system_time).unwrap_or_default();
+    let conn = state.0.lock().map_err(|e| e.to_string())?;
+    let last_run = db::get_last_run(&conn, &path.to_lowercase()).unwrap_or_default();
+    Ok(ScriptMeta { hash, created, modified, last_run })
 }
 
 #[tauri::command]
@@ -1941,7 +1977,7 @@ pub fn run() {
             quit_app_cmd,
             get_orphaned_scripts_cmd,
             resolve_orphan,
-            get_script_hash
+            get_script_meta
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

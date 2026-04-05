@@ -24,6 +24,8 @@ interface SettingsPanelProps {
   onAddPath: () => void;
   onRemovePath: (path: string) => void;
   onInstallEverything?: () => void;
+  orphanCount?: number;
+  onReviewOrphans?: () => void;
 }
 
 export default function SettingsPanel({
@@ -32,7 +34,7 @@ export default function SettingsPanel({
   fontScale, setFontScale,
   animationsEnabled, toggleAnimations,
   vimModeNav, setVimModeNav,
-  scanPaths, onAddPath, onRemovePath, onInstallEverything,
+  scanPaths, onAddPath, onRemovePath, onInstallEverything, orphanCount, onReviewOrphans,
 }: SettingsPanelProps) {
   const { t } = useTranslation();
   const showFileSize = useTreeStore(s => s.showFileSize);
@@ -216,7 +218,9 @@ export default function SettingsPanel({
       </SettingsSection>
 
       <SettingsSection>
-        <h3 className="text-sm font-bold tracking-widest text-tertiary uppercase">{t("settings.everything_search")}</h3>
+        <h3 className="text-sm font-bold tracking-widest text-tertiary uppercase">{t("settings.script_library", "Script Library")}</h3>
+
+        {/* Everything integration */}
         <div className="flex justify-between items-center px-2">
           <div className="flex flex-col">
             <span className="text-base font-bold text-secondary">{t("settings.everything_integration")}</span>
@@ -258,11 +262,31 @@ export default function SettingsPanel({
             )}
           </div>
         </div>
-      </SettingsSection>
 
-      <SettingsSection>
+        {/* Orphan reconciliation */}
+        {orphanCount != null && orphanCount > 0 && (
+          <div className="flex justify-between items-center px-2">
+            <div className="flex flex-col">
+              <span className="text-base font-bold text-secondary">{t("settings.orphan_title", "Moved Scripts")}</span>
+              <span className="text-xs text-tertiary mt-1">
+                {orphanCount === 1 ? t("orphan.subtitle_one") : t("orphan.subtitle_many", { count: orphanCount })}
+              </span>
+            </div>
+            <button
+              onClick={() => onReviewOrphans?.()}
+              className="text-xs font-mono text-amber-400 font-bold bg-amber-400/10 px-4 py-1.5 rounded-full tracking-widest uppercase hover:bg-amber-400/20 transition-colors cursor-pointer"
+            >
+              {t("orphan.review")}
+            </button>
+          </div>
+        )}
+
+        {/* Divider */}
+        <div className="h-px bg-white/5" />
+
+        {/* Scan paths */}
         <div className="flex flex-col">
-          <h3 className="text-sm font-bold tracking-widest text-tertiary uppercase">{t("settings.script_paths")}</h3>
+          <span className="text-base font-bold text-secondary">{t("settings.script_paths")}</span>
           <span className="text-xs text-tertiary mt-1">{t("settings.folder_picker_desc")}</span>
         </div>
 

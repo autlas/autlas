@@ -62,6 +62,8 @@
         "vim_nav": "Стиль навигации Vim",
         "vim_nav_desc": "hjkl (2D сетка) vs jk (1D список)",
         "system_tray": "Системный трей",
+        "script_library": "Библиотека скриптов",
+        "orphan_title": "Перемещённые скрипты",
         "everything_search": "Поиск Everything",
         "everything_integration": "Интеграция Everything",
         "everything_running": "Everything запущен — мгновенное сканирование",
@@ -155,9 +157,28 @@
     },
     "detail": {
         "tags": "Теги",
+        "meta": "Мета",
+        "size": "Размер",
+        "created": "Создан",
+        "modified": "Изменён",
+        "last_run": "Запуск",
         "copied": "Скопировано!",
+        "copy": "копия",
         "loading": "Загрузка...",
         "read_error": "Не удалось прочитать файл"
+    },
+    "orphan": {
+        "toast_one": "Обнаружен 1 перемещённый скрипт",
+        "toast_many": "Обнаружено перемещённых скриптов: {{count}}",
+        "review": "Обзор",
+        "title": "Обнаружены перемещённые скрипты",
+        "subtitle_one": "1 скрипт найден по новому пути",
+        "subtitle_many": "{{count}} скриптов найдено по новым путям",
+        "all_done": "Все разрешено!",
+        "link": "Связать",
+        "skip": "Пропустить",
+        "link_all": "Связать все",
+        "done": "Готово"
     },
     "toolbar": {
         "view": "Вид",

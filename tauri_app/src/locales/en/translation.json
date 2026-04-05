@@ -62,6 +62,8 @@
         "vim_nav": "Vim Navigation Style",
         "vim_nav_desc": "hjkl (2D grid) vs jk (1D list)",
         "system_tray": "System Tray",
+        "script_library": "Script Library",
+        "orphan_title": "Moved Scripts",
         "everything_search": "Everything Search",
         "everything_integration": "Everything Integration",
         "everything_running": "Everything is running — instant file scanning enabled",
@@ -155,9 +157,28 @@
     },
     "detail": {
         "tags": "Tags",
+        "meta": "Meta",
+        "size": "Size",
+        "created": "Created",
+        "modified": "Modified",
+        "last_run": "Last run",
         "copied": "Copied!",
+        "copy": "copy",
         "loading": "Loading...",
         "read_error": "Failed to read file"
+    },
+    "orphan": {
+        "toast_one": "1 moved script detected",
+        "toast_many": "{{count}} moved scripts detected",
+        "review": "Review",
+        "title": "Moved Scripts Detected",
+        "subtitle_one": "1 script found at a new location",
+        "subtitle_many": "{{count}} scripts found at new locations",
+        "all_done": "All resolved!",
+        "link": "Link",
+        "skip": "Skip",
+        "link_all": "Link All",
+        "done": "Done"
     },
     "toolbar": {
         "view": "View",

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { useTranslation } from "react-i18next";
 import { CloseIcon } from "./ui/Icons";
 
 export interface PendingMatch {
@@ -20,17 +21,18 @@ function extractParent(path: string): string {
 }
 
 export function OrphanToast({ count, onReview, onDismiss }: { count: number; onReview: () => void; onDismiss: () => void }) {
+    const { t } = useTranslation();
     return (
         <div className="flex items-center gap-3 px-5 py-3 bg-[#1a1a1f] border border-white/10 rounded-2xl shadow-2xl">
             <div className="w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.8)]" />
             <span className="text-xs font-medium text-white/70">
-                {count === 1 ? "1 moved script detected" : `${count} moved scripts detected`}
+                {count === 1 ? t("orphan.toast_one") : t("orphan.toast_many", { count })}
             </span>
             <button
                 onClick={onReview}
                 className="px-3 py-1 text-[11px] font-bold uppercase tracking-wider bg-indigo-500/20 text-indigo-400 rounded-lg hover:bg-indigo-500/30 transition-colors cursor-pointer"
             >
-                Review
+                {t("orphan.review")}
             </button>
             <button
                 onClick={onDismiss}
@@ -47,6 +49,7 @@ export default function OrphanReconcileDialog({ matches, onClose, onResolved }: 
     onClose: () => void;
     onResolved: () => void;
 }) {
+    const { t } = useTranslation();
     const [resolving, setResolving] = useState<Set<string>>(new Set());
     const [resolved, setResolved] = useState<Set<string>>(new Set());
 
@@ -96,11 +99,11 @@ export default function OrphanReconcileDialog({ matches, onClose, onResolved }: 
                 {/* Header */}
                 <div className="px-6 pt-5 pb-4 flex items-center justify-between flex-shrink-0">
                     <div>
-                        <h2 className="text-base font-black text-white">Moved Scripts Detected</h2>
+                        <h2 className="text-base font-black text-white">{t("orphan.title")}</h2>
                         <p className="text-xs text-white/30 mt-1">
                             {allDone
-                                ? "All resolved!"
-                                : `${remaining.length} script${remaining.length > 1 ? "s" : ""} found at new location${remaining.length > 1 ? "s" : ""}`
+                                ? t("orphan.all_done")
+                                : remaining.length === 1 ? t("orphan.subtitle_one") : t("orphan.subtitle_many", { count: remaining.length })
                             }
                         </p>
                     </div>
@@ -151,19 +154,19 @@ export default function OrphanReconcileDialog({ matches, onClose, onResolved }: 
                                                 disabled={isWorking}
                                                 className="px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider bg-green-500/15 text-green-400 rounded-lg hover:bg-green-500/25 transition-colors cursor-pointer disabled:opacity-30"
                                             >
-                                                Link
+                                                {t("orphan.link")}
                                             </button>
                                             <button
                                                 onClick={() => handleDiscard(m)}
                                                 disabled={isWorking}
                                                 className="px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider bg-white/5 text-white/40 rounded-lg hover:bg-white/10 hover:text-white/60 transition-colors cursor-pointer disabled:opacity-30"
                                             >
-                                                Skip
+                                                {t("orphan.skip")}
                                             </button>
                                         </div>
                                     )}
                                     {isDone && (
-                                        <span className="text-[11px] font-bold text-green-400/60 uppercase tracking-wider">Done</span>
+                                        <span className="text-[11px] font-bold text-green-400/60 uppercase tracking-wider">{t("orphan.done")}</span>
                                     )}
                                 </div>
                             </div>
@@ -178,7 +181,7 @@ export default function OrphanReconcileDialog({ matches, onClose, onResolved }: 
                             onClick={handleLinkAll}
                             className="px-4 py-2 text-[11px] font-bold uppercase tracking-wider bg-green-500/15 text-green-400 rounded-xl hover:bg-green-500/25 transition-colors cursor-pointer"
                         >
-                            Link All
+                            {t("orphan.link_all")}
                         </button>
                     </div>
                 )}

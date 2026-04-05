@@ -23,6 +23,8 @@ pub fn open_db() -> rusqlite::Result<Connection> {
     let conn = Connection::open(&path)?;
     conn.execute_batch("PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON;")?;
     create_schema(&conn)?;
+    // Schema migrations for existing DBs
+    let _ = conn.execute_batch("ALTER TABLE scripts ADD COLUMN last_run TEXT;");
     if !is_new {
         let script_count: i64 = conn.query_row("SELECT COUNT(*) FROM scripts WHERE is_orphaned = 0", [], |r| r.get(0)).unwrap_or(0);
         let tag_count: i64 = conn.query_row("SELECT COUNT(*) FROM script_tags", [], |r| r.get(0)).unwrap_or(0);
@@ -41,6 +43,7 @@ fn create_schema(conn: &Connection) -> rusqlite::Result<()> {
             content_hash  TEXT,
             first_seen    TEXT NOT NULL,
             last_seen     TEXT NOT NULL,
+            last_run      TEXT,
             is_orphaned   INTEGER NOT NULL DEFAULT 0,
             orphaned_at   TEXT,
             community_id  TEXT,
@@ -82,6 +85,24 @@ fn create_schema(conn: &Connection) -> rusqlite::Result<()> {
         CREATE INDEX IF NOT EXISTS idx_script_tags_tag ON script_tags(tag);"
     )?;
     Ok(())
+}
+
+// ── Last run ──
+
+pub fn set_last_run(conn: &Connection, path: &str, now: &str) -> rusqlite::Result<()> {
+    conn.execute(
+        "UPDATE scripts SET last_run = ?2 WHERE path = ?1 AND is_orphaned = 0",
+        params![path, now],
+    )?;
+    Ok(())
+}
+
+pub fn get_last_run(conn: &Connection, path: &str) -> Option<String> {
+    conn.query_row(
+        "SELECT last_run FROM scripts WHERE path = ?1 AND is_orphaned = 0",
+        params![path],
+        |row| row.get::<_, Option<String>>(0),
+    ).ok().flatten()
 }
 
 // ── Settings ──
@@ -424,7 +445,7 @@ pub fn now_iso() -> String {
     format!("{:04}-{:02}-{:02}T{:02}:{:02}:{:02}Z", year, month, day, hours, minutes, seconds)
 }
 
-fn days_to_date(mut days: i64) -> (i64, i64, i64) {
+pub fn days_to_date(mut days: i64) -> (i64, i64, i64) {
     // Algorithm from Howard Hinnant
     days += 719468;
     let era = if days >= 0 { days } else { days - 146096 } / 146097;

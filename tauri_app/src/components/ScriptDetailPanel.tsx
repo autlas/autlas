@@ -17,17 +17,17 @@ function formatSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function MetaRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+function MetaRow({ label, value, mono, copiedLabel, copyLabel }: { label: string; value: string; mono?: boolean; copiedLabel?: string; copyLabel?: string }) {
   const [copied, setCopied] = useState(false);
   return (
     <div
       className="flex items-center gap-3 group/meta cursor-pointer rounded-lg px-2 py-1 -mx-2 hover:bg-white/[0.03] transition-colors"
       onClick={() => { navigator.clipboard.writeText(value); setCopied(true); setTimeout(() => setCopied(false), 1200); }}
     >
-      <span className="text-[11px] font-bold text-white/15 uppercase tracking-wider w-10 flex-shrink-0">{label}</span>
+      <span className="text-[11px] font-bold text-white/15 uppercase tracking-wider w-15 flex-shrink-0">{label}</span>
       <span className={`text-[12px] text-white/30 truncate flex-1 ${mono ? "font-mono" : ""}`}>{value}</span>
       <span className={`text-[10px] text-white/30 transition-opacity ${copied ? "opacity-100" : "opacity-0 group-hover/meta:opacity-50"}`}>
-        {copied ? "copied" : "copy"}
+        {copied ? (copiedLabel || "copied") : (copyLabel || "copy")}
       </span>
     </div>
   );
@@ -58,7 +58,7 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
   const [content, setContent] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
-  const [scriptHash, setScriptHash] = useState<string>("");
+  const [scriptMeta, setScriptMeta] = useState<{ hash: string; created: string; modified: string; last_run: string } | null>(null);
   const [isEditingTags, setIsEditingTags] = useState(false);
   const [panelWidth, setPanelWidth] = useState(() => {
     const saved = localStorage.getItem("ahk_detail_panel_width");
@@ -85,7 +85,7 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
   useEffect(() => {
     setLoading(true);
     setContent(null);
-    setScriptHash("");
+    setScriptMeta(null);
     readScriptContent(script.path).then(c => {
       setContent(c);
       setLoading(false);
@@ -93,7 +93,8 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
       setContent(null);
       setLoading(false);
     });
-    invoke<string>("get_script_hash", { path: script.path }).then(setScriptHash).catch(() => setScriptHash("—"));
+    invoke<{ hash: string; created: string; modified: string; last_run: string }>("get_script_meta", { path: script.path })
+      .then(setScriptMeta).catch(() => { });
   }, [script.path]);
 
   // Esc is handled centrally in ScriptTree with priority:
@@ -172,11 +173,10 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
       {/* Header */}
       <div className="flex items-center justify-between px-5 pt-5 pb-3">
         <div className="flex items-center gap-3 min-w-0 flex-1">
-          <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 transition-all duration-500 ${
-            pendingType ? (pendingType === "kill" ? "bg-red-500 animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.6)]" : "bg-yellow-500 animate-pulse shadow-[0_0_10px_rgba(234,179,8,0.6)]")
+          <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 transition-all duration-500 ${pendingType ? (pendingType === "kill" ? "bg-red-500 animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.6)]" : "bg-yellow-500 animate-pulse shadow-[0_0_10px_rgba(234,179,8,0.6)]")
             : script.is_running ? "bg-green-500 animate-status-glow shadow-[0_0_12px_rgba(34,197,94,0.8)]"
-            : "bg-white/10"
-          }`} />
+              : "bg-white/10"
+            }`} />
           <h2 className="text-lg font-semibold text-white truncate">{name}</h2>
         </div>
         <div className="flex items-center gap-1.5 flex-shrink-0">
@@ -189,34 +189,34 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
             </button>
           </Tooltip>
           <Tooltip text={t("tooltips.close")}>
-          <button
-            onClick={onClose}
-            className="w-7 h-7 flex items-center justify-center rounded-lg bg-white/5 text-[#666] hover:bg-white/10 hover:text-white/60 transition-all cursor-pointer"
-          >
-            <CloseIcon className="pointer-events-none" />
-          </button>
+            <button
+              onClick={onClose}
+              className="w-7 h-7 flex items-center justify-center rounded-lg bg-white/5 text-[#666] hover:bg-white/10 hover:text-white/60 transition-all cursor-pointer"
+            >
+              <CloseIcon className="pointer-events-none" />
+            </button>
           </Tooltip>
         </div>
       </div>
 
       {/* Path */}
       <Tooltip text={t("context.copy_path")}>
-      <button
-        onClick={copyPath}
-        className="group/path mx-5 mb-4 px-3 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.06] text-left cursor-pointer hover:bg-white/[0.06] transition-all relative"
-      >
-        <span className={`text-[14px] font-mono text-white/30 leading-relaxed transition-opacity ${copied ? 'opacity-0' : ''}`}>
-          {script.path.split(/(?<=[\\/])/).map((seg, i) => <span key={i} style={{ display: 'inline-block' }}>{seg}</span>)}
-        </span>
-        <span className={`absolute right-2 top-1/2 -translate-y-1/2 transition-opacity ${copied ? 'opacity-0' : 'opacity-0 group-hover/path:opacity-50'}`}>
-          <CopyIcon className="text-white" />
-        </span>
-        {copied && (
-          <span className="absolute inset-0 flex items-center justify-center text-[13px] font-bold text-white/50">
-            {t("detail.copied")}
+        <button
+          onClick={copyPath}
+          className="group/path mx-5 mb-4 px-3 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.06] text-left cursor-pointer hover:bg-white/[0.06] transition-all relative"
+        >
+          <span className={`text-[14px] font-mono text-white/30 leading-relaxed transition-opacity ${copied ? 'opacity-0' : ''}`}>
+            {script.path.split(/(?<=[\\/])/).map((seg, i) => <span key={i} style={{ display: 'inline-block' }}>{seg}</span>)}
           </span>
-        )}
-      </button>
+          <span className={`absolute right-2 top-1/2 -translate-y-1/2 transition-opacity ${copied ? 'opacity-0' : 'opacity-0 group-hover/path:opacity-50'}`}>
+            <CopyIcon className="text-white" />
+          </span>
+          {copied && (
+            <span className="absolute inset-0 flex items-center justify-center text-[13px] font-bold text-white/50">
+              {t("detail.copied")}
+            </span>
+          )}
+        </button>
       </Tooltip>
 
       {/* Actions */}
@@ -248,7 +248,7 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
               ${pendingType
                 ? pendingType === "kill" ? "bg-red-500/10 text-red-500 border-red-500/20 animate-pulse"
                   : pendingType === "restart" ? "bg-yellow-500/10 text-yellow-500 border-yellow-500/20 animate-pulse"
-                  : "bg-green-500/10 text-green-500 border-green-500/20 animate-pulse"
+                    : "bg-green-500/10 text-green-500 border-green-500/20 animate-pulse"
                 : script.is_running
                   ? 'bg-white/5 text-[#71717a] border-white/5 hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/20'
                   : 'bg-white/5 text-[#71717a] border-white/5 hover:bg-green-500/10 hover:text-green-500 hover:border-green-500/20'
@@ -297,23 +297,23 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
               {tag}
             </span>
             <Tooltip text={t("context.delete_tag_simple", { tag })}>
-            <button
-              onClick={() => onRemoveTag(script, tag)}
-              className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover/tag:opacity-100 transition-all shadow-lg hover:scale-125 active:scale-90 cursor-pointer z-50 border-none"
-            >
-              <MinusIcon />
-            </button>
+              <button
+                onClick={() => onRemoveTag(script, tag)}
+                className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover/tag:opacity-100 transition-all shadow-lg hover:scale-125 active:scale-90 cursor-pointer z-50 border-none"
+              >
+                <MinusIcon />
+              </button>
             </Tooltip>
           </div>
         ))}
         <Tooltip text={t("tooltips.add_tag")}>
-        <button
-          ref={addBtnRef}
-          onClick={() => setIsEditingTags(!isEditingTags)}
-          className="w-[42px] h-[42px] flex-shrink-0 flex items-center justify-center border border-dashed border-white/10 rounded-2xl transition-all cursor-pointer text-[#666] hover:text-[#aaa] hover:border-white/20 bg-white/5"
-        >
-          <PlusIcon />
-        </button>
+          <button
+            ref={addBtnRef}
+            onClick={() => setIsEditingTags(!isEditingTags)}
+            className="w-[42px] h-[42px] flex-shrink-0 flex items-center justify-center border border-dashed border-white/10 rounded-2xl transition-all cursor-pointer text-[#666] hover:text-[#aaa] hover:border-white/20 bg-white/5"
+          >
+            <PlusIcon />
+          </button>
         </Tooltip>
         {isEditingTags && (
           <TagPickerPopover
@@ -330,12 +330,15 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
 
       {/* Meta info */}
       <div className="px-5 mb-1.5">
-        <span className="text-[11px] font-bold uppercase tracking-widest text-white/20">{t("detail.meta", "Meta")}</span>
+        <span className="text-[11px] font-bold uppercase tracking-widest text-white/20">{t("detail.meta")}</span>
       </div>
-      <div className="px-5 mb-4 space-y-1.5">
-        <MetaRow label="ID" value={script.id} mono />
-        <MetaRow label={t("detail.size", "Size")} value={formatSize(script.size)} />
-        <MetaRow label="Hash" value={scriptHash || "..."} mono />
+      <div className="px-5 mb-4 space-y-1">
+        <MetaRow label="ID" value={script.id} mono copiedLabel={t("detail.copied")} copyLabel={t("detail.copy")} />
+        <MetaRow label={t("detail.size")} value={formatSize(script.size)} copiedLabel={t("detail.copied")} copyLabel={t("detail.copy")} />
+        <MetaRow label="Hash" value={scriptMeta?.hash || "..."} mono copiedLabel={t("detail.copied")} copyLabel={t("detail.copy")} />
+        <MetaRow label={t("detail.created")} value={scriptMeta?.created || "..."} copiedLabel={t("detail.copied")} copyLabel={t("detail.copy")} />
+        <MetaRow label={t("detail.modified")} value={scriptMeta?.modified || "..."} copiedLabel={t("detail.copied")} copyLabel={t("detail.copy")} />
+        {scriptMeta?.last_run && <MetaRow label={t("detail.last_run")} value={scriptMeta.last_run} copiedLabel={t("detail.copied")} copyLabel={t("detail.copy")} />}
       </div>
 
       {/* Divider */}
