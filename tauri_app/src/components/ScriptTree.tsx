@@ -326,14 +326,14 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
         onShowUI,
         onRestart: handleRestart,
         onSelectScript,
-        isTreeView
+        isTreeView: isTreeView && isActive
     }), [
         toggleFolder, setFolderExpansionRecursive,
         animationsEnabled, onFolderContextMenu, onScriptContextMenu,
         allUniqueTags,
         handleCustomMouseDown, handleToggle,
         startEditing, stopEditing, addTag, removeTag,
-        onShowUI, handleRestart, onSelectScript, isTreeView
+        onShowUI, handleRestart, onSelectScript, isTreeView, isActive
     ]);
 
     // Set module-level callbacks for TreeNodeRenderer (bypasses useContext → prevents memo bypass)
@@ -418,7 +418,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
                             setSearchQuery={setSearchQuery}
                             isDragging={isDragging}
                             draggedScriptPath={draggedScriptPath}
-                            editingScript={viewMode !== "tree" ? editingScript : null}
+                            editingScript={viewMode !== "tree" && isActive ? editingScript : null}
                             pendingScripts={pendingScripts}
                             removingTags={removingTags}
                             allUniqueTags={allUniqueTags}
