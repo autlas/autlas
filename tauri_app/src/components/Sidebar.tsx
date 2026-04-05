@@ -50,7 +50,7 @@ interface SidebarProps {
 
 function navItemClass(tab: string, isTag: boolean, state: Pick<SidebarProps, "activeTab" | "draggedScript" | "draggedTag" | "dragOverTag" | "activeTabPressed">): string {
   return `
-    px-4 h-12 rounded-2xl cursor-pointer text-sm font-bold transition-[background-color,opacity,filter,box-shadow,transform] duration-200 flex items-center justify-between relative z-50
+    px-[13px] h-12 rounded-2xl cursor-pointer text-sm font-bold transition-[background-color,opacity,filter,box-shadow,transform] duration-200 flex items-center justify-between relative z-50
     will-change-transform select-none long-press-shrink ${state.activeTabPressed === tab ? "active-left" : ""}
     ${state.draggedTag === tab
       ? "opacity-0 invisible pointer-events-none"
@@ -59,7 +59,7 @@ function navItemClass(tab: string, isTag: boolean, state: Pick<SidebarProps, "ac
         : (state.draggedScript && isTag)
           ? `text-indigo-400 tag-pulse-target ${state.dragOverTag === tab ? "tag-drop-hover" : ""}`
           : state.activeTab === tab
-            ? "text-indigo-400 shadow-lg tag-active"
+            ? "text-white/80 shadow-lg tag-active"
             : state.draggedScript
               ? "text-white/10 opacity-30 shadow-none blur-[1px]"
               : "text-tertiary hover:text-secondary tag-hover"}
@@ -249,7 +249,7 @@ export default function Sidebar({
                 justify-between
                 ${!collapsed && draggedScript && tab.id !== dragOverTag ? "opacity-20 blur-[1px]" : ""}
                 ${activeTab === tab.id && viewMode !== "settings"
-                  ? "text-indigo-400 shadow-lg tag-active"
+                  ? "text-white/80 shadow-lg tag-active"
                   : "text-tertiary hover:text-secondary tag-hover"
                 }`}
               style={{ backgroundColor: activeTab === tab.id && viewMode !== "settings" ? "var(--bg-tag-active)" : "var(--bg-tag)" }}
@@ -273,7 +273,7 @@ export default function Sidebar({
               justify-between
               ${!collapsed && draggedScript ? "opacity-20 blur-[1px]" : ""}
               ${activeTab === "tags" && viewMode !== "settings"
-                ? "text-indigo-400 shadow-lg tag-active"
+                ? "text-white/80 shadow-lg tag-active"
                 : "text-tertiary hover:text-secondary tag-hover"
               }`}
             style={{ backgroundColor: activeTab === "tags" && viewMode !== "settings" ? "var(--bg-tag-active)" : "var(--bg-tag)", listStyle: "none" }}
@@ -327,7 +327,7 @@ export default function Sidebar({
                 className={collapsed
                   ? `w-12 px-[13px] h-12 rounded-2xl cursor-pointer text-sm font-bold transition-[background-color,opacity,filter,box-shadow] duration-200 flex items-center justify-between overflow-hidden whitespace-nowrap
                     ${activeTab === tag && viewMode !== "settings"
-                    ? "text-indigo-400 shadow-lg tag-active"
+                    ? "text-white/80 shadow-lg tag-active"
                     : "text-tertiary hover:text-secondary tag-hover"
                   }`
                   : navItemClass(tag, true, { activeTab, draggedScript, draggedTag, dragOverTag, activeTabPressed })
@@ -371,7 +371,7 @@ export default function Sidebar({
                   <div className="flex items-center pointer-events-none flex-shrink-0">
                     {tagIcons[tag]
                       ? <TagIconSvg name={tagIcons[tag]} size={22} weight={activeTab === tag && viewMode !== "settings" ? "fill" : "bold"} className="flex-shrink-0" />
-                      : <TagDotIcon weight={activeTab === tag && viewMode !== "settings" ? "fill" : "bold"} className="flex-shrink-0" />
+                      : <TagDotIcon size={22} weight={activeTab === tag && viewMode !== "settings" ? "fill" : "bold"} className="flex-shrink-0" />
                     }
                     <span className={`relative z-50 font-bold transition-[width,margin,opacity] duration-150 ${collapsed ? 'w-0 ml-0 opacity-0' : 'w-auto ml-3 opacity-100 truncate'}`}>{tag}</span>
                   </div>
@@ -421,7 +421,7 @@ export default function Sidebar({
             onClick={() => onTabClick("settings")}
             className={`${collapsed ? 'w-11' : 'flex-1'} h-12 rounded-xl flex items-center justify-center transition-[background-color,opacity,filter,box-shadow] duration-200 group cursor-pointer ${!collapsed && draggedScript ? "opacity-20 blur-[1px]" : ""
               } ${viewMode === "settings"
-                ? "text-indigo-400 shadow-lg tag-active bg-white/5"
+                ? "text-white/80 shadow-lg tag-active bg-white/5"
                 : "text-tertiary hover:text-secondary tag-hover"
               }`}
             style={viewMode === "settings" ? { backgroundColor: "var(--bg-tag-active)" } : {}}
