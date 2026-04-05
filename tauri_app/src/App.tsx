@@ -55,7 +55,7 @@ function App() {
   const [isHoveringRefresh, setIsHoveringRefresh] = useState(false);
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
   const [detailPinned, setDetailPinned] = useState(() => localStorage.getItem("ahk_detail_pinned") === "true");
-  const scriptActionsRef = useRef<{ toggle: (s: Script) => void; restart: (s: Script) => void; pendingScripts: Record<string, "run" | "kill" | "restart">; allScripts: Script[]; tagIcons: Record<string, string>; setTagIcon: (tag: string, iconName: string) => void; removeTagIcon: (tag: string) => void }>({ toggle: () => { }, restart: () => { }, pendingScripts: {}, allScripts: [], tagIcons: {}, setTagIcon: () => { }, removeTagIcon: () => { } });
+  const scriptActionsRef = useRef<{ toggle: (s: Script) => void; restart: (s: Script) => void; pendingScripts: Record<string, "run" | "kill" | "restart">; allScripts: Script[]; setTagIcon: (tag: string, iconName: string) => void; removeTagIcon: (tag: string) => void }>({ toggle: () => { }, restart: () => { }, pendingScripts: {}, allScripts: [], setTagIcon: () => { }, removeTagIcon: () => { } });
   const [, setDataVersion] = useState(0);
 
   const { brightness, setBrightness, textContrast, setTextContrast, fontScale, setFontScale, animationsEnabled, toggleAnimations, vimModeNav, setVimModeNav } = useTheme();
@@ -413,7 +413,6 @@ function App() {
         setContextMenu={setContextMenu}
         setUserTags={setUserTags}
         triggerScan={triggerScan}
-        tagIcons={scriptActionsRef.current.tagIcons}
         onRefresh={() => setIsRefreshing(true)}
         onHoveringRefresh={setIsHoveringRefresh}
         onCustomDrop={handleCustomDrop}
@@ -550,7 +549,7 @@ function App() {
       {iconPickerTag && (
         <TagIconPicker
           tag={iconPickerTag}
-          currentIcon={scriptActionsRef.current.tagIcons[iconPickerTag]}
+          currentIcon={useTreeStore.getState().tagIcons[iconPickerTag]}
           onSelect={(tag, iconName) => scriptActionsRef.current.setTagIcon(tag, iconName)}
           onReset={(tag) => scriptActionsRef.current.removeTagIcon(tag)}
           onClose={() => setIconPickerTag(null)}

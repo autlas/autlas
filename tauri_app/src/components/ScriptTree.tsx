@@ -40,7 +40,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
         handleToggle, handleRestart, startEditing, stopEditing,
         addTag, removeTag, handleCustomMouseDown,
         visibleItems, moveFocus,
-        tagIcons, setTagIcon, removeTagIcon
+        setTagIcon, removeTagIcon
     } = useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, searchQuery, setSearchQuery, onRunningCountChange, refreshKey, onScanComplete, viewMode, sortBy });
 
     const hubTags = useMemo(() => groupedHub?.map(g => g.tag) ?? [], [groupedHub]);
@@ -62,8 +62,8 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
     const removingTags = useTreeStore(s => s.removingTags);
 
     useEffect(() => {
-        onExposeActions?.({ toggle: handleToggle, restart: handleRestart, pendingScripts, allScripts, tagIcons, setTagIcon, removeTagIcon });
-    }, [handleToggle, handleRestart, pendingScripts, allScripts, tagIcons, setTagIcon, removeTagIcon, onExposeActions]);
+        onExposeActions?.({ toggle: handleToggle, restart: handleRestart, pendingScripts, allScripts, setTagIcon, removeTagIcon });
+    }, [handleToggle, handleRestart, pendingScripts, allScripts, setTagIcon, removeTagIcon, onExposeActions]);
 
     const [isCheatSheetOpen, setIsCheatSheetOpen] = useState(false);
     const isSearchActiveRef = useRef(false);

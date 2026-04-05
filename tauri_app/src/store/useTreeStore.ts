@@ -70,6 +70,12 @@ interface TreeStore {
   // Sidebar width
   sidebarWidth: number;
   setSidebarWidth: (v: number) => void;
+
+  // Tag icons
+  tagIcons: Record<string, string>;
+  setTagIcons: (icons: Record<string, string>) => void;
+  setTagIcon: (tag: string, icon: string) => void;
+  removeTagIcon: (tag: string) => void;
 }
 
 export const useTreeStore = create<TreeStore>((set) => ({
@@ -171,6 +177,16 @@ export const useTreeStore = create<TreeStore>((set) => ({
   // Sidebar width
   sidebarWidth: parseInt(localStorage.getItem("ahk_sidebar_width") ?? "288"),
   setSidebarWidth: (v) => { localStorage.setItem("ahk_sidebar_width", String(v)); set({ sidebarWidth: v }); },
+
+  // Tag icons
+  tagIcons: {},
+  setTagIcons: (icons) => set({ tagIcons: icons }),
+  setTagIcon: (tag, icon) => set((s) => ({ tagIcons: { ...s.tagIcons, [tag]: icon } })),
+  removeTagIcon: (tag) => set((s) => {
+    const next = { ...s.tagIcons };
+    delete next[tag];
+    return { tagIcons: next };
+  }),
 
   // Removing tags
   removingTags: new Set(),

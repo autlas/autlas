@@ -54,7 +54,7 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
     const dragTimerRef = useRef<number | null>(null);
     const folderRefs = useRef<Map<string, HTMLDivElement>>(new Map());
     const lastTagsKeyRef = useRef<string>('');
-    const [tagIcons, setTagIcons] = useState<Record<string, string>>({});
+    const storeSetTagIcons = useTreeStore(s => s.setTagIcons);
 
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
@@ -125,11 +125,11 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
     }, [allScripts]);
 
     useEffect(() => {
-        invoke<Record<string, string>>("get_tag_icons").then(setTagIcons).catch(() => {});
-    }, []);
+        invoke<Record<string, string>>("get_tag_icons").then(storeSetTagIcons).catch(() => {});
+    }, [storeSetTagIcons]);
 
     const setTagIcon = useCallback(async (tag: string, iconName: string) => {
-        setTagIcons(prev => ({ ...prev, [tag]: iconName }));
+        useTreeStore.getState().setTagIcon(tag, iconName);
         try {
             await invoke("save_tag_icon", { tag, icon: iconName });
         } catch (e) {
@@ -138,11 +138,7 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
     }, []);
 
     const removeTagIcon = useCallback(async (tag: string) => {
-        setTagIcons(prev => {
-            const next = { ...prev };
-            delete next[tag];
-            return next;
-        });
+        useTreeStore.getState().removeTagIcon(tag);
         try {
             await invoke("save_tag_icon", { tag, icon: "" });
         } catch (e) {
@@ -737,6 +733,6 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
         handleToggle, handleRestart, startEditing, stopEditing,
         addTag, removeTag, handleCustomMouseDown,
         visibleItems, moveFocus,
-        tagIcons, setTagIcon, removeTagIcon
+        setTagIcon, removeTagIcon
     };
 }

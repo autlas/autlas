@@ -46,7 +46,6 @@ interface SidebarProps {
   tagDragOffsetXRef: React.MutableRefObject<number>;
   pendingTagDragRef: React.MutableRefObject<{ tag: string; x: number; y: number } | null>;
   formatLastScan: (ts: number, now: number) => React.ReactNode;
-  tagIcons: Record<string, string>;
 }
 
 function navItemClass(tab: string, isTag: boolean, state: Pick<SidebarProps, "activeTab" | "draggedScript" | "draggedTag" | "dragOverTag" | "activeTabPressed">): string {
@@ -73,10 +72,10 @@ export default function Sidebar({
   onTabClick, setActiveTab, setDragOverTag, setDraggedTag, setIsCreatingTagFor, setNewTagName, setIsRenamingTag, setEditTagName,
   setActiveTabPressed, setDragGhostSize, setContextMenu, setUserTags, triggerScan, onRefresh, onHoveringRefresh, onCustomDrop,
   settingsIconRef, refreshIconRef, ghostRef, tagDragOffsetYRef, tagDragOffsetXRef, pendingTagDragRef, formatLastScan,
-  tagIcons,
 }: SidebarProps) {
   const { t } = useTranslation();
   const sidebarCollapsed = useTreeStore(s => s.sidebarCollapsed);
+  const tagIcons = useTreeStore(s => s.tagIcons);
 
   const [currentTime, setCurrentTime] = useState(Date.now());
   useEffect(() => {
