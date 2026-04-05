@@ -6,7 +6,7 @@ import { Script } from "../api";
 import { ChevronDownIcon } from "./ui/Icons";
 
 const TagSectionHeader = ({ tag, isCollapsed, onToggle, runningCount }: { tag: string; isCollapsed: boolean; onToggle: () => void; runningCount: number }) => (
-    <div className="flex items-center mb-4 mt-12 first:mt-2 px-2 sticky top-0 z-40 py-4 cursor-pointer select-none group" onClick={onToggle}>
+    <div className="flex items-center mb-1 mt-12 first:mt-2 px-2 sticky top-0 z-40 py-4 cursor-pointer select-none group" onClick={onToggle}>
         <span className="text-[22px] font-black uppercase tracking-[0.15em] text-white/30 flex items-center leading-none">
             {tag}
         </span>
@@ -158,8 +158,8 @@ export default React.memo(function ScriptGridView({
                     return (
                         <div key={tag} className="flex flex-col last:pb-10">
                             <TagSectionHeader tag={tag} isCollapsed={isCollapsed} onToggle={() => toggleSection(tag)} runningCount={scripts.filter(s => s.is_running).length} />
-                            <div className={`grid transition-[grid-template-rows,opacity] duration-300 ease-in-out overflow-hidden ${isCollapsed ? 'grid-rows-[0fr] opacity-0' : 'grid-rows-[1fr] opacity-100'}`}>
-                                <div className="min-h-0">
+                            <div className={`grid transition-[grid-template-rows,opacity] duration-300 ease-in-out overflow-hidden -m-3 ${isCollapsed ? 'grid-rows-[0fr] opacity-0' : 'grid-rows-[1fr] opacity-100'}`}>
+                                <div className="min-h-0 p-3">
                                     <div
                                         className={`grid ${gridGap} items-start ${isTiles ? 'pb-10' : 'pb-8'}`}
                                         style={{ gridTemplateColumns: `repeat(${columnsCount}, minmax(0, 1fr))` }}
