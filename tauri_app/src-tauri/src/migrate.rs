@@ -134,6 +134,11 @@ pub fn migrate_if_needed(conn: &Connection) -> bool {
     };
 
     println!("[Migration] Starting INI → SQLite migration...");
+    println!("[Migration]   Scripts: {}", data.script_tags.len());
+    println!("[Migration]   Hidden folders: {}", data.hidden_folders.len());
+    println!("[Migration]   Scan paths: {}", data.scan_paths.len());
+    println!("[Migration]   Tag icons: {}", data.tag_icons.len());
+    println!("[Migration]   Tag order: {} tags", data.tag_order.len());
     let now = db::now_iso();
 
     // Wrap in transaction

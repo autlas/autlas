@@ -6,6 +6,7 @@ import TagIconPicker from "./components/TagIconPicker";
 import SettingsPanel from "./components/SettingsPanel";
 import DragGhost from "./components/DragGhost";
 import Sidebar from "./components/Sidebar";
+import OrphanReconcileDialog, { OrphanToast, PendingMatch } from "./components/OrphanReconcileDialog";
 import { Script, checkEverythingStatus, launchEverything, installEverything } from "./api";
 import { useTheme } from "./hooks/useTheme";
 import { useScanPaths } from "./hooks/useScanPaths";
@@ -39,6 +40,9 @@ function App() {
   const [everythingToastVisible, setEverythingToastVisible] = useState(false);
   const [installProgress, setInstallProgress] = useState<{ phase: string; progress: number } | null>(null);
   const [showInstallModal, setShowInstallModal] = useState(false);
+  const [orphanMatches, setOrphanMatches] = useState<PendingMatch[]>([]);
+  const [showOrphanDialog, setShowOrphanDialog] = useState(false);
+  const [orphanToastDismissed, setOrphanToastDismissed] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; type: "script" | "tag" | "folder" | "general"; data: any } | null>(null);
   const [activeTabPressed, setActiveTabPressed] = useState<string | null>(null);
   const iconPickerTag = useTreeStore(s => s.iconPickerTag);
@@ -97,13 +101,20 @@ function App() {
   // Listen for scan progress events
   useEffect(() => {
     let unlisten: (() => void) | null = null;
+    let unlistenOrphan: (() => void) | null = null;
     import('@tauri-apps/api/event').then(({ listen }) => {
       listen<number>('scan-progress', (event) => {
         setScanProgress(event.payload);
         setScanToast("scanning");
       }).then(fn => { unlisten = fn; });
+      listen<PendingMatch[]>('orphan-matches-found', (event) => {
+        if (event.payload.length > 0) {
+          setOrphanMatches(event.payload);
+          setOrphanToastDismissed(false);
+        }
+      }).then(fn => { unlistenOrphan = fn; });
     });
-    return () => { unlisten?.(); };
+    return () => { unlisten?.(); unlistenOrphan?.(); };
   }, []);
 
   const handleLoadingChange = useCallback((loading: boolean) => {
@@ -554,6 +565,24 @@ function App() {
           onSelect={(tag, iconName) => scriptActionsRef.current.setTagIcon(tag, iconName)}
           onReset={(tag) => scriptActionsRef.current.removeTagIcon(tag)}
           onClose={() => setIconPickerTag(null)}
+        />
+      )}
+
+      {/* Orphan reconciliation toast */}
+      <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-[9999] transition-all duration-500 ${orphanMatches.length > 0 && !orphanToastDismissed && !showOrphanDialog ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
+        <OrphanToast
+          count={orphanMatches.length}
+          onReview={() => setShowOrphanDialog(true)}
+          onDismiss={() => setOrphanToastDismissed(true)}
+        />
+      </div>
+
+      {/* Orphan reconciliation dialog */}
+      {showOrphanDialog && orphanMatches.length > 0 && (
+        <OrphanReconcileDialog
+          matches={orphanMatches}
+          onClose={() => setShowOrphanDialog(false)}
+          onResolved={() => { setOrphanMatches([]); setOrphanToastDismissed(true); }}
         />
       )}
 

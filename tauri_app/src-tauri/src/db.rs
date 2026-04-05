@@ -18,9 +18,17 @@ pub fn get_db_path() -> PathBuf {
 
 pub fn open_db() -> rusqlite::Result<Connection> {
     let path = get_db_path();
+    let is_new = !path.exists();
+    println!("[DB] Opening database at {:?} ({})", path, if is_new { "new" } else { "existing" });
     let conn = Connection::open(&path)?;
     conn.execute_batch("PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON;")?;
     create_schema(&conn)?;
+    if !is_new {
+        let script_count: i64 = conn.query_row("SELECT COUNT(*) FROM scripts WHERE is_orphaned = 0", [], |r| r.get(0)).unwrap_or(0);
+        let tag_count: i64 = conn.query_row("SELECT COUNT(*) FROM script_tags", [], |r| r.get(0)).unwrap_or(0);
+        let orphan_count: i64 = conn.query_row("SELECT COUNT(*) FROM scripts WHERE is_orphaned = 1", [], |r| r.get(0)).unwrap_or(0);
+        println!("[DB] Loaded: {} active scripts, {} tags, {} orphans", script_count, tag_count, orphan_count);
+    }
     Ok(conn)
 }
 
@@ -140,10 +148,23 @@ pub fn find_orphans_by_hash(conn: &Connection, hash: &str) -> Vec<(String, Strin
     }).unwrap().filter_map(|r| r.ok()).collect()
 }
 
-/// Find orphans with matching filename
+/// Find orphans with matching filename, but ONLY if no active script has that filename.
+/// If an active script with the same filename exists, the orphan is stale — not a real move.
 pub fn find_orphans_by_filename(conn: &Connection, filename: &str) -> Vec<(String, String)> {
+    // Check if any active script already has this filename
+    let active_count: i64 = conn.query_row(
+        "SELECT COUNT(*) FROM scripts WHERE is_orphaned = 0 AND LOWER(filename) = LOWER(?1)",
+        params![filename],
+        |row| row.get(0),
+    ).unwrap_or(0);
+
+    if active_count > 0 {
+        // There's already an active script with this filename — orphan is stale
+        return Vec::new();
+    }
+
     let mut stmt = conn.prepare(
-        "SELECT id, path FROM scripts WHERE is_orphaned = 1 AND filename = ?1"
+        "SELECT id, path FROM scripts WHERE is_orphaned = 1 AND LOWER(filename) = LOWER(?1)"
     ).unwrap();
     stmt.query_map(params![filename], |row| {
         Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))

@@ -11,6 +11,28 @@ import { createOnigurumaEngine } from "shiki/engine/oniguruma";
 import githubDark from "shiki/themes/github-dark-default.mjs";
 import ahk2Grammar from "../syntaxes/ahk2.tmLanguage.json";
 
+function formatSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function MetaRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <div
+      className="flex items-center gap-3 group/meta cursor-pointer rounded-lg px-2 py-1 -mx-2 hover:bg-white/[0.03] transition-colors"
+      onClick={() => { navigator.clipboard.writeText(value); setCopied(true); setTimeout(() => setCopied(false), 1200); }}
+    >
+      <span className="text-[11px] font-bold text-white/15 uppercase tracking-wider w-10 flex-shrink-0">{label}</span>
+      <span className={`text-[12px] text-white/30 truncate flex-1 ${mono ? "font-mono" : ""}`}>{value}</span>
+      <span className={`text-[10px] text-white/30 transition-opacity ${copied ? "opacity-100" : "opacity-0 group-hover/meta:opacity-50"}`}>
+        {copied ? "copied" : "copy"}
+      </span>
+    </div>
+  );
+}
+
 const shikiPromise = createHighlighterCore({
   themes: [githubDark],
   langs: [ahk2Grammar as any],
@@ -36,6 +58,7 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
   const [content, setContent] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [scriptHash, setScriptHash] = useState<string>("");
   const [isEditingTags, setIsEditingTags] = useState(false);
   const [panelWidth, setPanelWidth] = useState(() => {
     const saved = localStorage.getItem("ahk_detail_panel_width");
@@ -62,6 +85,7 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
   useEffect(() => {
     setLoading(true);
     setContent(null);
+    setScriptHash("");
     readScriptContent(script.path).then(c => {
       setContent(c);
       setLoading(false);
@@ -69,6 +93,7 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
       setContent(null);
       setLoading(false);
     });
+    invoke<string>("get_script_hash", { path: script.path }).then(setScriptHash).catch(() => setScriptHash("—"));
   }, [script.path]);
 
   // Esc is handled centrally in ScriptTree with priority:
@@ -301,6 +326,16 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
             anchorRef={addBtnRef}
           />
         )}
+      </div>
+
+      {/* Meta info */}
+      <div className="px-5 mb-1.5">
+        <span className="text-[11px] font-bold uppercase tracking-widest text-white/20">{t("detail.meta", "Meta")}</span>
+      </div>
+      <div className="px-5 mb-4 space-y-1.5">
+        <MetaRow label="ID" value={script.id} mono />
+        <MetaRow label={t("detail.size", "Size")} value={formatSize(script.size)} />
+        <MetaRow label="Hash" value={scriptHash || "..."} mono />
       </div>
 
       {/* Divider */}

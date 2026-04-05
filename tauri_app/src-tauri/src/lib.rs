@@ -1086,21 +1086,33 @@ async fn get_scripts(
     }
 
     // Phase 0: Deduplicate by lowercase path
+    let before_dedup = script_paths.len();
     let mut seen = HashSet::new();
     script_paths.retain(|p| seen.insert(p.to_lowercase()));
+    let after_dedup = script_paths.len();
+    if before_dedup != after_dedup {
+        println!("[Rust] Deduplicated: {} → {} paths ({} duplicates removed)", before_dedup, after_dedup, before_dedup - after_dedup);
+    }
 
     // Normalize to lowercase for DB lookups
     let disk_paths: HashSet<String> = script_paths.iter()
         .map(|p| p.to_lowercase())
         .filter(|p| std::path::Path::new(p).exists())
         .collect();
+    println!("[Rust] {} paths exist on disk, running reconciliation...", disk_paths.len());
 
     // Run reconciliation
-    let _pending = reconcile::reconcile(&conn, &disk_paths);
-    // TODO: emit pending matches to frontend for user confirmation
+    let pending = reconcile::reconcile(&conn, &disk_paths);
+    if !pending.is_empty() {
+        println!("[Rust] {} pending matches need user confirmation", pending.len());
+        let _ = app_handle.emit("orphan-matches-found", &pending);
+    }
 
     // Load all tags from DB
     let tags_map = db::get_all_tags_map(&conn);
+    let tagged_count = tags_map.len();
+    let total_tags: usize = tags_map.values().map(|v| v.len()).sum();
+    println!("[Rust] Loaded tags: {} scripts with {} total tags", tagged_count, total_tags);
 
     // Build script list
     let mut scripts = Vec::new();
@@ -1603,6 +1615,12 @@ async fn read_script_content(path: String) -> Result<String, String> {
 }
 
 #[tauri::command]
+async fn get_script_hash(path: String) -> Result<String, String> {
+    let path_buf = std::path::PathBuf::from(&path);
+    db::compute_file_hash(&path_buf).ok_or_else(|| "Failed to compute hash".to_string())
+}
+
+#[tauri::command]
 async fn get_script_status(path: String) -> ScriptStatus {
     let mut sys = System::new_all();
     sys.refresh_all();
@@ -1922,7 +1940,8 @@ pub fn run() {
             show_main_window_cmd,
             quit_app_cmd,
             get_orphaned_scripts_cmd,
-            resolve_orphan
+            resolve_orphan,
+            get_script_hash
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
