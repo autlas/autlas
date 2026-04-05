@@ -232,7 +232,7 @@ export default function TagIconPicker({ tag, currentIcon, onSelect, onClose }: T
                             <SectionDivider label="Phosphor" />
                             {phSearching && !hasPhResults && <Spinner label={t("icon_picker.searching", "Searching...")} />}
                             {hasPhResults && (
-                                <div className="grid grid-cols-[repeat(auto-fill,42px)] gap-1.5 justify-center">
+                                <div className={`grid grid-cols-[repeat(auto-fill,42px)] gap-1.5 justify-center transition-opacity ${phSearching ? "opacity-30 animate-pulse pointer-events-none" : ""}`}>
                                     {phResults.map(name => {
                                         const paths = phPaths[name];
                                         if (!paths) return null;
@@ -258,7 +258,7 @@ export default function TagIconPicker({ tag, currentIcon, onSelect, onClose }: T
                             <SectionDivider label="Simple Icons" />
                             {siSearching && !hasSiResults && <Spinner label={t("icon_picker.searching", "Searching...")} />}
                             {hasSiResults && (
-                                <div className="grid grid-cols-[repeat(auto-fill,42px)] gap-1.5 justify-center">
+                                <div className={`grid grid-cols-[repeat(auto-fill,42px)] gap-1.5 justify-center transition-opacity ${siSearching ? "opacity-30 animate-pulse pointer-events-none" : ""}`}>
                                     {siResults.map(name => {
                                         const cacheKey = `si:${name}`;
                                         const paths = siPaths[cacheKey];
