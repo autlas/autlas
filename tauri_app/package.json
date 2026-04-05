@@ -22,6 +22,7 @@
     "react-hotkeys-hook": "^5.2.4",
     "react-i18next": "^16.6.6",
     "shiki": "^4.0.2",
+    "sonner": "^2.0.7",
     "zustand": "^5.0.12"
   },
   "devDependencies": {

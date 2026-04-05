@@ -6,8 +6,10 @@ import TagIconPicker from "./components/TagIconPicker";
 import SettingsPanel from "./components/SettingsPanel";
 import DragGhost from "./components/DragGhost";
 import Sidebar from "./components/Sidebar";
-import OrphanReconcileDialog, { OrphanToast, PendingMatch } from "./components/OrphanReconcileDialog";
+import OrphanReconcileDialog, { PendingMatch } from "./components/OrphanReconcileDialog";
 import { Script, checkEverythingStatus, launchEverything, installEverything } from "./api";
+import { Toaster, toast } from "sonner";
+import { CloseIcon } from "./components/ui/Icons";
 import { useTheme } from "./hooks/useTheme";
 import { useScanPaths } from "./hooks/useScanPaths";
 import { usePhysicsMotion } from "./hooks/usePhysicsMotion";
@@ -33,16 +35,11 @@ function App() {
   const [editTagName, setEditTagName] = useState("");
   const [refreshKey, setRefreshKey] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [scanToast, setScanToast] = useState<false | "scanning" | "done">(false);
-  const [scanProgress, setScanProgress] = useState(0);
-  const scanToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [everythingToast, setEverythingToast] = useState<"installed" | "not_installed" | "launching" | "installing" | "started" | null>(null);
-  const [everythingToastVisible, setEverythingToastVisible] = useState(false);
   const [installProgress, setInstallProgress] = useState<{ phase: string; progress: number } | null>(null);
   const [showInstallModal, setShowInstallModal] = useState(false);
   const [orphanMatches, setOrphanMatches] = useState<PendingMatch[]>([]);
   const [showOrphanDialog, setShowOrphanDialog] = useState(false);
-  const [orphanToastDismissed, setOrphanToastDismissed] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; type: "script" | "tag" | "folder" | "general"; data: any } | null>(null);
   const [activeTabPressed, setActiveTabPressed] = useState<string | null>(null);
   const iconPickerTag = useTreeStore(s => s.iconPickerTag);
@@ -66,9 +63,7 @@ function App() {
   const { brightness, setBrightness, textContrast, setTextContrast, fontScale, setFontScale, animationsEnabled, toggleAnimations, vimModeNav, setVimModeNav } = useTheme();
 
   const triggerScan = useCallback(() => {
-    setEverythingToastVisible(false);
-    setScanProgress(0);
-    if (scanToastTimerRef.current) clearTimeout(scanToastTimerRef.current);
+    toast.dismiss("everything");
     setRefreshKey(p => p + 1);
   }, []);
 
@@ -93,10 +88,13 @@ function App() {
   const handleScanComplete = useCallback((timestamp: number) => {
     setLastScanTimestamp(timestamp);
     localStorage.setItem("ahk_last_scan_timestamp", timestamp.toString());
-    if (scanToastTimerRef.current) clearTimeout(scanToastTimerRef.current);
-    setScanToast("done");
-    scanToastTimerRef.current = setTimeout(() => setScanToast(false), 2500);
-  }, []);
+    toast.custom(() => (
+      <div className="flex items-center gap-3 w-full px-5 py-3 bg-[#1a1a1f] border border-white/10 rounded-2xl shadow-2xl">
+        <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]" />
+        <span className="text-xs font-medium text-white/70 flex-1">{t("sidebar.library_synced")}</span>
+      </div>
+    ), { id: "scan", duration: 2500 });
+  }, [t]);
 
   // Listen for scan progress events
   useEffect(() => {
@@ -104,13 +102,33 @@ function App() {
     let unlistenOrphan: (() => void) | null = null;
     import('@tauri-apps/api/event').then(({ listen }) => {
       listen<number>('scan-progress', (event) => {
-        setScanProgress(event.payload);
-        setScanToast("scanning");
+        toast.custom(() => (
+          <div className="flex items-center gap-3 w-full px-5 py-3 bg-[#1a1a1f] border border-white/10 rounded-2xl shadow-2xl">
+            <div className="w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.8)] animate-pulse" />
+            <span className="text-xs font-medium text-white/70 flex-1">{t("sidebar.scripts_found")} {event.payload}</span>
+          </div>
+        ), { id: "scan", duration: Infinity });
       }).then(fn => { unlisten = fn; });
       listen<PendingMatch[]>('orphan-matches-found', (event) => {
         if (event.payload.length > 0) {
           setOrphanMatches(event.payload);
-          setOrphanToastDismissed(false);
+          const count = event.payload.length;
+          toast.custom(() => (
+            <div className="flex items-center gap-3 w-full px-5 py-3 bg-[#1a1a1f] border border-white/10 rounded-2xl shadow-2xl">
+              <div className="w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.8)]" />
+              <span className="text-xs font-medium text-white/70 flex-1">
+                {count === 1 ? t("orphan.toast_one") : t("orphan.toast_many", { count })}
+              </span>
+              <button
+                onClick={() => { setShowOrphanDialog(true); toast.dismiss("orphan"); }}
+                className="px-3 py-1 text-[11px] font-bold uppercase tracking-wider whitespace-nowrap bg-indigo-500/20 text-indigo-400 rounded-lg hover:bg-indigo-500/30 transition-colors cursor-pointer"
+              >{t("orphan.review")}</button>
+              <button
+                onClick={() => toast.dismiss("orphan")}
+                className="ml-1 text-white/30 hover:text-white/60 transition-colors cursor-pointer"
+              ><CloseIcon size={14} /></button>
+            </div>
+          ), { id: "orphan", duration: Infinity });
         }
       }).then(fn => { unlistenOrphan = fn; });
     });
@@ -183,8 +201,44 @@ function App() {
   }, []);
 
   const hideEverythingToast = useCallback(() => {
-    setEverythingToastVisible(false);
+    toast.dismiss("everything");
     setTimeout(() => setEverythingToast(null), 500);
+  }, []);
+
+  const showEverythingToast = useCallback((status: string) => {
+    const isInstalled = status === "installed";
+    const isStarted = status === "started";
+    toast.custom(() => (
+      <div className="flex items-center gap-3 w-full px-5 py-3 bg-[#1a1a1f] border border-white/10 rounded-2xl shadow-2xl">
+        <div className={`w-2 h-2 rounded-full ${isStarted
+          ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]"
+          : isInstalled
+            ? "bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.8)]"
+            : "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]"}`} />
+        <span className="text-xs font-medium text-white/70 flex-1">
+          {isStarted ? "Everything is running — instant scan enabled"
+            : isInstalled ? "Everything is not running — scan will be slower"
+            : "Install Everything for instant file scanning"}
+        </span>
+        {isInstalled && (
+          <button
+            onClick={async () => {
+              toast.dismiss("everything");
+              setEverythingToast("launching");
+              try { await launchEverything(); setEverythingToast("started"); showEverythingToast("started"); }
+              catch (e) { console.error(e); setEverythingToast("installed"); showEverythingToast("installed"); }
+            }}
+            className="px-3 py-1 text-[11px] font-bold uppercase tracking-wider whitespace-nowrap bg-indigo-500/20 text-indigo-400 rounded-lg hover:bg-indigo-500/30 transition-colors cursor-pointer"
+          >Launch</button>
+        )}
+        {status === "not_installed" && (
+          <button onClick={() => setShowInstallModal(true)}
+            className="px-3 py-1 text-[11px] font-bold uppercase tracking-wider whitespace-nowrap bg-indigo-500/20 text-indigo-400 rounded-lg hover:bg-indigo-500/30 transition-colors cursor-pointer"
+          >Install</button>
+        )}
+        <button onClick={() => toast.dismiss("everything")} className="ml-1 text-white/30 hover:text-white/60 transition-colors cursor-pointer"><CloseIcon size={14} /></button>
+      </div>
+    ), { id: "everything", duration: isStarted ? 3000 : Infinity });
   }, []);
 
   // Check Everything status on startup
@@ -192,10 +246,10 @@ function App() {
     checkEverythingStatus().then(status => {
       if (status !== "running") {
         setEverythingToast(status);
-        setEverythingToastVisible(true);
+        showEverythingToast(status);
       }
     });
-  }, []);
+  }, [showEverythingToast]);
 
   // Auto-hide toast when Everything starts running
   useEffect(() => {
@@ -204,11 +258,12 @@ function App() {
       const status = await checkEverythingStatus();
       if (status === "running") {
         setEverythingToast("started");
-        setTimeout(() => hideEverythingToast(), 3000);
+        showEverythingToast("started");
+        setTimeout(hideEverythingToast, 3000);
       }
     }, 3000);
     return () => clearInterval(interval);
-  }, [everythingToast, hideEverythingToast]);
+  }, [everythingToast, hideEverythingToast, showEverythingToast]);
 
   // Listen for Everything install progress events
   useEffect(() => {
@@ -575,107 +630,16 @@ function App() {
         <OrphanReconcileDialog
           matches={orphanMatches}
           onClose={() => setShowOrphanDialog(false)}
-          onResolved={() => { setOrphanMatches([]); setOrphanToastDismissed(true); }}
+          onResolved={() => { setOrphanMatches([]); toast.dismiss("orphan"); }}
           onMatchResolved={(orphanId) => setOrphanMatches(prev => prev.filter(m => m.orphan_id !== orphanId))}
         />
       )}
 
-      {/* Toast stack */}
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[9999] flex flex-col items-center">
-        {/* Everything status toast */}
-        <div className={`toast-slot ${everythingToastVisible ? 'toast-visible' : 'toast-hidden'}`}>
-          <div>
-            <div className="toast-content pb-2">
-              <div className="flex items-center gap-3 px-5 py-3 bg-[#1a1a1f] border border-white/10 rounded-2xl shadow-2xl">
-                <div className={`w-2 h-2 rounded-full ${everythingToast === "started"
-                    ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]"
-                    : everythingToast === "launching" || everythingToast === "installing"
-                      ? "bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.8)] animate-pulse"
-                      : "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]"
-                  }`} />
-                <span className="text-xs font-medium text-white/70">
-                  {everythingToast === "started"
-                    ? "Everything is running — instant scan enabled"
-                    : everythingToast === "launching"
-                      ? "Starting Everything…"
-                      : everythingToast === "installing"
-                        ? installProgress?.phase === "installing"
-                          ? "Installing Everything…"
-                          : `Downloading Everything… ${installProgress?.progress ?? 0}%`
-                        : everythingToast === "installed"
-                          ? "Everything is not running — scan will be slower"
-                          : "Install Everything for instant file scanning"}
-                </span>
-                {everythingToast === "installing" && (
-                  <div className="w-24 h-1.5 bg-white/10 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-amber-500 rounded-full transition-all duration-300"
-                      style={{ width: `${installProgress?.phase === "installing" ? 100 : installProgress?.progress ?? 0}%` }}
-                    />
-                  </div>
-                )}
-                {everythingToast === "installed" ? (
-                  <button
-                    onClick={async () => {
-                      setEverythingToast("launching");
-                      try {
-                        await launchEverything();
-                        setEverythingToast("started");
-                        setTimeout(() => hideEverythingToast(), 3000);
-                      } catch (e) { console.error(e); setEverythingToast("installed"); }
-                    }}
-                    className="px-3 py-1 text-[11px] font-bold uppercase tracking-wider bg-indigo-500/20 text-indigo-400 rounded-lg hover:bg-indigo-500/30 transition-colors cursor-pointer"
-                  >
-                    Launch
-                  </button>
-                ) : everythingToast === "not_installed" ? (
-                  <button
-                    onClick={() => setShowInstallModal(true)}
-                    className="px-3 py-1 text-[11px] font-bold uppercase tracking-wider bg-indigo-500/20 text-indigo-400 rounded-lg hover:bg-indigo-500/30 transition-colors cursor-pointer"
-                  >
-                    Install
-                  </button>
-                ) : null}
-                {everythingToast !== "launching" && everythingToast !== "installing" && (
-                  <button
-                    onClick={hideEverythingToast}
-                    className="ml-1 text-white/30 hover:text-white/60 transition-colors cursor-pointer"
-                  >
-                    ✕
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Orphan toast */}
-        <div className={`toast-slot ${orphanMatches.length > 0 && !orphanToastDismissed && !showOrphanDialog ? 'toast-visible' : 'toast-hidden'}`}>
-          <div>
-            <div className="toast-content pb-2">
-              <OrphanToast
-                count={orphanMatches.length}
-                onReview={() => setShowOrphanDialog(true)}
-                onDismiss={() => setOrphanToastDismissed(true)}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Scan toast */}
-        <div className={`toast-slot ${scanToast ? 'toast-visible' : 'toast-hidden'}`}>
-          <div>
-            <div className="toast-content">
-              <div className="flex items-center gap-3 px-5 py-3 bg-[#1a1a1f] border border-white/10 rounded-2xl shadow-2xl">
-                <div className={`w-2 h-2 rounded-full ${scanToast === "scanning" ? "bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.8)] animate-pulse" : "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]"}`} />
-                <span className="text-xs font-medium text-white/70">
-                  {scanToast === "scanning" ? `${t("sidebar.scripts_found")} ${scanProgress}` : t("sidebar.library_synced")}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <Toaster
+        position="bottom-center"
+        gap={8}
+        toastOptions={{ unstyled: true, style: { minWidth: '420px' } }}
+      />
 
       {/* Everything Install Modal */}
       {showInstallModal && (
@@ -685,7 +649,7 @@ function App() {
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-bold tracking-widest text-white/60 uppercase">Install Everything</h3>
               {!installProgress && (
-                <button onClick={() => setShowInstallModal(false)} className="text-white/30 hover:text-white/60 transition-colors cursor-pointer">✕</button>
+                <button onClick={() => setShowInstallModal(false)} className="text-white/30 hover:text-white/60 transition-colors cursor-pointer"><CloseIcon size={14} /></button>
               )}
             </div>
 
@@ -704,8 +668,8 @@ function App() {
                       setInstallProgress(null);
                       setShowInstallModal(false);
                       setEverythingToast("started");
-                      setEverythingToastVisible(true);
-                      setTimeout(() => hideEverythingToast(), 3000);
+                      showEverythingToast("started");
+                      setTimeout(hideEverythingToast, 3000);
                     } catch (e) {
                       console.error(e);
                       setInstallProgress(null);
@@ -733,7 +697,7 @@ function App() {
               <div className="space-y-4 py-2">
                 <div className="flex items-center gap-3">
                   <div className="w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.8)] animate-pulse" />
-                  <span className="text-xs font-medium text-white/70">
+                  <span className="text-xs font-medium text-white/70 flex-1">
                     {installProgress.phase === "installing"
                       ? "Installing Everything…"
                       : `Downloading… ${installProgress.progress}%`}
