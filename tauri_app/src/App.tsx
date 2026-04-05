@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import ScriptTree from "./components/ScriptTree";
 import ScriptDetailPanel from "./components/ScriptDetailPanel";
 import ContextMenu from "./components/ContextMenu";
+import TagIconPicker from "./components/TagIconPicker";
 import SettingsPanel from "./components/SettingsPanel";
 import DragGhost from "./components/DragGhost";
 import Sidebar from "./components/Sidebar";
@@ -40,6 +41,7 @@ function App() {
   const [showInstallModal, setShowInstallModal] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; type: "script" | "tag" | "folder" | "general"; data: any } | null>(null);
   const [activeTabPressed, setActiveTabPressed] = useState<string | null>(null);
+  const [iconPickerTag, setIconPickerTag] = useState<string | null>(null);
   const [runningCount, setRunningCount] = useState(0);
   const [lastScanTimestamp, setLastScanTimestamp] = useState<number>(() => {
     const saved = localStorage.getItem("ahk_last_scan_timestamp");
@@ -53,7 +55,7 @@ function App() {
   const [isHoveringRefresh, setIsHoveringRefresh] = useState(false);
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
   const [detailPinned, setDetailPinned] = useState(() => localStorage.getItem("ahk_detail_pinned") === "true");
-  const scriptActionsRef = useRef<{ toggle: (s: Script) => void; restart: (s: Script) => void; pendingScripts: Record<string, "run" | "kill" | "restart">; allScripts: Script[] }>({ toggle: () => { }, restart: () => { }, pendingScripts: {}, allScripts: [] });
+  const scriptActionsRef = useRef<{ toggle: (s: Script) => void; restart: (s: Script) => void; pendingScripts: Record<string, "run" | "kill" | "restart">; allScripts: Script[]; tagIcons: Record<string, string>; setTagIcon: (tag: string, iconName: string) => void; removeTagIcon: (tag: string) => void }>({ toggle: () => { }, restart: () => { }, pendingScripts: {}, allScripts: [], tagIcons: {}, setTagIcon: () => { }, removeTagIcon: () => { } });
   const [, setDataVersion] = useState(0);
 
   const { brightness, setBrightness, textContrast, setTextContrast, fontScale, setFontScale, animationsEnabled, toggleAnimations, vimModeNav, setVimModeNav } = useTheme();
@@ -301,7 +303,7 @@ function App() {
     });
   }, []);
 
-  const handleExposeActions = useCallback((actions: { toggle: (s: Script) => void; restart: (s: Script) => void; pendingScripts: Record<string, "run" | "kill" | "restart">; allScripts: Script[] }) => {
+  const handleExposeActions = useCallback((actions: typeof scriptActionsRef.current) => {
     scriptActionsRef.current = actions;
     setDataVersion(v => v + 1);
   }, []);
@@ -411,6 +413,7 @@ function App() {
         setContextMenu={setContextMenu}
         setUserTags={setUserTags}
         triggerScan={triggerScan}
+        tagIcons={scriptActionsRef.current.tagIcons}
         onRefresh={() => setIsRefreshing(true)}
         onHoveringRefresh={setIsHoveringRefresh}
         onCustomDrop={handleCustomDrop}
@@ -541,7 +544,18 @@ function App() {
         onClose={() => setContextMenu(null)}
         onStartRenameTag={(tag) => { setIsRenamingTag(tag); setEditTagName(tag); }}
         onRefresh={triggerScan}
+        onChooseTagIcon={(tag) => setIconPickerTag(tag)}
       />
+
+      {iconPickerTag && (
+        <TagIconPicker
+          tag={iconPickerTag}
+          currentIcon={scriptActionsRef.current.tagIcons[iconPickerTag]}
+          onSelect={(tag, iconName) => scriptActionsRef.current.setTagIcon(tag, iconName)}
+          onReset={(tag) => scriptActionsRef.current.removeTagIcon(tag)}
+          onClose={() => setIconPickerTag(null)}
+        />
+      )}
 
       <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-[9999] transition-all duration-500 ${scanToast ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
         <div className="flex items-center gap-3 px-5 py-3 bg-[#1a1a1f] border border-white/10 rounded-2xl shadow-2xl">

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useTranslation } from "react-i18next";
-import { GearIcon, TagIcon, TagDotIcon, LayersIcon, TagOffIcon, SyncIcon, ChevronDownIcon } from "./ui/Icons";
+import { GearIcon, TagIcon, TagDotIcon, TagIconSvg, LayersIcon, TagOffIcon, SyncIcon, ChevronDownIcon } from "./ui/Icons";
 import { useTreeStore } from "../store/useTreeStore";
 import Tooltip from "./ui/Tooltip";
 import logoImg from "../assets/logo.png";
@@ -46,6 +46,7 @@ interface SidebarProps {
   tagDragOffsetXRef: React.MutableRefObject<number>;
   pendingTagDragRef: React.MutableRefObject<{ tag: string; x: number; y: number } | null>;
   formatLastScan: (ts: number, now: number) => React.ReactNode;
+  tagIcons: Record<string, string>;
 }
 
 function navItemClass(tab: string, isTag: boolean, state: Pick<SidebarProps, "activeTab" | "draggedScript" | "draggedTag" | "dragOverTag" | "activeTabPressed">): string {
@@ -72,6 +73,7 @@ export default function Sidebar({
   onTabClick, setActiveTab, setDragOverTag, setDraggedTag, setIsCreatingTagFor, setNewTagName, setIsRenamingTag, setEditTagName,
   setActiveTabPressed, setDragGhostSize, setContextMenu, setUserTags, triggerScan, onRefresh, onHoveringRefresh, onCustomDrop,
   settingsIconRef, refreshIconRef, ghostRef, tagDragOffsetYRef, tagDragOffsetXRef, pendingTagDragRef, formatLastScan,
+  tagIcons,
 }: SidebarProps) {
   const { t } = useTranslation();
   const sidebarCollapsed = useTreeStore(s => s.sidebarCollapsed);
@@ -368,7 +370,10 @@ export default function Sidebar({
                   />
                 ) : (
                   <div className="flex items-center pointer-events-none flex-shrink-0">
-                    <TagDotIcon weight={activeTab === tag && viewMode !== "settings" ? "fill" : "bold"} className="flex-shrink-0" />
+                    {tagIcons[tag]
+                      ? <TagIconSvg name={tagIcons[tag]} weight={activeTab === tag && viewMode !== "settings" ? "fill" : "bold"} className="flex-shrink-0" />
+                      : <TagDotIcon weight={activeTab === tag && viewMode !== "settings" ? "fill" : "bold"} className="flex-shrink-0" />
+                    }
                     <span className={`relative z-50 font-bold transition-[width,margin,opacity] duration-150 ${collapsed ? 'w-0 ml-0 opacity-0' : 'w-auto ml-3 opacity-100 truncate'}`}>{tag}</span>
                   </div>
                 )}

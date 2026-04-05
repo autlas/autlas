@@ -95,7 +95,14 @@
         "hide_folder": "Hide Folder",
         "show_only_hidden": "Show Only Hidden",
         "cancel": "Cancel",
-        "delete": "Delete"
+        "delete": "Delete",
+        "choose_icon": "Choose icon"
+    },
+    "icon_picker": {
+        "title": "Icon for «{{tag}}»",
+        "search": "Search icons...",
+        "reset": "Reset",
+        "no_results": "Nothing found"
     },
     "hub": {
         "empty_channel": "Empty channel...",

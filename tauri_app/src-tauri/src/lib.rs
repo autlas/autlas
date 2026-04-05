@@ -1496,16 +1496,26 @@ async fn rename_tag(old_tag: String, new_tag: String) -> Result<(), String> {
 
     let mut lines: Vec<String> = content.lines().map(|s| s.to_string()).collect();
     let mut in_scripts = false;
+    let mut in_tag_icons = false;
     let old_lower = old_tag.to_lowercase();
 
     for line in lines.iter_mut() {
         let trimmed = line.trim();
-        if trimmed.to_lowercase() == "[scripts]" {
+        let trimmed_lower = trimmed.to_lowercase();
+
+        if trimmed_lower == "[scripts]" {
             in_scripts = true;
+            in_tag_icons = false;
+            continue;
+        }
+        if trimmed_lower == "[tagicons]" {
+            in_tag_icons = true;
+            in_scripts = false;
             continue;
         }
         if trimmed.starts_with('[') {
             in_scripts = false;
+            in_tag_icons = false;
             continue;
         }
 
@@ -1516,7 +1526,7 @@ async fn rename_tag(old_tag: String, new_tag: String) -> Result<(), String> {
                 let mut tags: Vec<String> = val.split(',')
                     .map(|s| s.trim().to_string())
                     .collect();
-                
+
                 let mut changed = false;
                 for tag in tags.iter_mut() {
                     if tag.to_lowercase() == old_lower {
@@ -1528,6 +1538,13 @@ async fn rename_tag(old_tag: String, new_tag: String) -> Result<(), String> {
                 if changed {
                     tags.dedup_by(|a, b| a.to_lowercase() == b.to_lowercase());
                     *line = format!("{}={}", key, tags.join(","));
+                }
+            }
+        } else if in_tag_icons {
+            if let Some(pos) = trimmed.find('=') {
+                if trimmed[..pos].trim().to_lowercase() == old_lower {
+                    let icon_val = &line[line.find('=').unwrap()+1..];
+                    *line = format!("{}={}", new_tag, icon_val.trim());
                 }
             }
         }
@@ -1682,6 +1699,89 @@ async fn toggle_hide_folder(path: String) -> Result<(), String> {
 }
 
 #[tauri::command]
+async fn get_tag_icons() -> std::collections::HashMap<String, String> {
+    let ini_path = get_ini_path();
+    let content = fs::read_to_string(&ini_path).unwrap_or_default();
+    let mut result = std::collections::HashMap::new();
+    let mut in_section = false;
+    for line in content.lines() {
+        let trimmed = line.trim();
+        if trimmed.to_lowercase() == "[tagicons]" {
+            in_section = true;
+            continue;
+        }
+        if trimmed.starts_with('[') {
+            in_section = false;
+            continue;
+        }
+        if in_section {
+            if let Some(pos) = line.find('=') {
+                let tag = line[..pos].trim().to_string();
+                let icon = line[pos+1..].trim().to_string();
+                if !tag.is_empty() && !icon.is_empty() {
+                    result.insert(tag, icon);
+                }
+            }
+        }
+    }
+    result
+}
+
+#[tauri::command]
+async fn save_tag_icon(tag: String, icon: String) -> Result<(), String> {
+    let ini_path = get_ini_path();
+    let bytes = fs::read(&ini_path).unwrap_or_default();
+    let content = String::from_utf8_lossy(&bytes).to_string();
+    let mut lines: Vec<String> = content.lines().map(|s| s.to_string()).collect();
+
+    let section_header = "[TagIcons]";
+    let key_lower = tag.to_lowercase();
+    let mut section_start: Option<usize> = None;
+    let mut key_line: Option<usize> = None;
+    let mut section_end: Option<usize> = None;
+
+    for i in 0..lines.len() {
+        let trimmed = lines[i].trim();
+        if trimmed.to_lowercase() == section_header.to_lowercase() {
+            section_start = Some(i);
+            continue;
+        }
+        if section_start.is_some() && section_end.is_none() {
+            if trimmed.starts_with('[') {
+                section_end = Some(i);
+                break;
+            }
+            if let Some(pos) = trimmed.find('=') {
+                if trimmed[..pos].trim().to_lowercase() == key_lower {
+                    key_line = Some(i);
+                }
+            }
+        }
+    }
+
+    if icon.is_empty() {
+        // Remove the entry
+        if let Some(idx) = key_line {
+            lines.remove(idx);
+        }
+    } else {
+        let entry = format!("{}={}", tag, icon);
+        if let Some(idx) = key_line {
+            lines[idx] = entry;
+        } else if let Some(_start) = section_start {
+            let insert_at = section_end.unwrap_or(lines.len());
+            lines.insert(insert_at, entry);
+        } else {
+            lines.push(section_header.to_string());
+            lines.push(entry);
+        }
+    }
+
+    fs::write(&ini_path, lines.join("\r\n")).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
 async fn delete_tag(tag: String) -> Result<(), String> {
     let ini_path = get_ini_path();
     let bytes = fs::read(&ini_path).unwrap_or_default();
@@ -1695,49 +1795,71 @@ async fn delete_tag(tag: String) -> Result<(), String> {
     let mut lines: Vec<String> = content.lines().map(|s| s.to_string()).collect();
     let mut in_scripts = false;
     let mut in_general = false;
+    let mut in_tag_icons = false;
     let target_lower = tag.to_lowercase();
+    let mut lines_to_remove: Vec<usize> = Vec::new();
 
-    for line in lines.iter_mut() {
-        let trimmed = line.trim();
+    for i in 0..lines.len() {
+        let trimmed = lines[i].trim();
         let trimmed_lower = trimmed.to_lowercase();
-        
+
         if trimmed_lower == "[scripts]" {
             in_scripts = true;
             in_general = false;
+            in_tag_icons = false;
             continue;
         }
         if trimmed_lower == "[general]" {
             in_general = true;
             in_scripts = false;
+            in_tag_icons = false;
+            continue;
+        }
+        if trimmed_lower == "[tagicons]" {
+            in_tag_icons = true;
+            in_scripts = false;
+            in_general = false;
             continue;
         }
         if trimmed.starts_with('[') {
             in_scripts = false;
             in_general = false;
+            in_tag_icons = false;
             continue;
         }
 
         if in_scripts {
-             if let Some(pos) = line.find('=') {
-                let key = &line[..pos];
-                let val = &line[pos+1..];
+             if let Some(pos) = lines[i].find('=') {
+                let key = lines[i][..pos].to_string();
+                let val = &lines[i][pos+1..];
                 let tags: Vec<String> = val.split(',')
                     .map(|s| s.trim().to_string())
                     .filter(|s| !s.is_empty() && s.to_lowercase() != target_lower)
                     .collect();
-                *line = format!("{}={}", key, tags.join(","));
+                lines[i] = format!("{}={}", key, tags.join(","));
              }
         } else if in_general && trimmed_lower.starts_with("tag_order=") {
-            if let Some(pos) = line.find('=') {
-                let prefix = &line[..pos+1];
-                let val = &line[pos+1..];
+            if let Some(pos) = lines[i].find('=') {
+                let prefix = lines[i][..pos+1].to_string();
+                let val = &lines[i][pos+1..];
                 let tags: Vec<String> = val.split(',')
                     .map(|s| s.trim().to_string())
                     .filter(|s| !s.is_empty() && s.to_lowercase() != target_lower)
                     .collect();
-                *line = format!("{}{}", prefix, tags.join(","));
+                lines[i] = format!("{}{}", prefix, tags.join(","));
+            }
+        } else if in_tag_icons {
+            if let Some(pos) = trimmed.find('=') {
+                if trimmed[..pos].trim().to_lowercase() == target_lower {
+                    lines_to_remove.push(i);
+                }
             }
         }
+    }
+
+    // Remove tag icon lines in reverse order
+    for i in lines_to_remove.into_iter().rev() {
+        lines.remove(i);
     }
 
     fs::write(&ini_path, lines.join("\r\n")).map_err(|e| e.to_string())?;
@@ -2092,6 +2214,8 @@ pub fn run() {
             rename_tag,
             save_tag_order,
             get_tag_order,
+            get_tag_icons,
+            save_tag_icon,
             open_in_explorer,
             edit_script,
             delete_tag,

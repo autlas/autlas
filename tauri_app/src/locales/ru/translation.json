@@ -95,7 +95,14 @@
         "hide_folder": "Скрыть папку",
         "show_only_hidden": "Только скрытые",
         "cancel": "Отмена",
-        "delete": "Удалить"
+        "delete": "Удалить",
+        "choose_icon": "Выбрать иконку"
+    },
+    "icon_picker": {
+        "title": "Иконка для «{{tag}}»",
+        "search": "Поиск иконок...",
+        "reset": "Сбросить",
+        "no_results": "Ничего не найдено"
     },
     "hub": {
         "empty_channel": "В этом канале пусто...",

@@ -1,7 +1,7 @@
 import { useState, ReactNode } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useTranslation } from "react-i18next";
-import { EditIcon, FolderIcon, OpenWithIcon, CopyIcon, PinIcon, UnpinIcon, PlusIcon, CloseIcon, EyeOffIcon } from "./ui/Icons";
+import { EditIcon, FolderIcon, OpenWithIcon, CopyIcon, PinIcon, UnpinIcon, PlusIcon, CloseIcon, EyeOffIcon, TagIcon } from "./ui/Icons";
 
 interface ContextMenuState {
   x: number;
@@ -15,6 +15,7 @@ interface ContextMenuProps {
   onClose: () => void;
   onStartRenameTag: (tag: string) => void;
   onRefresh: () => void;
+  onChooseTagIcon?: (tag: string) => void;
 }
 
 function ContextMenuItem({ label, icon, onClick, danger = false }: { label: string; icon: ReactNode; onClick: () => void; danger?: boolean }) {
@@ -69,7 +70,7 @@ function ConfirmDialog({ tag, onConfirm, onCancel }: { tag: string; onConfirm: (
   );
 }
 
-export default function ContextMenu({ contextMenu, onClose, onStartRenameTag, onRefresh }: ContextMenuProps) {
+export default function ContextMenu({ contextMenu, onClose, onStartRenameTag, onRefresh, onChooseTagIcon }: ContextMenuProps) {
   const { t } = useTranslation();
   const [confirmTag, setConfirmTag] = useState<string | null>(null);
 
@@ -119,6 +120,11 @@ export default function ContextMenu({ contextMenu, onClose, onStartRenameTag, on
 
         {contextMenu.type === "tag" && (
           <>
+            <ContextMenuItem
+              label={t("context.choose_icon", "Choose icon")}
+              icon={<TagIcon />}
+              onClick={() => { onChooseTagIcon?.(contextMenu.data); onClose(); }}
+            />
             <ContextMenuItem
               label={t("context.rename")}
               icon={<EditIcon />}

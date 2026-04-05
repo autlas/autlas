@@ -54,6 +54,7 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
     const dragTimerRef = useRef<number | null>(null);
     const folderRefs = useRef<Map<string, HTMLDivElement>>(new Map());
     const lastTagsKeyRef = useRef<string>('');
+    const [tagIcons, setTagIcons] = useState<Record<string, string>>({});
 
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
@@ -122,6 +123,32 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
     useEffect(() => {
         onRunningCountChangeRef.current?.(allScripts.filter(s => s.is_running).length);
     }, [allScripts]);
+
+    useEffect(() => {
+        invoke<Record<string, string>>("get_tag_icons").then(setTagIcons).catch(() => {});
+    }, []);
+
+    const setTagIcon = useCallback(async (tag: string, iconName: string) => {
+        setTagIcons(prev => ({ ...prev, [tag]: iconName }));
+        try {
+            await invoke("save_tag_icon", { tag, icon: iconName });
+        } catch (e) {
+            console.error(e);
+        }
+    }, []);
+
+    const removeTagIcon = useCallback(async (tag: string) => {
+        setTagIcons(prev => {
+            const next = { ...prev };
+            delete next[tag];
+            return next;
+        });
+        try {
+            await invoke("save_tag_icon", { tag, icon: "" });
+        } catch (e) {
+            console.error(e);
+        }
+    }, []);
 
     useEffect(() => {
         fetchData();
@@ -709,6 +736,7 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
         toggleFolder, toggleAll, setFolderExpansionRecursive,
         handleToggle, handleRestart, startEditing, stopEditing,
         addTag, removeTag, handleCustomMouseDown,
-        visibleItems, moveFocus
+        visibleItems, moveFocus,
+        tagIcons, setTagIcon, removeTagIcon
     };
 }

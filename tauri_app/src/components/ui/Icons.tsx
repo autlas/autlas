@@ -160,3 +160,22 @@ export function TilesViewIcon({ size = 22, className, weight = "bold" }: IconPro
 export function ListViewIcon({ size = 22, className, weight = "bold" }: IconProps) {
     return <ListBullets size={size} weight={weight} className={className} />;
 }
+
+// ── Dynamic tag icon from pre-built SVG paths ──
+
+import { TAG_ICONS } from "../../data/tagIcons";
+
+export function TagIconSvg({ name, size = 18, weight = "bold", className }: IconProps & { name: string }) {
+    const paths = TAG_ICONS[name];
+    if (!paths) return <CircleDashed size={size} weight={weight} className={className} />;
+    return (
+        <svg
+            width={size}
+            height={size}
+            viewBox="0 0 256 256"
+            fill="currentColor"
+            className={className}
+            dangerouslySetInnerHTML={{ __html: paths[weight === "fill" ? 1 : 0] }}
+        />
+    );
+}
