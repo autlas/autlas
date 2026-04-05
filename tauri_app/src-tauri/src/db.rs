@@ -21,7 +21,7 @@ pub fn open_db() -> rusqlite::Result<Connection> {
     let is_new = !path.exists();
     println!("[DB] Opening database at {:?} ({})", path, if is_new { "new" } else { "existing" });
     let conn = Connection::open(&path)?;
-    conn.execute_batch("PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON;")?;
+    conn.execute_batch("PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000;")?;
     create_schema(&conn)?;
     // Schema migrations for existing DBs
     let _ = conn.execute_batch("ALTER TABLE scripts ADD COLUMN last_run TEXT;");
@@ -137,7 +137,8 @@ pub fn upsert_script(conn: &Connection, id: &str, path: &str, filename: &str, co
     conn.execute(
         "INSERT INTO scripts (id, path, filename, content_hash, first_seen, last_seen, is_orphaned)
          VALUES (?1, ?2, ?3, ?4, ?5, ?5, 0)
-         ON CONFLICT(id) DO UPDATE SET path = ?2, filename = ?3, content_hash = ?4, last_seen = ?5, is_orphaned = 0, orphaned_at = NULL",
+         ON CONFLICT(id) DO UPDATE SET path = ?2, filename = ?3, content_hash = ?4, last_seen = ?5, is_orphaned = 0, orphaned_at = NULL
+         ON CONFLICT(path) DO UPDATE SET filename = ?3, content_hash = ?4, last_seen = ?5, is_orphaned = 0, orphaned_at = NULL",
         params![id, path, filename, content_hash, now],
     )?;
     Ok(())
@@ -243,12 +244,14 @@ pub fn get_tags_by_path(conn: &Connection, path: &str) -> Vec<String> {
 }
 
 pub fn set_tags_for_script(conn: &Connection, script_id: &str, tags: &[String]) -> rusqlite::Result<()> {
-    conn.execute("DELETE FROM script_tags WHERE script_id = ?1", params![script_id])?;
-    let mut stmt = conn.prepare("INSERT OR IGNORE INTO script_tags (script_id, tag) VALUES (?1, ?2)")?;
+    let tx = conn.unchecked_transaction()?;
+    tx.execute("DELETE FROM script_tags WHERE script_id = ?1", params![script_id])?;
+    let mut stmt = tx.prepare("INSERT OR IGNORE INTO script_tags (script_id, tag) VALUES (?1, ?2)")?;
     for tag in tags {
         stmt.execute(params![script_id, tag])?;
     }
-    Ok(())
+    drop(stmt);
+    tx.commit()
 }
 
 pub fn add_tag_to_script(conn: &Connection, script_id: &str, tag: &str) -> rusqlite::Result<()> {
@@ -268,34 +271,33 @@ pub fn remove_tag_from_script(conn: &Connection, script_id: &str, tag: &str) -> 
 }
 
 pub fn rename_tag_all(conn: &Connection, old_tag: &str, new_tag: &str) -> rusqlite::Result<()> {
-    // Update all script_tags entries
-    conn.execute(
+    let tx = conn.unchecked_transaction()?;
+    tx.execute(
         "UPDATE script_tags SET tag = ?2 WHERE LOWER(tag) = LOWER(?1)",
         params![old_tag, new_tag],
     )?;
-    // Remove duplicates that may arise (same script_id + new_tag already existed)
-    conn.execute(
+    tx.execute(
         "DELETE FROM script_tags WHERE rowid NOT IN (SELECT MIN(rowid) FROM script_tags GROUP BY script_id, LOWER(tag))",
         [],
     )?;
-    // Update tag_meta
-    conn.execute(
+    tx.execute(
         "UPDATE tag_meta SET tag = ?2 WHERE LOWER(tag) = LOWER(?1)",
         params![old_tag, new_tag],
     )?;
-    Ok(())
+    tx.commit()
 }
 
 pub fn delete_tag_all(conn: &Connection, tag: &str) -> rusqlite::Result<()> {
-    conn.execute(
+    let tx = conn.unchecked_transaction()?;
+    tx.execute(
         "DELETE FROM script_tags WHERE LOWER(tag) = LOWER(?1)",
         params![tag],
     )?;
-    conn.execute(
+    tx.execute(
         "DELETE FROM tag_meta WHERE LOWER(tag) = LOWER(?1)",
         params![tag],
     )?;
-    Ok(())
+    tx.commit()
 }
 
 // ── Tag meta (icons, order) ──
@@ -391,6 +393,7 @@ pub fn set_scan_paths(conn: &Connection, paths: &[String]) -> rusqlite::Result<(
 
 // ── Script ID lookup ──
 
+#[allow(dead_code)]
 pub fn get_script_id_by_path(conn: &Connection, path: &str) -> Option<String> {
     conn.query_row(
         "SELECT id FROM scripts WHERE path = ?1 AND is_orphaned = 0",

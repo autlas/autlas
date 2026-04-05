@@ -1025,13 +1025,15 @@ async fn get_scripts(
         }
     }
 
-    let conn = state.0.lock().unwrap();
-    let scan_paths_list = db::get_scan_paths(&conn);
-    let hidden_folders = db::get_hidden_folders(&conn);
+    // Phase A: Read config from DB (short lock)
+    let (scan_paths_list, hidden_folders) = {
+        let conn = state.0.lock().map_err(|e| e.to_string())?;
+        (db::get_scan_paths(&conn), db::get_hidden_folders(&conn))
+    }; // lock released
 
+    // Phase B: Disk I/O without holding the lock
     let mut script_paths = Vec::new();
 
-    // Strategy: If not forcing scan, try to use the cache
     let cache_hit = if !force_scan {
         if let Some(cached) = load_cache() {
             println!("[Rust] Loading scripts from cache ({} paths found)", cached.len());
@@ -1085,7 +1087,7 @@ async fn get_scripts(
         save_cache(&script_paths);
     }
 
-    // Phase 0: Deduplicate by lowercase path
+    // Deduplicate by lowercase path
     let before_dedup = script_paths.len();
     let mut seen = HashSet::new();
     script_paths.retain(|p| seen.insert(p.to_lowercase()));
@@ -1094,27 +1096,33 @@ async fn get_scripts(
         println!("[Rust] Deduplicated: {} → {} paths ({} duplicates removed)", before_dedup, after_dedup, before_dedup - after_dedup);
     }
 
-    // Normalize to lowercase for DB lookups
     let disk_paths: HashSet<String> = script_paths.iter()
         .map(|p| p.to_lowercase())
         .filter(|p| std::path::Path::new(p).exists())
         .collect();
     println!("[Rust] {} paths exist on disk, running reconciliation...", disk_paths.len());
 
-    // Run reconciliation
+    // Phase C: Re-acquire lock for reconciliation + data loading
+    let conn = state.0.lock().map_err(|e| e.to_string())?;
+
     let pending = reconcile::reconcile(&conn, &disk_paths);
     if !pending.is_empty() {
         println!("[Rust] {} pending matches need user confirmation", pending.len());
         let _ = app_handle.emit("orphan-matches-found", &pending);
     }
 
-    // Load all tags from DB
     let tags_map = db::get_all_tags_map(&conn);
     let tagged_count = tags_map.len();
     let total_tags: usize = tags_map.values().map(|v| v.len()).sum();
     println!("[Rust] Loaded tags: {} scripts with {} total tags", tagged_count, total_tags);
 
-    // Build script list
+    // Build ID map for enrichment (single query, no per-script DB call)
+    let id_map: HashMap<String, String> = db::get_all_active_scripts(&conn)
+        .into_iter().map(|(id, path)| (path, id)).collect();
+
+    drop(conn); // Release lock before file I/O enrichment
+
+    // Phase D: Enrich scripts (file I/O, no lock needed)
     let mut scripts = Vec::new();
     for path_str in &script_paths {
         let path_buf = std::path::PathBuf::from(path_str);
@@ -1124,7 +1132,7 @@ async fn get_scripts(
         let filename = path_buf.file_name().map_or("".to_string(), |f| f.to_string_lossy().to_string());
         let parent = path_buf.parent().map_or("".to_string(), |p| p.file_name().map_or("".to_string(), |f| f.to_string_lossy().to_string()));
 
-        let script_id = db::get_script_id_by_path(&conn, &path_lower).unwrap_or_default();
+        let script_id = id_map.get(&path_lower).cloned().unwrap_or_default();
         let tags = tags_map.get(&path_lower).cloned().unwrap_or_default();
         let is_hidden = hidden_folders.iter().any(|h| path_lower.contains(&h.to_lowercase()));
         let is_running = running_cmds.iter().any(|cmd| cmd.contains(&path_lower));
