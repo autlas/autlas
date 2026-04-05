@@ -10,6 +10,7 @@ pub struct PendingMatch {
     pub old_path: String,
     pub new_path: String,
     pub match_type: String, // "filename"
+    pub tags: Vec<String>,
 }
 
 /// Run the full reconciliation algorithm.
@@ -108,11 +109,13 @@ pub fn reconcile(conn: &Connection, disk_paths: &HashSet<String>) -> Vec<Pending
             if !filename_matches.is_empty() {
                 for (orphan_id, old_path) in &filename_matches {
                     println!("[Reconcile]   Filename match (pending): {} → {} (needs confirmation)", old_path, disk_path);
+                    let tags = db::get_tags_for_script(conn, orphan_id);
                     pending_matches.push(PendingMatch {
                         orphan_id: orphan_id.clone(),
                         old_path: old_path.clone(),
                         new_path: disk_path.clone(),
                         match_type: "filename".to_string(),
+                        tags,
                     });
                 }
                 stats.filename_pending += 1;

@@ -8,6 +8,7 @@ export interface PendingMatch {
     old_path: string;
     new_path: string;
     match_type: string;
+    tags: string[];
 }
 
 function extractFilename(path: string): string {
@@ -137,7 +138,7 @@ export default function OrphanReconcileDialog({ matches, onClose, onResolved, on
                                         <div className="w-1.5 h-1.5 rounded-full bg-green-400/60" />
                                     </div>
 
-                                    {/* Paths */}
+                                    {/* Paths + Tags */}
                                     <div className="flex-1 min-w-0">
                                         <div className="text-xs text-white/25 truncate" title={m.old_path}>
                                             <span className="text-white/40">{extractFilename(m.old_path)}</span>
@@ -147,6 +148,13 @@ export default function OrphanReconcileDialog({ matches, onClose, onResolved, on
                                             <span className="text-white/70 font-medium">{extractFilename(m.new_path)}</span>
                                             <span className="ml-2">{extractParent(m.new_path)}</span>
                                         </div>
+                                        {m.tags.length > 0 && (
+                                            <div className="flex gap-1.5 mt-2 flex-wrap">
+                                                {m.tags.filter(t => !["hub", "fav", "favourites"].includes(t.toLowerCase())).map(tag => (
+                                                    <span key={tag} className="text-xs font-bold px-3 py-1 rounded-lg bg-white/5 text-white/40 border border-white/5">{tag}</span>
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
 
                                     {/* Actions */}
