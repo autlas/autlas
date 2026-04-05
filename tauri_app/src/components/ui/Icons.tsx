@@ -170,11 +170,12 @@ export function TagIconSvg({ name, size = 18, weight = "bold", className }: Icon
     const cached = useTreeStore(s => s.iconCache[name]);
     const paths = TAG_ICONS[name] ?? cached;
     if (!paths) return <CircleDashed size={size} weight={weight} className={className} />;
+    const viewBox = name.startsWith("si:") ? "0 0 24 24" : "0 0 256 256";
     return (
         <svg
             width={size}
             height={size}
-            viewBox="0 0 256 256"
+            viewBox={viewBox}
             fill="currentColor"
             className={className}
             dangerouslySetInnerHTML={{ __html: paths[weight === "fill" ? 1 : 0] }}

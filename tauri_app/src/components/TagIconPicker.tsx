@@ -16,21 +16,69 @@ interface TagIconPickerProps {
     onClose: () => void;
 }
 
+function IconButton({ name, viewBox, svgHtml, isSelected, onClick }: {
+    name: string; viewBox: string; svgHtml: string; isSelected: boolean; onClick: () => void;
+}) {
+    return (
+        <button
+            title={name}
+            onClick={onClick}
+            className={`w-[42px] h-[42px] rounded-xl flex items-center justify-center cursor-pointer transition-all hover:scale-150 hover:z-10 relative group/icon
+                ${isSelected
+                    ? "bg-indigo-500/20 border-2 border-indigo-500 text-indigo-400"
+                    : "bg-white/[0.03] border border-transparent text-white/60 hover:bg-white/10 hover:text-white hover:border-white/10"
+                }`}
+        >
+            <svg
+                className="transition-transform group-hover/icon:scale-[1.3]"
+                width={22}
+                height={22}
+                viewBox={viewBox}
+                fill="currentColor"
+                dangerouslySetInnerHTML={{ __html: svgHtml }}
+            />
+        </button>
+    );
+}
+
+function SectionDivider({ label }: { label: string }) {
+    return (
+        <div className="flex items-center gap-3 my-5">
+            <div className="flex-1 h-px bg-white/5" />
+            <span className="text-[11px] font-bold text-white/20 uppercase tracking-widest">{label}</span>
+            <div className="flex-1 h-px bg-white/5" />
+        </div>
+    );
+}
+
+function Spinner({ label }: { label: string }) {
+    return (
+        <div className="flex items-center justify-center py-4 gap-2">
+            <div className="w-4 h-4 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" />
+            <span className="text-xs text-white/30">{label}</span>
+        </div>
+    );
+}
+
 export default function TagIconPicker({ tag, currentIcon, onSelect, onClose }: TagIconPickerProps) {
     const { t } = useTranslation();
     const [query, setQuery] = useState("");
     const inputRef = useRef<HTMLInputElement>(null);
 
-    // API search state
-    const [apiResults, setApiResults] = useState<string[]>([]);
-    const [apiPaths, setApiPaths] = useState<Record<string, [string, string]>>({});
-    const [isSearching, setIsSearching] = useState(false);
+    // Phosphor API state
+    const [phResults, setPhResults] = useState<string[]>([]);
+    const [phPaths, setPhPaths] = useState<Record<string, [string, string]>>({});
+    const [phSearching, setPhSearching] = useState(false);
+
+    // Simple Icons API state
+    const [siResults, setSiResults] = useState<string[]>([]);
+    const [siPaths, setSiPaths] = useState<Record<string, [string, string]>>({});
+    const [siSearching, setSiSearching] = useState(false);
+
     const [isOffline, setIsOffline] = useState(false);
     const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
-    useEffect(() => {
-        inputRef.current?.focus();
-    }, []);
+    useEffect(() => { inputRef.current?.focus(); }, []);
 
     // Local filter
     const filtered = useMemo(() => {
@@ -39,61 +87,88 @@ export default function TagIconPicker({ tag, currentIcon, onSelect, onClose }: T
         return ALL_ICON_NAMES.filter(name => name.includes(q));
     }, [query]);
 
-    // Debounced API search
+    // Debounced parallel API search
     const searchApi = useCallback(async (q: string) => {
         if (q.length < 2) {
-            setApiResults([]);
-            setApiPaths({});
-            setIsSearching(false);
+            setPhResults([]); setPhPaths({});
+            setSiResults([]); setSiPaths({});
+            setPhSearching(false); setSiSearching(false);
             return;
         }
-        setIsSearching(true);
         setIsOffline(false);
-        try {
-            const baseNames = await invoke<string[]>("search_icons", { query: q });
-            // Filter out icons already in static set
-            const newNames = baseNames.filter(n => !TAG_ICONS[n]);
-            setApiResults(newNames);
+        setPhSearching(true);
+        setSiSearching(true);
 
-            if (newNames.length > 0) {
-                const paths = await invoke<Record<string, [string, string]>>("fetch_icon_paths", { names: newNames });
-                setApiPaths(paths);
-                // Add to store cache
-                const store = useTreeStore.getState();
-                for (const [name, p] of Object.entries(paths)) {
-                    store.addToIconCache(name, p);
+        // Search both in parallel
+        const phPromise = (async () => {
+            try {
+                const baseNames = await invoke<string[]>("search_icons", { query: q, prefix: "ph" });
+                const newNames = baseNames.filter(n => !TAG_ICONS[n]);
+                setPhResults(newNames);
+                if (newNames.length > 0) {
+                    const paths = await invoke<Record<string, [string, string]>>("fetch_icon_paths", { names: newNames, prefix: "ph" });
+                    setPhPaths(paths);
+                    const store = useTreeStore.getState();
+                    for (const [name, p] of Object.entries(paths)) {
+                        store.addToIconCache(name, p);
+                    }
+                } else {
+                    setPhPaths({});
                 }
+            } catch {
+                setIsOffline(true);
+                setPhResults([]); setPhPaths({});
+            } finally {
+                setPhSearching(false);
             }
-        } catch {
-            setIsOffline(true);
-            setApiResults([]);
-            setApiPaths({});
-        } finally {
-            setIsSearching(false);
-        }
+        })();
+
+        const siPromise = (async () => {
+            try {
+                const names = await invoke<string[]>("search_icons", { query: q, prefix: "simple-icons" });
+                setSiResults(names);
+                if (names.length > 0) {
+                    const paths = await invoke<Record<string, [string, string]>>("fetch_icon_paths", { names, prefix: "simple-icons" });
+                    setSiPaths(paths);
+                    const store = useTreeStore.getState();
+                    for (const [name, p] of Object.entries(paths)) {
+                        store.addToIconCache(name, p);
+                    }
+                } else {
+                    setSiPaths({});
+                }
+            } catch {
+                setSiResults([]); setSiPaths({});
+            } finally {
+                setSiSearching(false);
+            }
+        })();
+
+        await Promise.all([phPromise, siPromise]);
     }, []);
 
     useEffect(() => {
         if (debounceRef.current) clearTimeout(debounceRef.current);
         if (!query || query.length < 2) {
-            setApiResults([]);
-            setApiPaths({});
-            setIsSearching(false);
+            setPhResults([]); setPhPaths({});
+            setSiResults([]); setSiPaths({});
+            setPhSearching(false); setSiSearching(false);
             return;
         }
-        setIsSearching(true);
+        setPhSearching(true); setSiSearching(true);
         debounceRef.current = setTimeout(() => searchApi(query), 300);
         return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
     }, [query, searchApi]);
 
-    const handleSelectApiIcon = (name: string) => {
-        const paths = apiPaths[name];
-        if (paths) {
-            invoke("save_icon_to_cache", { name, bold: paths[0], fill: paths[1] }).catch(() => {});
-        }
+    const handleSelectApiIcon = (name: string, paths: [string, string]) => {
+        invoke("save_icon_to_cache", { name, bold: paths[0], fill: paths[1] }).catch(() => {});
         onSelect(tag, name);
         onClose();
     };
+
+    const hasPhResults = phResults.some(n => phPaths[n]);
+    const hasSiResults = siResults.some(n => siPaths[`si:${n}`]);
+    const isSearchingAny = phSearching || siSearching;
 
     return createPortal(
         <div
@@ -131,98 +206,84 @@ export default function TagIconPicker({ tag, currentIcon, onSelect, onClose }: T
                             className="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-4 py-2.5 text-sm text-white placeholder:text-white/30 outline-none focus:border-indigo-500/50"
                         />
                     </div>
-
                 </div>
 
                 {/* Grid */}
                 <div className="pl-6 pr-[14px] py-6 overflow-y-auto flex-1 min-h-0 custom-scrollbar">
-                    {/* Static icons */}
-                    <div className="grid grid-cols-[repeat(auto-fill,42px)] gap-1.5 justify-center">
-                        {filtered.map(name => {
-                            const isSelected = name === currentIcon;
-                            return (
-                                <button
+                    {/* Section 1: Static/loaded icons */}
+                    {filtered.length > 0 && (
+                        <div className="grid grid-cols-[repeat(auto-fill,42px)] gap-1.5 justify-center">
+                            {filtered.map(name => (
+                                <IconButton
                                     key={name}
-                                    title={name}
+                                    name={name}
+                                    viewBox="0 0 256 256"
+                                    svgHtml={TAG_ICONS[name][0]}
+                                    isSelected={name === currentIcon}
                                     onClick={() => { onSelect(tag, name); onClose(); }}
-                                    className={`w-[42px] h-[42px] rounded-xl flex items-center justify-center cursor-pointer transition-all hover:scale-150 hover:z-10 relative group/icon
-                                        ${isSelected
-                                            ? "bg-indigo-500/20 border-2 border-indigo-500 text-indigo-400"
-                                            : "bg-white/[0.03] border border-transparent text-white/60 hover:bg-white/10 hover:text-white hover:border-white/10"
-                                        }`}
-                                >
-                                    <svg
-                                        className="transition-transform group-hover/icon:scale-[1.3]"
-                                        width={22}
-                                        height={22}
-                                        viewBox="0 0 256 256"
-                                        fill="currentColor"
-                                        dangerouslySetInnerHTML={{ __html: TAG_ICONS[name][0] }}
-                                    />
-                                </button>
-                            );
-                        })}
-                    </div>
+                                />
+                            ))}
+                        </div>
+                    )}
 
-                    {/* API results */}
-                    {query.length >= 2 && (
+                    {/* Section 2: Phosphor API results */}
+                    {query.length >= 2 && (hasPhResults || phSearching) && (
                         <>
-                            {/* Divider */}
-                            {(apiResults.length > 0 || isSearching) && (
-                                <div className="flex items-center gap-3 my-5">
-                                    <div className="flex-1 h-px bg-white/5" />
-                                    <span className="text-[11px] font-bold text-white/20 uppercase tracking-widest">
-                                        {t("icon_picker.more_icons", "More icons")}
-                                    </span>
-                                    <div className="flex-1 h-px bg-white/5" />
-                                </div>
-                            )}
-
-                            {isSearching && apiResults.length === 0 && (
-                                <div className="flex items-center justify-center py-6 gap-2">
-                                    <div className="w-4 h-4 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" />
-                                    <span className="text-xs text-white/30">{t("icon_picker.searching", "Searching...")}</span>
-                                </div>
-                            )}
-
-                            {apiResults.length > 0 && (
+                            <SectionDivider label="Phosphor" />
+                            {phSearching && !hasPhResults && <Spinner label={t("icon_picker.searching", "Searching...")} />}
+                            {hasPhResults && (
                                 <div className="grid grid-cols-[repeat(auto-fill,42px)] gap-1.5 justify-center">
-                                    {apiResults.map(name => {
-                                        const paths = apiPaths[name];
+                                    {phResults.map(name => {
+                                        const paths = phPaths[name];
                                         if (!paths) return null;
-                                        const isSelected = name === currentIcon;
                                         return (
-                                            <button
-                                                key={name}
-                                                title={name}
-                                                onClick={() => handleSelectApiIcon(name)}
-                                                className={`w-[42px] h-[42px] rounded-xl flex items-center justify-center cursor-pointer transition-all hover:scale-150 hover:z-10 relative group/icon
-                                                    ${isSelected
-                                                        ? "bg-indigo-500/20 border-2 border-indigo-500 text-indigo-400"
-                                                        : "bg-white/[0.03] border border-transparent text-white/60 hover:bg-white/10 hover:text-white hover:border-white/10"
-                                                    }`}
-                                            >
-                                                <svg
-                                                    className="transition-transform group-hover/icon:scale-[1.3]"
-                                                    width={22}
-                                                    height={22}
-                                                    viewBox="0 0 256 256"
-                                                    fill="currentColor"
-                                                    dangerouslySetInnerHTML={{ __html: paths[0] }}
-                                                />
-                                            </button>
+                                            <IconButton
+                                                key={`ph:${name}`}
+                                                name={name}
+                                                viewBox="0 0 256 256"
+                                                svgHtml={paths[0]}
+                                                isSelected={name === currentIcon}
+                                                onClick={() => handleSelectApiIcon(name, paths)}
+                                            />
                                         );
                                     })}
                                 </div>
                             )}
+                        </>
+                    )}
 
-                            {isOffline && (
-                                <p className="text-center text-white/20 text-xs py-4">{t("icon_picker.offline", "Offline")}</p>
+                    {/* Section 3: Simple Icons API results */}
+                    {query.length >= 2 && (hasSiResults || siSearching) && (
+                        <>
+                            <SectionDivider label="Simple Icons" />
+                            {siSearching && !hasSiResults && <Spinner label={t("icon_picker.searching", "Searching...")} />}
+                            {hasSiResults && (
+                                <div className="grid grid-cols-[repeat(auto-fill,42px)] gap-1.5 justify-center">
+                                    {siResults.map(name => {
+                                        const cacheKey = `si:${name}`;
+                                        const paths = siPaths[cacheKey];
+                                        if (!paths) return null;
+                                        return (
+                                            <IconButton
+                                                key={cacheKey}
+                                                name={name}
+                                                viewBox="0 0 24 24"
+                                                svgHtml={paths[0]}
+                                                isSelected={cacheKey === currentIcon}
+                                                onClick={() => handleSelectApiIcon(cacheKey, paths)}
+                                            />
+                                        );
+                                    })}
+                                </div>
                             )}
                         </>
                     )}
 
-                    {filtered.length === 0 && apiResults.length === 0 && !isSearching && (
+                    {isOffline && (
+                        <p className="text-center text-white/20 text-xs py-4">{t("icon_picker.offline", "Offline")}</p>
+                    )}
+
+                    {filtered.length === 0 && !hasPhResults && !hasSiResults && !isSearchingAny && (
                         <p className="text-center text-white/30 text-sm py-8">{t("icon_picker.no_results", "Nothing found")}</p>
                     )}
                 </div>

@@ -1816,33 +1816,35 @@ async fn save_icon_to_cache(name: String, bold: String, fill: String) -> Result<
 }
 
 #[tauri::command]
-async fn search_icons(query: String) -> Result<Vec<String>, String> {
+async fn search_icons(query: String, prefix: String) -> Result<Vec<String>, String> {
     if query.len() < 2 {
         return Ok(Vec::new());
     }
     let url = format!(
-        "https://api.iconify.design/search?query={}&prefix=ph&limit=999",
-        urlencoding(&query)
+        "https://api.iconify.design/search?query={}&prefix={}&limit=999",
+        urlencoding(&query),
+        urlencoding(&prefix)
     );
     let resp = reqwest::get(&url).await.map_err(|e| e.to_string())?;
     let text = resp.text().await.map_err(|e| e.to_string())?;
     let parsed: serde_json::Value = serde_json::from_str(&text).map_err(|e| e.to_string())?;
 
     let icons = parsed["icons"].as_array().ok_or("Invalid API response")?;
+    let prefix_colon = format!("{}:", prefix);
     let suffixes = ["-bold", "-fill", "-thin", "-light", "-duotone"];
     let mut base_names: Vec<String> = Vec::new();
     let mut seen = HashSet::new();
 
     for icon in icons {
         if let Some(s) = icon.as_str() {
-            // Strip "ph:" prefix
-            let name = s.strip_prefix("ph:").unwrap_or(s);
-            // Strip variant suffixes to get base name
+            let name = s.strip_prefix(&prefix_colon).unwrap_or(s);
             let mut base = name.to_string();
-            for suffix in &suffixes {
-                if let Some(stripped) = base.strip_suffix(suffix) {
-                    base = stripped.to_string();
-                    break;
+            if prefix == "ph" {
+                for suffix in &suffixes {
+                    if let Some(stripped) = base.strip_suffix(suffix) {
+                        base = stripped.to_string();
+                        break;
+                    }
                 }
             }
             if !base.is_empty() && seen.insert(base.clone()) {
@@ -1869,16 +1871,22 @@ fn urlencoding(s: &str) -> String {
 }
 
 #[tauri::command]
-async fn fetch_icon_paths(names: Vec<String>) -> Result<HashMap<String, (String, String)>, String> {
+async fn fetch_icon_paths(names: Vec<String>, prefix: String) -> Result<HashMap<String, (String, String)>, String> {
     let mut result: HashMap<String, (String, String)> = HashMap::new();
+    let is_phosphor = prefix == "ph";
 
     // Batch into groups of 40
     for chunk in names.chunks(40) {
-        let icon_names: Vec<String> = chunk.iter()
-            .flat_map(|n| vec![format!("{}-bold", n), format!("{}-fill", n)])
-            .collect();
+        let icon_names: Vec<String> = if is_phosphor {
+            chunk.iter()
+                .flat_map(|n| vec![format!("{}-bold", n), format!("{}-fill", n)])
+                .collect()
+        } else {
+            chunk.iter().map(|n| n.clone()).collect()
+        };
         let url = format!(
-            "https://api.iconify.design/ph.json?icons={}",
+            "https://api.iconify.design/{}.json?icons={}",
+            prefix,
             icon_names.join(",")
         );
         let resp = reqwest::get(&url).await.map_err(|e| e.to_string())?;
@@ -1887,18 +1895,30 @@ async fn fetch_icon_paths(names: Vec<String>) -> Result<HashMap<String, (String,
 
         if let Some(icons) = parsed["icons"].as_object() {
             for base_name in chunk {
-                let bold_key = format!("{}-bold", base_name);
-                let fill_key = format!("{}-fill", base_name);
-                let bold_body = icons.get(&bold_key)
-                    .and_then(|v| v["body"].as_str())
-                    .unwrap_or("")
-                    .to_string();
-                let fill_body = icons.get(&fill_key)
-                    .and_then(|v| v["body"].as_str())
-                    .unwrap_or("")
-                    .to_string();
-                if !bold_body.is_empty() && !fill_body.is_empty() {
-                    result.insert(base_name.clone(), (bold_body, fill_body));
+                if is_phosphor {
+                    let bold_key = format!("{}-bold", base_name);
+                    let fill_key = format!("{}-fill", base_name);
+                    let bold_body = icons.get(&bold_key)
+                        .and_then(|v| v["body"].as_str())
+                        .unwrap_or("")
+                        .to_string();
+                    let fill_body = icons.get(&fill_key)
+                        .and_then(|v| v["body"].as_str())
+                        .unwrap_or("")
+                        .to_string();
+                    if !bold_body.is_empty() && !fill_body.is_empty() {
+                        result.insert(base_name.clone(), (bold_body, fill_body));
+                    }
+                } else {
+                    // Simple Icons: one path, same for both slots
+                    let body = icons.get(base_name)
+                        .and_then(|v| v["body"].as_str())
+                        .unwrap_or("")
+                        .to_string();
+                    if !body.is_empty() {
+                        let cache_key = format!("si:{}", base_name);
+                        result.insert(cache_key, (body.clone(), body));
+                    }
                 }
             }
         }
