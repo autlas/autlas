@@ -164,9 +164,11 @@ export function ListViewIcon({ size = 22, className, weight = "bold" }: IconProp
 // ── Dynamic tag icon from pre-built SVG paths ──
 
 import { TAG_ICONS } from "../../data/tagIcons";
+import { useTreeStore } from "../../store/useTreeStore";
 
 export function TagIconSvg({ name, size = 18, weight = "bold", className }: IconProps & { name: string }) {
-    const paths = TAG_ICONS[name];
+    const cached = useTreeStore(s => s.iconCache[name]);
+    const paths = TAG_ICONS[name] ?? cached;
     if (!paths) return <CircleDashed size={size} weight={weight} className={className} />;
     return (
         <svg

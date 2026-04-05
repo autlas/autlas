@@ -102,7 +102,10 @@
         "title": "Icon for «{{tag}}»",
         "search": "Search icons...",
         "reset": "Reset",
-        "no_results": "Nothing found"
+        "no_results": "Nothing found",
+        "more_icons": "More icons",
+        "searching": "Searching...",
+        "offline": "Offline"
     },
     "hub": {
         "empty_channel": "Empty channel...",

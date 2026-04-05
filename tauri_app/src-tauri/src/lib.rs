@@ -1781,6 +1781,147 @@ async fn save_tag_icon(tag: String, icon: String) -> Result<(), String> {
     Ok(())
 }
 
+fn get_icon_cache_path() -> std::path::PathBuf {
+    get_ini_path().with_file_name("icon_cache.json")
+}
+
+#[tauri::command]
+async fn load_icon_cache() -> HashMap<String, (String, String)> {
+    let path = get_icon_cache_path();
+    if !path.exists() {
+        return HashMap::new();
+    }
+    let content = fs::read_to_string(&path).unwrap_or_default();
+    let parsed: HashMap<String, Vec<String>> = serde_json::from_str(&content).unwrap_or_default();
+    parsed.into_iter()
+        .filter_map(|(k, v)| {
+            if v.len() >= 2 { Some((k, (v[0].clone(), v[1].clone()))) } else { None }
+        })
+        .collect()
+}
+
+#[tauri::command]
+async fn save_icon_to_cache(name: String, bold: String, fill: String) -> Result<(), String> {
+    let path = get_icon_cache_path();
+    let mut cache: serde_json::Map<String, serde_json::Value> = if path.exists() {
+        let content = fs::read_to_string(&path).unwrap_or_default();
+        serde_json::from_str(&content).unwrap_or_default()
+    } else {
+        serde_json::Map::new()
+    };
+    cache.insert(name, serde_json::json!([bold, fill]));
+    let json = serde_json::to_string_pretty(&cache).map_err(|e| e.to_string())?;
+    fs::write(&path, json).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+async fn search_icons(query: String) -> Result<Vec<String>, String> {
+    if query.len() < 2 {
+        return Ok(Vec::new());
+    }
+    let url = format!(
+        "https://api.iconify.design/search?query={}&prefix=ph&limit=999",
+        urlencoding(&query)
+    );
+    let resp = reqwest::get(&url).await.map_err(|e| e.to_string())?;
+    let text = resp.text().await.map_err(|e| e.to_string())?;
+    let parsed: serde_json::Value = serde_json::from_str(&text).map_err(|e| e.to_string())?;
+
+    let icons = parsed["icons"].as_array().ok_or("Invalid API response")?;
+    let suffixes = ["-bold", "-fill", "-thin", "-light", "-duotone"];
+    let mut base_names: Vec<String> = Vec::new();
+    let mut seen = HashSet::new();
+
+    for icon in icons {
+        if let Some(s) = icon.as_str() {
+            // Strip "ph:" prefix
+            let name = s.strip_prefix("ph:").unwrap_or(s);
+            // Strip variant suffixes to get base name
+            let mut base = name.to_string();
+            for suffix in &suffixes {
+                if let Some(stripped) = base.strip_suffix(suffix) {
+                    base = stripped.to_string();
+                    break;
+                }
+            }
+            if !base.is_empty() && seen.insert(base.clone()) {
+                base_names.push(base);
+            }
+        }
+    }
+    Ok(base_names)
+}
+
+fn urlencoding(s: &str) -> String {
+    let mut result = String::new();
+    for b in s.bytes() {
+        match b {
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => {
+                result.push(b as char);
+            }
+            _ => {
+                result.push_str(&format!("%{:02X}", b));
+            }
+        }
+    }
+    result
+}
+
+#[tauri::command]
+async fn fetch_icon_paths(names: Vec<String>) -> Result<HashMap<String, (String, String)>, String> {
+    let mut result: HashMap<String, (String, String)> = HashMap::new();
+
+    // Batch into groups of 40
+    for chunk in names.chunks(40) {
+        let icon_names: Vec<String> = chunk.iter()
+            .flat_map(|n| vec![format!("{}-bold", n), format!("{}-fill", n)])
+            .collect();
+        let url = format!(
+            "https://api.iconify.design/ph.json?icons={}",
+            icon_names.join(",")
+        );
+        let resp = reqwest::get(&url).await.map_err(|e| e.to_string())?;
+        let text = resp.text().await.map_err(|e| e.to_string())?;
+        let parsed: serde_json::Value = serde_json::from_str(&text).map_err(|e| e.to_string())?;
+
+        if let Some(icons) = parsed["icons"].as_object() {
+            for base_name in chunk {
+                let bold_key = format!("{}-bold", base_name);
+                let fill_key = format!("{}-fill", base_name);
+                let bold_body = icons.get(&bold_key)
+                    .and_then(|v| v["body"].as_str())
+                    .unwrap_or("")
+                    .to_string();
+                let fill_body = icons.get(&fill_key)
+                    .and_then(|v| v["body"].as_str())
+                    .unwrap_or("")
+                    .to_string();
+                if !bold_body.is_empty() && !fill_body.is_empty() {
+                    result.insert(base_name.clone(), (bold_body, fill_body));
+                }
+            }
+        }
+    }
+
+    // Auto-save to cache
+    let cache_path = get_icon_cache_path();
+    let mut cache: serde_json::Map<String, serde_json::Value> = if cache_path.exists() {
+        let content = fs::read_to_string(&cache_path).unwrap_or_default();
+        serde_json::from_str(&content).unwrap_or_default()
+    } else {
+        serde_json::Map::new()
+    };
+    for (name, (bold, fill)) in &result {
+        cache.insert(name.clone(), serde_json::json!([bold, fill]));
+    }
+    if let Ok(json) = serde_json::to_string_pretty(&cache) {
+        let _ = fs::write(&cache_path, json);
+    }
+
+    Ok(result)
+}
+
 #[tauri::command]
 async fn delete_tag(tag: String) -> Result<(), String> {
     let ini_path = get_ini_path();
@@ -2216,6 +2357,10 @@ pub fn run() {
             get_tag_order,
             get_tag_icons,
             save_tag_icon,
+            load_icon_cache,
+            save_icon_to_cache,
+            search_icons,
+            fetch_icon_paths,
             open_in_explorer,
             edit_script,
             delete_tag,

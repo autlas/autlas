@@ -76,6 +76,11 @@ interface TreeStore {
   setTagIcons: (icons: Record<string, string>) => void;
   setTagIcon: (tag: string, icon: string) => void;
   removeTagIcon: (tag: string) => void;
+
+  // Icon cache (API-fetched SVG paths)
+  iconCache: Record<string, [string, string]>;
+  setIconCache: (cache: Record<string, [string, string]>) => void;
+  addToIconCache: (name: string, paths: [string, string]) => void;
 }
 
 export const useTreeStore = create<TreeStore>((set) => ({
@@ -187,6 +192,11 @@ export const useTreeStore = create<TreeStore>((set) => ({
     delete next[tag];
     return { tagIcons: next };
   }),
+
+  // Icon cache
+  iconCache: {},
+  setIconCache: (cache) => set({ iconCache: cache }),
+  addToIconCache: (name, paths) => set((s) => ({ iconCache: { ...s.iconCache, [name]: paths } })),
 
   // Removing tags
   removingTags: new Set(),

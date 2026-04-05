@@ -1,8 +1,10 @@
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
+import { invoke } from "@tauri-apps/api/core";
 import { TAG_ICONS } from "../data/tagIcons";
 import { SearchIcon, CloseIcon } from "./ui/Icons";
+import { useTreeStore } from "../store/useTreeStore";
 
 const ALL_ICON_NAMES = Object.keys(TAG_ICONS);
 
@@ -14,20 +16,84 @@ interface TagIconPickerProps {
     onClose: () => void;
 }
 
-export default function TagIconPicker({ tag, currentIcon, onSelect, onReset, onClose }: TagIconPickerProps) {
+export default function TagIconPicker({ tag, currentIcon, onSelect, onClose }: TagIconPickerProps) {
     const { t } = useTranslation();
     const [query, setQuery] = useState("");
     const inputRef = useRef<HTMLInputElement>(null);
+
+    // API search state
+    const [apiResults, setApiResults] = useState<string[]>([]);
+    const [apiPaths, setApiPaths] = useState<Record<string, [string, string]>>({});
+    const [isSearching, setIsSearching] = useState(false);
+    const [isOffline, setIsOffline] = useState(false);
+    const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
     useEffect(() => {
         inputRef.current?.focus();
     }, []);
 
+    // Local filter
     const filtered = useMemo(() => {
         if (!query) return ALL_ICON_NAMES;
         const q = query.toLowerCase();
         return ALL_ICON_NAMES.filter(name => name.includes(q));
     }, [query]);
+
+    // Debounced API search
+    const searchApi = useCallback(async (q: string) => {
+        if (q.length < 2) {
+            setApiResults([]);
+            setApiPaths({});
+            setIsSearching(false);
+            return;
+        }
+        setIsSearching(true);
+        setIsOffline(false);
+        try {
+            const baseNames = await invoke<string[]>("search_icons", { query: q });
+            // Filter out icons already in static set
+            const newNames = baseNames.filter(n => !TAG_ICONS[n]);
+            setApiResults(newNames);
+
+            if (newNames.length > 0) {
+                const paths = await invoke<Record<string, [string, string]>>("fetch_icon_paths", { names: newNames });
+                setApiPaths(paths);
+                // Add to store cache
+                const store = useTreeStore.getState();
+                for (const [name, p] of Object.entries(paths)) {
+                    store.addToIconCache(name, p);
+                }
+            }
+        } catch {
+            setIsOffline(true);
+            setApiResults([]);
+            setApiPaths({});
+        } finally {
+            setIsSearching(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        if (!query || query.length < 2) {
+            setApiResults([]);
+            setApiPaths({});
+            setIsSearching(false);
+            return;
+        }
+        setIsSearching(true);
+        debounceRef.current = setTimeout(() => searchApi(query), 300);
+        return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+    }, [query, searchApi]);
+
+    const handleSelectApiIcon = (name: string) => {
+        const paths = apiPaths[name];
+        if (paths) {
+            invoke("save_icon_to_cache", { name, bold: paths[0], fill: paths[1] }).catch(() => {});
+        }
+        onSelect(tag, name);
+        onClose();
+    };
 
     return createPortal(
         <div
@@ -70,6 +136,7 @@ export default function TagIconPicker({ tag, currentIcon, onSelect, onReset, onC
 
                 {/* Grid */}
                 <div className="pl-6 pr-[14px] py-6 overflow-y-auto flex-1 min-h-0 custom-scrollbar">
+                    {/* Static icons */}
                     <div className="grid grid-cols-[repeat(auto-fill,42px)] gap-1.5 justify-center">
                         {filtered.map(name => {
                             const isSelected = name === currentIcon;
@@ -78,7 +145,7 @@ export default function TagIconPicker({ tag, currentIcon, onSelect, onReset, onC
                                     key={name}
                                     title={name}
                                     onClick={() => { onSelect(tag, name); onClose(); }}
-                                    className={`w-[42px] h-[42px] rounded-xl flex items-center justify-center cursor-pointer transition-all hover:scale-166 hover:z-10 relative group/icon
+                                    className={`w-[42px] h-[42px] rounded-xl flex items-center justify-center cursor-pointer transition-all hover:scale-150 hover:z-10 relative group/icon
                                         ${isSelected
                                             ? "bg-indigo-500/20 border-2 border-indigo-500 text-indigo-400"
                                             : "bg-white/[0.03] border border-transparent text-white/60 hover:bg-white/10 hover:text-white hover:border-white/10"
@@ -96,7 +163,66 @@ export default function TagIconPicker({ tag, currentIcon, onSelect, onReset, onC
                             );
                         })}
                     </div>
-                    {filtered.length === 0 && (
+
+                    {/* API results */}
+                    {query.length >= 2 && (
+                        <>
+                            {/* Divider */}
+                            {(apiResults.length > 0 || isSearching) && (
+                                <div className="flex items-center gap-3 my-5">
+                                    <div className="flex-1 h-px bg-white/5" />
+                                    <span className="text-[11px] font-bold text-white/20 uppercase tracking-widest">
+                                        {t("icon_picker.more_icons", "More icons")}
+                                    </span>
+                                    <div className="flex-1 h-px bg-white/5" />
+                                </div>
+                            )}
+
+                            {isSearching && apiResults.length === 0 && (
+                                <div className="flex items-center justify-center py-6 gap-2">
+                                    <div className="w-4 h-4 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" />
+                                    <span className="text-xs text-white/30">{t("icon_picker.searching", "Searching...")}</span>
+                                </div>
+                            )}
+
+                            {apiResults.length > 0 && (
+                                <div className="grid grid-cols-[repeat(auto-fill,42px)] gap-1.5 justify-center">
+                                    {apiResults.map(name => {
+                                        const paths = apiPaths[name];
+                                        if (!paths) return null;
+                                        const isSelected = name === currentIcon;
+                                        return (
+                                            <button
+                                                key={name}
+                                                title={name}
+                                                onClick={() => handleSelectApiIcon(name)}
+                                                className={`w-[42px] h-[42px] rounded-xl flex items-center justify-center cursor-pointer transition-all hover:scale-150 hover:z-10 relative group/icon
+                                                    ${isSelected
+                                                        ? "bg-indigo-500/20 border-2 border-indigo-500 text-indigo-400"
+                                                        : "bg-white/[0.03] border border-transparent text-white/60 hover:bg-white/10 hover:text-white hover:border-white/10"
+                                                    }`}
+                                            >
+                                                <svg
+                                                    className="transition-transform group-hover/icon:scale-[1.3]"
+                                                    width={22}
+                                                    height={22}
+                                                    viewBox="0 0 256 256"
+                                                    fill="currentColor"
+                                                    dangerouslySetInnerHTML={{ __html: paths[0] }}
+                                                />
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            )}
+
+                            {isOffline && (
+                                <p className="text-center text-white/20 text-xs py-4">{t("icon_picker.offline", "Offline")}</p>
+                            )}
+                        </>
+                    )}
+
+                    {filtered.length === 0 && apiResults.length === 0 && !isSearching && (
                         <p className="text-center text-white/30 text-sm py-8">{t("icon_picker.no_results", "Nothing found")}</p>
                     )}
                 </div>

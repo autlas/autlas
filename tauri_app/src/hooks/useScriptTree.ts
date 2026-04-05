@@ -126,6 +126,9 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
 
     useEffect(() => {
         invoke<Record<string, string>>("get_tag_icons").then(storeSetTagIcons).catch(() => {});
+        invoke<Record<string, [string, string]>>("load_icon_cache").then(cache => {
+            useTreeStore.getState().setIconCache(cache);
+        }).catch(() => {});
     }, [storeSetTagIcons]);
 
     const setTagIcon = useCallback(async (tag: string, iconName: string) => {
