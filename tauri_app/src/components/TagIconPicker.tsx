@@ -31,15 +31,16 @@ export default function TagIconPicker({ tag, currentIcon, onSelect, onReset, onC
 
     return createPortal(
         <div
-            className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/60 backdrop-blur-md"
+            className="fixed inset-0 z-[99999] flex justify-center bg-black/60 backdrop-blur-md"
             onClick={onClose}
         >
             <div
-                className="bg-[#0a0a0c] border border-white/10 rounded-[32px] shadow-2xl w-[520px] max-h-[80vh] flex flex-col relative overflow-hidden"
+                className="bg-[#0a0a0c] border border-white/10 rounded-[32px] shadow-2xl w-[50vw] min-w-[520px] max-w-[1024px] h-[70vh] flex flex-col relative overflow-hidden"
+                style={{ marginTop: "15vh" }}
                 onClick={e => e.stopPropagation()}
             >
                 {/* Header */}
-                <div className="px-6 pt-6 pb-4 flex-shrink-0">
+                <div className="px-6 pt-6 flex-shrink-0">
                     <div className="flex items-center justify-between mb-4">
                         <h2 className="text-lg font-black text-white">
                             {t("icon_picker.title", { tag })}
@@ -65,19 +66,10 @@ export default function TagIconPicker({ tag, currentIcon, onSelect, onReset, onC
                         />
                     </div>
 
-                    {/* Reset button */}
-                    {currentIcon && (
-                        <button
-                            onClick={() => { onReset(tag); onClose(); }}
-                            className="mt-3 px-4 py-2 text-xs font-bold text-white/40 hover:text-white/70 bg-white/5 hover:bg-white/10 rounded-xl transition-all cursor-pointer border border-white/5"
-                        >
-                            {t("icon_picker.reset", "Reset")}
-                        </button>
-                    )}
                 </div>
 
                 {/* Grid */}
-                <div className="px-6 pb-6 overflow-y-auto flex-1 min-h-0">
+                <div className="pl-6 pr-[14px] py-6 overflow-y-auto flex-1 min-h-0 custom-scrollbar">
                     <div className="grid grid-cols-[repeat(auto-fill,42px)] gap-1.5 justify-center">
                         {filtered.map(name => {
                             const isSelected = name === currentIcon;
@@ -86,13 +78,14 @@ export default function TagIconPicker({ tag, currentIcon, onSelect, onReset, onC
                                     key={name}
                                     title={name}
                                     onClick={() => { onSelect(tag, name); onClose(); }}
-                                    className={`w-[42px] h-[42px] rounded-xl flex items-center justify-center cursor-pointer transition-all
+                                    className={`w-[42px] h-[42px] rounded-xl flex items-center justify-center cursor-pointer transition-all hover:scale-166 hover:z-10 relative group/icon
                                         ${isSelected
                                             ? "bg-indigo-500/20 border-2 border-indigo-500 text-indigo-400"
                                             : "bg-white/[0.03] border border-transparent text-white/60 hover:bg-white/10 hover:text-white hover:border-white/10"
                                         }`}
                                 >
                                     <svg
+                                        className="transition-transform group-hover/icon:scale-[1.3]"
                                         width={22}
                                         height={22}
                                         viewBox="0 0 256 256"
