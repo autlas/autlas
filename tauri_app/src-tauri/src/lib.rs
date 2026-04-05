@@ -9,6 +9,10 @@ use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 use tauri::{Emitter, Manager, Wry};
 use walkdir::WalkDir;
 
+mod db;
+mod migrate;
+mod reconcile;
+
 #[cfg(target_os = "windows")]
 mod native_popup {
     use windows_sys::Win32::Foundation::*;
@@ -547,8 +551,7 @@ mod native_popup {
     }
 }
 
-// ── Managed state: single source of truth for tags, prevents race conditions ──
-pub struct TagsState(pub Mutex<HashMap<String, Vec<String>>>);
+// ── Managed state ──
 struct TraySettingsState(Mutex<TraySettings>);
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -692,6 +695,7 @@ fn start_process_watcher(app: tauri::AppHandle) {
 
 #[derive(Serialize, Deserialize, Clone)]
 struct Script {
+    id: String,
     path: String,
     filename: String,
     parent: String,
@@ -702,18 +706,10 @@ struct Script {
     size: u64,
 }
 
-struct ManagerMetadata {
-    tags: HashMap<String, Vec<String>>, // Path -> Tags
-    hidden_folders: Vec<String>,
-    scan_paths: Vec<String>,
-}
-
 fn get_ini_path() -> std::path::PathBuf {
     use directories::ProjectDirs;
-    
-    // Attempt to get persistent AppData location
     if let Some(proj_dirs) = ProjectDirs::from("com", "heavym", "ahkmanager") {
-        let config_dir = proj_dirs.config_dir(); // C:\Users\<Usr>\AppData\Roaming\heavym\ahkmanager\config on Win
+        let config_dir = proj_dirs.config_dir();
         let _ = std::fs::create_dir_all(config_dir);
         config_dir.join("manager_data.ini")
     } else {
@@ -721,137 +717,16 @@ fn get_ini_path() -> std::path::PathBuf {
     }
 }
 
-fn load_metadata() -> ManagerMetadata {
-    let mut metadata = ManagerMetadata {
-        tags: HashMap::new(),
-        hidden_folders: Vec::new(),
-        scan_paths: Vec::new(),
-    };
-
-    let ini_path = get_ini_path();
-    let bytes = match fs::read(&ini_path) {
-        Ok(b) => b,
-        Err(_) => return metadata,
-    };
-
-    let content = if bytes.len() >= 2 && bytes[0] == 0xFF && bytes[1] == 0xFE {
-        let utf16: Vec<u16> = bytes[2..].chunks_exact(2).map(|a| u16::from_le_bytes([a[0], a[1]])).collect();
-        String::from_utf16_lossy(&utf16)
-    } else {
-        String::from_utf8_lossy(&bytes).to_string()
-    };
-
-    let mut current_section = String::new();
-    for line in content.lines() {
-        let line = line.trim();
-        if line.is_empty() || line.starts_with(';') { continue; }
-        
-        if line.starts_with('[') && line.ends_with(']') {
-            current_section = line[1..line.len()-1].to_lowercase();
-            continue;
-        }
-
-        if let Some(pos) = line.find('=') {
-            let key = line[..pos].trim();
-            let val = line[pos+1..].trim();
-            
-            if current_section == "scripts" {
-                let tags: Vec<String> = val.split(',')
-                    .map(|s| s.trim().to_string())
-                    .filter(|s| !s.is_empty())
-                    .collect();
-                metadata.tags.insert(key.to_lowercase(), tags);
-            } else if current_section == "hiddenfolders" {
-                if !key.is_empty() {
-                    metadata.hidden_folders.push(key.to_lowercase());
-                }
-            } else if current_section == "scanpaths" {
-                if !key.is_empty() {
-                    metadata.scan_paths.push(key.to_string());
-                }
-            }
-        }
-    }
-    metadata
-}
-
 #[tauri::command]
 async fn save_script_tags(
     app: tauri::AppHandle,
-    state: tauri::State<'_, TagsState>,
-    path: String,
+    state: tauri::State<'_, db::DbState>,
+    id: String,
     tags: Vec<String>,
 ) -> Result<(), String> {
-    save_tags_and_emit(&app, &state, path, tags)
-}
-
-fn save_tags_and_emit(
-    app: &tauri::AppHandle,
-    state: &tauri::State<'_, TagsState>,
-    path: String,
-    tags: Vec<String>,
-) -> Result<(), String> {
-    // Lock mutex: prevents concurrent writes from racing on the INI file
-    let mut map = state.0.lock().map_err(|e| e.to_string())?;
-    map.insert(path.to_lowercase(), tags.clone());
-    drop(map); // release lock before doing I/O
-
-    save_script_tags_internal(path.clone(), tags.clone())?;
-
-    // Push event to frontend — instant update, no polling needed
-    let _ = app.emit("script-tags-changed", serde_json::json!({ "path": path, "tags": tags }));
-    Ok(())
-}
-
-fn save_script_tags_internal(path: String, tags: Vec<String>) -> Result<(), String> {
-    let ini_path = get_ini_path();
-    let bytes = fs::read(&ini_path).unwrap_or_default();
-    let content = if bytes.len() >= 2 && bytes[0] == 0xFF && bytes[1] == 0xFE {
-        let utf16: Vec<u16> = bytes[2..].chunks_exact(2).map(|a| u16::from_le_bytes([a[0], a[1]])).collect();
-        String::from_utf16_lossy(&utf16)
-    } else {
-        String::from_utf8_lossy(&bytes).to_string()
-    };
-
-    let mut lines: Vec<String> = content.lines().map(|s| s.to_string()).collect();
-    let mut in_scripts = false;
-    let mut found_key = false;
-    let path_lower = path.to_lowercase();
-    let new_entry = format!("{}={}", path, tags.join(","));
-
-    for line in lines.iter_mut() {
-        let trimmed = line.trim();
-        if trimmed.to_lowercase() == "[scripts]" {
-            in_scripts = true;
-            continue;
-        }
-        if trimmed.starts_with('[') {
-            in_scripts = false;
-            continue;
-        }
-        
-        if in_scripts {
-            if let Some(pos) = trimmed.find('=') {
-                if trimmed[..pos].trim().to_lowercase() == path_lower {
-                    *line = new_entry.clone();
-                    found_key = true;
-                    break;
-                }
-            }
-        }
-    }
-
-    if !found_key {
-        let scripts_idx = lines.iter().position(|l| l.trim().to_lowercase() == "[scripts]");
-        if let Some(idx) = scripts_idx {
-            lines.insert(idx + 1, new_entry);
-        } else {
-            lines.push("[Scripts]".to_string());
-            lines.push(new_entry);
-        }
-    }
-
-    fs::write(&ini_path, lines.join("\r\n")).map_err(|e| e.to_string())?;
+    let conn = state.0.lock().map_err(|e| e.to_string())?;
+    db::set_tags_for_script(&conn, &id, &tags).map_err(|e| e.to_string())?;
+    let _ = app.emit("script-tags-changed", serde_json::json!({ "id": id, "tags": tags }));
     Ok(())
 }
 
@@ -1132,12 +1007,15 @@ fn scan_with_everything(scan_dirs: &[std::path::PathBuf]) -> Option<Vec<String>>
 }
 
 #[tauri::command]
-async fn get_scripts(app_handle: tauri::AppHandle, force_scan: bool) -> Vec<Script> {
+async fn get_scripts(
+    app_handle: tauri::AppHandle,
+    state: tauri::State<'_, db::DbState>,
+    force_scan: bool,
+) -> Result<Vec<Script>, String> {
     use tauri::Emitter;
     let mut sys = System::new_all();
     sys.refresh_all();
-    
-    let metadata = load_metadata();
+
     let mut running_cmds = Vec::new();
     for (_pid, process) in sys.processes() {
         let name = process.name().to_string_lossy().to_lowercase();
@@ -1147,7 +1025,10 @@ async fn get_scripts(app_handle: tauri::AppHandle, force_scan: bool) -> Vec<Scri
         }
     }
 
-    let mut scripts = Vec::new();
+    let conn = state.0.lock().unwrap();
+    let scan_paths_list = db::get_scan_paths(&conn);
+    let hidden_folders = db::get_hidden_folders(&conn);
+
     let mut script_paths = Vec::new();
 
     // Strategy: If not forcing scan, try to use the cache
@@ -1165,7 +1046,6 @@ async fn get_scripts(app_handle: tauri::AppHandle, force_scan: bool) -> Vec<Scri
         false
     };
 
-    // Only scan disk if we have no cache at all (not just empty cache)
     if !cache_hit {
         if !force_scan {
             println!("[Rust] No cached data available. Starting initial disk scan...");
@@ -1173,14 +1053,13 @@ async fn get_scripts(app_handle: tauri::AppHandle, force_scan: bool) -> Vec<Scri
         let scan_start = std::time::Instant::now();
         let mut scan_dirs = Vec::new();
 
-        for p in &metadata.scan_paths {
+        for p in &scan_paths_list {
             let pb = std::path::PathBuf::from(p);
             if pb.exists() && pb.is_dir() {
                 scan_dirs.push(pb);
             }
         }
 
-        // Try Everything first, fallback to WalkDir
         let everything_result = scan_with_everything(&scan_dirs);
         if let Some(paths) = everything_result {
             script_paths = paths;
@@ -1203,21 +1082,39 @@ async fn get_scripts(app_handle: tauri::AppHandle, force_scan: bool) -> Vec<Scri
             let scan_elapsed = scan_start.elapsed();
             println!("[Rust] WalkDir scan completed: {} scripts found in {:.1?}", script_paths.len(), scan_elapsed);
         }
-        // Save the result to cache for next time
         save_cache(&script_paths);
     }
 
-    // Now enrich paths with metadata (this part is ALWAYS fresh)
-    for path_str in script_paths {
-        let path_buf = std::path::PathBuf::from(&path_str);
+    // Phase 0: Deduplicate by lowercase path
+    let mut seen = HashSet::new();
+    script_paths.retain(|p| seen.insert(p.to_lowercase()));
+
+    // Normalize to lowercase for DB lookups
+    let disk_paths: HashSet<String> = script_paths.iter()
+        .map(|p| p.to_lowercase())
+        .filter(|p| std::path::Path::new(p).exists())
+        .collect();
+
+    // Run reconciliation
+    let _pending = reconcile::reconcile(&conn, &disk_paths);
+    // TODO: emit pending matches to frontend for user confirmation
+
+    // Load all tags from DB
+    let tags_map = db::get_all_tags_map(&conn);
+
+    // Build script list
+    let mut scripts = Vec::new();
+    for path_str in &script_paths {
+        let path_buf = std::path::PathBuf::from(path_str);
         if !path_buf.exists() { continue; }
 
         let path_lower = path_str.to_lowercase();
         let filename = path_buf.file_name().map_or("".to_string(), |f| f.to_string_lossy().to_string());
         let parent = path_buf.parent().map_or("".to_string(), |p| p.file_name().map_or("".to_string(), |f| f.to_string_lossy().to_string()));
-        
-        let tags = metadata.tags.get(&path_lower).cloned().unwrap_or_default();
-        let is_hidden = metadata.hidden_folders.iter().any(|h| path_lower.contains(&h.to_lowercase()));
+
+        let script_id = db::get_script_id_by_path(&conn, &path_lower).unwrap_or_default();
+        let tags = tags_map.get(&path_lower).cloned().unwrap_or_default();
+        let is_hidden = hidden_folders.iter().any(|h| path_lower.contains(&h.to_lowercase()));
         let is_running = running_cmds.iter().any(|cmd| cmd.contains(&path_lower));
 
         let has_ui = if is_running {
@@ -1230,7 +1127,8 @@ async fn get_scripts(app_handle: tauri::AppHandle, force_scan: bool) -> Vec<Scri
         let size = fs::metadata(&path_buf).map(|m| m.len()).unwrap_or(0);
 
         scripts.push(Script {
-            path: path_str,
+            id: script_id,
+            path: path_str.clone(),
             filename,
             parent,
             tags,
@@ -1243,7 +1141,7 @@ async fn get_scripts(app_handle: tauri::AppHandle, force_scan: bool) -> Vec<Scri
 
     scripts.sort_by(|a, b| a.path.cmp(&b.path));
     scripts.dedup_by(|a, b| a.path == b.path);
-    scripts
+    Ok(scripts)
 }
 
 #[tauri::command]
@@ -1443,341 +1341,82 @@ fn get_short_path(path: &str) -> Option<String> {
 #[tauri::command]
 async fn add_script_tag(
     app: tauri::AppHandle,
-    state: tauri::State<'_, TagsState>,
-    path: String,
+    state: tauri::State<'_, db::DbState>,
+    id: String,
     tag: String,
 ) -> Result<(), String> {
-    // Read current tags from managed state (no disk read needed)
-    let current_tags = {
-        let map = state.0.lock().map_err(|e| e.to_string())?;
-        map.get(&path.to_lowercase()).cloned().unwrap_or_default()
-    };
-
-    if current_tags.iter().any(|t| t.to_lowercase() == tag.to_lowercase()) {
-        return Ok(()); // already has this tag
-    }
-
-    let mut new_tags = current_tags;
-    new_tags.push(tag);
-    save_tags_and_emit(&app, &state, path, new_tags)
+    let conn = state.0.lock().map_err(|e| e.to_string())?;
+    db::add_tag_to_script(&conn, &id, &tag).map_err(|e| e.to_string())?;
+    let tags = db::get_tags_for_script(&conn, &id);
+    let _ = app.emit("script-tags-changed", serde_json::json!({ "id": id, "tags": tags }));
+    Ok(())
 }
 
 #[tauri::command]
 async fn remove_script_tag(
     app: tauri::AppHandle,
-    state: tauri::State<'_, TagsState>,
-    path: String,
+    state: tauri::State<'_, db::DbState>,
+    id: String,
     tag: String,
 ) -> Result<(), String> {
-    let current_tags = {
-        let map = state.0.lock().map_err(|e| e.to_string())?;
-        map.get(&path.to_lowercase()).cloned().unwrap_or_default()
-    };
-
-    let tag_lower = tag.to_lowercase();
-    let new_tags: Vec<String> = current_tags.into_iter()
-        .filter(|t| t.to_lowercase() != tag_lower)
-        .collect();
-
-    save_tags_and_emit(&app, &state, path, new_tags)
-}
-
-#[tauri::command]
-async fn rename_tag(old_tag: String, new_tag: String) -> Result<(), String> {
-    let _metadata = load_metadata();
-    let ini_path = get_ini_path();
-    let bytes = fs::read(&ini_path).unwrap_or_default();
-    let content = if bytes.len() >= 2 && bytes[0] == 0xFF && bytes[1] == 0xFE {
-        let utf16: Vec<u16> = bytes[2..].chunks_exact(2).map(|a| u16::from_le_bytes([a[0], a[1]])).collect();
-        String::from_utf16_lossy(&utf16)
-    } else {
-        String::from_utf8_lossy(&bytes).to_string()
-    };
-
-    let mut lines: Vec<String> = content.lines().map(|s| s.to_string()).collect();
-    let mut in_scripts = false;
-    let mut in_tag_icons = false;
-    let old_lower = old_tag.to_lowercase();
-
-    for line in lines.iter_mut() {
-        let trimmed = line.trim();
-        let trimmed_lower = trimmed.to_lowercase();
-
-        if trimmed_lower == "[scripts]" {
-            in_scripts = true;
-            in_tag_icons = false;
-            continue;
-        }
-        if trimmed_lower == "[tagicons]" {
-            in_tag_icons = true;
-            in_scripts = false;
-            continue;
-        }
-        if trimmed.starts_with('[') {
-            in_scripts = false;
-            in_tag_icons = false;
-            continue;
-        }
-
-        if in_scripts {
-            if let Some(pos) = line.find('=') {
-                let key = &line[..pos];
-                let val = &line[pos+1..];
-                let mut tags: Vec<String> = val.split(',')
-                    .map(|s| s.trim().to_string())
-                    .collect();
-
-                let mut changed = false;
-                for tag in tags.iter_mut() {
-                    if tag.to_lowercase() == old_lower {
-                        *tag = new_tag.clone();
-                        changed = true;
-                    }
-                }
-
-                if changed {
-                    tags.dedup_by(|a, b| a.to_lowercase() == b.to_lowercase());
-                    *line = format!("{}={}", key, tags.join(","));
-                }
-            }
-        } else if in_tag_icons {
-            if let Some(pos) = trimmed.find('=') {
-                if trimmed[..pos].trim().to_lowercase() == old_lower {
-                    let icon_val = &line[line.find('=').unwrap()+1..];
-                    *line = format!("{}={}", new_tag, icon_val.trim());
-                }
-            }
-        }
-    }
-
-    fs::write(&ini_path, lines.join("\r\n")).map_err(|e| e.to_string())?;
+    let conn = state.0.lock().map_err(|e| e.to_string())?;
+    db::remove_tag_from_script(&conn, &id, &tag).map_err(|e| e.to_string())?;
+    let tags = db::get_tags_for_script(&conn, &id);
+    let _ = app.emit("script-tags-changed", serde_json::json!({ "id": id, "tags": tags }));
     Ok(())
 }
 
 #[tauri::command]
-async fn save_tag_order(order: Vec<String>) -> Result<(), String> {
-    let ini_path = get_ini_path();
-    let bytes = fs::read(&ini_path).unwrap_or_default();
-    let content = String::from_utf8_lossy(&bytes).to_string();
-    let mut lines: Vec<String> = content.lines().map(|s| s.to_string()).collect();
-    
-    let section_header = "[General]";
-    let key_prefix = "tag_order=";
-    let new_entry = format!("{}{}", key_prefix, order.join(","));
-    
-    let mut section_found = false;
-    let mut key_found = false;
-    
-    for i in 0..lines.len() {
-        let trimmed = lines[i].trim();
-        if trimmed.to_lowercase() == section_header.to_lowercase() {
-            section_found = true;
-            continue;
-        }
-        if section_found && trimmed.starts_with('[') {
-            // End of section, insert key before this
-            lines.insert(i, new_entry.clone());
-            key_found = true;
-            break;
-        }
-        if section_found && trimmed.to_lowercase().starts_with(key_prefix) {
-            lines[i] = new_entry.clone();
-            key_found = true;
-            break;
-        }
-    }
-    
-    if !section_found {
-        lines.push(section_header.to_string());
-        lines.push(new_entry);
-    } else if !key_found {
-        // If section was found but key wasn't, find section index again
-        if let Some(idx) = lines.iter().position(|l| l.trim().to_lowercase() == section_header.to_lowercase()) {
-            lines.insert(idx + 1, new_entry);
-        }
-    }
-    
-    fs::write(&ini_path, lines.join("\r\n")).map_err(|e| e.to_string())?;
+async fn rename_tag(
+    state: tauri::State<'_, db::DbState>,
+    old_tag: String,
+    new_tag: String,
+) -> Result<(), String> {
+    let conn = state.0.lock().map_err(|e| e.to_string())?;
+    db::rename_tag_all(&conn, &old_tag, &new_tag).map_err(|e| e.to_string())?;
     Ok(())
 }
 
 #[tauri::command]
-async fn get_tag_order() -> Vec<String> {
-    let ini_path = get_ini_path();
-    let content = fs::read_to_string(&ini_path).unwrap_or_default();
-    let mut in_general = false;
-    for line in content.lines() {
-        let trimmed = line.trim();
-        if trimmed.to_lowercase() == "[general]" {
-            in_general = true;
-            continue;
-        }
-        if trimmed.starts_with('[') {
-            in_general = false;
-            continue;
-        }
-        if in_general && trimmed.to_lowercase().starts_with("tag_order=") {
-            if let Some(pos) = line.find('=') {
-                return line[pos+1..].split(',')
-                    .map(|s| s.trim().to_string())
-                    .filter(|s| !s.is_empty())
-                    .collect();
-            }
-        }
-    }
-    Vec::new()
-}
-
-#[tauri::command]
-async fn toggle_hide_folder(path: String) -> Result<(), String> {
-    let ini_path = get_ini_path();
-    let bytes = fs::read(&ini_path).unwrap_or_default();
-    let content = if bytes.len() >= 2 && bytes[0] == 0xFF && bytes[1] == 0xFE {
-        let utf16: Vec<u16> = bytes[2..].chunks_exact(2).map(|a| u16::from_le_bytes([a[0], a[1]])).collect();
-        String::from_utf16_lossy(&utf16)
-    } else {
-        String::from_utf8_lossy(&bytes).to_string()
-    };
-
-    let lines: Vec<String> = content.lines().map(|s| s.to_string()).collect();
-    let mut in_hidden = false;
-    let mut found = false;
-    let path_lower = path.to_lowercase();
-
-    // Try to find if it exists and remove it
-    let mut new_lines = Vec::new();
-    for line in lines.iter() {
-        let trimmed = line.trim();
-        let trimmed_lower = trimmed.to_lowercase();
-        
-        if trimmed_lower == "[hiddenfolders]" {
-            in_hidden = true;
-            new_lines.push(line.clone());
-            continue;
-        }
-        if trimmed.starts_with('[') {
-            in_hidden = false;
-            new_lines.push(line.clone());
-            continue;
-        }
-
-        if in_hidden {
-            if let Some(pos) = trimmed.find('=') {
-                if trimmed[..pos].trim().to_lowercase() == path_lower {
-                    found = true;
-                    continue; // Remove it
-                }
-            } else if trimmed_lower == path_lower {
-                found = true;
-                continue; // Remove it (key-only style)
-            }
-        }
-        new_lines.push(line.clone());
-    }
-
-    if !found {
-        // Add it
-        let mut final_lines = Vec::new();
-        let mut added = false;
-        for line in new_lines.iter() {
-            final_lines.push(line.clone());
-            if line.trim().to_lowercase() == "[hiddenfolders]" {
-                final_lines.push(format!("{}=hidden", path));
-                added = true;
-            }
-        }
-        if !added {
-            final_lines.push("[hiddenfolders]".to_string());
-            final_lines.push(format!("{}=hidden", path));
-        }
-        fs::write(&ini_path, final_lines.join("\r\n")).map_err(|e| e.to_string())?;
-    } else {
-        fs::write(&ini_path, new_lines.join("\r\n")).map_err(|e| e.to_string())?;
-    }
-
+async fn save_tag_order(
+    state: tauri::State<'_, db::DbState>,
+    order: Vec<String>,
+) -> Result<(), String> {
+    let conn = state.0.lock().map_err(|e| e.to_string())?;
+    db::save_tag_order(&conn, &order).map_err(|e| e.to_string())?;
     Ok(())
 }
 
 #[tauri::command]
-async fn get_tag_icons() -> std::collections::HashMap<String, String> {
-    let ini_path = get_ini_path();
-    let content = fs::read_to_string(&ini_path).unwrap_or_default();
-    let mut result = std::collections::HashMap::new();
-    let mut in_section = false;
-    for line in content.lines() {
-        let trimmed = line.trim();
-        if trimmed.to_lowercase() == "[tagicons]" {
-            in_section = true;
-            continue;
-        }
-        if trimmed.starts_with('[') {
-            in_section = false;
-            continue;
-        }
-        if in_section {
-            if let Some(pos) = line.find('=') {
-                let tag = line[..pos].trim().to_string();
-                let icon = line[pos+1..].trim().to_string();
-                if !tag.is_empty() && !icon.is_empty() {
-                    result.insert(tag, icon);
-                }
-            }
-        }
-    }
-    result
+async fn get_tag_order(state: tauri::State<'_, db::DbState>) -> Result<Vec<String>, String> {
+    let conn = state.0.lock().map_err(|e| e.to_string())?;
+    Ok(db::get_tag_order(&conn))
 }
 
 #[tauri::command]
-async fn save_tag_icon(tag: String, icon: String) -> Result<(), String> {
-    let ini_path = get_ini_path();
-    let bytes = fs::read(&ini_path).unwrap_or_default();
-    let content = String::from_utf8_lossy(&bytes).to_string();
-    let mut lines: Vec<String> = content.lines().map(|s| s.to_string()).collect();
+async fn toggle_hide_folder(
+    state: tauri::State<'_, db::DbState>,
+    path: String,
+) -> Result<(), String> {
+    let conn = state.0.lock().map_err(|e| e.to_string())?;
+    db::toggle_hidden_folder(&conn, &path).map_err(|e| e.to_string())?;
+    Ok(())
+}
 
-    let section_header = "[TagIcons]";
-    let key_lower = tag.to_lowercase();
-    let mut section_start: Option<usize> = None;
-    let mut key_line: Option<usize> = None;
-    let mut section_end: Option<usize> = None;
+#[tauri::command]
+async fn get_tag_icons(state: tauri::State<'_, db::DbState>) -> Result<HashMap<String, String>, String> {
+    let conn = state.0.lock().map_err(|e| e.to_string())?;
+    Ok(db::get_tag_icons(&conn))
+}
 
-    for i in 0..lines.len() {
-        let trimmed = lines[i].trim();
-        if trimmed.to_lowercase() == section_header.to_lowercase() {
-            section_start = Some(i);
-            continue;
-        }
-        if section_start.is_some() && section_end.is_none() {
-            if trimmed.starts_with('[') {
-                section_end = Some(i);
-                break;
-            }
-            if let Some(pos) = trimmed.find('=') {
-                if trimmed[..pos].trim().to_lowercase() == key_lower {
-                    key_line = Some(i);
-                }
-            }
-        }
-    }
-
-    if icon.is_empty() {
-        // Remove the entry
-        if let Some(idx) = key_line {
-            lines.remove(idx);
-        }
-    } else {
-        let entry = format!("{}={}", tag, icon);
-        if let Some(idx) = key_line {
-            lines[idx] = entry;
-        } else if let Some(_start) = section_start {
-            let insert_at = section_end.unwrap_or(lines.len());
-            lines.insert(insert_at, entry);
-        } else {
-            lines.push(section_header.to_string());
-            lines.push(entry);
-        }
-    }
-
-    fs::write(&ini_path, lines.join("\r\n")).map_err(|e| e.to_string())?;
+#[tauri::command]
+async fn save_tag_icon(
+    state: tauri::State<'_, db::DbState>,
+    tag: String,
+    icon: String,
+) -> Result<(), String> {
+    let conn = state.0.lock().map_err(|e| e.to_string())?;
+    db::save_tag_icon(&conn, &tag, &icon).map_err(|e| e.to_string())?;
     Ok(())
 }
 
@@ -1943,87 +1582,12 @@ async fn fetch_icon_paths(names: Vec<String>, prefix: String) -> Result<HashMap<
 }
 
 #[tauri::command]
-async fn delete_tag(tag: String) -> Result<(), String> {
-    let ini_path = get_ini_path();
-    let bytes = fs::read(&ini_path).unwrap_or_default();
-    let content = if bytes.len() >= 2 && bytes[0] == 0xFF && bytes[1] == 0xFE {
-        let utf16: Vec<u16> = bytes[2..].chunks_exact(2).map(|a| u16::from_le_bytes([a[0], a[1]])).collect();
-        String::from_utf16_lossy(&utf16)
-    } else {
-        String::from_utf8_lossy(&bytes).to_string()
-    };
-
-    let mut lines: Vec<String> = content.lines().map(|s| s.to_string()).collect();
-    let mut in_scripts = false;
-    let mut in_general = false;
-    let mut in_tag_icons = false;
-    let target_lower = tag.to_lowercase();
-    let mut lines_to_remove: Vec<usize> = Vec::new();
-
-    for i in 0..lines.len() {
-        let trimmed = lines[i].trim();
-        let trimmed_lower = trimmed.to_lowercase();
-
-        if trimmed_lower == "[scripts]" {
-            in_scripts = true;
-            in_general = false;
-            in_tag_icons = false;
-            continue;
-        }
-        if trimmed_lower == "[general]" {
-            in_general = true;
-            in_scripts = false;
-            in_tag_icons = false;
-            continue;
-        }
-        if trimmed_lower == "[tagicons]" {
-            in_tag_icons = true;
-            in_scripts = false;
-            in_general = false;
-            continue;
-        }
-        if trimmed.starts_with('[') {
-            in_scripts = false;
-            in_general = false;
-            in_tag_icons = false;
-            continue;
-        }
-
-        if in_scripts {
-             if let Some(pos) = lines[i].find('=') {
-                let key = lines[i][..pos].to_string();
-                let val = &lines[i][pos+1..];
-                let tags: Vec<String> = val.split(',')
-                    .map(|s| s.trim().to_string())
-                    .filter(|s| !s.is_empty() && s.to_lowercase() != target_lower)
-                    .collect();
-                lines[i] = format!("{}={}", key, tags.join(","));
-             }
-        } else if in_general && trimmed_lower.starts_with("tag_order=") {
-            if let Some(pos) = lines[i].find('=') {
-                let prefix = lines[i][..pos+1].to_string();
-                let val = &lines[i][pos+1..];
-                let tags: Vec<String> = val.split(',')
-                    .map(|s| s.trim().to_string())
-                    .filter(|s| !s.is_empty() && s.to_lowercase() != target_lower)
-                    .collect();
-                lines[i] = format!("{}{}", prefix, tags.join(","));
-            }
-        } else if in_tag_icons {
-            if let Some(pos) = trimmed.find('=') {
-                if trimmed[..pos].trim().to_lowercase() == target_lower {
-                    lines_to_remove.push(i);
-                }
-            }
-        }
-    }
-
-    // Remove tag icon lines in reverse order
-    for i in lines_to_remove.into_iter().rev() {
-        lines.remove(i);
-    }
-
-    fs::write(&ini_path, lines.join("\r\n")).map_err(|e| e.to_string())?;
+async fn delete_tag(
+    state: tauri::State<'_, db::DbState>,
+    tag: String,
+) -> Result<(), String> {
+    let conn = state.0.lock().map_err(|e| e.to_string())?;
+    db::delete_tag_all(&conn, &tag).map_err(|e| e.to_string())?;
     Ok(())
 }
 
@@ -2064,123 +1628,33 @@ async fn get_script_status(path: String) -> ScriptStatus {
 }
 
 #[tauri::command]
-async fn get_scan_paths() -> Vec<String> {
-    load_metadata().scan_paths
+async fn get_scan_paths(state: tauri::State<'_, db::DbState>) -> Result<Vec<String>, String> {
+    let conn = state.0.lock().map_err(|e| e.to_string())?;
+    Ok(db::get_scan_paths(&conn))
 }
 
 #[tauri::command]
-async fn set_scan_paths(paths: Vec<String>) -> Result<(), String> {
-    let ini_path = get_ini_path();
-    let bytes = fs::read(&ini_path).unwrap_or_default();
-    let content = String::from_utf8_lossy(&bytes).to_string();
-    let mut lines: Vec<String> = content.lines().map(|s| s.to_string()).collect();
-    
-    // Remove existing [ScanPaths] section
-    let mut in_scan_paths = false;
-    lines.retain(|line| {
-        let trimmed = line.trim().to_lowercase();
-        if trimmed == "[scanpaths]" {
-            in_scan_paths = true;
-            false
-        } else if trimmed.starts_with('[') {
-            in_scan_paths = false;
-            true
-        } else {
-            !in_scan_paths
-        }
-    });
-    
-    // Add new section
-    lines.push("[ScanPaths]".to_string());
-    for path in paths {
-        lines.push(format!("{}=1", path));
-    }
-    
-    fs::write(&ini_path, lines.join("\r\n")).map_err(|e| e.to_string())?;
-    
+async fn set_scan_paths(
+    state: tauri::State<'_, db::DbState>,
+    paths: Vec<String>,
+) -> Result<(), String> {
+    let conn = state.0.lock().map_err(|e| e.to_string())?;
+    db::set_scan_paths(&conn, &paths).map_err(|e| e.to_string())?;
     // Clear cache to force rescan with new paths
     let _ = fs::remove_file(get_cache_path());
-    
     Ok(())
 }
 
-fn load_tray_settings() -> TraySettings {
-    let ini_path = get_ini_path();
-    let content = fs::read_to_string(&ini_path).unwrap_or_default();
-    let mut close_to_tray = true;
-    let mut in_settings = false;
-    for line in content.lines() {
-        let trimmed = line.trim();
-        if trimmed.to_lowercase() == "[settings]" {
-            in_settings = true;
-            continue;
-        }
-        if trimmed.starts_with('[') {
-            in_settings = false;
-            continue;
-        }
-        if in_settings {
-            if let Some(pos) = trimmed.find('=') {
-                let key = trimmed[..pos].trim().to_lowercase();
-                let val = trimmed[pos + 1..].trim();
-                let bool_val = val != "0" && val.to_lowercase() != "false";
-                match key.as_str() {
-                    "close_to_tray" => close_to_tray = bool_val,
-                    _ => {}
-                }
-            }
-        }
-    }
+fn load_tray_settings(conn: &rusqlite::Connection) -> TraySettings {
+    let close_to_tray = db::get_setting(conn, "close_to_tray")
+        .map(|v| v != "false" && v != "0")
+        .unwrap_or(true);
     TraySettings { close_to_tray }
 }
 
-fn save_tray_settings(settings: &TraySettings) -> Result<(), String> {
-    let ini_path = get_ini_path();
-    let content = fs::read_to_string(&ini_path).unwrap_or_default();
-    let mut lines: Vec<String> = content.lines().map(|s| s.to_string()).collect();
-
-    let entries = vec![
-        ("close_to_tray", settings.close_to_tray),
-    ];
-
-    // Ensure [Settings] section exists
-    let section_exists = lines.iter().any(|l| l.trim().to_lowercase() == "[settings]");
-    if !section_exists {
-        lines.push("[Settings]".to_string());
-    }
-
-    for (key, val) in &entries {
-        let new_entry = format!("{}={}", key, val);
-        let mut in_settings = false;
-        let mut found = false;
-        for line in lines.iter_mut() {
-            let trimmed = line.trim();
-            if trimmed.to_lowercase() == "[settings]" {
-                in_settings = true;
-                continue;
-            }
-            if trimmed.starts_with('[') {
-                in_settings = false;
-                continue;
-            }
-            if in_settings {
-                if let Some(pos) = trimmed.find('=') {
-                    if trimmed[..pos].trim().to_lowercase() == *key {
-                        *line = new_entry.clone();
-                        found = true;
-                        break;
-                    }
-                }
-            }
-        }
-        if !found {
-            if let Some(idx) = lines.iter().position(|l| l.trim().to_lowercase() == "[settings]") {
-                lines.insert(idx + 1, new_entry);
-            }
-        }
-    }
-
-    fs::write(&ini_path, lines.join("\r\n")).map_err(|e| e.to_string())
+fn save_tray_settings(conn: &rusqlite::Connection, settings: &TraySettings) -> Result<(), String> {
+    db::set_setting(conn, "close_to_tray", if settings.close_to_tray { "true" } else { "false" })
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -2191,13 +1665,15 @@ async fn get_tray_settings(state: tauri::State<'_, TraySettingsState>) -> Result
 
 #[tauri::command]
 async fn set_tray_settings(
+    db_state: tauri::State<'_, db::DbState>,
     state: tauri::State<'_, TraySettingsState>,
     settings: TraySettings,
 ) -> Result<(), String> {
     let mut current = state.0.lock().map_err(|e| e.to_string())?;
     *current = settings.clone();
     drop(current);
-    save_tray_settings(&settings)
+    let conn = db_state.0.lock().map_err(|e| e.to_string())?;
+    save_tray_settings(&conn, &settings)
 }
 
 #[tauri::command]
@@ -2218,17 +1694,62 @@ async fn quit_app_cmd(app: tauri::AppHandle) -> Result<(), String> {
     Ok(())
 }
 
+#[derive(Serialize)]
+struct OrphanedScript {
+    id: String,
+    old_path: String,
+    filename: String,
+}
+
+#[tauri::command]
+async fn get_orphaned_scripts_cmd(state: tauri::State<'_, db::DbState>) -> Result<Vec<OrphanedScript>, String> {
+    let conn = state.0.lock().map_err(|e| e.to_string())?;
+    let orphans = db::get_orphaned_scripts(&conn);
+    Ok(orphans.into_iter().map(|(id, path, filename)| OrphanedScript { id, old_path: path, filename }).collect())
+}
+
+#[tauri::command]
+async fn resolve_orphan(
+    state: tauri::State<'_, db::DbState>,
+    orphan_id: String,
+    action: String,
+    new_path: Option<String>,
+) -> Result<(), String> {
+    let conn = state.0.lock().map_err(|e| e.to_string())?;
+    match action.as_str() {
+        "link" => {
+            if let Some(path) = new_path {
+                let path_buf = std::path::PathBuf::from(&path);
+                let filename = path_buf.file_name()
+                    .map(|f| f.to_string_lossy().to_string())
+                    .unwrap_or_default();
+                let hash = db::compute_file_hash(&path_buf).unwrap_or_default();
+                let now = db::now_iso();
+                db::reconcile_orphan(&conn, &orphan_id, &path, &filename, &hash, &now)
+                    .map_err(|e| e.to_string())?;
+            }
+        }
+        "discard" => {
+            conn.execute("DELETE FROM scripts WHERE id = ?1", rusqlite::params![orphan_id])
+                .map_err(|e| e.to_string())?;
+        }
+        _ => {}
+    }
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    // Seed state from disk on startup
-    let initial_tags = load_metadata().tags;
-    let initial_tray = load_tray_settings();
+    // Open SQLite database and run migration if needed
+    let conn = db::open_db().expect("Failed to open database");
+    migrate::migrate_if_needed(&conn);
+    let initial_tray = load_tray_settings(&conn);
 
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_notification::init())
-        .manage(TagsState(Mutex::new(initial_tags)))
+        .manage(db::DbState(Mutex::new(conn)))
         .manage(TraySettingsState(Mutex::new(initial_tray)))
         .setup(|app| {
             let handle = app.handle().clone();
@@ -2399,7 +1920,9 @@ pub fn run() {
             get_tray_settings,
             set_tray_settings,
             show_main_window_cmd,
-            quit_app_cmd
+            quit_app_cmd,
+            get_orphaned_scripts_cmd,
+            resolve_orphan
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

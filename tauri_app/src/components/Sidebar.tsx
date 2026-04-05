@@ -10,10 +10,10 @@ interface SidebarProps {
   activeTab: string;
   viewMode: "tree" | "hub" | "settings";
   userTags: string[];
-  draggedScript: { path: string; filename: string; tags: string[] } | null;
+  draggedScript: { id: string; path: string; filename: string; tags: string[] } | null;
   draggedTag: string | null;
   dragOverTag: string | null;
-  isCreatingTagFor: { path: string; filename: string; tags: string[] } | null;
+  isCreatingTagFor: { id: string; path: string; filename: string; tags: string[] } | null;
   isRenamingTag: string | null;
   editTagName: string;
   runningCount: number;
@@ -38,7 +38,7 @@ interface SidebarProps {
   triggerScan: () => void;
   onRefresh: () => void;
   onHoveringRefresh: (hovering: boolean) => void;
-  onCustomDrop: (path: string, tag: string) => void;
+  onCustomDrop: (id: string, tag: string) => void;
   settingsIconRef: React.RefObject<HTMLDivElement | null>;
   refreshIconRef: React.RefObject<HTMLDivElement | null>;
   ghostRef: React.RefObject<HTMLDivElement | null>;
@@ -412,7 +412,7 @@ export default function Sidebar({
                   onBlur={() => setIsCreatingTagFor(null)}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && newTagName.trim()) {
-                      onCustomDrop(isCreatingTagFor.path, newTagName.trim());
+                      onCustomDrop(isCreatingTagFor.id, newTagName.trim());
                       setIsCreatingTagFor(null);
                     } else if (e.key === "Escape") {
                       setIsCreatingTagFor(null);

@@ -23,9 +23,9 @@ function App() {
   const { t } = useTranslation();
   const [userTags, setUserTags] = useState<string[]>([]);
 
-  const [draggedScript, setDraggedScript] = useState<{ path: string; filename: string; tags: string[] } | null>(null);
+  const [draggedScript, setDraggedScript] = useState<{ id: string; path: string; filename: string; tags: string[] } | null>(null);
   const [dragOverTag, setDragOverTag] = useState<string | null>(null);
-  const [isCreatingTagFor, setIsCreatingTagFor] = useState<{ path: string; filename: string; tags: string[] } | null>(null);
+  const [isCreatingTagFor, setIsCreatingTagFor] = useState<{ id: string; path: string; filename: string; tags: string[] } | null>(null);
   const [newTagName, setNewTagName] = useState("");
   const [draggedTag, setDraggedTag] = useState<string | null>(null);
   const [isRenamingTag, setIsRenamingTag] = useState<string | null>(null);
@@ -277,19 +277,19 @@ function App() {
   const tagDragOffsetYRef = useRef<number>(0);
   const tagDragOffsetXRef = useRef<number>(0);
 
-  const handleCustomDrop = async (path: string, tag: string) => {
+  const handleCustomDrop = async (id: string, tag: string) => {
     setDragOverTag(null);
-    if (path && tag) {
+    if (id && tag) {
       try {
-        await invoke("add_script_tag", { path, tag: tag === "hub" ? "hub" : tag });
+        await invoke("add_script_tag", { id, tag: tag === "hub" ? "hub" : tag });
       } catch (err) {
         console.warn("[App] FAIL: Backend refused custom engine update", err);
       }
     }
   };
 
-  const startCustomDrag = useCallback((script: { path: string; filename: string; tags: string[]; x: number; y: number }) => {
-    setDraggedScript({ path: script.path, filename: script.filename, tags: script.tags });
+  const startCustomDrag = useCallback((script: { id: string; path: string; filename: string; tags: string[]; x: number; y: number }) => {
+    setDraggedScript({ id: script.id, path: script.path, filename: script.filename, tags: script.tags });
     if (ghostRef.current) {
       ghostRef.current.setAttribute("data-dragging", "true");
       ghostRef.current.style.transform = `translate3d(${script.x}px, ${script.y}px, 0) translate(-50%, -50%) scale(1.05)`;
@@ -323,13 +323,13 @@ function App() {
 
   const handleDetailAddTag = useCallback(async (s: Script, tag: string) => {
     try {
-      await invoke("add_script_tag", { path: s.path, tag });
+      await invoke("add_script_tag", { id: s.id, tag });
     } catch (err) { console.error("[App] Add tag failed:", err); }
   }, []);
 
   const handleDetailRemoveTag = useCallback(async (s: Script, tag: string) => {
     try {
-      await invoke("remove_script_tag", { path: s.path, tag });
+      await invoke("remove_script_tag", { id: s.id, tag });
     } catch (err) { console.error("[App] Remove tag failed:", err); }
   }, []);
 
@@ -347,7 +347,7 @@ function App() {
         setIsCreatingTagFor(draggedScript);
         setNewTagName("");
       } else if (dragOverTag) {
-        await handleCustomDrop(draggedScript.path, dragOverTag);
+        await handleCustomDrop(draggedScript.id, dragOverTag);
       }
       if (ghostRef.current) ghostRef.current.setAttribute("data-dragging", "false");
       setDraggedScript(null);

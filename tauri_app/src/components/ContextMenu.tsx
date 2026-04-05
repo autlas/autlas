@@ -95,7 +95,7 @@ export default function ContextMenu({ contextMenu, onClose, onStartRenameTag, on
                 icon={<UnpinIcon />}
                 onClick={async () => {
                   const tagToRemove = contextMenu.data.tags.find((tag: string) => ["hub", "fav", "favourites"].includes(tag.toLowerCase()));
-                  if (tagToRemove) await invoke("remove_script_tag", { path: contextMenu.data.path, tag: tagToRemove });
+                  if (tagToRemove) await invoke("remove_script_tag", { id: contextMenu.data.id, tag: tagToRemove });
                   onClose();
                 }}
               />
@@ -104,7 +104,7 @@ export default function ContextMenu({ contextMenu, onClose, onStartRenameTag, on
                 label={t("context.pin")}
                 icon={<PinIcon />}
                 onClick={async () => {
-                  await invoke("add_script_tag", { path: contextMenu.data.path, tag: "hub" });
+                  await invoke("add_script_tag", { id: contextMenu.data.id, tag: "hub" });
                   onClose();
                 }}
               />

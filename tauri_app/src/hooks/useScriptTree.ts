@@ -28,7 +28,7 @@ let _cachedScripts: Script[] = [];
 interface UseScriptTreeOptions {
     filterTag: string;
     onTagsLoaded: (tags: string[]) => void;
-    onCustomDragStart: (script: { path: string, filename: string, tags: string[], x: number, y: number }) => void;
+    onCustomDragStart: (script: { id: string, path: string, filename: string, tags: string[], x: number, y: number }) => void;
     searchQuery: string;
     setSearchQuery: (query: string) => void;
     onRunningCountChange?: (count: number) => void;
@@ -156,10 +156,10 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
         let unlistenStatus: (() => void) | null = null;
 
         import('@tauri-apps/api/event').then(({ listen }) => {
-            listen<{ path: string; tags: string[] }>('script-tags-changed', (event) => {
-                const { path, tags } = event.payload;
+            listen<{ id: string; tags: string[] }>('script-tags-changed', (event) => {
+                const { id, tags } = event.payload;
                 setAllScripts(prev => prev.map(s =>
-                    s.path === path ? { ...s, tags } : s
+                    s.id === id ? { ...s, tags } : s
                 ));
             }).then(fn => { unlisten = fn; });
 
@@ -332,13 +332,13 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
             return;
         }
         const updatedTags = [...script.tags, trimmed];
-        setAllScripts(prev => prev.map(s => s.path === script.path ? { ...s, tags: updatedTags } : s));
+        setAllScripts(prev => prev.map(s => s.id === script.id ? { ...s, tags: updatedTags } : s));
         useTreeStore.getState().setEditingScript(null);
         try {
-            await invoke("save_script_tags", { path: script.path, tags: updatedTags });
+            await invoke("save_script_tags", { id: script.id, tags: updatedTags });
         } catch (e) {
             console.error(e);
-            setAllScripts(prev => prev.map(s => s.path === script.path ? { ...s, tags: script.tags } : s));
+            setAllScripts(prev => prev.map(s => s.id === script.id ? { ...s, tags: script.tags } : s));
         }
     }, []);
 
@@ -348,13 +348,13 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
         useTreeStore.getState().addRemovingTag(tagId);
         await new Promise(r => setTimeout(r, 90));
         const newTags = script.tags.filter(t => t !== tagToRemove);
-        setAllScripts(prev => prev.map(s => s.path === script.path ? { ...s, tags: newTags } : s));
+        setAllScripts(prev => prev.map(s => s.id === script.id ? { ...s, tags: newTags } : s));
         useTreeStore.getState().clearRemovingTag(tagId);
         try {
-            await invoke("save_script_tags", { path: script.path, tags: newTags });
+            await invoke("save_script_tags", { id: script.id, tags: newTags });
         } catch (e) {
             console.error(e);
-            setAllScripts(prev => prev.map(s => s.path === script.path ? { ...s, tags: script.tags } : s));
+            setAllScripts(prev => prev.map(s => s.id === script.id ? { ...s, tags: script.tags } : s));
         }
     }, [removingTags]);
 
@@ -388,6 +388,7 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
         const initiateDrag = (x: number, y: number) => {
             if (pendingDragRef.current) {
                 onCustomDragStart({
+                    id: pendingDragRef.current.script.id,
                     path: pendingDragRef.current.script.path,
                     filename: pendingDragRef.current.script.filename,
                     tags: pendingDragRef.current.script.tags,

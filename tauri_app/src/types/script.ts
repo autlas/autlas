@@ -14,7 +14,7 @@ export interface ScriptTreeProps {
     onTagsLoaded: (tags: string[]) => void;
     viewMode: "tree" | "tiles" | "list";
     onViewModeChange: (mode: "tree" | "tiles" | "list") => void;
-    onCustomDragStart: (script: { path: string, filename: string, tags: string[], x: number, y: number }) => void;
+    onCustomDragStart: (script: { id: string, path: string, filename: string, tags: string[], x: number, y: number }) => void;
     isDragging: boolean;
     draggedScriptPath: string | null;
     animationsEnabled: boolean;

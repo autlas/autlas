@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 
 export interface Script {
+    id: string;
     path: string;
     filename: string;
     parent: string;
