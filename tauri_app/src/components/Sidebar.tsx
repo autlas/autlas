@@ -50,7 +50,7 @@ interface SidebarProps {
 
 function navItemClass(tab: string, isTag: boolean, state: Pick<SidebarProps, "activeTab" | "draggedScript" | "draggedTag" | "dragOverTag" | "activeTabPressed">): string {
   return `
-    px-4 h-12 rounded-2xl cursor-pointer text-sm font-bold transition-all flex items-center justify-between relative z-50
+    px-4 h-12 rounded-2xl cursor-pointer text-sm font-bold transition-[background-color,opacity,filter,box-shadow,transform] duration-200 flex items-center justify-between relative z-50
     will-change-transform select-none long-press-shrink ${state.activeTabPressed === tab ? "active-left" : ""}
     ${state.draggedTag === tab
       ? "opacity-0 invisible pointer-events-none"
@@ -216,7 +216,7 @@ export default function Sidebar({
             >
               <div className="flex items-center pointer-events-none flex-shrink-0 overflow-hidden">
                 <img src={logoImg} alt="Hub" className={`w-8 h-8 flex-shrink-0 transition-all duration-300 ${activeTab === "hub" && viewMode !== "settings" ? "brightness-0 invert" : ""}`} />
-                <span className={`text-lg tracking-tight transition-all duration-150 ${collapsed ? 'w-0 ml-0 opacity-0' : 'w-auto ml-3 opacity-100'}`}>{tab.label}</span>
+                <span className={`text-lg tracking-tight transition-[width,margin,opacity] duration-150 ${collapsed ? 'w-0 ml-0 opacity-0' : 'w-auto ml-3 opacity-100'}`}>{tab.label}</span>
               </div>
               {activeTab !== "hub" && (
                 <div className={`absolute flex items-center justify-center rounded-full bg-green-500 transition-all duration-300
@@ -244,7 +244,7 @@ export default function Sidebar({
           ].map((tab) => (
             <li
               key={tab.id}
-              className={`h-12 rounded-2xl cursor-pointer text-sm font-bold transition-all flex items-center overflow-hidden whitespace-nowrap ${collapsed ? 'w-12' : ''} px-4
+              className={`h-12 rounded-2xl cursor-pointer text-sm font-bold transition-[background-color,opacity,filter,box-shadow] duration-200 flex items-center overflow-hidden whitespace-nowrap ${collapsed ? 'w-12' : ''} px-4
                 justify-between
                 ${!collapsed && draggedScript && tab.id !== dragOverTag ? "opacity-20 blur-[1px]" : ""}
                 ${activeTab === tab.id && viewMode !== "settings"
@@ -255,9 +255,9 @@ export default function Sidebar({
               onClick={() => !draggedScript && onTabClick(tab.id)}
             >
               <div className="flex items-center pointer-events-none flex-shrink-0">
-                {tab.id === "all" && <LayersIcon className={`flex-shrink-0 transition-opacity ${activeTab === tab.id && viewMode !== "settings" ? 'opacity-100' : 'opacity-40'}`} />}
-                {tab.id === "no_tags" && <TagOffIcon className={`flex-shrink-0 translate-y-[1px] transition-opacity ${activeTab === tab.id && viewMode !== "settings" ? 'opacity-100' : 'opacity-40'}`} />}
-                <span className={`transition-all duration-150 ${collapsed ? 'w-0 ml-0 opacity-0' : 'w-auto ml-3 opacity-100'}`}>{tab.label}</span>
+                {tab.id === "all" && <LayersIcon weight={activeTab === tab.id && viewMode !== "settings" ? "fill" : "bold"} className="flex-shrink-0" />}
+                {tab.id === "no_tags" && <TagOffIcon weight={activeTab === tab.id && viewMode !== "settings" ? "fill" : "bold"} className="flex-shrink-0 translate-y-[1px]" />}
+                <span className={`transition-[width,margin,opacity] duration-150 ${collapsed ? 'w-0 ml-0 opacity-0' : 'w-auto ml-3 opacity-100'}`}>{tab.label}</span>
               </div>
             </li>
           ))}
@@ -268,7 +268,7 @@ export default function Sidebar({
         {/* Group 3: Tags */}
         <div className="flex flex-col space-y-1.5 w-full">
           <li
-            className={`h-12 rounded-2xl cursor-pointer text-sm font-bold transition-all flex items-center overflow-hidden whitespace-nowrap ${collapsed ? 'w-12' : ''} px-4
+            className={`h-12 rounded-2xl cursor-pointer text-sm font-bold transition-[background-color,opacity,filter,box-shadow] duration-200 flex items-center overflow-hidden whitespace-nowrap ${collapsed ? 'w-12' : ''} px-4
               justify-between
               ${!collapsed && draggedScript ? "opacity-20 blur-[1px]" : ""}
               ${activeTab === "tags" && viewMode !== "settings"
@@ -279,8 +279,8 @@ export default function Sidebar({
             onClick={() => !draggedScript && onTabClick("tags")}
           >
             <div className="flex items-center pointer-events-none flex-shrink-0">
-              <TagIcon className={`flex-shrink-0 translate-y-[1px] transition-opacity ${activeTab === "tags" && viewMode !== "settings" ? 'opacity-100' : 'opacity-40'}`} />
-              <span className={`transition-all duration-150 ${collapsed ? 'w-0 ml-0 opacity-0' : 'w-auto ml-3 opacity-100'}`}>{t("sidebar.tags", "Tags")}</span>
+              <TagIcon weight={activeTab === "tags" && viewMode !== "settings" ? "fill" : "bold"} className="flex-shrink-0 translate-y-[1px]" />
+              <span className={`transition-[width,margin,opacity] duration-150 ${collapsed ? 'w-0 ml-0 opacity-0' : 'w-auto ml-3 opacity-100'}`}>{t("sidebar.tags", "Tags")}</span>
             </div>
             {!collapsed && (
               <button
@@ -324,7 +324,7 @@ export default function Sidebar({
                   draggedScript && dragOverTag === tag && setDragOverTag(null);
                 }}
                 className={collapsed
-                  ? `w-12 px-4 h-12 rounded-2xl cursor-pointer text-sm font-bold transition-all flex items-center justify-between overflow-hidden whitespace-nowrap
+                  ? `w-12 px-4 h-12 rounded-2xl cursor-pointer text-sm font-bold transition-[background-color,opacity,filter,box-shadow] duration-200 flex items-center justify-between overflow-hidden whitespace-nowrap
                     ${activeTab === tag && viewMode !== "settings"
                     ? "text-indigo-400 shadow-lg tag-active"
                     : "text-tertiary hover:text-secondary tag-hover"
@@ -368,8 +368,8 @@ export default function Sidebar({
                   />
                 ) : (
                   <div className="flex items-center pointer-events-none flex-shrink-0">
-                    <TagDotIcon className={`flex-shrink-0 transition-opacity ${activeTab === tag && viewMode !== "settings" ? 'opacity-100' : 'opacity-40'}`} />
-                    <span className={`relative z-50 font-bold transition-all duration-150 ${collapsed ? 'w-0 ml-0 opacity-0' : 'w-auto ml-3 opacity-100 truncate'}`}>{tag}</span>
+                    <TagDotIcon weight={activeTab === tag && viewMode !== "settings" ? "fill" : "bold"} className="flex-shrink-0" />
+                    <span className={`relative z-50 font-bold transition-[width,margin,opacity] duration-150 ${collapsed ? 'w-0 ml-0 opacity-0' : 'w-auto ml-3 opacity-100 truncate'}`}>{tag}</span>
                   </div>
                 )}
               </li>
@@ -415,7 +415,7 @@ export default function Sidebar({
         <Tooltip text={t("sidebar.settings")}>
           <button
             onClick={() => onTabClick("settings")}
-            className={`${collapsed ? 'w-11' : 'flex-1'} h-12 rounded-xl flex items-center justify-center transition-all group cursor-pointer ${!collapsed && draggedScript ? "opacity-20 blur-[1px]" : ""
+            className={`${collapsed ? 'w-11' : 'flex-1'} h-12 rounded-xl flex items-center justify-center transition-[background-color,opacity,filter,box-shadow] duration-200 group cursor-pointer ${!collapsed && draggedScript ? "opacity-20 blur-[1px]" : ""
               } ${viewMode === "settings"
                 ? "text-indigo-400 shadow-lg tag-active bg-white/5"
                 : "text-tertiary hover:text-secondary tag-hover"
@@ -423,7 +423,7 @@ export default function Sidebar({
             style={viewMode === "settings" ? { backgroundColor: "var(--bg-tag-active)" } : {}}
           >
             <div ref={settingsIconRef} className="flex items-center justify-center will-change-transform">
-              <GearIcon className={viewMode === "settings" ? "stroke-white" : "stroke-current"} />
+              <GearIcon weight={viewMode === "settings" ? "fill" : "bold"} />
             </div>
           </button>
         </Tooltip>
