@@ -3,7 +3,7 @@ import { HubScriptCardProps } from "../types/script";
 import TagPickerPopover from "./TagPickerPopover";
 import { HighlightText } from "./HighlightText";
 import { useTranslation } from "react-i18next";
-import { PlusIcon, CloseIcon, RestartIcon, PlayIcon, InterfaceIcon, MinusIcon } from "./ui/Icons";
+import { PlusIcon, CloseIcon, RestartIcon, PlayIcon, InterfaceIcon, MinusIcon, StarIcon } from "./ui/Icons";
 import { useTreeStore } from "../store/useTreeStore";
 import Tooltip from "./ui/Tooltip";
 
@@ -53,6 +53,7 @@ const HubScriptCard = memo(function HubScriptCard({
     const isEditing = editingScript === s.path;
     const pendingType = pendingScripts[s.path];
     const isPending = !!pendingType;
+    const isHub = s.tags.some(t => ["hub", "fav", "favourites"].includes(t.toLowerCase()));
 
     return (
         <div
@@ -80,10 +81,24 @@ const HubScriptCard = memo(function HubScriptCard({
             style={{ borderColor: (isContextMenuOpen || isEditing) ? 'rgba(99, 102, 241, 0.5)' : 'var(--border-color)' }}
         >
             <div className="flex justify-between items-start pointer-events-none">
-                <div className="flex flex-col overflow-hidden flex-1 -mt-[8px]">
-                    <span className={`text-xl font-black truncate pr-4 transition-colors tracking-tight stabilize-text ${!isDragging ? (isEditing || isContextMenuOpen ? 'text-indigo-400' : 'text-secondary') : 'text-secondary'}`}>
+                <div className="flex items-center overflow-hidden flex-1 -mt-[8px] gap-2">
+                    <span className={`text-xl font-black truncate pr-0 transition-colors tracking-tight stabilize-text ${!isDragging ? (isEditing || isContextMenuOpen ? 'text-indigo-400' : 'text-secondary') : 'text-secondary'}`}>
                         <HighlightText text={s.filename.replace(/\.ahk$/i, '')} variant="file" />
                     </span>
+                    <Tooltip text={isHub ? t("tooltips.remove_from_hub") : t("tooltips.add_to_hub")}>
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            if (isHub) onRemoveTag(s, "hub");
+                            else onAddTag(s, "hub");
+                        }}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onDoubleClick={(e) => e.stopPropagation()}
+                        className={`w-[28px] h-[28px] flex-shrink-0 flex items-center justify-center rounded-lg pointer-events-auto transition-all cursor-pointer ${isHub ? 'text-white/40 hover:text-white/70' : 'text-white/20 hover:text-white/40'} ${isHub ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+                    >
+                        <StarIcon size={16} weight={isHub ? "fill" : "bold"} />
+                    </button>
+                    </Tooltip>
                 </div>
                 <div className="flex items-center gap-4 flex-shrink-0">
                     {showFileSize && (

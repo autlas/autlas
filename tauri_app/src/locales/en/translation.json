@@ -77,6 +77,9 @@
         "everything_installing": "Installing...",
         "everything_install": "Install",
         "everything_launch": "Launch",
+        "everything_toast_running": "Everything is running — instant scan enabled",
+        "everything_toast_installed": "Everything is not running — scan will be slower",
+        "everything_toast_not_installed": "Install Everything for instant file scanning",
         "show_file_size": "Show file size",
         "show_file_size_desc": "Display script file size next to name",
         "auto_refresh": "Auto-refresh on startup",
@@ -167,6 +170,8 @@
         "kill_script": "Kill",
         "restart_script": "Restart",
         "add_tag": "Add tag",
+        "add_to_hub": "Add to Hub",
+        "remove_from_hub": "Remove from Hub",
         "close": "Close",
         "expand_all": "Expand All",
         "collapse_all": "Collapse All"

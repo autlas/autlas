@@ -217,9 +217,9 @@ function App() {
             ? "bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.8)]"
             : "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]"}`} />
         <span className="text-xs font-medium text-white/70 flex-1">
-          {isStarted ? "Everything is running — instant scan enabled"
-            : isInstalled ? "Everything is not running — scan will be slower"
-            : "Install Everything for instant file scanning"}
+          {isStarted ? t("settings.everything_toast_running")
+            : isInstalled ? t("settings.everything_toast_installed")
+            : t("settings.everything_toast_not_installed")}
         </span>
         {isInstalled && (
           <button
@@ -230,12 +230,12 @@ function App() {
               catch (e) { console.error(e); setEverythingToast("installed"); showEverythingToast("installed"); }
             }}
             className="px-3 py-1 text-[11px] font-bold uppercase tracking-wider whitespace-nowrap bg-indigo-500/20 text-indigo-400 rounded-lg hover:bg-indigo-500/30 transition-colors cursor-pointer"
-          >Launch</button>
+          >{t("settings.everything_launch")}</button>
         )}
         {status === "not_installed" && (
           <button onClick={() => setShowInstallModal(true)}
             className="px-3 py-1 text-[11px] font-bold uppercase tracking-wider whitespace-nowrap bg-indigo-500/20 text-indigo-400 rounded-lg hover:bg-indigo-500/30 transition-colors cursor-pointer"
-          >Install</button>
+          >{t("settings.everything_install")}</button>
         )}
         <button onClick={() => toast.dismiss("everything")} className="ml-1 text-white/30 hover:text-white/60 transition-colors cursor-pointer"><CloseIcon size={14} /></button>
       </div>

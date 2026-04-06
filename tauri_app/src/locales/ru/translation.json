@@ -77,6 +77,9 @@
         "everything_installing": "Установка...",
         "everything_install": "Установить",
         "everything_launch": "Запустить",
+        "everything_toast_running": "Everything запущен — мгновенное сканирование",
+        "everything_toast_installed": "Everything не запущен — сканирование будет медленнее",
+        "everything_toast_not_installed": "Установите Everything для мгновенного сканирования",
         "show_file_size": "Размер файлов",
         "show_file_size_desc": "Показывать размер файла рядом с именем скрипта",
         "auto_refresh": "Авто-обновление при запуске",
@@ -167,6 +170,8 @@
         "kill_script": "Остановить",
         "restart_script": "Перезапустить",
         "add_tag": "Добавить тег",
+        "add_to_hub": "Добавить в Хаб",
+        "remove_from_hub": "Убрать из Хаба",
         "close": "Закрыть",
         "expand_all": "Развернуть все",
         "collapse_all": "Свернуть все"

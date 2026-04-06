@@ -5,7 +5,7 @@ import {
     ArrowsClockwise, Rocket, Stack, Tag, CircleDashed,
     ArrowSquareOut, Copy, PushPin, PushPinSlash, EyeSlash,
     CaretDown, CaretRight, Question, ListDashes, SquaresFour,
-    ListBullets, Stop,
+    ListBullets, Stop, Star,
 } from "@phosphor-icons/react";
 import type { IconWeight } from "@phosphor-icons/react";
 
@@ -83,6 +83,10 @@ export function OpenWithIcon({ size = 18, className, weight = "bold" }: IconProp
 
 export function PinIcon({ size = 18, className, fill, weight }: IconProps) {
     return <PushPin size={size} weight={fill && fill !== "none" ? "fill" : (weight || "bold")} className={className} />;
+}
+
+export function StarIcon({ size = 14, className, weight = "bold" }: IconProps) {
+    return <Star size={size} weight={weight} className={className} />;
 }
 
 export function UnpinIcon({ size = 18, className, weight = "bold" }: IconProps) {

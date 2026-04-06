@@ -4,7 +4,7 @@ import TagPickerPopover from "./TagPickerPopover";
 import { HighlightText } from "./HighlightText";
 import { useTreeStore } from "../store/useTreeStore";
 import { useTranslation } from "react-i18next";
-import { PlusIcon, CloseIcon, RestartIcon, PlayIcon, InterfaceIcon, MinusIcon } from "./ui/Icons";
+import { PlusIcon, CloseIcon, RestartIcon, PlayIcon, InterfaceIcon, MinusIcon, StarIcon } from "./ui/Icons";
 import Tooltip from "./ui/Tooltip";
 import ActionButton from "./ui/ActionButton";
 
@@ -37,6 +37,7 @@ const ScriptRow = memo(function ScriptRow({
     const addBtnRef = useRef<HTMLButtonElement>(null);
 
     // Filtered tags for display (hide system tags)
+    const isHub = s.tags.some(t => ["hub", "fav", "favourites"].includes(t.toLowerCase()));
     const displayedTags = s.tags.filter(t => !["hub", "fav", "favourites"].includes(t.toLowerCase()));
 
     const recalcVisible = () => {
@@ -147,6 +148,23 @@ const ScriptRow = memo(function ScriptRow({
                     }`}>
                     <HighlightText text={s.filename.replace(/\.ahk$/i, '')} variant="file" />
                 </span>
+
+                {!isDragging && (
+                    <Tooltip text={isHub ? t("tooltips.remove_from_hub") : t("tooltips.add_to_hub")}>
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            if (isHub) onRemoveTag(s, "hub");
+                            else onAddTag(s, "hub");
+                        }}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onDoubleClick={(e) => e.stopPropagation()}
+                        className={`w-[28px] h-[28px] -ml-3 mr-1 flex-shrink-0 flex items-center justify-center rounded-lg transition-all cursor-pointer pointer-events-auto ${isHub ? 'text-white/40 hover:text-white/70' : 'text-white/20 hover:text-white/40'} ${isHub ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} ${isFocused && isVimMode ? 'opacity-100' : ''}`}
+                    >
+                        <StarIcon size={14} weight={isHub ? "fill" : "bold"} />
+                    </button>
+                    </Tooltip>
+                )}
 
                 {!isDragging && (
                     <div ref={containerRef} className="flex-1 flex items-center pr-2 min-w-[130px] w-0">
