@@ -69,7 +69,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
 
     const [isCheatSheetOpen, setIsCheatSheetOpen] = useState(false);
     const toolbarRef = useRef<HTMLDivElement>(null);
-    const toolbarH = 84;
+    const toolbarH = 110;
     const isSearchActiveRef = useRef(false);
     const setIsSearchActive = (v: boolean) => {
         isSearchActiveRef.current = v;
@@ -447,15 +447,21 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
                 </SearchContext.Provider>
             </div>
             <div
+                className="absolute top-0 left-0 right-0 h-[50px] pointer-events-none z-[499]"
+                style={{ background: 'linear-gradient(to bottom, color-mix(in srgb, var(--bg-primary) 90%, transparent), transparent)' }}
+            />
+            <div
                 ref={toolbarRef}
-                className="absolute top-0 left-0 right-0 z-[500]"
+                className="absolute z-[500] rounded-2xl border border-white/10"
                 style={{
-                    paddingLeft: 16,
-                    paddingRight: 16,
+                    top: 12,
+                    left: 12,
+                    right: 12,
+                    paddingLeft: 12,
+                    paddingRight: 12,
                     backgroundColor: 'rgba(0,0,0,0.01)',
                     backdropFilter: 'blur(20px)',
                     WebkitBackdropFilter: 'blur(20px)',
-                    borderBottom: '1px solid var(--border-color)',
                 }}
             >
                 <ScriptTreeToolbar
