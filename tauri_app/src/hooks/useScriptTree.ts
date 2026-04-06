@@ -526,11 +526,7 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
         const root: TreeNode = { name: "Root", fullName: "Root", scripts: [], children: {} };
         filtered.forEach(script => {
             const pathParts = script.path.split(/[\\\/]/);
-            const desktopIdx = pathParts.findIndex(p => p.toLowerCase() === "desktop");
-            const ahkIdx = pathParts.findIndex(p => p.toLowerCase() === "ahkmanager");
-            let startIdx = 0;
-            if (desktopIdx !== -1) startIdx = desktopIdx;
-            else if (ahkIdx !== -1) startIdx = ahkIdx;
+            const startIdx = 0;
             let current = root;
             for (let i = startIdx; i < pathParts.length - 1; i++) {
                 const part = pathParts[i];
