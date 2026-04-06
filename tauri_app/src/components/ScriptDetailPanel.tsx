@@ -17,6 +17,28 @@ function formatSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+function formatDate(iso: string): string {
+  if (!iso) return "";
+  try {
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return iso;
+    const now = new Date();
+    const diffMs = now.getTime() - d.getTime();
+    const diffMin = Math.floor(diffMs / 60000);
+    const diffHrs = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    const time = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+    if (diffMin < 1) return "just now";
+    if (diffMin < 60) return `${diffMin}m ago`;
+    if (diffHrs < 24 && d.getDate() === now.getDate()) return `today ${time}`;
+    if (diffDays === 1) return `yesterday ${time}`;
+    if (diffDays < 7) return `${diffDays}d ago, ${time}`;
+    return d.toLocaleDateString([], { day: "numeric", month: "short", year: "numeric" }) + ` ${time}`;
+  } catch { return iso; }
+}
+
 function MetaRow({ label, value, mono, copiedLabel, copyLabel }: { label: string; value: string; mono?: boolean; copiedLabel?: string; copyLabel?: string }) {
   const [copied, setCopied] = useState(false);
   return (
@@ -336,9 +358,9 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
         <MetaRow label="ID" value={script.id} mono copiedLabel={t("detail.copied")} copyLabel={t("detail.copy")} />
         <MetaRow label={t("detail.size")} value={formatSize(script.size)} copiedLabel={t("detail.copied")} copyLabel={t("detail.copy")} />
         <MetaRow label="Hash" value={scriptMeta?.hash || "..."} mono copiedLabel={t("detail.copied")} copyLabel={t("detail.copy")} />
-        <MetaRow label={t("detail.created")} value={scriptMeta?.created || "..."} copiedLabel={t("detail.copied")} copyLabel={t("detail.copy")} />
-        <MetaRow label={t("detail.modified")} value={scriptMeta?.modified || "..."} copiedLabel={t("detail.copied")} copyLabel={t("detail.copy")} />
-        {scriptMeta?.last_run && <MetaRow label={t("detail.last_run")} value={scriptMeta.last_run} copiedLabel={t("detail.copied")} copyLabel={t("detail.copy")} />}
+        <MetaRow label={t("detail.created")} value={formatDate(scriptMeta?.created || "")} copiedLabel={t("detail.copied")} copyLabel={t("detail.copy")} />
+        <MetaRow label={t("detail.modified")} value={formatDate(scriptMeta?.modified || "")} copiedLabel={t("detail.copied")} copyLabel={t("detail.copy")} />
+        {scriptMeta?.last_run && <MetaRow label={t("detail.last_run")} value={formatDate(scriptMeta.last_run)} copiedLabel={t("detail.copied")} copyLabel={t("detail.copy")} />}
       </div>
 
       {/* Divider */}
