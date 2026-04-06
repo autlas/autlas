@@ -99,6 +99,23 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
         moveFocus('right', 1);
     }, { preventDefault: true, enabled: isActive });
 
+    // Arrow keys always work as 2D grid (hjkl mode), ignoring vim nav setting
+    useHotkeys('ArrowDown', () => {
+        moveFocus('down', viewMode === 'tree' ? 1 : columnsCount);
+    }, { preventDefault: true, enabled: isActive });
+
+    useHotkeys('ArrowUp', () => {
+        moveFocus('up', viewMode === 'tree' ? 1 : columnsCount);
+    }, { preventDefault: true, enabled: isActive });
+
+    useHotkeys('ArrowLeft', () => {
+        moveFocus('left', 1);
+    }, { preventDefault: true, enabled: isActive });
+
+    useHotkeys('ArrowRight', () => {
+        moveFocus('right', 1);
+    }, { preventDefault: true, enabled: isActive });
+
     useHotkeys('enter', () => {
         if (!useTreeStore.getState().focusedPath) return;
         const item = visibleItems.find(i => i.path === useTreeStore.getState().focusedPath);
