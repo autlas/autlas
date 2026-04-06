@@ -98,7 +98,7 @@ export default function Tooltip({ text, children, delay = 0, side: preferredSide
             {visible && createPortal(
                 <div
                     ref={tooltipRef}
-                    className={`fixed z-[100010] pointer-events-none transition-opacity duration-150 ${pos ? 'opacity-100' : 'opacity-0'}`}
+                    className={`fixed z-[100010] pointer-events-none ${pos ? 'opacity-100' : 'opacity-0'}`}
                     style={pos ? {
                         left: pos.x,
                         top: pos.y,
@@ -107,40 +107,8 @@ export default function Tooltip({ text, children, delay = 0, side: preferredSide
                         top: -9999,
                     }}
                 >
-                    <div className="relative px-3 py-1.5 rounded-lg bg-[#1a1a1c]/95 backdrop-blur-xl border border-white/10 shadow-[0_4px_20px_rgba(0,0,0,0.5)]" style={{ maxWidth: `calc(100vw - 16px)` }}>
+                    <div className="relative px-3 py-1.5 rounded-lg bg-black/20 backdrop-blur-md border border-white/10 shadow-[0_4px_20px_rgba(0,0,0,0.5)]" style={{ maxWidth: `calc(100vw - 16px)` }}>
                         <span className="text-xs font-bold text-secondary">{text}</span>
-                        <div
-                            className="absolute w-0 h-0"
-                            style={pos?.side === "right" ? {
-                                left: -10,
-                                top: pos.arrowY! - 10,
-                                borderTop: "10px solid transparent",
-                                borderBottom: "10px solid transparent",
-                                borderRight: "10px solid #303032",
-                            } : {
-                                left: pos ? pos.arrowX - 10 : "50%",
-                                ...(pos?.side === "top"
-                                    ? { bottom: -10, borderLeft: "10px solid transparent", borderRight: "10px solid transparent", borderTop: "10px solid #303032" }
-                                    : { top: -10, borderLeft: "10px solid transparent", borderRight: "10px solid transparent", borderBottom: "10px solid #303032" }
-                                ),
-                            }}
-                        />
-                        <div
-                            className="absolute w-0 h-0"
-                            style={pos?.side === "right" ? {
-                                left: -8,
-                                top: pos.arrowY! - 8,
-                                borderTop: "8px solid transparent",
-                                borderBottom: "8px solid transparent",
-                                borderRight: "8px solid rgba(26,26,28,0.95)",
-                            } : {
-                                left: pos ? pos.arrowX - 8 : "50%",
-                                ...(pos?.side === "top"
-                                    ? { bottom: -8, borderLeft: "8px solid transparent", borderRight: "8px solid transparent", borderTop: "8px solid rgba(26,26,28,0.95)" }
-                                    : { top: -8, borderLeft: "8px solid transparent", borderRight: "8px solid transparent", borderBottom: "8px solid rgba(26,26,28,0.95)" }
-                                ),
-                            }}
-                        />
                     </div>
                 </div>,
                 document.body

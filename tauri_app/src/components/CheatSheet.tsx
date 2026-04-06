@@ -40,7 +40,8 @@ const CheatSheet = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void 
             onClick={onClose}
         >
             <div
-                className="bg-[#0a0a0c] border border-white/10 p-10 rounded-[40px] shadow-2xl w-auto mx-4 relative overflow-hidden group"
+                className="backdrop-blur-2xl border border-white/15 p-10 rounded-[40px] shadow-2xl w-auto mx-4 relative overflow-hidden group"
+                style={{ backgroundColor: `rgba(255,255,255,calc(0.02 * var(--contrast-factor)))` }}
                 onClick={e => e.stopPropagation()}
             >
                 {/* Decorative glow */}

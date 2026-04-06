@@ -176,7 +176,7 @@ export default function TagIconPicker({ tag, currentIcon, onSelect, onClose }: T
             onClick={onClose}
         >
             <div
-                className="bg-[#0a0a0c] border border-white/10 rounded-[32px] shadow-2xl w-[50vw] min-w-[520px] max-w-[1024px] h-[70vh] flex flex-col relative overflow-hidden"
+                className="bg-black/30 backdrop-blur-lg border border-white/15 rounded-[32px] shadow-2xl w-[50vw] min-w-[520px] max-w-[1024px] h-[70vh] flex flex-col relative overflow-hidden"
                 style={{ marginTop: "15vh" }}
                 onClick={e => e.stopPropagation()}
             >

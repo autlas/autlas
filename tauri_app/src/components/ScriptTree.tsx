@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback } from "react";
 import CheatSheet from "./CheatSheet";
 import { SearchContext } from "../context/SearchContext";
 import { ScriptTreeProps } from "../types/script";
@@ -68,6 +68,8 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
     }, [handleToggle, handleRestart, pendingScripts, allScripts, setTagIcon, removeTagIcon, deleteTagFromAll, toggleHiddenByPath, onExposeActions]);
 
     const [isCheatSheetOpen, setIsCheatSheetOpen] = useState(false);
+    const toolbarRef = useRef<HTMLDivElement>(null);
+    const toolbarH = 84;
     const isSearchActiveRef = useRef(false);
     const setIsSearchActive = (v: boolean) => {
         isSearchActiveRef.current = v;
@@ -135,6 +137,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
     }, { preventDefault: true, enabled: isActive });
 
     useEffect(() => {
+        if (!isActive) return;
         const handleKeyDown = (e: KeyboardEvent) => {
             const isQuestionMark = e.key === '?' || (e.key === ',' && e.shiftKey && e.code === 'Slash') || (e.key === '7' && e.shiftKey);
             if (isQuestionMark) {
@@ -145,7 +148,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
         };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, []);
+    }, [isActive]);
 
     useEffect(() => {
         if (visibleItems.length > 0) {
@@ -155,9 +158,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
         }
     }, [sortBy]);
 
-    useHotkeys('shift+/', () => {
-        setIsCheatSheetOpen(prev => !prev);
-    }, { enabled: isActive });
+    // CheatSheet toggle handled by keydown listener above (supports multiple keyboard layouts)
 
     useHotkeys('f', () => {
         lastFTimeRef.current = performance.now();
@@ -365,40 +366,21 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
     const hasContent = Object.keys(tree.children).length > 0 || tree.scripts.length > 0;
 
     return (
-        <div className="flex flex-col h-full min-h-0">
-            <ScriptTreeToolbar
-                viewMode={viewMode}
-                onViewModeChange={onViewModeChange}
-                isDragging={isDragging}
-                draggedScriptPath={draggedScriptPath}
-                sortBy={sortBy}
-                setSortBy={setSortBy}
-                isAllExpanded={isAllExpanded}
-                toggleAll={toggleAll}
-                isAllHubExpanded={isAllHubExpanded}
-                toggleAllHub={toggleAllHub}
-                searchQuery={searchQuery}
-                setSearchQuery={setSearchQuery}
-                showHidden={showHidden}
-                setShowHidden={setShowHidden}
-                filterTag={filterTag}
-                searchInputRef={searchInputRef}
-                onSearchFocus={() => setIsSearchActive(true)}
-                onSearchBlur={() => setIsSearchActive(false)}
-            />
+        <div className="flex-1 min-h-0 overflow-hidden relative -mx-4">
+            <div
+                ref={containerRef}
+                onScroll={handleScroll}
+                onMouseMove={() => { if (useTreeStore.getState().isVimMode) setIsVimMode(false); }}
+                className={`absolute inset-0 overflow-y-auto custom-scrollbar pl-4 pr-[6px] ${draggedScriptPath ? 'opacity-30 blur-[1px] transition-all duration-300' : ''}`}
+                style={{ paddingTop: toolbarH }}
+                id="script-list-container"
+            >
             <SearchContext.Provider value={{
                 query: searchQuery.toLowerCase().includes("file:") ? searchQuery.replace(/file:/gi, "").trim() :
                     searchQuery.toLowerCase().includes("path:") ? searchQuery.replace(/path:/gi, "").trim() : searchQuery,
                 prefix: searchQuery.toLowerCase().startsWith("file:") ? "file" :
                     searchQuery.toLowerCase().startsWith("path:") ? "path" : null
             }}>
-                <div
-                    ref={containerRef}
-                    onScroll={handleScroll}
-                    onMouseMove={() => { if (useTreeStore.getState().isVimMode) setIsVimMode(false); }}
-                    className={`flex-1 overflow-y-auto custom-scrollbar -mx-4 pl-4 pr-[6px] transition-all duration-300 ${draggedScriptPath ? 'opacity-30 blur-[1px]' : ''}`}
-                    id="script-list-container"
-                >
                     {gridEverMounted && <div className={viewMode !== "tree" ? "" : "hidden"}>
                         <ScriptGridView
                             mode={viewMode !== "tree" ? viewMode as "tiles" | "list" : lastGridMode.current}
@@ -462,8 +444,41 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
                             )}
                         </TreeContext.Provider>
                     </div>
-                </div>
             </SearchContext.Provider>
+            </div>
+            <div
+                ref={toolbarRef}
+                className="absolute top-0 left-0 right-0 z-10"
+                style={{
+                    paddingLeft: 16,
+                    paddingRight: 16,
+                    backgroundColor: 'rgba(8,8,8,0.6)',
+                    backdropFilter: 'blur(20px)',
+                    WebkitBackdropFilter: 'blur(20px)',
+                    borderBottom: '1px solid var(--border-color)',
+                }}
+            >
+                <ScriptTreeToolbar
+                    viewMode={viewMode}
+                    onViewModeChange={onViewModeChange}
+                    isDragging={isDragging}
+                    draggedScriptPath={draggedScriptPath}
+                    sortBy={sortBy}
+                    setSortBy={setSortBy}
+                    isAllExpanded={isAllExpanded}
+                    toggleAll={toggleAll}
+                    isAllHubExpanded={isAllHubExpanded}
+                    toggleAllHub={toggleAllHub}
+                    searchQuery={searchQuery}
+                    setSearchQuery={setSearchQuery}
+                    showHidden={showHidden}
+                    setShowHidden={setShowHidden}
+                    filterTag={filterTag}
+                    searchInputRef={searchInputRef}
+                    onSearchFocus={() => setIsSearchActive(true)}
+                    onSearchBlur={() => setIsSearchActive(false)}
+                />
+            </div>
             <CheatSheet isOpen={isCheatSheetOpen} onClose={() => setIsCheatSheetOpen(false)} />
         </div>
     );

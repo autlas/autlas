@@ -98,7 +98,7 @@ const TagPickerPopover = memo(function TagPickerPopover({ script, allUniqueTags,
                 onDoubleClick={(e) => e.stopPropagation()}
                 onMouseDown={(e) => e.stopPropagation()}
                 onMouseUp={(e) => e.stopPropagation()}
-                className="fixed w-64 bg-[#1a1a1c] border border-white/10 rounded-2xl shadow-[0_0_40px_rgba(0,0,0,0.9)] z-[99999] overflow-hidden backdrop-blur-3xl pointer-events-auto !cursor-default !opacity-100 flex flex-col"
+                className="fixed w-64 bg-black/20 backdrop-blur-md border border-white/10 rounded-2xl shadow-[0_0_40px_rgba(0,0,0,0.9)] z-[99999] overflow-hidden pointer-events-auto !cursor-default !opacity-100 flex flex-col"
                 style={{ top: pos.top !== -9999 ? `${pos.top}px` : '-9999px', right: `${pos.right}px` }}
             >
                 <div className="p-3 pb-0">
@@ -117,7 +117,7 @@ const TagPickerPopover = memo(function TagPickerPopover({ script, allUniqueTags,
                 >
                     {availableTags.map((tag, index) => (
                         <button key={tag} onClick={(e) => { e.stopPropagation(); onAdd(script, tag); }} onMouseDown={(e) => e.stopPropagation()}
-                            className={`cursor-pointer w-full text-left px-4 rounded-xl transition-all flex items-center justify-between group/suggest ${selectedIndex === index ? 'bg-white/10 text-primary h-[44px]' : 'hover:bg-white/5 text-xs text-secondary hover:text-primary h-[38px]'}`}>
+                            className={`cursor-pointer w-full text-left px-4 rounded-xl transition-all flex items-center justify-between group/suggest ${selectedIndex === index ? 'bg-white/8 text-primary h-[44px]' : 'hover:bg-white/5 text-xs text-secondary hover:text-primary h-[38px]'}`}>
                             <div className="flex items-center gap-2.5">
                                 {tagIcons[tag] ? <TagIconSvg name={tagIcons[tag]} size={18} /> : <TagDotIcon size={18} />}
                                 <span className="font-bold">{tag}</span>
@@ -158,7 +158,7 @@ const TagPickerPopover = memo(function TagPickerPopover({ script, allUniqueTags,
                 onDoubleClick={(e) => e.stopPropagation()}
                 onMouseDown={(e) => e.stopPropagation()}
                 onMouseUp={(e) => e.stopPropagation()}
-                className="fixed bg-[#1a1a1c] border border-white/10 rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.9)] z-[100001] overflow-hidden backdrop-blur-3xl pointer-events-auto flex flex-col !cursor-default !opacity-100 h-fit max-h-[450px]"
+                className="fixed bg-black/20 backdrop-blur-md border border-white/10 rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.9)] z-[100001] overflow-hidden pointer-events-auto flex flex-col !cursor-default !opacity-100 h-fit max-h-[450px]"
                 style={{
                     top: pos.top !== -9999 ? `${pos.top}px` : '-9999px',
                     right: `${pos.right}px`,
@@ -182,7 +182,7 @@ const TagPickerPopover = memo(function TagPickerPopover({ script, allUniqueTags,
                 >
                     {availableTags.map((tag, index) => (
                         <button key={tag} onClick={(e) => { e.stopPropagation(); onAdd(script, tag); }} onMouseDown={(e) => e.stopPropagation()}
-                            className={`cursor-pointer w-full text-left px-5 rounded-xl transition-all flex items-center justify-between group/suggest ${selectedIndex === index ? 'bg-white/10 text-primary h-[44px]' : 'hover:bg-white/5 text-xs text-secondary hover:text-primary h-[38px]'}`}>
+                            className={`cursor-pointer w-full text-left px-5 rounded-xl transition-all flex items-center justify-between group/suggest ${selectedIndex === index ? 'bg-white/8 text-primary h-[44px]' : 'hover:bg-white/5 text-xs text-secondary hover:text-primary h-[38px]'}`}>
                             <div className="flex items-center gap-2.5">
                                 {tagIcons[tag] ? <TagIconSvg name={tagIcons[tag]} size={18} /> : <TagDotIcon size={18} />}
                                 <span className="font-bold">{tag}</span>

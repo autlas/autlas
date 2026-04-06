@@ -97,7 +97,7 @@ export default function OrphanReconcileDialog({ matches, onClose, onResolved, on
     return (
         <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
             <div
-                className="bg-[#0a0a0c] border border-white/10 rounded-[28px] shadow-2xl w-[560px] max-h-[70vh] flex flex-col overflow-hidden"
+                className="bg-black/30 backdrop-blur-lg border border-white/15 rounded-[28px] shadow-2xl w-[560px] max-h-[70vh] flex flex-col overflow-hidden"
                 onClick={e => e.stopPropagation()}
             >
                 {/* Header */}

@@ -22,7 +22,7 @@ export default function DragGhost({ ghostRef, draggedScript, draggedTag, activeT
             ? "w-[240px] px-6 h-12 rounded-2xl shadow-xl text-white/80 font-bold"
             : "w-[240px] px-6 h-12 rounded-2xl shadow-2xl text-secondary font-bold"
           )
-          : (draggedScript ? "bg-white/10 border border-white/20 shadow-2xl backdrop-blur-xl rounded-2xl px-6 py-3 text-white font-bold whitespace-nowrap space-x-3" : "")
+          : (draggedScript ? "bg-black/20 backdrop-blur-md border border-white/10 shadow-2xl rounded-2xl px-6 py-3 text-white font-bold whitespace-nowrap space-x-3" : "")
         }
       `}
       style={{

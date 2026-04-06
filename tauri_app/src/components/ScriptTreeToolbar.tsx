@@ -108,7 +108,7 @@ export default function ScriptTreeToolbar({
     const searchActive = (searchCollapsed && searchFocused) || (searchCollapsed && !!searchQuery);
 
     return (
-        <div className={`flex items-end justify-between pt-3 pb-2 border-b transition-all duration-300 ${draggedScriptPath ? 'opacity-20 blur-[1px] pointer-events-none' : ''}`} style={{ borderColor: 'var(--border-color)' }}>
+        <div className={`flex items-end justify-between pt-3 pb-2 transition-all duration-300 ${draggedScriptPath ? 'opacity-20 blur-[1px] pointer-events-none' : ''}`}>
             <div className="flex-1 min-w-0 flex items-end relative">
                 <div className={`flex flex-col flex-shrink-0 overflow-hidden transition-all duration-300 ease-in-out ${searchActive ? 'w-0 opacity-0 pointer-events-none' : 'opacity-100'}`}>
                     <SectionLabel className="ml-3 mb-0.5">{t("toolbar.view")}</SectionLabel>

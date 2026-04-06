@@ -41,7 +41,7 @@ function ConfirmDialog({ tag, onConfirm, onCancel }: { tag: string; onConfirm: (
     <>
       <div className="fixed inset-0 z-[100001] bg-black/40 backdrop-blur-sm" onMouseDown={onCancel} />
       <div
-        className="fixed z-[100002] bg-[#1a1a1c]/95 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.6)] p-6 w-[300px]"
+        className="fixed z-[100002] bg-black/30 backdrop-blur-lg border border-white/15 rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.6)] p-6 w-[300px]"
         style={{ left: "50%", top: "50%", transform: "translate(-50%, -50%)" }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -82,7 +82,7 @@ export default function ContextMenu({ contextMenu, onClose, onStartRenameTag, on
     <>
       <div className="fixed inset-0 z-[99999]" onMouseDown={onClose} />
       <div
-        className="fixed z-[100000] min-w-[200px] bg-[#1a1a1c]/80 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] py-2 animate-scale-in overflow-hidden"
+        className="fixed z-[100000] min-w-[200px] bg-black/20 backdrop-blur-md border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] py-2 animate-scale-in overflow-hidden"
         style={{
           left: Math.min(contextMenu.x + 15, window.innerWidth - 220),
           top: Math.min(contextMenu.y + 15, window.innerHeight - 300),

@@ -90,7 +90,7 @@ function App() {
     setLastScanTimestamp(timestamp);
     safeSetItem("ahk_last_scan_timestamp", timestamp.toString());
     toast.custom(() => (
-      <div className="flex items-center gap-3 w-full px-5 py-3 bg-[#1a1a1f] border border-white/10 rounded-2xl shadow-2xl">
+      <div className="flex items-center gap-3 w-full px-5 py-3 bg-black/20 backdrop-blur-md border border-white/10 rounded-2xl shadow-2xl">
         <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]" />
         <span className="text-xs font-medium text-white/70 flex-1">{t("sidebar.library_synced")}</span>
       </div>
@@ -104,7 +104,7 @@ function App() {
     import('@tauri-apps/api/event').then(({ listen }) => {
       listen<number>('scan-progress', (event) => {
         toast.custom(() => (
-          <div className="flex items-center gap-3 w-full px-5 py-3 bg-[#1a1a1f] border border-white/10 rounded-2xl shadow-2xl">
+          <div className="flex items-center gap-3 w-full px-5 py-3 bg-black/20 backdrop-blur-md border border-white/10 rounded-2xl shadow-2xl">
             <div className="w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.8)] animate-pulse" />
             <span className="text-xs font-medium text-white/70 flex-1">{t("sidebar.scripts_found")} {event.payload}</span>
           </div>
@@ -115,7 +115,7 @@ function App() {
           setOrphanMatches(event.payload);
           const count = event.payload.length;
           toast.custom(() => (
-            <div className="flex items-center gap-3 w-full px-5 py-3 bg-[#1a1a1f] border border-white/10 rounded-2xl shadow-2xl">
+            <div className="flex items-center gap-3 w-full px-5 py-3 bg-black/20 backdrop-blur-md border border-white/10 rounded-2xl shadow-2xl">
               <div className="w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.8)]" />
               <span className="text-xs font-medium text-white/70 flex-1">
                 {count === 1 ? t("orphan.toast_one") : t("orphan.toast_many", { count })}
@@ -210,7 +210,7 @@ function App() {
     const isInstalled = status === "installed";
     const isStarted = status === "started";
     toast.custom(() => (
-      <div className="flex items-center gap-3 w-full px-5 py-3 bg-[#1a1a1f] border border-white/10 rounded-2xl shadow-2xl">
+      <div className="flex items-center gap-3 w-full px-5 py-3 bg-black/20 backdrop-blur-md border border-white/10 rounded-2xl shadow-2xl">
         <div className={`w-2 h-2 rounded-full ${isStarted
           ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]"
           : isInstalled
@@ -653,7 +653,7 @@ function App() {
       {showInstallModal && (
         <div className="fixed inset-0 z-[10000] flex items-center justify-center">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => !installProgress && setShowInstallModal(false)} />
-          <div className="relative bg-[#1a1a1f] border border-white/10 rounded-3xl shadow-2xl w-[400px] p-6 space-y-5">
+          <div className="relative bg-black/30 backdrop-blur-lg border border-white/15 rounded-3xl shadow-2xl w-[400px] p-6 space-y-5">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-bold tracking-widest text-white/60 uppercase">Install Everything</h3>
               {!installProgress && (
