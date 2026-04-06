@@ -103,14 +103,14 @@ const HubScriptCard = memo(function HubScriptCard({
                     </Tooltip>
                 </div>
                 <div className="flex items-center gap-4 flex-shrink-0">
-                    {showInfo && (
-                        <span className="text-xs text-tertiary/50 font-mono">{
-                            sortBy === "created" ? formatDate(s.created_at)
-                            : sortBy === "modified" ? formatDate(s.modified_at)
-                            : sortBy === "last_run" ? (s.last_run ? formatDate(s.last_run) : "—")
-                            : formatSize(s.size)
-                        }</span>
-                    )}
+                    <span className="text-xs text-tertiary/50 font-mono">{
+                        showInfo
+                            ? (sortBy === "created" ? formatDate(s.created_at)
+                                : sortBy === "modified" ? formatDate(s.modified_at)
+                                : sortBy === "last_run" ? (s.last_run ? formatDate(s.last_run) : "—")
+                                : formatSize(s.size))
+                            : "\u200B"
+                    }</span>
                     <div className={`w-3 h-3 rounded-full transition-all duration-500 ${isPending ? (pendingType === 'kill' ? 'bg-red-500 animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.6)]' : 'bg-yellow-500 animate-pulse shadow-[0_0_10px_rgba(234,179,8,0.6)]') : s.is_running ? 'bg-green-500 animate-status-glow shadow-[0_0_12px_rgba(34,197,94,0.8)]' : 'bg-white/10'} ${isDragging ? 'opacity-20' : ''}`}></div>
                 </div>
             </div>
