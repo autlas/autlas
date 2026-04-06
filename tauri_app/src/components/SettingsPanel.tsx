@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import LanguageSelector from "./LanguageSelector";
 import ToggleGroup from "./ui/ToggleGroup";
 import { PlusIcon, CloseIcon, FolderIcon } from "./ui/Icons";
+import { Question } from "@phosphor-icons/react";
 import Tooltip from "./ui/Tooltip";
 import SettingsSection from "./ui/SettingsSection";
 import { useTreeStore } from "../store/useTreeStore";
@@ -94,21 +95,21 @@ export default function SettingsPanel({
 
   return (
     <div className="max-w-[1200px] mx-auto w-full space-y-12 py-8">
+
+      {/* ─── Appearance ─── */}
       <SettingsSection>
-        <h3 className="text-sm font-bold tracking-widest text-tertiary uppercase">{t("settings.language", "Language")}</h3>
-        <div className="flex justify-between items-center px-2">
+        <h3 className="text-sm font-bold tracking-widest text-tertiary uppercase">{t("settings.appearance", "Appearance")}</h3>
+
+        <div className="flex justify-between items-center">
           <div className="flex flex-col">
             <span className="text-base font-bold text-secondary">{t("settings.language", "Language")}</span>
             <span className="text-xs text-tertiary mt-1">{t("settings.language_desc", "Select application language")}</span>
           </div>
           <LanguageSelector />
         </div>
-      </SettingsSection>
 
-      <SettingsSection>
-        <h3 className="text-sm font-bold tracking-widest text-tertiary uppercase">{t("settings.theme_settings")}</h3>
-        <div className="space-y-6">
-          <div className="flex justify-between items-center px-2">
+        <div className="space-y-2 pt-4 border-t border-white/5">
+          <div className="flex justify-between items-end">
             <span className="text-base font-bold text-secondary">{t("settings.brightness")}</span>
             <span className="text-xs font-mono text-indigo-400 font-bold bg-indigo-400/10 px-4 py-1.5 rounded-full tracking-widest uppercase">{brightness}%</span>
           </div>
@@ -118,14 +119,14 @@ export default function SettingsPanel({
             onChange={(e) => setBrightness(parseInt(e.target.value))}
             className="w-full h-2 bg-white/5 rounded-lg appearance-none cursor-pointer accent-indigo-500 hover:accent-indigo-400 transition-all opacity-80 hover:opacity-100"
           />
-          <div className="flex justify-between text-xs text-tertiary font-bold uppercase tracking-[0.3em] pt-2 px-1">
+          <div className="flex justify-between text-xs text-tertiary font-bold uppercase tracking-[0.3em]">
             <span>{t("settings.oled_black")}</span>
             <span>{t("settings.light_gray")}</span>
           </div>
         </div>
 
-        <div className="space-y-6 pt-4 border-t border-white/5">
-          <div className="flex justify-between items-center px-2">
+        <div className="space-y-2 pt-4 border-t border-white/5">
+          <div className="flex justify-between items-end">
             <div className="flex flex-col">
               <span className="text-base font-bold text-secondary">{t("settings.contrast")}</span>
               <span className="text-xs text-tertiary mt-1">{t("settings.contrast_desc")}</span>
@@ -138,14 +139,14 @@ export default function SettingsPanel({
             onChange={(e) => setTextContrast(parseFloat(e.target.value))}
             className="w-full h-2 bg-white/5 rounded-lg appearance-none cursor-pointer accent-indigo-500 hover:accent-indigo-400 transition-all opacity-80 hover:opacity-100"
           />
-          <div className="flex justify-between text-xs text-tertiary font-bold uppercase tracking-[0.3em] pt-2 px-1">
+          <div className="flex justify-between text-xs text-tertiary font-bold uppercase tracking-[0.3em]">
             <span>{t("settings.standard")}</span>
             <span>{t("settings.maximum")}</span>
           </div>
         </div>
 
-        <div className="space-y-6 pt-4 border-t border-white/5">
-          <div className="flex justify-between items-center px-2">
+        <div className="space-y-2 pt-4 border-t border-white/5">
+          <div className="flex justify-between items-end">
             <div className="flex flex-col">
               <span className="text-base font-bold text-secondary">{t("settings.font_scale")}</span>
               <span className="text-xs text-tertiary mt-1">{t("settings.font_scale_desc")}</span>
@@ -158,16 +159,13 @@ export default function SettingsPanel({
             onChange={(e) => setFontScale(parseFloat(e.target.value))}
             className="w-full h-2 bg-white/5 rounded-lg appearance-none cursor-pointer accent-indigo-500 hover:accent-indigo-400 transition-all opacity-80 hover:opacity-100"
           />
-          <div className="flex justify-between text-xs text-tertiary font-bold uppercase tracking-[0.3em] pt-2 px-1">
+          <div className="flex justify-between text-xs text-tertiary font-bold uppercase tracking-[0.3em]">
             <span>0.75x</span>
             <span>1.5x</span>
           </div>
         </div>
-      </SettingsSection>
 
-      <SettingsSection>
-        <h3 className="text-sm font-bold tracking-widest text-tertiary uppercase">{t("settings.interface")}</h3>
-        <div className="flex justify-between items-center px-2">
+        <div className="flex justify-between items-center pt-4 border-t border-white/5">
           <div className="flex flex-col">
             <span className="text-base font-bold text-secondary">{t("settings.animations_ui")}</span>
             <span className="text-xs text-tertiary mt-1">{t("settings.animations_ui_sub")}</span>
@@ -179,21 +177,26 @@ export default function SettingsPanel({
             <div className={`absolute top-[3px] w-5 h-5 rounded-full transition-all duration-300 shadow-lg ${animationsEnabled ? "left-[30px] bg-indigo-400 shadow-indigo-500/50" : "left-[3px] bg-white/30"}`} />
           </button>
         </div>
+      </SettingsSection>
 
-        <div className="flex justify-between items-center px-2 mt-8">
+      {/* ─── Behavior ─── */}
+      <SettingsSection>
+        <h3 className="text-sm font-bold tracking-widest text-tertiary uppercase">{t("settings.behavior", "Behavior")}</h3>
+
+        <div className="flex justify-between items-center">
           <div className="flex flex-col">
             <span className="text-base font-bold text-secondary">{t("settings.vim_nav")}</span>
             <span className="text-xs text-tertiary mt-1">{t("settings.vim_nav_desc")}</span>
           </div>
           <ToggleGroup
-              options={vimNavOptions}
-              value={vimModeNav}
-              onChange={(v) => { setVimModeNav(v); safeSetItem("ahk_vim_mode_nav", v); }}
-              className="flex-shrink-0 w-[145px]"
+            options={vimNavOptions}
+            value={vimModeNav}
+            onChange={(v) => { setVimModeNav(v); safeSetItem("ahk_vim_mode_nav", v); }}
+            className="flex-shrink-0 w-[145px]"
           />
         </div>
 
-        <div className="flex justify-between items-center px-2 pt-4 border-t border-white/5">
+        <div className="flex justify-between items-center pt-4 border-t border-white/5">
           <div className="flex flex-col">
             <span className="text-base font-bold text-secondary">{t("settings.show_file_size")}</span>
             <span className="text-xs text-tertiary mt-1">{t("settings.show_file_size_desc")}</span>
@@ -206,23 +209,7 @@ export default function SettingsPanel({
           </button>
         </div>
 
-        <div className="flex justify-between items-center px-2 pt-4 border-t border-white/5">
-          <div className="flex flex-col">
-            <span className="text-base font-bold text-secondary">{t("settings.auto_refresh", "Auto-refresh on startup")}</span>
-            <span className="text-xs text-tertiary mt-1">{t("settings.auto_refresh_desc", "Scan disk for changes when app opens")}</span>
-          </div>
-          <button
-            onClick={() => { const v = localStorage.getItem("ahk_auto_refresh") !== "true"; safeSetItem("ahk_auto_refresh", String(v)); setAutoRefresh(v); }}
-            className={`relative w-14 h-7 rounded-full transition-all duration-300 cursor-pointer border ${autoRefresh ? "bg-indigo-500/30 border-indigo-400/40 shadow-[0_0_12px_rgba(99,102,241,0.3)]" : "bg-white/5 border-white/10"}`}
-          >
-            <div className={`absolute top-[3px] w-5 h-5 rounded-full transition-all duration-300 shadow-lg ${autoRefresh ? "left-[30px] bg-indigo-400 shadow-indigo-500/50" : "left-[3px] bg-white/30"}`} />
-          </button>
-        </div>
-      </SettingsSection>
-
-      <SettingsSection>
-        <h3 className="text-sm font-bold tracking-widest text-tertiary uppercase">{t("settings.system_tray")}</h3>
-        <div className="flex justify-between items-center px-2">
+        <div className="flex justify-between items-center pt-4 border-t border-white/5">
           <div className="flex flex-col">
             <span className="text-base font-bold text-secondary">{t("settings.close_to_tray", "Close to tray")}</span>
             <span className="text-xs text-tertiary mt-1">{t("settings.close_to_tray_desc", "Hide window instead of quitting when closing")}</span>
@@ -234,75 +221,11 @@ export default function SettingsPanel({
             <div className={`absolute top-[3px] w-5 h-5 rounded-full transition-all duration-300 shadow-lg ${closeToTray ? "left-[30px] bg-indigo-400 shadow-indigo-500/50" : "left-[3px] bg-white/30"}`} />
           </button>
         </div>
-
       </SettingsSection>
 
+      {/* ─── Script Library ─── */}
       <SettingsSection>
         <h3 className="text-sm font-bold tracking-widest text-tertiary uppercase">{t("settings.script_library", "Script Library")}</h3>
-
-        {/* Everything integration */}
-        <div className="flex justify-between items-center px-2">
-          <div className="flex flex-col">
-            <span className="text-base font-bold text-secondary">{t("settings.everything_integration")}</span>
-            <span className="text-xs text-tertiary mt-1">
-              {everythingStatus === "running"
-                ? t("settings.everything_running")
-                : everythingStatus === "installed"
-                ? t("settings.everything_installed")
-                : t("settings.everything_not_installed")}
-            </span>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className={`w-2 h-2 rounded-full ${
-              everythingStatus === "running"
-                ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]"
-                : everythingStatus === "installed"
-                ? "bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.8)]"
-                : "bg-red-500/50 shadow-[0_0_8px_rgba(239,68,68,0.4)]"
-            }`} />
-            {everythingStatus === "running" && (
-              <span className="text-xs font-mono text-green-400 font-bold bg-green-400/10 px-4 py-1.5 rounded-full tracking-widest uppercase">{t("settings.everything_active")}</span>
-            )}
-            {everythingStatus === "installed" && (
-              <button
-                onClick={handleLaunchEverything}
-                disabled={everythingLoading}
-                className="text-xs font-mono text-amber-400 font-bold bg-amber-400/10 px-4 py-1.5 rounded-full tracking-widest uppercase hover:bg-amber-400/20 transition-colors cursor-pointer disabled:opacity-50"
-              >
-                {everythingLoading ? t("settings.everything_starting") : t("settings.everything_launch")}
-              </button>
-            )}
-            {everythingStatus === "not_installed" && (
-              <button
-                onClick={() => onInstallEverything?.()}
-                className="text-xs font-mono text-red-400 font-bold bg-red-400/10 px-4 py-1.5 rounded-full tracking-widest uppercase hover:bg-red-400/20 transition-colors cursor-pointer"
-              >
-                {t("settings.everything_install")}
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Orphan reconciliation */}
-        {orphanCount != null && orphanCount > 0 && (
-          <div className="flex justify-between items-center px-2">
-            <div className="flex flex-col">
-              <span className="text-base font-bold text-secondary">{t("settings.orphan_title", "Moved Scripts")}</span>
-              <span className="text-xs text-tertiary mt-1">
-                {orphanCount === 1 ? t("orphan.subtitle_one") : t("orphan.subtitle_many", { count: orphanCount })}
-              </span>
-            </div>
-            <button
-              onClick={() => onReviewOrphans?.()}
-              className="text-xs font-mono text-amber-400 font-bold bg-amber-400/10 px-4 py-1.5 rounded-full tracking-widest uppercase hover:bg-amber-400/20 transition-colors cursor-pointer"
-            >
-              {t("orphan.review")}
-            </button>
-          </div>
-        )}
-
-        {/* Divider */}
-        <div className="h-px bg-white/5" />
 
         {/* Scan paths */}
         <div className="flex flex-col">
@@ -354,12 +277,95 @@ export default function SettingsPanel({
             {t("settings.add_path")}
           </button>
         </div>
+
+        {/* Everything integration */}
+        <div className="flex justify-between items-center pt-4 border-t border-white/5">
+          <div className="flex flex-col">
+            <span className="text-base font-bold text-secondary inline-flex items-center gap-1.5">
+              {t("settings.everything_integration")}
+              <Tooltip text={t("settings.everything_info", "Everything by voidtools indexes every file on your NTFS drives in real time. With it, script scanning is 30–100x faster than a regular disk walk.")}>
+                <span className="text-tertiary hover:text-secondary transition-colors cursor-help inline-flex translate-y-[2px]">
+                  <Question size={18} weight="bold" />
+                </span>
+              </Tooltip>
+            </span>
+            <span className="text-xs text-tertiary mt-1">
+              {everythingStatus === "running"
+                ? t("settings.everything_running")
+                : everythingStatus === "installed"
+                  ? t("settings.everything_installed")
+                  : t("settings.everything_not_installed")}
+            </span>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className={`w-2 h-2 rounded-full ${everythingStatus === "running"
+              ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]"
+              : everythingStatus === "installed"
+                ? "bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.8)]"
+                : "bg-red-500/50 shadow-[0_0_8px_rgba(239,68,68,0.4)]"
+              }`} />
+            {everythingStatus === "running" && (
+              <span className="text-xs font-mono text-green-400 font-bold bg-green-400/10 px-4 py-1.5 rounded-full tracking-widest uppercase">{t("settings.everything_active")}</span>
+            )}
+            {everythingStatus === "installed" && (
+              <button
+                onClick={handleLaunchEverything}
+                disabled={everythingLoading}
+                className="text-xs font-mono text-amber-400 font-bold bg-amber-400/10 px-4 py-1.5 rounded-full tracking-widest uppercase hover:bg-amber-400/20 transition-colors cursor-pointer disabled:opacity-50"
+              >
+                {everythingLoading ? t("settings.everything_starting") : t("settings.everything_launch")}
+              </button>
+            )}
+            {everythingStatus === "not_installed" && (
+              <button
+                onClick={() => onInstallEverything?.()}
+                className="text-xs font-mono text-red-400 font-bold bg-red-400/10 px-4 py-1.5 rounded-full tracking-widest uppercase hover:bg-red-400/20 transition-colors cursor-pointer"
+              >
+                {t("settings.everything_install")}
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Auto-refresh */}
+        <div className="flex justify-between items-center pt-4 border-t border-white/5">
+          <div className="flex flex-col">
+            <span className="text-base font-bold text-secondary">{t("settings.auto_refresh", "Auto-refresh on startup")}</span>
+            <span className="text-xs text-tertiary mt-1">{t("settings.auto_refresh_desc", "Scan disk for changes when app opens")}</span>
+          </div>
+          <button
+            onClick={() => { const v = localStorage.getItem("ahk_auto_refresh") !== "true"; safeSetItem("ahk_auto_refresh", String(v)); setAutoRefresh(v); }}
+            className={`relative w-14 h-7 rounded-full transition-all duration-300 cursor-pointer border ${autoRefresh ? "bg-indigo-500/30 border-indigo-400/40 shadow-[0_0_12px_rgba(99,102,241,0.3)]" : "bg-white/5 border-white/10"}`}
+          >
+            <div className={`absolute top-[3px] w-5 h-5 rounded-full transition-all duration-300 shadow-lg ${autoRefresh ? "left-[30px] bg-indigo-400 shadow-indigo-500/50" : "left-[3px] bg-white/30"}`} />
+          </button>
+        </div>
       </SettingsSection>
 
+      {/* ─── Data & Maintenance ─── */}
       <SettingsSection>
-        <h3 className="text-sm font-bold tracking-widest text-tertiary uppercase">{t("settings.data_management", "Data Management")}</h3>
+        <h3 className="text-sm font-bold tracking-widest text-tertiary uppercase">{t("settings.data_management", "Data & Maintenance")}</h3>
 
-        <div className="flex justify-between items-center px-2">
+        {/* Orphan reconciliation */}
+        {orphanCount != null && orphanCount > 0 && (
+          <div className="flex justify-between items-center">
+            <div className="flex flex-col">
+              <span className="text-base font-bold text-secondary">{t("settings.orphan_title", "Moved Scripts")}</span>
+              <span className="text-xs text-tertiary mt-1">
+                {orphanCount === 1 ? t("orphan.subtitle_one") : t("orphan.subtitle_many", { count: orphanCount })}
+              </span>
+            </div>
+            <button
+              onClick={() => onReviewOrphans?.()}
+              className="text-xs font-mono text-amber-400 font-bold bg-amber-400/10 px-4 py-1.5 rounded-full tracking-widest uppercase hover:bg-amber-400/20 transition-colors cursor-pointer"
+            >
+              {t("orphan.review")}
+            </button>
+          </div>
+        )}
+
+        {/* Cleanup orphans */}
+        <div className="flex justify-between items-center">
           <div className="flex flex-col">
             <span className="text-base font-bold text-secondary">{t("settings.cleanup_orphans", "Clean Up Orphans")}</span>
             <span className="text-xs text-tertiary mt-1">{t("settings.cleanup_orphans_desc", "Remove all orphaned script records that were not reconciled")}</span>
@@ -396,7 +402,8 @@ export default function SettingsPanel({
           )}
         </div>
 
-        <div className="flex justify-between items-center px-2 pt-4 border-t border-white/5">
+        {/* Reset database */}
+        <div className="flex justify-between items-center pt-4 border-t border-white/5">
           <div className="flex flex-col">
             <span className="text-base font-bold text-secondary">{t("settings.reset_database", "Reset Database")}</span>
             <span className="text-xs text-tertiary mt-1">{t("settings.reset_database_desc", "Clear all tags, metadata, and icon cache. Files on disk are not affected.")}</span>

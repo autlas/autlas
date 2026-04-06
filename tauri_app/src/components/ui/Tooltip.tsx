@@ -96,8 +96,8 @@ export default function Tooltip({ text, children, delay = 0 }: TooltipProps) {
                         top: -9999,
                     }}
                 >
-                    <div className="relative px-3 py-1.5 rounded-lg bg-[#1a1a1c]/95 backdrop-blur-xl border border-white/10 shadow-[0_4px_20px_rgba(0,0,0,0.5)]">
-                        <span className="text-xs font-bold text-secondary whitespace-nowrap">{text}</span>
+                    <div className="relative px-3 py-1.5 rounded-lg bg-[#1a1a1c]/95 backdrop-blur-xl border border-white/10 shadow-[0_4px_20px_rgba(0,0,0,0.5)]" style={{ maxWidth: `calc(100vw - 16px)` }}>
+                        <span className="text-xs font-bold text-secondary">{text}</span>
                         <div
                             className="absolute w-0 h-0"
                             style={{
