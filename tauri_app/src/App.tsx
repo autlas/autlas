@@ -533,7 +533,7 @@ function App() {
                     isActive={tab === activeTab}
                     filterTag={tab}
                     onTagsLoaded={handleTagsLoaded}
-                    onLoadingChange={tab === activeTab ? handleLoadingChange : () => { }}
+                    onLoadingChange={tab === activeTab || viewMode === "settings" ? handleLoadingChange : () => { }}
                     onRunningCountChange={tab === activeTab ? setRunningCount : () => { }}
                     viewMode={displayMode}
                     onViewModeChange={toggleDisplayMode}

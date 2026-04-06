@@ -351,33 +351,33 @@ export default function Sidebar({
                       ? <TagIconSvg name={tagIcons[tag]} size={22} weight="bold" className="flex-shrink-0" />
                       : <TagDotIcon size={22} weight="bold" className="flex-shrink-0" />
                     }
-                  <input
-                    autoFocus
-                    className="bg-transparent border-none outline-none text-sm font-bold w-full text-white ml-3"
-                    value={editTagName}
-                    onChange={(e) => setEditTagName(e.target.value)}
-                    onClick={(e) => e.stopPropagation()}
-                    onBlur={async () => {
-                      const newName = editTagName.trim();
-                      if (newName && newName !== tag) {
-                        await invoke("rename_tag", { oldTag: tag, newTag: newName });
-                        const newOrder = userTags.map(t => t === tag ? newName : t);
-                        setUserTags(newOrder);
-                        await invoke("save_tag_order", { order: newOrder });
-                        if (activeTab === tag) setActiveTab(newName);
-                        triggerScan();
-                      }
-                      setIsRenamingTag(null);
-                    }}
-                    onKeyDown={async (e) => {
-                      if (e.key === "Enter") {
-                        (e.target as HTMLInputElement).blur();
-                      } else if (e.key === "Escape") {
-                        setEditTagName(tag);
+                    <input
+                      autoFocus
+                      className="bg-transparent border-none outline-none text-sm font-bold w-full text-white ml-3"
+                      value={editTagName}
+                      onChange={(e) => setEditTagName(e.target.value)}
+                      onClick={(e) => e.stopPropagation()}
+                      onBlur={async () => {
+                        const newName = editTagName.trim();
+                        if (newName && newName !== tag) {
+                          await invoke("rename_tag", { oldTag: tag, newTag: newName });
+                          const newOrder = userTags.map(t => t === tag ? newName : t);
+                          setUserTags(newOrder);
+                          await invoke("save_tag_order", { order: newOrder });
+                          if (activeTab === tag) setActiveTab(newName);
+                          triggerScan();
+                        }
                         setIsRenamingTag(null);
-                      }
-                    }}
-                  />
+                      }}
+                      onKeyDown={async (e) => {
+                        if (e.key === "Enter") {
+                          (e.target as HTMLInputElement).blur();
+                        } else if (e.key === "Escape") {
+                          setEditTagName(tag);
+                          setIsRenamingTag(null);
+                        }
+                      }}
+                    />
                   </div>
                 ) : (
                   <div className="flex items-center pointer-events-none flex-shrink-0">
@@ -427,11 +427,11 @@ export default function Sidebar({
       </div>
 
       {/* Bottom: settings + refresh */}
-      <div className={`flex w-full mt-auto pl-5 pr-[10px] ${collapsed ? 'flex-col items-center space-y-1.5 pb-5' : 'items-center space-x-3'}`}>
+      <div className={`flex w-full mt-auto pl-4 pr-[13px] ${collapsed ? 'flex-col items-center space-y-1.5 pb-5' : 'items-center space-x-3'}`}>
         <Tooltip text={t("sidebar.settings")}>
           <button
             onClick={() => onTabClick("settings")}
-            className={`${collapsed ? 'w-11' : 'flex-1'} h-12 rounded-xl flex items-center justify-center transition-[background-color,opacity,filter,box-shadow] duration-200 group cursor-pointer ${!collapsed && draggedScript ? "opacity-20 blur-[1px]" : ""
+            className={`${collapsed ? 'w-12' : 'flex-1'} h-12 rounded-xl flex items-center justify-center transition-[background-color,opacity,filter,box-shadow] duration-200 group cursor-pointer ${!collapsed && draggedScript ? "opacity-20 blur-[1px]" : ""
               } ${viewMode === "settings"
                 ? "text-white/80 shadow-lg tag-active bg-white/5"
                 : "text-tertiary hover:text-secondary tag-hover"
@@ -449,7 +449,7 @@ export default function Sidebar({
             onClick={() => { triggerScan(); onRefresh(); }}
             onMouseEnter={() => onHoveringRefresh(true)}
             onMouseLeave={() => onHoveringRefresh(false)}
-            className={`${collapsed ? 'w-11' : 'flex-1'} h-12 rounded-xl flex items-center justify-center transition-all border group cursor-pointer ${!collapsed && draggedScript ? "opacity-20 blur-[1px]" : ""
+            className={`${collapsed ? 'w-12' : 'flex-1'} h-12 rounded-xl flex items-center justify-center transition-all border group cursor-pointer ${!collapsed && draggedScript ? "opacity-20 blur-[1px]" : ""
               } text-tertiary border-transparent hover:text-secondary tag-hover active:scale-95`}
           >
             <div className="transition-transform duration-500 group-hover:-rotate-45">
