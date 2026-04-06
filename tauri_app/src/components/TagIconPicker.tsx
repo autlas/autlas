@@ -16,17 +16,21 @@ interface TagIconPickerProps {
     onClose: () => void;
 }
 
-function IconButton({ name, viewBox, svgHtml, isSelected, onClick }: {
-    name: string; viewBox: string; svgHtml: string; isSelected: boolean; onClick: () => void;
+function IconButton({ name, viewBox, svgHtml, isSelected, isFocused, onClick, onMouseEnter, btnRef }: {
+    name: string; viewBox: string; svgHtml: string; isSelected: boolean; isFocused?: boolean; onClick: () => void; onMouseEnter?: () => void; btnRef?: React.Ref<HTMLButtonElement>;
 }) {
     return (
         <button
+            ref={btnRef}
             title={name}
             onClick={onClick}
+            onMouseEnter={onMouseEnter}
             className={`w-[42px] h-[42px] rounded-xl flex items-center justify-center cursor-pointer transition-all hover:scale-150 hover:z-10 relative group/icon
                 ${isSelected
                     ? "bg-indigo-500/20 border-2 border-indigo-500 text-indigo-400"
-                    : "bg-white/[0.03] border border-transparent text-white/60 hover:bg-white/10 hover:text-white hover:border-white/10"
+                    : isFocused
+                        ? "bg-indigo-500/15 border border-indigo-500/40 text-white ring-1 ring-indigo-500/30 scale-150 z-10"
+                        : "bg-white/[0.03] border border-transparent text-white/60 hover:bg-white/10 hover:text-white hover:border-white/10"
                 }`}
         >
             <svg
@@ -77,6 +81,12 @@ export default function TagIconPicker({ tag, currentIcon, onSelect, onClose }: T
 
     const [isOffline, setIsOffline] = useState(false);
     const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+    // Vim navigation
+    const [focusIdx, setFocusIdx] = useState(-1);
+    const [vimActive, setVimActive] = useState(false);
+    const gridRef = useRef<HTMLDivElement>(null);
+    const focusedBtnRef = useRef<HTMLButtonElement>(null);
 
     useEffect(() => { inputRef.current?.focus(); }, []);
 
@@ -170,6 +180,107 @@ export default function TagIconPicker({ tag, currentIcon, onSelect, onClose }: T
     const hasSiResults = siResults.some(n => siPaths[`si:${n}`]);
     const isSearchingAny = phSearching || siSearching;
 
+    // Build flat list of all navigable icons: { key, action }
+    type NavItem = { key: string; action: () => void };
+    const navItems = useMemo((): NavItem[] => {
+        const items: NavItem[] = [];
+        filtered.forEach(name => {
+            items.push({ key: name, action: () => { onSelect(tag, name); onClose(); } });
+        });
+        phResults.forEach(name => {
+            const paths = phPaths[name];
+            if (paths) items.push({ key: `ph:${name}`, action: () => handleSelectApiIcon(name, paths) });
+        });
+        siResults.forEach(name => {
+            const cacheKey = `si:${name}`;
+            const paths = siPaths[cacheKey];
+            if (paths) items.push({ key: cacheKey, action: () => handleSelectApiIcon(cacheKey, paths) });
+        });
+        return items;
+    }, [filtered, phResults, phPaths, siResults, siPaths]);
+
+    // Calculate columns from grid width
+    const getColumns = useCallback(() => {
+        if (!gridRef.current) return 10;
+        const width = gridRef.current.clientWidth;
+        return Math.max(1, Math.floor((width + 6) / (42 + 6))); // 42px icon + 6px gap (gap-1.5)
+    }, []);
+
+    // Scroll focused button into view
+    useEffect(() => {
+        if (focusIdx >= 0 && focusedBtnRef.current) {
+            focusedBtnRef.current.scrollIntoView({ block: "nearest" });
+        }
+    }, [focusIdx]);
+
+    // Reset focus when items change
+    useEffect(() => { setFocusIdx(-1); setVimActive(false); }, [query]);
+
+    // Keyboard handler
+    useEffect(() => {
+        const handleKey = (e: KeyboardEvent) => {
+            const isInput = document.activeElement === inputRef.current;
+            const key = e.key;
+
+            // Esc always closes
+            if (key === "Escape") { e.preventDefault(); e.stopImmediatePropagation(); onClose(); return; }
+
+            // When in input, let typing through but intercept navigation keys
+            if (isInput) {
+                if (key === "Enter" || key === "ArrowDown" || (key === "Tab" && !e.shiftKey)) {
+                    if (navItems.length > 0) {
+                        e.preventDefault();
+                        e.stopImmediatePropagation();
+                        setFocusIdx(0);
+                        setVimActive(true);
+                        inputRef.current?.blur();
+                    }
+                }
+                // Block all keys from reaching ScriptTree while picker is open
+                e.stopImmediatePropagation();
+                return;
+            }
+
+            // Block all keys from reaching ScriptTree
+            e.stopImmediatePropagation();
+
+            // In grid navigation
+            if (!vimActive) return;
+            const cols = getColumns();
+            const total = navItems.length;
+            if (total === 0) return;
+            const navMode = localStorage.getItem("ahk_vim_mode_nav") || "hjkl";
+            const is2D = navMode === "hjkl";
+
+            let next = focusIdx;
+            if ((key === "h" || key === "ArrowLeft") && is2D) { next = Math.max(0, focusIdx - 1); }
+            else if ((key === "l" || key === "ArrowRight") && is2D) { next = Math.min(total - 1, focusIdx + 1); }
+            else if (key === "j" || key === "ArrowDown") { next = Math.min(total - 1, focusIdx + (is2D ? cols : 1)); }
+            else if (key === "k" || key === "ArrowUp") { next = Math.max(0, focusIdx - (is2D ? cols : 1)); }
+            else if (key === "g") { next = 0; }
+            else if (key === "G") { next = total - 1; }
+            else if (key === "Enter" || key === " ") {
+                e.preventDefault();
+                if (focusIdx >= 0 && focusIdx < total) navItems[focusIdx].action();
+                return;
+            }
+            else if (key === "i" || key === "/") {
+                e.preventDefault();
+                setVimActive(false);
+                setFocusIdx(-1);
+                inputRef.current?.focus();
+                return;
+            }
+            else return;
+
+            e.preventDefault();
+            setFocusIdx(next);
+        };
+
+        window.addEventListener("keydown", handleKey, true);
+        return () => window.removeEventListener("keydown", handleKey, true);
+    }, [vimActive, focusIdx, navItems, getColumns, onClose]);
+
     return createPortal(
         <div
             className="fixed inset-0 z-[99999] flex justify-center bg-black/60 backdrop-blur-md"
@@ -212,15 +323,18 @@ export default function TagIconPicker({ tag, currentIcon, onSelect, onClose }: T
                 <div className="pl-6 pr-[14px] py-6 overflow-y-auto flex-1 min-h-0 custom-scrollbar">
                     {/* Section 1: Static/loaded icons */}
                     {filtered.length > 0 && (
-                        <div className="grid grid-cols-[repeat(auto-fill,42px)] gap-1.5 justify-center">
-                            {filtered.map(name => (
+                        <div ref={gridRef} className="grid grid-cols-[repeat(auto-fill,42px)] gap-1.5 justify-center">
+                            {filtered.map((name, i) => (
                                 <IconButton
                                     key={name}
                                     name={name}
                                     viewBox="0 0 256 256"
                                     svgHtml={TAG_ICONS[name][0]}
                                     isSelected={name === currentIcon}
+                                    isFocused={vimActive && focusIdx === i}
+                                    btnRef={vimActive && focusIdx === i ? focusedBtnRef : undefined}
                                     onClick={() => { onSelect(tag, name); onClose(); }}
+                                    onMouseEnter={() => { if (vimActive) { setVimActive(false); setFocusIdx(-1); } }}
                                 />
                             ))}
                         </div>
@@ -233,9 +347,10 @@ export default function TagIconPicker({ tag, currentIcon, onSelect, onClose }: T
                             {phSearching && !hasPhResults && <Spinner label={t("icon_picker.searching", "Searching...")} />}
                             {hasPhResults && (
                                 <div className={`grid grid-cols-[repeat(auto-fill,42px)] gap-1.5 justify-center transition-opacity ${phSearching ? "opacity-30 animate-pulse pointer-events-none" : ""}`}>
-                                    {phResults.map(name => {
+                                    {(() => { let offset = filtered.length; return phResults.map(name => {
                                         const paths = phPaths[name];
                                         if (!paths) return null;
+                                        const idx = offset++;
                                         return (
                                             <IconButton
                                                 key={`ph:${name}`}
@@ -243,10 +358,13 @@ export default function TagIconPicker({ tag, currentIcon, onSelect, onClose }: T
                                                 viewBox="0 0 256 256"
                                                 svgHtml={paths[0]}
                                                 isSelected={name === currentIcon}
+                                                isFocused={vimActive && focusIdx === idx}
+                                                btnRef={vimActive && focusIdx === idx ? focusedBtnRef : undefined}
                                                 onClick={() => handleSelectApiIcon(name, paths)}
+                                                onMouseEnter={() => { if (vimActive) { setVimActive(false); setFocusIdx(-1); } }}
                                             />
                                         );
-                                    })}
+                                    }); })()}
                                 </div>
                             )}
                         </>
@@ -259,10 +377,11 @@ export default function TagIconPicker({ tag, currentIcon, onSelect, onClose }: T
                             {siSearching && !hasSiResults && <Spinner label={t("icon_picker.searching", "Searching...")} />}
                             {hasSiResults && (
                                 <div className={`grid grid-cols-[repeat(auto-fill,42px)] gap-1.5 justify-center transition-opacity ${siSearching ? "opacity-30 animate-pulse pointer-events-none" : ""}`}>
-                                    {siResults.map(name => {
+                                    {(() => { let offset = filtered.length + phResults.filter(n => phPaths[n]).length; return siResults.map(name => {
                                         const cacheKey = `si:${name}`;
                                         const paths = siPaths[cacheKey];
                                         if (!paths) return null;
+                                        const idx = offset++;
                                         return (
                                             <IconButton
                                                 key={cacheKey}
@@ -270,10 +389,13 @@ export default function TagIconPicker({ tag, currentIcon, onSelect, onClose }: T
                                                 viewBox="0 0 24 24"
                                                 svgHtml={paths[0]}
                                                 isSelected={cacheKey === currentIcon}
+                                                isFocused={vimActive && focusIdx === idx}
+                                                btnRef={vimActive && focusIdx === idx ? focusedBtnRef : undefined}
                                                 onClick={() => handleSelectApiIcon(cacheKey, paths)}
+                                                onMouseEnter={() => { if (vimActive) { setVimActive(false); setFocusIdx(-1); } }}
                                             />
                                         );
-                                    })}
+                                    }); })()}
                                 </div>
                             )}
                         </>

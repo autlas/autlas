@@ -416,23 +416,28 @@ export default function Sidebar({
             )}
             {!collapsed && isCreatingTagFor && (
               <li className={navItemClass("", true, { activeTab, draggedScript, draggedTag, dragOverTag, activeTabPressed })}>
-                <input
-                  autoFocus
-                  type="text"
-                  className="w-full bg-transparent border-none outline-none text-sm font-bold text-white placeholder:text-white/20"
-                  placeholder={t("search.tag_name")}
-                  value={newTagName}
-                  onChange={(e) => setNewTagName(e.target.value)}
-                  onBlur={() => setIsCreatingTagFor(null)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && newTagName.trim()) {
-                      onCustomDrop(isCreatingTagFor.id, newTagName.trim());
-                      setIsCreatingTagFor(null);
-                    } else if (e.key === "Escape") {
-                      setIsCreatingTagFor(null);
-                    }
-                  }}
-                />
+                <div className="flex items-center flex-shrink-0 w-full">
+                  <TagDotIcon size={22} weight="bold" className="flex-shrink-0" />
+                  <input
+                    autoFocus
+                    type="text"
+                    className="bg-transparent border-none outline-none text-sm font-bold w-full text-white ml-3 placeholder:text-white/20"
+                    placeholder={t("search.tag_name")}
+                    value={newTagName}
+                    onChange={(e) => setNewTagName(e.target.value)}
+                    onBlur={() => setIsCreatingTagFor(null)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && newTagName.trim()) {
+                        const tagName = newTagName.trim();
+                        onCustomDrop(isCreatingTagFor.id, tagName);
+                        setIsCreatingTagFor(null);
+                        useTreeStore.getState().setIconPickerTag(tagName);
+                      } else if (e.key === "Escape") {
+                        setIsCreatingTagFor(null);
+                      }
+                    }}
+                  />
+                </div>
               </li>
             )}
           </ul>
