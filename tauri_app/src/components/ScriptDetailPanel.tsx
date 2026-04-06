@@ -315,6 +315,8 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
         </Tooltip>
       </div>
 
+      {/* Scrollable area: tags + meta + code */}
+      <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
       {/* Tags */}
       <div className="px-5 mb-1.5">
         <span className="text-[11px] font-bold uppercase tracking-widest text-white/20">{t("detail.tags")}</span>
@@ -374,7 +376,7 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
       <div className="mx-5 border-t border-white/[0.06] mb-3" />
 
       {/* Code Viewer */}
-      <div className="flex-1 min-h-0 overflow-auto custom-scrollbar px-2">
+      <div className="px-2">
         {loading ? (
           <div className="flex items-center justify-center h-32 text-white/20 text-sm">{t("detail.loading")}</div>
         ) : content === null ? (
@@ -393,6 +395,7 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
             </table>
           </pre>
         )}
+      </div>
       </div>
     </>
   );
