@@ -106,9 +106,10 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
                     // Scan data is authoritative for is_running — backend checks actual processes.
                     // Watcher events update status between scans but scan results are fresh truth.
                     const tagsMatch = p.tags.length === d.tags.length && p.tags.every((t, i) => t === d.tags[i]);
-                    if (p.id === d.id && p.is_running === d.is_running && p.has_ui === d.has_ui && p.is_hidden === d.is_hidden && tagsMatch) return p;
+                    if (p.id === d.id && p.is_running === d.is_running && p.has_ui === d.has_ui
+                        && p.is_hidden === d.is_hidden && p.size === d.size && tagsMatch) return p;
                     anyChanged = true;
-                    return d;
+                    return { ...p, ...d }; // merge scan data onto prev ref
                 });
 
                 return anyChanged ? merged : prev;
