@@ -185,14 +185,19 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
 
         let unlisten: (() => void) | null = null;
         let unlistenStatus: (() => void) | null = null;
+        let mounted = true; // Guard: prevent listener registration after unmount
 
         import('@tauri-apps/api/event').then(({ listen }) => {
+            if (!mounted) return; // Component unmounted before import resolved
+
             listen<{ id: string; tags: string[] }>('script-tags-changed', (event) => {
                 const { id, tags } = event.payload;
                 setAllScripts(prev => prev.map(s =>
                     s.id === id ? { ...s, tags } : s
                 ));
-            }).then(fn => { unlisten = fn; });
+            }).then(fn => {
+                if (mounted) { unlisten = fn; } else { fn(); } // Immediately unlisten if already unmounted
+            });
 
             listen<{ path: string; is_running: boolean; has_ui: boolean }>('script-status-changed', (event) => {
                 const { path, is_running, has_ui } = event.payload;
@@ -224,10 +229,13 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
                         if (shouldClear) store.clearPendingScript(key);
                     }
                 }
-            }).then(fn => { unlistenStatus = fn; });
+            }).then(fn => {
+                if (mounted) { unlistenStatus = fn; } else { fn(); }
+            });
         });
 
         return () => {
+            mounted = false;
             if (unlisten) unlisten();
             if (unlistenStatus) unlistenStatus();
             // Clean up any active burst polling intervals

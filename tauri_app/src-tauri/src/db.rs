@@ -45,9 +45,10 @@ fn dedup_scripts_by_path(conn: &Connection) {
         Ok(s) => s,
         Err(_) => return,
     };
-    let rows: Vec<(String, String)> = stmt.query_map([], |row| {
+    let Ok(mapped) = stmt.query_map([], |row| {
         Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
-    }).unwrap().filter_map(|r| r.ok()).collect();
+    }) else { return };
+    let rows: Vec<(String, String)> = mapped.filter_map(|r| r.ok()).collect();
 
     let mut groups: std::collections::HashMap<String, Vec<(String, String)>> = std::collections::HashMap::new();
     for (id, path) in rows {
@@ -274,12 +275,12 @@ pub fn reconcile_orphan(conn: &Connection, orphan_id: &str, new_path: &str, new_
 
 /// Find orphans with matching content hash
 pub fn find_orphans_by_hash(conn: &Connection, hash: &str) -> Vec<(String, String, String)> {
-    let mut stmt = conn.prepare(
+    let Ok(mut stmt) = conn.prepare(
         "SELECT id, path, filename FROM scripts WHERE is_orphaned = 1 AND content_hash = ?1"
-    ).unwrap();
+    ) else { return Vec::new() };
     stmt.query_map(params![hash], |row| {
         Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?, row.get::<_, String>(2)?))
-    }).unwrap().filter_map(|r| r.ok()).collect()
+    }).map(|rows| rows.filter_map(|r| r.ok()).collect()).unwrap_or_default()
 }
 
 /// Find orphans with matching filename, but ONLY if no active script has that filename.
@@ -297,12 +298,12 @@ pub fn find_orphans_by_filename(conn: &Connection, filename: &str) -> Vec<(Strin
         return Vec::new();
     }
 
-    let mut stmt = conn.prepare(
+    let Ok(mut stmt) = conn.prepare(
         "SELECT id, path FROM scripts WHERE is_orphaned = 1 AND LOWER(filename) = LOWER(?1)"
-    ).unwrap();
+    ) else { return Vec::new() };
     stmt.query_map(params![filename], |row| {
         Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
-    }).unwrap().filter_map(|r| r.ok()).collect()
+    }).map(|rows| rows.filter_map(|r| r.ok()).collect()).unwrap_or_default()
 }
 
 pub struct ActiveScriptInfo {
@@ -313,18 +314,18 @@ pub struct ActiveScriptInfo {
 
 /// Bulk-load all active scripts: path → (id, hash, last_seen_epoch)
 pub fn get_all_active_scripts_full(conn: &Connection) -> HashMap<String, ActiveScriptInfo> {
-    let mut stmt = conn.prepare(
-        "SELECT path, id, content_hash, last_seen FROM scripts WHERE is_orphaned = 0"
-    ).unwrap();
     let mut map = HashMap::new();
-    let rows = stmt.query_map([], |row| {
+    let Ok(mut stmt) = conn.prepare(
+        "SELECT path, id, content_hash, last_seen FROM scripts WHERE is_orphaned = 0"
+    ) else { return map };
+    let Ok(rows) = stmt.query_map([], |row| {
         let path: String = row.get(0)?;
         let id: String = row.get(1)?;
         let hash: String = row.get::<_, Option<String>>(2)?.unwrap_or_default();
         let last_seen: String = row.get::<_, Option<String>>(3)?.unwrap_or_default();
         let epoch = parse_iso_to_epoch(&last_seen).unwrap_or(0);
         Ok((path, ActiveScriptInfo { id, hash, last_seen_epoch: epoch }))
-    }).unwrap();
+    }) else { return map };
     for row in rows.flatten() {
         map.insert(row.0, row.1);
     }
@@ -342,22 +343,22 @@ pub fn touch_all_last_seen(conn: &Connection, paths: &std::collections::HashSet<
 
 /// Get all non-orphaned scripts (id, path)
 pub fn get_all_active_scripts(conn: &Connection) -> Vec<(String, String)> {
-    let mut stmt = conn.prepare(
+    let Ok(mut stmt) = conn.prepare(
         "SELECT id, path FROM scripts WHERE is_orphaned = 0"
-    ).unwrap();
+    ) else { return Vec::new() };
     stmt.query_map([], |row| {
         Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
-    }).unwrap().filter_map(|r| r.ok()).collect()
+    }).map(|rows| rows.filter_map(|r| r.ok()).collect()).unwrap_or_default()
 }
 
 /// Get orphaned scripts for UI confirmation
 pub fn get_orphaned_scripts(conn: &Connection) -> Vec<(String, String, String)> {
-    let mut stmt = conn.prepare(
+    let Ok(mut stmt) = conn.prepare(
         "SELECT id, path, filename FROM scripts WHERE is_orphaned = 1 ORDER BY orphaned_at DESC"
-    ).unwrap();
+    ) else { return Vec::new() };
     stmt.query_map([], |row| {
         Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?, row.get::<_, String>(2)?))
-    }).unwrap().filter_map(|r| r.ok()).collect()
+    }).map(|rows| rows.filter_map(|r| r.ok()).collect()).unwrap_or_default()
 }
 
 #[allow(dead_code)]
@@ -371,24 +372,22 @@ pub fn cleanup_old_orphans_sql(conn: &Connection, days: i64) -> rusqlite::Result
 // ── Tags ──
 
 pub fn get_tags_for_script(conn: &Connection, script_id: &str) -> Vec<String> {
-    let mut stmt = conn.prepare(
+    let Ok(mut stmt) = conn.prepare(
         "SELECT tag FROM script_tags WHERE script_id = ?1 ORDER BY tag"
-    ).unwrap();
+    ) else { return Vec::new() };
     stmt.query_map(params![script_id], |row| row.get::<_, String>(0))
-        .unwrap()
-        .filter_map(|r| r.ok())
-        .collect()
+        .map(|rows| rows.filter_map(|r| r.ok()).collect())
+        .unwrap_or_default()
 }
 
 #[allow(dead_code)]
 pub fn get_tags_by_path(conn: &Connection, path: &str) -> Vec<String> {
-    let mut stmt = conn.prepare(
+    let Ok(mut stmt) = conn.prepare(
         "SELECT st.tag FROM script_tags st JOIN scripts s ON st.script_id = s.id WHERE s.path = ?1 AND s.is_orphaned = 0 ORDER BY st.tag"
-    ).unwrap();
+    ) else { return Vec::new() };
     stmt.query_map(params![path], |row| row.get::<_, String>(0))
-        .unwrap()
-        .filter_map(|r| r.ok())
-        .collect()
+        .map(|rows| rows.filter_map(|r| r.ok()).collect())
+        .unwrap_or_default()
 }
 
 pub fn set_tags_for_script(conn: &Connection, script_id: &str, tags: &[String]) -> rusqlite::Result<()> {
@@ -453,12 +452,12 @@ pub fn delete_tag_all(conn: &Connection, tag: &str) -> rusqlite::Result<()> {
 // ── Tag meta (icons, order) ──
 
 pub fn get_tag_icons(conn: &Connection) -> HashMap<String, String> {
-    let mut stmt = conn.prepare(
+    let Ok(mut stmt) = conn.prepare(
         "SELECT tag, icon FROM tag_meta WHERE icon IS NOT NULL AND icon != ''"
-    ).unwrap();
+    ) else { return HashMap::new() };
     stmt.query_map([], |row| {
         Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
-    }).unwrap().filter_map(|r| r.ok()).collect()
+    }).map(|rows| rows.filter_map(|r| r.ok()).collect()).unwrap_or_default()
 }
 
 pub fn save_tag_icon(conn: &Connection, tag: &str, icon: &str) -> rusqlite::Result<()> {
@@ -474,13 +473,12 @@ pub fn save_tag_icon(conn: &Connection, tag: &str, icon: &str) -> rusqlite::Resu
 }
 
 pub fn get_tag_order(conn: &Connection) -> Vec<String> {
-    let mut stmt = conn.prepare(
+    let Ok(mut stmt) = conn.prepare(
         "SELECT tag FROM tag_meta WHERE sort_order IS NOT NULL ORDER BY sort_order"
-    ).unwrap();
+    ) else { return Vec::new() };
     stmt.query_map([], |row| row.get::<_, String>(0))
-        .unwrap()
-        .filter_map(|r| r.ok())
-        .collect()
+        .map(|rows| rows.filter_map(|r| r.ok()).collect())
+        .unwrap_or_default()
 }
 
 pub fn save_tag_order(conn: &Connection, order: &[String]) -> rusqlite::Result<()> {
@@ -498,11 +496,10 @@ pub fn save_tag_order(conn: &Connection, order: &[String]) -> rusqlite::Result<(
 // ── Hidden folders ──
 
 pub fn get_hidden_folders(conn: &Connection) -> Vec<String> {
-    let mut stmt = conn.prepare("SELECT path FROM hidden_folders").unwrap();
+    let Ok(mut stmt) = conn.prepare("SELECT path FROM hidden_folders") else { return Vec::new() };
     stmt.query_map([], |row| row.get::<_, String>(0))
-        .unwrap()
-        .filter_map(|r| r.ok())
-        .collect()
+        .map(|rows| rows.filter_map(|r| r.ok()).collect())
+        .unwrap_or_default()
 }
 
 pub fn toggle_hidden_folder(conn: &Connection, path: &str) -> rusqlite::Result<bool> {
@@ -525,11 +522,10 @@ pub fn toggle_hidden_folder(conn: &Connection, path: &str) -> rusqlite::Result<b
 // ── Scan paths ──
 
 pub fn get_scan_paths(conn: &Connection) -> Vec<String> {
-    let mut stmt = conn.prepare("SELECT path FROM scan_paths").unwrap();
+    let Ok(mut stmt) = conn.prepare("SELECT path FROM scan_paths") else { return Vec::new() };
     stmt.query_map([], |row| row.get::<_, String>(0))
-        .unwrap()
-        .filter_map(|r| r.ok())
-        .collect()
+        .map(|rows| rows.filter_map(|r| r.ok()).collect())
+        .unwrap_or_default()
 }
 
 pub fn set_scan_paths(conn: &Connection, paths: &[String]) -> rusqlite::Result<()> {
@@ -564,13 +560,13 @@ pub fn get_script_path_by_id(conn: &Connection, id: &str) -> Option<String> {
 // ── Bulk tags load (for get_scripts enrichment) ──
 
 pub fn get_all_tags_map(conn: &Connection) -> HashMap<String, Vec<String>> {
-    let mut stmt = conn.prepare(
-        "SELECT s.path, st.tag FROM script_tags st JOIN scripts s ON st.script_id = s.id WHERE s.is_orphaned = 0"
-    ).unwrap();
     let mut map: HashMap<String, Vec<String>> = HashMap::new();
-    let rows = stmt.query_map([], |row| {
+    let Ok(mut stmt) = conn.prepare(
+        "SELECT s.path, st.tag FROM script_tags st JOIN scripts s ON st.script_id = s.id WHERE s.is_orphaned = 0"
+    ) else { return map };
+    let Ok(rows) = stmt.query_map([], |row| {
         Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
-    }).unwrap();
+    }) else { return map };
     for row in rows.flatten() {
         map.entry(row.0).or_default().push(row.1);
     }
@@ -616,10 +612,10 @@ pub fn days_to_date(mut days: i64) -> (i64, i64, i64) {
 // ── Icon SVG cache ──
 
 pub fn load_icon_svg_cache(conn: &Connection) -> HashMap<String, (String, String)> {
-    let mut stmt = conn.prepare("SELECT name, bold, fill FROM icon_svg_cache").unwrap();
+    let Ok(mut stmt) = conn.prepare("SELECT name, bold, fill FROM icon_svg_cache") else { return HashMap::new() };
     stmt.query_map([], |row| {
         Ok((row.get::<_, String>(0)?, (row.get::<_, String>(1)?, row.get::<_, String>(2)?)))
-    }).unwrap().filter_map(|r| r.ok()).collect()
+    }).map(|rows| rows.filter_map(|r| r.ok()).collect()).unwrap_or_default()
 }
 
 pub fn save_icon_svg(conn: &Connection, name: &str, bold: &str, fill: &str) -> rusqlite::Result<()> {

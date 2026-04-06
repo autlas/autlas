@@ -559,6 +559,8 @@ struct TraySettings {
     close_to_tray: bool,
 }
 
+struct WatcherShutdown(std::sync::Arc<std::sync::atomic::AtomicBool>);
+
 #[derive(Serialize, Clone)]
 struct ScriptStatusEvent {
     path: String,
@@ -637,15 +639,16 @@ fn collect_running_scripts(paths: &HashSet<String>) -> Vec<native_popup::Running
     }).collect()
 }
 
-fn start_process_watcher(app: tauri::AppHandle) {
+fn start_process_watcher(app: tauri::AppHandle, shutdown: std::sync::Arc<std::sync::atomic::AtomicBool>) {
     std::thread::spawn(move || {
         let mut sys = System::new_all();
         sys.refresh_all();
         let mut prev = get_running_ahk_paths(&sys);
         println!("[Watcher] Started. Initially running: {:?}", prev);
 
-        loop {
+        while !shutdown.load(std::sync::atomic::Ordering::Relaxed) {
             std::thread::sleep(std::time::Duration::from_millis(1500));
+            if shutdown.load(std::sync::atomic::Ordering::Relaxed) { break; }
             sys.refresh_processes(sysinfo::ProcessesToUpdate::All, true);
             let current = get_running_ahk_paths(&sys);
 
@@ -1703,6 +1706,10 @@ async fn show_main_window_cmd(app: tauri::AppHandle) -> Result<(), String> {
 
 #[tauri::command]
 async fn quit_app_cmd(app: tauri::AppHandle) -> Result<(), String> {
+    // Signal watcher thread to stop
+    if let Some(shutdown) = app.try_state::<WatcherShutdown>() {
+        shutdown.0.store(true, std::sync::atomic::Ordering::Relaxed);
+    }
     app.exit(0);
     Ok(())
 }
@@ -1782,50 +1789,56 @@ pub fn run() {
                         app_handle.exit(0);
                     } else if let Some(path) = action.strip_prefix("stop|").or_else(|| action.strip_prefix("restart|")) {
                         let is_restart = action.starts_with("restart|");
-                        let mut sys = System::new_all();
-                        sys.refresh_all();
+                        let path_owned = path.to_string();
                         let path_lower = path.to_lowercase().replace('/', "\\");
-                        for (pid, process) in sys.processes() {
-                            let name = process.name().to_string_lossy().to_lowercase();
-                            if name.contains("autohotkey") {
-                                let matched = process.cmd().iter().any(|arg| {
-                                    arg.to_string_lossy().trim_matches('"').replace('/', "\\").to_lowercase() == path_lower
-                                });
-                                if matched {
-                                    let _ = Command::new("taskkill")
-                                        .args(["/F", "/T", "/PID", &pid.as_u32().to_string()])
-                                        .output();
+                        // Spawn to avoid holding popup mutex during blocking operations
+                        let handle = app_handle.clone();
+                        std::thread::spawn(move || {
+                            let mut sys = System::new_all();
+                            sys.refresh_all();
+                            for (pid, process) in sys.processes() {
+                                let name = process.name().to_string_lossy().to_lowercase();
+                                if name.contains("autohotkey") {
+                                    let matched = process.cmd().iter().any(|arg| {
+                                        arg.to_string_lossy().trim_matches('"').replace('/', "\\").to_lowercase() == path_lower
+                                    });
+                                    if matched {
+                                        let _ = Command::new("taskkill")
+                                            .args(["/F", "/T", "/PID", &pid.as_u32().to_string()])
+                                            .output();
+                                    }
                                 }
                             }
-                        }
-                        if is_restart {
-                            std::thread::sleep(std::time::Duration::from_millis(150));
-                            let _ = Command::new("explorer").arg(path).spawn();
-                            // Track last_run in DB
-                            if let Ok(conn) = app_handle.state::<db::DbState>().0.lock() {
-                                let _ = db::set_last_run(&conn, &path_lower, &db::now_iso());
+                            if is_restart {
+                                std::thread::sleep(std::time::Duration::from_millis(150));
+                                let _ = Command::new("explorer").arg(&path_owned).spawn();
+                                if let Ok(conn) = handle.state::<db::DbState>().0.lock() {
+                                    let _ = db::set_last_run(&conn, &path_lower, &db::now_iso());
+                                }
                             }
-                        }
+                        });
                     } else if let Some(path) = action.strip_prefix("show_ui|") {
-                        // Reuse show_script_ui logic via PowerShell PostMessage
-                        let mut sys = System::new_all();
-                        sys.refresh_all();
+                        // Spawn to avoid holding popup mutex during blocking PowerShell call
                         let path_lower = path.to_lowercase().replace('/', "\\");
-                        for (pid, process) in sys.processes() {
-                            let name = process.name().to_string_lossy().to_lowercase();
-                            if name.contains("autohotkey") {
-                                let cmd_str = process.cmd().iter().map(|s| s.to_string_lossy().into_owned()).collect::<Vec<_>>().join(" ").to_lowercase().replace('/', "\\");
-                                if cmd_str.contains(&path_lower) {
-                                    let pid_val = pid.as_u32();
-                                    let ps = format!(
-                                        "Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; public class W32 {{ [DllImport(\"user32.dll\")] public static extern bool PostMessage(IntPtr h, uint m, IntPtr w, IntPtr l); [DllImport(\"user32.dll\")] public static extern uint GetWindowThreadProcessId(IntPtr h, out uint p); public delegate bool EP(IntPtr h, IntPtr l); [DllImport(\"user32.dll\")] public static extern bool EnumWindows(EP e, IntPtr l); static uint T; static int C; public static int Go(uint pid) {{ T=pid;C=0; EnumWindows((h,l)=>{{ uint p; GetWindowThreadProcessId(h,out p); if(p==T){{ PostMessage(h,0x0401,IntPtr.Zero,IntPtr.Zero); C++; }} return true; }}, IntPtr.Zero); return C; }} }}'; [W32]::Go({})",
-                                        pid_val
-                                    );
-                                    let _ = Command::new("powershell").arg("-NoProfile").arg("-Command").arg(ps).output();
-                                    break;
+                        std::thread::spawn(move || {
+                            let mut sys = System::new_all();
+                            sys.refresh_all();
+                            for (pid, process) in sys.processes() {
+                                let name = process.name().to_string_lossy().to_lowercase();
+                                if name.contains("autohotkey") {
+                                    let cmd_str = process.cmd().iter().map(|s| s.to_string_lossy().into_owned()).collect::<Vec<_>>().join(" ").to_lowercase().replace('/', "\\");
+                                    if cmd_str.contains(&path_lower) {
+                                        let pid_val = pid.as_u32();
+                                        let ps = format!(
+                                            "Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; public class W32 {{ [DllImport(\"user32.dll\")] public static extern bool PostMessage(IntPtr h, uint m, IntPtr w, IntPtr l); [DllImport(\"user32.dll\")] public static extern uint GetWindowThreadProcessId(IntPtr h, out uint p); public delegate bool EP(IntPtr h, IntPtr l); [DllImport(\"user32.dll\")] public static extern bool EnumWindows(EP e, IntPtr l); static uint T; static int C; public static int Go(uint pid) {{ T=pid;C=0; EnumWindows((h,l)=>{{ uint p; GetWindowThreadProcessId(h,out p); if(p==T){{ PostMessage(h,0x0401,IntPtr.Zero,IntPtr.Zero); C++; }} return true; }}, IntPtr.Zero); return C; }} }}'; [W32]::Go({})",
+                                            pid_val
+                                        );
+                                        let _ = Command::new("powershell").arg("-NoProfile").arg("-Command").arg(ps).output();
+                                        break;
+                                    }
                                 }
                             }
-                        }
+                        });
                     }
                 });
             }
@@ -1879,7 +1892,10 @@ pub fn run() {
                 })
                 .build(app)?;
 
-            start_process_watcher(handle);
+            let watcher_shutdown = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+            app.manage(WatcherShutdown(watcher_shutdown.clone()));
+            start_process_watcher(handle, watcher_shutdown);
+
             Ok(())
         })
         .on_window_event(|window, event| {
