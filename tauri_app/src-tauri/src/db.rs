@@ -36,10 +36,9 @@ pub fn open_db() -> rusqlite::Result<Connection> {
     Ok(conn)
 }
 
-/// Remove duplicate scripts that differ only in path casing.
+/// Remove duplicate scripts that differ only in path casing or \\?\ prefix.
 /// Keeps the entry that has tags; if both or neither have tags, keeps the one with lowercase path.
 fn dedup_scripts_by_path(conn: &Connection) {
-    // Find groups of scripts with the same lowercase path
     let mut stmt = match conn.prepare(
         "SELECT id, path FROM scripts WHERE is_orphaned = 0 ORDER BY LOWER(path)"
     ) {
@@ -52,7 +51,11 @@ fn dedup_scripts_by_path(conn: &Connection) {
 
     let mut groups: std::collections::HashMap<String, Vec<(String, String)>> = std::collections::HashMap::new();
     for (id, path) in rows {
-        groups.entry(path.to_lowercase()).or_default().push((id, path));
+        // Normalize: strip \\?\ prefix and lowercase for grouping
+        let norm = path.to_lowercase()
+            .trim_start_matches(r"\\?\").to_string()
+            .replace('/', r"\");
+        groups.entry(norm).or_default().push((id, path));
     }
 
     let mut removed = 0u32;
@@ -79,10 +82,13 @@ fn dedup_scripts_by_path(conn: &Connection) {
                 println!("[DB] Dedup: removed duplicate '{}' (id={})", path, id);
             }
         }
-        // Normalize the winning entry's path to lowercase
+        // Normalize the winning entry's path: strip \\?\ prefix and lowercase
+        let clean_path = entries[best_idx].1.to_lowercase()
+            .trim_start_matches(r"\\?\").to_string()
+            .replace('/', r"\");
         let _ = conn.execute(
-            "UPDATE scripts SET path = LOWER(path) WHERE id = ?1",
-            [&entries[best_idx].0],
+            "UPDATE scripts SET path = ?1 WHERE id = ?2",
+            rusqlite::params![clean_path, entries[best_idx].0],
         );
     }
     if removed > 0 {
@@ -197,7 +203,8 @@ pub fn get_script_by_path(conn: &Connection, path: &str) -> Option<(String, Stri
 }
 
 pub fn upsert_script(conn: &Connection, id: &str, path: &str, filename: &str, content_hash: &str, now: &str) -> rusqlite::Result<()> {
-    let path_lower = path.to_lowercase();
+    let path_lower = path.to_lowercase()
+        .trim_start_matches(r"\\?\").to_string();
     conn.execute(
         "INSERT INTO scripts (id, path, filename, content_hash, first_seen, last_seen, is_orphaned)
          VALUES (?1, ?2, ?3, ?4, ?5, ?5, 0)

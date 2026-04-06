@@ -1042,7 +1042,11 @@ async fn get_scripts(
         // Resolve symlinks/junctions and deduplicate
         script_paths = script_paths.into_iter().map(|p| {
             std::fs::canonicalize(&p)
-                .map(|c| c.to_string_lossy().to_string())
+                .map(|c| {
+                    let s = c.to_string_lossy().to_string();
+                    // Strip \\?\ prefix added by canonicalize on Windows
+                    s.strip_prefix(r"\\?\").map(|stripped| stripped.to_string()).unwrap_or(s)
+                })
                 .unwrap_or(p)
         }).collect();
         let mut seen = HashSet::new();
@@ -1066,7 +1070,9 @@ async fn get_scripts(
         let conn = state.0.lock().map_err(|e| e.to_string())?;
         if let Some(cached) = load_cache_from_db(&conn) {
             println!("[Rust] Fast load from DB ({} paths)", cached.len());
-            script_paths = cached;
+            script_paths = cached.into_iter()
+                .map(|p| p.trim_start_matches(r"\\?\").to_string())
+                .collect();
             let mut seen = HashSet::new();
             script_paths.retain(|p| seen.insert(p.to_lowercase()));
         } else {
