@@ -664,6 +664,10 @@ fn start_process_watcher(app: tauri::AppHandle, shutdown: std::sync::Arc<std::sy
                 let has_ui = fs::read_to_string(path)
                     .map(|c| { let t = c.to_lowercase(); t.contains("0x0401") || t.contains("0x401") })
                     .unwrap_or(false);
+                // Record last_run for any detected start (including external launches)
+                if let Ok(conn) = app.state::<db::DbState>().0.lock() {
+                    let _ = db::set_last_run(&conn, path, &db::now_iso());
+                }
                 let _ = app.emit("script-status-changed", ScriptStatusEvent {
                     path: path.clone(),
                     is_running: true,

@@ -119,6 +119,12 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
       .then(setScriptMeta).catch(() => { });
   }, [script.path]);
 
+  // Refresh meta when running status changes (last_run updated in DB)
+  useEffect(() => {
+    invoke<{ hash: string; created: string; modified: string; last_run: string }>("get_script_meta", { path: script.path })
+      .then(setScriptMeta).catch(() => { });
+  }, [script.is_running]);
+
   // Esc is handled centrally in ScriptTree with priority:
   // cheatsheet → tagpicker → search → detail panel → vim mode
   useHotkeys('p', () => onPinToggle(), { preventDefault: true });
