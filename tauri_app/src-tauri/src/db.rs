@@ -296,6 +296,7 @@ pub fn get_orphaned_scripts(conn: &Connection) -> Vec<(String, String, String)> 
     }).unwrap().filter_map(|r| r.ok()).collect()
 }
 
+#[allow(dead_code)]
 pub fn cleanup_old_orphans_sql(conn: &Connection, days: i64) -> rusqlite::Result<usize> {
     conn.execute(
         "DELETE FROM scripts WHERE is_orphaned = 1 AND orphaned_at < datetime('now', ?1)",

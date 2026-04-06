@@ -639,18 +639,14 @@ fn collect_running_scripts(paths: &HashSet<String>) -> Vec<native_popup::Running
 
 fn start_process_watcher(app: tauri::AppHandle) {
     std::thread::spawn(move || {
-        // Fresh System each tick to avoid stale process data
-        let mut prev = {
-            let mut sys = System::new_all();
-            sys.refresh_all();
-            get_running_ahk_paths(&sys)
-        };
+        let mut sys = System::new_all();
+        sys.refresh_all();
+        let mut prev = get_running_ahk_paths(&sys);
         println!("[Watcher] Started. Initially running: {:?}", prev);
 
         loop {
             std::thread::sleep(std::time::Duration::from_millis(1500));
-            let mut sys = System::new_all();
-            sys.refresh_all();
+            sys.refresh_processes(sysinfo::ProcessesToUpdate::All, true);
             let current = get_running_ahk_paths(&sys);
 
             for path in current.difference(&prev) {

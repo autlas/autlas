@@ -27,10 +27,10 @@
 
 | # | Issue | File | Status |
 |---|-------|------|--------|
-| 9 | 90-day orphan cleanup deletes tags for disconnected USB/network drives | `reconcile.rs:134` | |
+| 9 | 90-day orphan cleanup deletes tags for disconnected USB/network drives | `reconcile.rs:134` | FIXED (disabled auto-cleanup) |
 | 10 | Hash computed for EVERY file on EVERY scan — even unchanged files | `reconcile.rs:56` | FIXED |
-| 11 | `System::new_all()` every 1.5s in watcher — excessive memory/CPU churn | `lib.rs:649` | |
-| 12 | `get_ini_path()` duplicated in lib.rs and migrate.rs | `lib.rs:709, migrate.rs:9` | |
+| 11 | `System::new_all()` every 1.5s in watcher — excessive memory/CPU churn | `lib.rs:649` | FIXED (reuse + refresh_processes) |
+| 12 | `get_ini_path()` duplicated in lib.rs and migrate.rs | `lib.rs:709, migrate.rs:9` | FIXED (removed from lib.rs) |
 
 ## LOW
 

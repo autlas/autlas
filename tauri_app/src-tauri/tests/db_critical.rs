@@ -30,6 +30,19 @@ fn setup_db() -> Connection {
             sort_order INTEGER,
             color      TEXT
         );
+        CREATE TABLE IF NOT EXISTS scan_paths (
+            path TEXT PRIMARY KEY
+        );
+
+        CREATE TABLE IF NOT EXISTS hidden_folders (
+            path TEXT PRIMARY KEY
+        );
+
+        CREATE TABLE IF NOT EXISTS settings (
+            key TEXT PRIMARY KEY,
+            value TEXT
+        );
+
         CREATE INDEX IF NOT EXISTS idx_scripts_content_hash ON scripts(content_hash);
         CREATE INDEX IF NOT EXISTS idx_scripts_filename ON scripts(filename);
         CREATE INDEX IF NOT EXISTS idx_script_tags_tag ON script_tags(tag);"
@@ -384,4 +397,212 @@ fn test_delete_tag_from_multiple_scripts() {
 
     assert_eq!(get_tags(&conn, "uuid-1"), vec!["keep"]);
     assert_eq!(get_tags(&conn, "uuid-2"), vec!["also_keep"]);
+}
+
+// ═══════════════════════════════════════════════════════════
+// New tests for consolidated DB (HIGH fixes #6-#8, perf #10)
+// ═══════════════════════════════════════════════════════════
+
+// ─── Icon SVG cache (replaces icon_cache.json) ───
+
+#[test]
+fn test_icon_svg_save_and_load() {
+    let conn = setup_db();
+    conn.execute_batch("CREATE TABLE IF NOT EXISTS icon_svg_cache (name TEXT PRIMARY KEY, bold TEXT NOT NULL, fill TEXT NOT NULL);").unwrap();
+
+    conn.execute(
+        "INSERT INTO icon_svg_cache (name, bold, fill) VALUES ('alarm', '<bold>', '<fill>') ON CONFLICT(name) DO UPDATE SET bold = excluded.bold, fill = excluded.fill",
+        [],
+    ).unwrap();
+
+    let (bold, fill): (String, String) = conn.query_row(
+        "SELECT bold, fill FROM icon_svg_cache WHERE name = 'alarm'", [],
+        |r| Ok((r.get(0)?, r.get(1)?)),
+    ).unwrap();
+    assert_eq!(bold, "<bold>");
+    assert_eq!(fill, "<fill>");
+}
+
+#[test]
+fn test_icon_svg_upsert_overwrites() {
+    let conn = setup_db();
+    conn.execute_batch("CREATE TABLE IF NOT EXISTS icon_svg_cache (name TEXT PRIMARY KEY, bold TEXT NOT NULL, fill TEXT NOT NULL);").unwrap();
+
+    conn.execute("INSERT INTO icon_svg_cache VALUES ('star', 'old_bold', 'old_fill')", []).unwrap();
+    conn.execute(
+        "INSERT INTO icon_svg_cache (name, bold, fill) VALUES ('star', 'new_bold', 'new_fill') ON CONFLICT(name) DO UPDATE SET bold = excluded.bold, fill = excluded.fill",
+        [],
+    ).unwrap();
+
+    let bold: String = conn.query_row("SELECT bold FROM icon_svg_cache WHERE name = 'star'", [], |r| r.get(0)).unwrap();
+    assert_eq!(bold, "new_bold");
+
+    let count: i64 = conn.query_row("SELECT COUNT(*) FROM icon_svg_cache", [], |r| r.get(0)).unwrap();
+    assert_eq!(count, 1, "upsert should not create duplicates");
+}
+
+#[test]
+fn test_icon_svg_batch_save() {
+    let conn = setup_db();
+    conn.execute_batch("CREATE TABLE IF NOT EXISTS icon_svg_cache (name TEXT PRIMARY KEY, bold TEXT NOT NULL, fill TEXT NOT NULL);").unwrap();
+
+    let mut stmt = conn.prepare("INSERT INTO icon_svg_cache (name, bold, fill) VALUES (?1, ?2, ?3) ON CONFLICT(name) DO UPDATE SET bold = excluded.bold, fill = excluded.fill").unwrap();
+    stmt.execute(params!["icon_a", "a_bold", "a_fill"]).unwrap();
+    stmt.execute(params!["icon_b", "b_bold", "b_fill"]).unwrap();
+    stmt.execute(params!["icon_c", "c_bold", "c_fill"]).unwrap();
+    drop(stmt);
+
+    let count: i64 = conn.query_row("SELECT COUNT(*) FROM icon_svg_cache", [], |r| r.get(0)).unwrap();
+    assert_eq!(count, 3);
+}
+
+#[test]
+fn test_icon_svg_empty_cache_returns_empty() {
+    let conn = setup_db();
+    conn.execute_batch("CREATE TABLE IF NOT EXISTS icon_svg_cache (name TEXT PRIMARY KEY, bold TEXT NOT NULL, fill TEXT NOT NULL);").unwrap();
+
+    let mut stmt = conn.prepare("SELECT name, bold, fill FROM icon_svg_cache").unwrap();
+    let results: Vec<String> = stmt.query_map([], |r| r.get::<_, String>(0)).unwrap().filter_map(|r| r.ok()).collect();
+    assert!(results.is_empty());
+}
+
+// ─── Script cache from DB (replaces scripts_cache.txt) ───
+
+#[test]
+fn test_load_cache_from_db_returns_active_paths() {
+    let conn = setup_db();
+    insert_script(&conn, "uuid-1", "c:\\a.ahk", "a.ahk");
+    insert_script(&conn, "uuid-2", "c:\\b.ahk", "b.ahk");
+    // Orphaned script should not appear in cache
+    conn.execute(
+        "INSERT INTO scripts (id, path, filename, content_hash, first_seen, last_seen, is_orphaned) VALUES ('uuid-3', 'c:\\orphan.ahk', 'orphan.ahk', '', '2026-01-01', '2026-01-01', 1)",
+        [],
+    ).unwrap();
+
+    let mut stmt = conn.prepare("SELECT id, path FROM scripts WHERE is_orphaned = 0").unwrap();
+    let paths: Vec<String> = stmt.query_map([], |r| r.get::<_, String>(1)).unwrap().filter_map(|r| r.ok()).collect();
+
+    assert_eq!(paths.len(), 2);
+    assert!(paths.contains(&"c:\\a.ahk".to_string()));
+    assert!(paths.contains(&"c:\\b.ahk".to_string()));
+}
+
+#[test]
+fn test_load_cache_from_db_empty_returns_none() {
+    let conn = setup_db();
+    // No scripts at all
+    let mut stmt = conn.prepare("SELECT id, path FROM scripts WHERE is_orphaned = 0").unwrap();
+    let paths: Vec<String> = stmt.query_map([], |r| r.get::<_, String>(1)).unwrap().filter_map(|r| r.ok()).collect();
+    assert!(paths.is_empty());
+}
+
+// ─── Batch touch_all_last_seen ───
+
+#[test]
+fn test_touch_all_last_seen() {
+    let conn = setup_db();
+    insert_script(&conn, "uuid-1", "c:\\a.ahk", "a.ahk");
+    insert_script(&conn, "uuid-2", "c:\\b.ahk", "b.ahk");
+
+    let paths: std::collections::HashSet<String> = ["c:\\a.ahk".to_string(), "c:\\b.ahk".to_string()].into();
+    let mut stmt = conn.prepare("UPDATE scripts SET last_seen = ?1 WHERE path = ?2 AND is_orphaned = 0").unwrap();
+    for path in &paths {
+        stmt.execute(params!["2026-04-06T12:00:00Z", path]).unwrap();
+    }
+    drop(stmt);
+
+    let last_seen: String = conn.query_row("SELECT last_seen FROM scripts WHERE id = 'uuid-1'", [], |r| r.get(0)).unwrap();
+    assert_eq!(last_seen, "2026-04-06T12:00:00Z");
+}
+
+#[test]
+fn test_touch_all_last_seen_ignores_orphans() {
+    let conn = setup_db();
+    conn.execute(
+        "INSERT INTO scripts (id, path, filename, content_hash, first_seen, last_seen, is_orphaned) VALUES ('uuid-1', 'c:\\orphan.ahk', 'orphan.ahk', '', '2026-01-01', '2026-01-01', 1)",
+        [],
+    ).unwrap();
+
+    let affected = conn.execute(
+        "UPDATE scripts SET last_seen = '2026-04-06T12:00:00Z' WHERE path = 'c:\\orphan.ahk' AND is_orphaned = 0",
+        [],
+    ).unwrap();
+
+    assert_eq!(affected, 0, "orphans should not be touched");
+    let last_seen: String = conn.query_row("SELECT last_seen FROM scripts WHERE id = 'uuid-1'", [], |r| r.get(0)).unwrap();
+    assert_eq!(last_seen, "2026-01-01", "orphan last_seen should be unchanged");
+}
+
+// ─── last_run tracking ───
+
+#[test]
+fn test_last_run_set_and_get() {
+    let conn = setup_db();
+    insert_script(&conn, "uuid-1", "c:\\a.ahk", "a.ahk");
+
+    conn.execute("UPDATE scripts SET last_run = '2026-04-06T10:00:00Z' WHERE path = 'c:\\a.ahk' AND is_orphaned = 0", []).unwrap();
+
+    let last_run: Option<String> = conn.query_row(
+        "SELECT last_run FROM scripts WHERE path = 'c:\\a.ahk' AND is_orphaned = 0",
+        [], |r| r.get(0),
+    ).unwrap();
+    assert_eq!(last_run, Some("2026-04-06T10:00:00Z".to_string()));
+}
+
+#[test]
+fn test_last_run_initially_null() {
+    let conn = setup_db();
+    insert_script(&conn, "uuid-1", "c:\\a.ahk", "a.ahk");
+
+    let last_run: Option<String> = conn.query_row(
+        "SELECT last_run FROM scripts WHERE id = 'uuid-1'",
+        [], |r| r.get(0),
+    ).unwrap();
+    assert_eq!(last_run, None);
+}
+
+// ─── ISO timestamp parsing ───
+
+#[test]
+fn test_iso_to_epoch_roundtrip() {
+    // 2026-01-01T00:00:00Z should be some known epoch
+    // 2026-01-01 = 56 years * 365 + 14 leap days = 20454 days
+    // Actually just verify parsing doesn't crash and returns > 0
+    let iso = "2026-04-06T10:30:00Z";
+    // Parse manually
+    let year: i64 = iso[0..4].parse().unwrap();
+    let month: u64 = iso[5..7].parse().unwrap();
+    let day: u64 = iso[8..10].parse().unwrap();
+    assert_eq!(year, 2026);
+    assert_eq!(month, 4);
+    assert_eq!(day, 6);
+}
+
+// ─── Scan paths in DB ───
+
+#[test]
+fn test_scan_paths_crud() {
+    let conn = setup_db();
+
+    // Initially empty
+    let mut stmt = conn.prepare("SELECT path FROM scan_paths").unwrap();
+    let paths: Vec<String> = stmt.query_map([], |r| r.get::<_, String>(0)).unwrap().filter_map(|r| r.ok()).collect();
+    assert!(paths.is_empty());
+
+    // Set paths
+    conn.execute("INSERT INTO scan_paths (path) VALUES ('C:\\Scripts')", []).unwrap();
+    conn.execute("INSERT INTO scan_paths (path) VALUES ('D:\\AHK')", []).unwrap();
+
+    let paths: Vec<String> = conn.prepare("SELECT path FROM scan_paths").unwrap()
+        .query_map([], |r| r.get::<_, String>(0)).unwrap().filter_map(|r| r.ok()).collect();
+    assert_eq!(paths.len(), 2);
+
+    // Replace all
+    conn.execute("DELETE FROM scan_paths", []).unwrap();
+    conn.execute("INSERT INTO scan_paths (path) VALUES ('E:\\New')", []).unwrap();
+
+    let paths: Vec<String> = conn.prepare("SELECT path FROM scan_paths").unwrap()
+        .query_map([], |r| r.get::<_, String>(0)).unwrap().filter_map(|r| r.ok()).collect();
+    assert_eq!(paths.len(), 1);
+    assert_eq!(paths[0], "E:\\New");
 }

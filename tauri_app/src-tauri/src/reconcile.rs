@@ -139,11 +139,8 @@ pub fn reconcile(conn: &Connection, disk_paths: &HashSet<String>) -> Vec<Pending
         }
     }
 
-    // Phase 4: Cleanup old orphans (90 days)
-    let cleaned = db::cleanup_old_orphans_sql(conn, 90).unwrap_or(0);
-    if cleaned > 0 {
-        println!("[Reconcile] Phase 4: Cleaned up {} orphans older than 90 days", cleaned);
-    }
+    // Phase 4: No automatic orphan cleanup — orphans with tags could be on
+    // disconnected USB/network drives. User can discard them manually via UI.
 
     let elapsed = start.elapsed();
     println!("[Reconcile] Done in {:.1?}: {} updated ({} rehashed), {} new, {} hash-matched, {} filename-pending, {} orphaned",
