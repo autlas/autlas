@@ -1115,8 +1115,16 @@ async fn get_scripts(
     let mut scripts = Vec::new();
     let conn_for_runs = state.0.lock().map_err(|e| e.to_string())?;
     for path_str in &script_paths {
-        let path_buf = std::path::PathBuf::from(path_str);
         let path_lower = path_str.to_lowercase();
+
+        // Restore original filesystem casing via canonicalize (DB stores lowercase)
+        let real_path = std::fs::canonicalize(path_str)
+            .map(|c| {
+                let s = c.to_string_lossy().to_string();
+                s.strip_prefix(r"\\?\").map(|stripped| stripped.to_string()).unwrap_or(s)
+            })
+            .unwrap_or_else(|_| path_str.clone());
+        let path_buf = std::path::PathBuf::from(&real_path);
 
         let filename = path_buf.file_name().map_or("".to_string(), |f| f.to_string_lossy().to_string());
         let parent = path_buf.parent().map_or("".to_string(), |p| p.file_name().map_or("".to_string(), |f| f.to_string_lossy().to_string()));
@@ -1150,7 +1158,7 @@ async fn get_scripts(
 
         scripts.push(Script {
             id: script_id,
-            path: path_str.clone(),
+            path: real_path,
             filename,
             parent,
             tags,
@@ -1165,8 +1173,8 @@ async fn get_scripts(
     }
     drop(conn_for_runs);
 
-    scripts.sort_by(|a, b| a.path.cmp(&b.path));
-    scripts.dedup_by(|a, b| a.path == b.path);
+    scripts.sort_by(|a, b| a.path.to_lowercase().cmp(&b.path.to_lowercase()));
+    scripts.dedup_by(|a, b| a.path.to_lowercase() == b.path.to_lowercase());
     println!("[Rust] get_scripts done: {} scripts, {} tagged ({} tags) in {:.1?}",
         scripts.len(), tagged_count, total_tags, start.elapsed());
     Ok(scripts)
