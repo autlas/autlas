@@ -114,7 +114,7 @@ export default function SettingsPanel({
             <span className="text-xs font-mono text-indigo-400 font-bold bg-indigo-400/10 px-4 py-1.5 rounded-full tracking-widest uppercase">{brightness}%</span>
           </div>
           <input
-            type="range" min="0" max="100"
+            type="range" min="0" max="100" step="5"
             value={brightness}
             onChange={(e) => setBrightness(parseInt(e.target.value))}
             className="w-full h-2 bg-white/5 rounded-lg appearance-none cursor-pointer accent-indigo-500 hover:accent-indigo-400 transition-all opacity-80 hover:opacity-100"
