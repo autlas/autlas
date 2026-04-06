@@ -25,6 +25,8 @@ pub fn open_db() -> rusqlite::Result<Connection> {
     create_schema(&conn)?;
     // Schema migrations for existing DBs
     let _ = conn.execute_batch("ALTER TABLE scripts ADD COLUMN last_run TEXT;");
+    // One-time dedup: merge scripts with same lowercase path (keeps tags from the one that has them)
+    dedup_scripts_by_path(&conn);
     if !is_new {
         let script_count: i64 = conn.query_row("SELECT COUNT(*) FROM scripts WHERE is_orphaned = 0", [], |r| r.get(0)).unwrap_or(0);
         let tag_count: i64 = conn.query_row("SELECT COUNT(*) FROM script_tags", [], |r| r.get(0)).unwrap_or(0);
@@ -32,6 +34,60 @@ pub fn open_db() -> rusqlite::Result<Connection> {
         println!("[DB] Loaded: {} active scripts, {} tags, {} orphans", script_count, tag_count, orphan_count);
     }
     Ok(conn)
+}
+
+/// Remove duplicate scripts that differ only in path casing.
+/// Keeps the entry that has tags; if both or neither have tags, keeps the one with lowercase path.
+fn dedup_scripts_by_path(conn: &Connection) {
+    // Find groups of scripts with the same lowercase path
+    let mut stmt = match conn.prepare(
+        "SELECT id, path FROM scripts WHERE is_orphaned = 0 ORDER BY LOWER(path)"
+    ) {
+        Ok(s) => s,
+        Err(_) => return,
+    };
+    let rows: Vec<(String, String)> = stmt.query_map([], |row| {
+        Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+    }).unwrap().filter_map(|r| r.ok()).collect();
+
+    let mut groups: std::collections::HashMap<String, Vec<(String, String)>> = std::collections::HashMap::new();
+    for (id, path) in rows {
+        groups.entry(path.to_lowercase()).or_default().push((id, path));
+    }
+
+    let mut removed = 0u32;
+    for (_lower_path, entries) in &groups {
+        if entries.len() <= 1 { continue; }
+        // Find which entry has tags
+        let mut best_idx = 0;
+        let mut best_tag_count = 0i64;
+        for (i, (id, _)) in entries.iter().enumerate() {
+            let count: i64 = conn.query_row(
+                "SELECT COUNT(*) FROM script_tags WHERE script_id = ?1", [id], |r| r.get(0)
+            ).unwrap_or(0);
+            if count > best_tag_count || (count == best_tag_count && entries[i].1 == entries[i].1.to_lowercase()) {
+                best_tag_count = count;
+                best_idx = i;
+            }
+        }
+        // Delete all but the best entry
+        for (i, (id, path)) in entries.iter().enumerate() {
+            if i != best_idx {
+                let _ = conn.execute("DELETE FROM script_tags WHERE script_id = ?1", [id]);
+                let _ = conn.execute("DELETE FROM scripts WHERE id = ?1", [id]);
+                removed += 1;
+                println!("[DB] Dedup: removed duplicate '{}' (id={})", path, id);
+            }
+        }
+        // Normalize the winning entry's path to lowercase
+        let _ = conn.execute(
+            "UPDATE scripts SET path = LOWER(path) WHERE id = ?1",
+            [&entries[best_idx].0],
+        );
+    }
+    if removed > 0 {
+        println!("[DB] Dedup complete: removed {} duplicate entries", removed);
+    }
 }
 
 fn create_schema(conn: &Connection) -> rusqlite::Result<()> {
@@ -141,12 +197,13 @@ pub fn get_script_by_path(conn: &Connection, path: &str) -> Option<(String, Stri
 }
 
 pub fn upsert_script(conn: &Connection, id: &str, path: &str, filename: &str, content_hash: &str, now: &str) -> rusqlite::Result<()> {
+    let path_lower = path.to_lowercase();
     conn.execute(
         "INSERT INTO scripts (id, path, filename, content_hash, first_seen, last_seen, is_orphaned)
          VALUES (?1, ?2, ?3, ?4, ?5, ?5, 0)
          ON CONFLICT(id) DO UPDATE SET path = ?2, filename = ?3, content_hash = ?4, last_seen = ?5, is_orphaned = 0, orphaned_at = NULL
          ON CONFLICT(path) DO UPDATE SET filename = ?3, content_hash = ?4, last_seen = ?5, is_orphaned = 0, orphaned_at = NULL",
-        params![id, path, filename, content_hash, now],
+        params![id, path_lower, filename, content_hash, now],
     )?;
     Ok(())
 }

@@ -24,9 +24,15 @@ const smoothScrollTo = (container: HTMLElement, target: number, duration: number
 };
 
 let _cachedScripts: Script[] = [];
+let _scanPromise: Promise<Script[]> | null = null; // dedup concurrent scans
+let _autoRefreshDone = false; // guard: one auto-refresh per app lifetime
 
 /** @internal — test-only reset */
-export function __resetCachedScripts() { _cachedScripts = []; }
+export function __resetCachedScripts() {
+    _cachedScripts = [];
+    _scanPromise = null;
+    _autoRefreshDone = false;
+}
 
 interface UseScriptTreeOptions {
     filterTag: string;
@@ -72,16 +78,23 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
     const fetchData = async (forceScan = false) => {
         setIsFetching(true);
         try {
-            const t0 = performance.now();
-            const data = await getScripts(forceScan);
-            console.log(`[Scan] ${forceScan ? 'Full scan' : 'Cache load'}: ${data.length} scripts in ${(performance.now() - t0).toFixed(0)}ms`);
+            let data: Script[];
+            if (forceScan && _scanPromise) {
+                // Another instance already scanning — reuse the result
+                data = await _scanPromise;
+            } else {
+                const t0 = performance.now();
+                const promise = getScripts(forceScan);
+                if (forceScan) _scanPromise = promise;
+                data = await promise;
+                if (forceScan) _scanPromise = null;
+                console.log(`[Scan] ${forceScan ? 'Full scan' : 'Cache load'}: ${data.length} scripts in ${(performance.now() - t0).toFixed(0)}ms`);
+            }
             _cachedScripts = data;
             if (forceScan && onScanComplete) {
                 onScanComplete(Date.now());
             }
             setAllScripts(prev => {
-                if (prev.length !== data.length) return data;
-
                 const prevMap = new Map(prev.map(s => [s.path, s]));
                 let anyChanged = false;
 
@@ -161,8 +174,9 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
         if (_cachedScripts.length === 0) {
             fetchData(); // Fast load from cache
         }
-        // Auto-refresh on startup if setting enabled
-        if (localStorage.getItem("ahk_auto_refresh") === "true") {
+        // Auto-refresh on startup — once per app lifetime, not per tab
+        if (!_autoRefreshDone && localStorage.getItem("ahk_auto_refresh") === "true") {
+            _autoRefreshDone = true;
             fetchData(true);
         }
 
