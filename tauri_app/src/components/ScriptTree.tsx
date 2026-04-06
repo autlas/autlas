@@ -448,7 +448,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
             </div>
             <div
                 ref={toolbarRef}
-                className="absolute top-0 left-0 right-0 z-10"
+                className="absolute top-0 left-0 right-0 z-[500]"
                 style={{
                     paddingLeft: 16,
                     paddingRight: 16,
