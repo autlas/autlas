@@ -310,19 +310,44 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
 
     const startBurst = useCallback((path: string, expectedRunning: boolean) => {
         let attempts = 0;
+        let verifyCount = 0; // After finding expected state, verify it persists
+        let found = false;
         const id = window.setInterval(async () => {
             attempts++;
             try {
                 const status = await invoke<{ is_running: boolean; has_ui: boolean }>("get_script_status", { path });
-                if (status.is_running === expectedRunning) {
-                    clearInterval(id);
-                    burstIntervalsRef.current.delete(id);
+                if (!found && status.is_running === expectedRunning) {
+                    // Found expected state — clear pending, update UI
+                    found = true;
+                    verifyCount = 0;
                     clearPending(path);
-                    setAllScripts(prev => prev.map(s =>
-                        s.path === path
-                            ? { ...s, is_running: status.is_running, has_ui: status.is_running ? status.has_ui : false }
-                            : s
-                    ));
+                    const updateState = (is_running: boolean, has_ui: boolean) => {
+                        _cachedScripts = _cachedScripts.map(s =>
+                            s.path === path ? { ...s, is_running, has_ui: is_running ? has_ui : false } : s
+                        );
+                        setAllScripts(prev => prev.map(s =>
+                            s.path === path ? { ...s, is_running, has_ui: is_running ? has_ui : false } : s
+                        ));
+                    };
+                    updateState(status.is_running, status.has_ui);
+                } else if (found) {
+                    // Verification phase — catch quick exits
+                    verifyCount++;
+                    if (status.is_running !== expectedRunning) {
+                        // Script exited/started unexpectedly — update and stop
+                        _cachedScripts = _cachedScripts.map(s =>
+                            s.path === path ? { ...s, is_running: status.is_running, has_ui: status.is_running ? status.has_ui : false } : s
+                        );
+                        setAllScripts(prev => prev.map(s =>
+                            s.path === path ? { ...s, is_running: status.is_running, has_ui: status.is_running ? status.has_ui : false } : s
+                        ));
+                        clearInterval(id);
+                        burstIntervalsRef.current.delete(id);
+                    } else if (verifyCount >= 5) {
+                        // Verified stable — stop polling
+                        clearInterval(id);
+                        burstIntervalsRef.current.delete(id);
+                    }
                 } else if (attempts >= 33) {
                     clearInterval(id);
                     burstIntervalsRef.current.delete(id);
@@ -331,7 +356,7 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
             } catch {
                 clearInterval(id);
                 burstIntervalsRef.current.delete(id);
-                clearPending(path);
+                if (!found) clearPending(path);
             }
         }, 300);
         burstIntervalsRef.current.add(id);
