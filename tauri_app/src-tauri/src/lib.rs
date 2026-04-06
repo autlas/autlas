@@ -1739,6 +1739,7 @@ async fn get_orphaned_scripts_cmd(state: tauri::State<'_, db::DbState>) -> Resul
 
 #[tauri::command]
 async fn resolve_orphan(
+    app: tauri::AppHandle,
     state: tauri::State<'_, db::DbState>,
     orphan_id: String,
     action: String,
@@ -1756,6 +1757,9 @@ async fn resolve_orphan(
                 let now = db::now_iso();
                 db::reconcile_orphan(&conn, &orphan_id, &path, &filename, &hash, &now)
                     .map_err(|e| e.to_string())?;
+                // Emit tags so frontend updates without rescan
+                let tags = db::get_tags_for_script(&conn, &orphan_id);
+                let _ = app.emit("script-tags-changed", serde_json::json!({ "id": orphan_id, "tags": tags }));
             }
         }
         "discard" => {
