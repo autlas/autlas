@@ -407,7 +407,7 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
 
   // Floating mode
   return (
-    <div ref={panelRef} className="absolute right-3 top-3 bottom-3 z-[100] flex flex-col bg-black/20 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-2xl shadow-black/50 overflow-hidden" style={{ width: `${panelWidth - 12}px` }}>
+    <div ref={panelRef} className="absolute right-3 top-3 bottom-3 z-[600] flex flex-col bg-black/20 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-2xl shadow-black/50 overflow-hidden" style={{ width: `${panelWidth - 12}px` }}>
       {panelContent}
     </div>
   );

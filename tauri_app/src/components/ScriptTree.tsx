@@ -375,12 +375,12 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
                 style={{ paddingTop: toolbarH }}
                 id="script-list-container"
             >
-            <SearchContext.Provider value={{
-                query: searchQuery.toLowerCase().includes("file:") ? searchQuery.replace(/file:/gi, "").trim() :
-                    searchQuery.toLowerCase().includes("path:") ? searchQuery.replace(/path:/gi, "").trim() : searchQuery,
-                prefix: searchQuery.toLowerCase().startsWith("file:") ? "file" :
-                    searchQuery.toLowerCase().startsWith("path:") ? "path" : null
-            }}>
+                <SearchContext.Provider value={{
+                    query: searchQuery.toLowerCase().includes("file:") ? searchQuery.replace(/file:/gi, "").trim() :
+                        searchQuery.toLowerCase().includes("path:") ? searchQuery.replace(/path:/gi, "").trim() : searchQuery,
+                    prefix: searchQuery.toLowerCase().startsWith("file:") ? "file" :
+                        searchQuery.toLowerCase().startsWith("path:") ? "path" : null
+                }}>
                     {gridEverMounted && <div className={viewMode !== "tree" ? "" : "hidden"}>
                         <ScriptGridView
                             mode={viewMode !== "tree" ? viewMode as "tiles" | "list" : lastGridMode.current}
@@ -444,7 +444,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
                             )}
                         </TreeContext.Provider>
                     </div>
-            </SearchContext.Provider>
+                </SearchContext.Provider>
             </div>
             <div
                 ref={toolbarRef}
@@ -452,7 +452,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
                 style={{
                     paddingLeft: 16,
                     paddingRight: 16,
-                    backgroundColor: 'rgba(8,8,8,0.6)',
+                    backgroundColor: 'rgba(0,0,0,0.01)',
                     backdropFilter: 'blur(20px)',
                     WebkitBackdropFilter: 'blur(20px)',
                     borderBottom: '1px solid var(--border-color)',
