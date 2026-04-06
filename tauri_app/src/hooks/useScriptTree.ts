@@ -203,6 +203,8 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
 
             listen<{ path: string; is_running: boolean; has_ui: boolean }>('script-status-changed', (event) => {
                 const { path, is_running, has_ui } = event.payload;
+                const fname = path.split(/[\\\/]/).pop() || path;
+                console.log(`[Watcher Event] "${fname}" is_running=${is_running} has_ui=${has_ui}`);
                 const pathLower = path.toLowerCase();
                 const newHasUi = is_running ? has_ui : false;
                 _cachedScripts = _cachedScripts.map(s =>
@@ -310,17 +312,19 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
 
     const startBurst = useCallback((path: string, expectedRunning: boolean) => {
         let attempts = 0;
-        let verifyCount = 0; // After finding expected state, verify it persists
+        let verifyCount = 0;
         let found = false;
+        const fname = path.split(/[\\\/]/).pop() || path;
+        console.log(`[Burst] START polling "${fname}" expecting=${expectedRunning}`);
         const id = window.setInterval(async () => {
             attempts++;
             try {
                 const status = await invoke<{ is_running: boolean; has_ui: boolean }>("get_script_status", { path });
                 if (!found && status.is_running === expectedRunning) {
-                    // Found expected state — clear pending, update UI
                     found = true;
                     verifyCount = 0;
                     clearPending(path);
+                    console.log(`[Burst] FOUND "${fname}" is_running=${status.is_running} at attempt #${attempts} (${attempts * 300}ms). Starting verification...`);
                     const updateState = (is_running: boolean, has_ui: boolean) => {
                         _cachedScripts = _cachedScripts.map(s =>
                             s.path === path ? { ...s, is_running, has_ui: is_running ? has_ui : false } : s
@@ -331,10 +335,9 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
                     };
                     updateState(status.is_running, status.has_ui);
                 } else if (found) {
-                    // Verification phase — catch quick exits
                     verifyCount++;
                     if (status.is_running !== expectedRunning) {
-                        // Script exited/started unexpectedly — update and stop
+                        console.log(`[Burst] VERIFY CAUGHT EXIT "${fname}" is_running=${status.is_running} at verify #${verifyCount} (${(attempts) * 300}ms). Watcher would have missed this!`);
                         _cachedScripts = _cachedScripts.map(s =>
                             s.path === path ? { ...s, is_running: status.is_running, has_ui: status.is_running ? status.has_ui : false } : s
                         );
@@ -344,11 +347,12 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
                         clearInterval(id);
                         burstIntervalsRef.current.delete(id);
                     } else if (verifyCount >= 5) {
-                        // Verified stable — stop polling
+                        console.log(`[Burst] VERIFIED STABLE "${fname}" after ${verifyCount} checks (${(attempts) * 300}ms)`);
                         clearInterval(id);
                         burstIntervalsRef.current.delete(id);
                     }
                 } else if (attempts >= 33) {
+                    console.log(`[Burst] TIMEOUT "${fname}" after ${attempts} attempts — never saw expected state`);
                     clearInterval(id);
                     burstIntervalsRef.current.delete(id);
                     clearPending(path);

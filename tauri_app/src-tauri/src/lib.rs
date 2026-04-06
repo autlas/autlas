@@ -649,8 +649,15 @@ fn start_process_watcher(app: tauri::AppHandle, shutdown: std::sync::Arc<std::sy
         while !shutdown.load(std::sync::atomic::Ordering::Relaxed) {
             std::thread::sleep(std::time::Duration::from_millis(1500));
             if shutdown.load(std::sync::atomic::Ordering::Relaxed) { break; }
-            sys.refresh_processes(sysinfo::ProcessesToUpdate::All, true);
+            // Fresh System each cycle — refresh_processes can miss short-lived processes
+            // and refresh_all doesn't remove dead ones. Fresh snapshot is reliable.
+            sys = System::new_all();
+            sys.refresh_all();
             let current = get_running_ahk_paths(&sys);
+
+            if current != prev {
+                println!("[Watcher] Change detected. prev={:?} current={:?}", prev.len(), current.len());
+            }
 
             for path in current.difference(&prev) {
                 println!("[Watcher] Script started: {}", path);
