@@ -5,6 +5,15 @@ use std::sync::Mutex;
 
 pub struct DbState(pub Mutex<Connection>);
 
+/// Canonical path normalization: lowercase, strip \\?\ prefix, backslashes.
+/// Used everywhere paths are stored or compared.
+pub fn normalize_path(path: &str) -> String {
+    path.to_lowercase()
+        .trim_start_matches(r"\\?\")
+        .replace('/', r"\")
+        .to_string()
+}
+
 pub fn get_db_path() -> PathBuf {
     use directories::ProjectDirs;
     if let Some(proj_dirs) = ProjectDirs::from("com", "heavym", "ahkmanager") {
@@ -52,17 +61,14 @@ fn dedup_scripts_by_path(conn: &Connection) {
 
     let mut groups: std::collections::HashMap<String, Vec<(String, String)>> = std::collections::HashMap::new();
     for (id, path) in rows {
-        // Normalize: strip \\?\ prefix and lowercase for grouping
-        let norm = path.to_lowercase()
-            .trim_start_matches(r"\\?\").to_string()
-            .replace('/', r"\");
+        let norm = normalize_path(&path);
         groups.entry(norm).or_default().push((id, path));
     }
 
-    let mut removed = 0u32;
+    // Collect dedup operations, then execute in a single transaction
+    let mut ops: Vec<(Vec<String>, String, String)> = Vec::new(); // (ids_to_delete, winner_id, clean_path)
     for (_lower_path, entries) in &groups {
         if entries.len() <= 1 { continue; }
-        // Find which entry has tags
         let mut best_idx = 0;
         let mut best_tag_count = 0i64;
         for (i, (id, _)) in entries.iter().enumerate() {
@@ -74,23 +80,36 @@ fn dedup_scripts_by_path(conn: &Connection) {
                 best_idx = i;
             }
         }
-        // Delete all but the best entry
-        for (i, (id, path)) in entries.iter().enumerate() {
-            if i != best_idx {
-                let _ = conn.execute("DELETE FROM script_tags WHERE script_id = ?1", [id]);
-                let _ = conn.execute("DELETE FROM scripts WHERE id = ?1", [id]);
-                removed += 1;
-                println!("[DB] Dedup: removed duplicate '{}' (id={})", path, id);
-            }
+        let ids_to_delete: Vec<String> = entries.iter().enumerate()
+            .filter(|(i, _)| *i != best_idx)
+            .map(|(_, (id, _))| id.clone())
+            .collect();
+        let clean_path = normalize_path(&entries[best_idx].1);
+        ops.push((ids_to_delete, entries[best_idx].0.clone(), clean_path));
+    }
+
+    if ops.is_empty() { return; }
+
+    // Execute all deletes + updates in a transaction (atomic, no partial state)
+    let tx = match conn.unchecked_transaction() {
+        Ok(tx) => tx,
+        Err(_) => return,
+    };
+    let mut removed = 0u32;
+    for (ids_to_delete, winner_id, clean_path) in &ops {
+        for id in ids_to_delete {
+            let _ = tx.execute("DELETE FROM script_tags WHERE script_id = ?1", [id]);
+            let _ = tx.execute("DELETE FROM scripts WHERE id = ?1", [id]);
+            removed += 1;
         }
-        // Normalize the winning entry's path: strip \\?\ prefix and lowercase
-        let clean_path = entries[best_idx].1.to_lowercase()
-            .trim_start_matches(r"\\?\").to_string()
-            .replace('/', r"\");
-        let _ = conn.execute(
+        let _ = tx.execute(
             "UPDATE scripts SET path = ?1 WHERE id = ?2",
-            rusqlite::params![clean_path, entries[best_idx].0],
+            rusqlite::params![clean_path, winner_id],
         );
+    }
+    if let Err(e) = tx.commit() {
+        eprintln!("[DB] Dedup transaction failed: {}", e);
+        return;
     }
     if removed > 0 {
         println!("[DB] Dedup complete: removed {} duplicate entries", removed);
@@ -204,8 +223,7 @@ pub fn get_script_by_path(conn: &Connection, path: &str) -> Option<(String, Stri
 }
 
 pub fn upsert_script(conn: &Connection, id: &str, path: &str, filename: &str, content_hash: &str, now: &str) -> rusqlite::Result<()> {
-    let path_lower = path.to_lowercase()
-        .trim_start_matches(r"\\?\").to_string();
+    let path_lower = normalize_path(path);
     conn.execute(
         "INSERT INTO scripts (id, path, filename, content_hash, first_seen, last_seen, is_orphaned)
          VALUES (?1, ?2, ?3, ?4, ?5, ?5, 0)

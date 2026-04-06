@@ -92,6 +92,7 @@ pub fn reconcile(conn: &Connection, disk_paths: &HashSet<String>) -> Result<Vec<
                 stats.hash_matched += 1;
                 matched = true;
             } else if hash_matches.len() > 1 {
+                // Multiple orphans with same hash — try filename tie-break
                 let filename_lower = filename.to_lowercase();
                 if let Some((orphan_id, old_path, _)) = hash_matches.iter()
                     .find(|(_, _, old_fn)| old_fn.to_lowercase() == filename_lower)
@@ -101,10 +102,20 @@ pub fn reconcile(conn: &Connection, disk_paths: &HashSet<String>) -> Result<Vec<
                     stats.hash_matched += 1;
                     matched = true;
                 } else {
-                    let (orphan_id, old_path, _) = &hash_matches[0];
-                    db::reconcile_orphan(conn, orphan_id, disk_path, &filename, &new_hash, &now).map_err(|e| e.to_string())?;
-                    println!("[Reconcile]   Hash match (first of {}): {} → {}", hash_matches.len(), old_path, disk_path);
-                    stats.hash_matched += 1;
+                    // No filename match — queue ALL hash matches for user confirmation
+                    // (don't silently pick the first one, user should decide)
+                    for (orphan_id, old_path, _) in &hash_matches {
+                        println!("[Reconcile]   Hash collision (pending): {} → {} (needs confirmation)", old_path, disk_path);
+                        let tags = db::get_tags_for_script(conn, orphan_id);
+                        pending_matches.push(PendingMatch {
+                            orphan_id: orphan_id.clone(),
+                            old_path: old_path.clone(),
+                            new_path: disk_path.clone(),
+                            match_type: "hash_collision".to_string(),
+                            tags,
+                        });
+                    }
+                    stats.filename_pending += 1;
                     matched = true;
                 }
             }
