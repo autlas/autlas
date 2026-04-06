@@ -79,6 +79,12 @@ fn create_schema(conn: &Connection) -> rusqlite::Result<()> {
             value TEXT
         );
 
+        CREATE TABLE IF NOT EXISTS icon_svg_cache (
+            name TEXT PRIMARY KEY,
+            bold TEXT NOT NULL,
+            fill TEXT NOT NULL
+        );
+
         CREATE INDEX IF NOT EXISTS idx_scripts_content_hash ON scripts(content_hash);
         CREATE INDEX IF NOT EXISTS idx_scripts_filename ON scripts(filename);
         CREATE INDEX IF NOT EXISTS idx_scripts_orphaned ON scripts(is_orphaned);
@@ -541,6 +547,35 @@ pub fn days_to_date(mut days: i64) -> (i64, i64, i64) {
     let y = if m <= 2 { y + 1 } else { y };
     (y, m, d)
 }
+
+// ── Icon SVG cache ──
+
+pub fn load_icon_svg_cache(conn: &Connection) -> HashMap<String, (String, String)> {
+    let mut stmt = conn.prepare("SELECT name, bold, fill FROM icon_svg_cache").unwrap();
+    stmt.query_map([], |row| {
+        Ok((row.get::<_, String>(0)?, (row.get::<_, String>(1)?, row.get::<_, String>(2)?)))
+    }).unwrap().filter_map(|r| r.ok()).collect()
+}
+
+pub fn save_icon_svg(conn: &Connection, name: &str, bold: &str, fill: &str) -> rusqlite::Result<()> {
+    conn.execute(
+        "INSERT INTO icon_svg_cache (name, bold, fill) VALUES (?1, ?2, ?3) ON CONFLICT(name) DO UPDATE SET bold = ?2, fill = ?3",
+        params![name, bold, fill],
+    )?;
+    Ok(())
+}
+
+pub fn save_icon_svgs_batch(conn: &Connection, icons: &HashMap<String, (String, String)>) -> rusqlite::Result<()> {
+    let mut stmt = conn.prepare(
+        "INSERT INTO icon_svg_cache (name, bold, fill) VALUES (?1, ?2, ?3) ON CONFLICT(name) DO UPDATE SET bold = ?2, fill = ?3"
+    )?;
+    for (name, (bold, fill)) in icons {
+        stmt.execute(params![name, bold, fill])?;
+    }
+    Ok(())
+}
+
+// ── Helpers ──
 
 pub fn compute_file_hash(path: &std::path::Path) -> Option<String> {
     use sha2::{Sha256, Digest};

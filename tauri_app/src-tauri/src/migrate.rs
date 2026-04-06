@@ -111,7 +111,10 @@ fn parse_ini() -> Option<IniData> {
 
 /// Run migration from INI to SQLite. Returns true if migration happened.
 pub fn migrate_if_needed(conn: &Connection) -> bool {
-    // Check if migration already completed
+    // Always try icon cache migration (independent)
+    migrate_icon_cache_json(conn);
+
+    // Check if INI migration already completed
     if let Some(val) = db::get_setting(conn, "migration_complete") {
         if val == "1" {
             return false;
@@ -120,7 +123,6 @@ pub fn migrate_if_needed(conn: &Connection) -> bool {
 
     let ini_path = get_ini_path();
     if !ini_path.exists() {
-        // No INI file — nothing to migrate, mark as complete
         let _ = db::set_setting(conn, "migration_complete", "1");
         return false;
     }
@@ -250,4 +252,32 @@ pub fn migrate_if_needed(conn: &Connection) -> bool {
     } else {
         false
     }
+}
+
+fn migrate_icon_cache_json(conn: &Connection) {
+    if db::get_setting(conn, "icon_cache_migrated").is_some() {
+        return;
+    }
+    let json_path = db::get_db_path().with_file_name("icon_cache.json");
+    if !json_path.exists() {
+        let _ = db::set_setting(conn, "icon_cache_migrated", "1");
+        return;
+    }
+    if let Ok(content) = fs::read_to_string(&json_path) {
+        let parsed: std::collections::HashMap<String, Vec<String>> = serde_json::from_str(&content).unwrap_or_default();
+        let mut count = 0;
+        for (name, paths) in &parsed {
+            if paths.len() >= 2 {
+                let _ = db::save_icon_svg(conn, name, &paths[0], &paths[1]);
+                count += 1;
+            }
+        }
+        if count > 0 {
+            println!("[Migration] Migrated {} icon SVGs from icon_cache.json → SQLite", count);
+        }
+        // Backup and remove JSON
+        let backup = json_path.with_extension("json.bak");
+        let _ = fs::rename(&json_path, &backup);
+    }
+    let _ = db::set_setting(conn, "icon_cache_migrated", "1");
 }

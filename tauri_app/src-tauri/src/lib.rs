@@ -706,16 +706,6 @@ struct Script {
     size: u64,
 }
 
-fn get_ini_path() -> std::path::PathBuf {
-    use directories::ProjectDirs;
-    if let Some(proj_dirs) = ProjectDirs::from("com", "heavym", "ahkmanager") {
-        let config_dir = proj_dirs.config_dir();
-        let _ = std::fs::create_dir_all(config_dir);
-        config_dir.join("manager_data.ini")
-    } else {
-        std::path::PathBuf::from("manager_data.ini")
-    }
-}
 
 #[tauri::command]
 async fn save_script_tags(
@@ -730,28 +720,12 @@ async fn save_script_tags(
     Ok(())
 }
 
-fn get_cache_path() -> std::path::PathBuf {
-    get_ini_path().with_file_name("scripts_cache.txt")
-}
-
-fn load_cache() -> Option<Vec<String>> {
-    let cache_path = get_cache_path();
-    if cache_path.exists() {
-        if let Ok(content) = fs::read_to_string(cache_path) {
-            let paths: Vec<String> = content.lines()
-                .map(|s| s.trim().to_string())
-                .filter(|s| !s.is_empty())
-                .collect();
-            return Some(paths); // empty vec = no scripts, but cache is valid
-        }
-    }
-    None
-}
-
-fn save_cache(paths: &[String]) {
-    let cache_path = get_cache_path();
-    let content = paths.join("\n");
-    let _ = fs::write(cache_path, content);
+fn load_cache_from_db(conn: &rusqlite::Connection) -> Option<Vec<String>> {
+    let paths: Vec<String> = db::get_all_active_scripts(conn)
+        .into_iter()
+        .map(|(_, path)| path)
+        .collect();
+    if paths.is_empty() { None } else { Some(paths) }
 }
 
 fn find_everything_exe() -> Option<String> {
@@ -1067,7 +1041,7 @@ async fn get_scripts(
             }
             println!("[Rust] WalkDir scan completed: {} scripts in {:.1?}", script_paths.len(), scan_start.elapsed());
         }
-        save_cache(&script_paths);
+        // Cache is implicitly saved by reconciliation (upsert_script writes paths to DB)
 
         // Deduplicate
         let mut seen = HashSet::new();
@@ -1088,15 +1062,17 @@ async fn get_scripts(
         drop(conn);
     } else {
         // FAST LOAD: cache only, no reconciliation
-        if let Some(cached) = load_cache() {
-            println!("[Rust] Fast load from cache ({} paths)", cached.len());
+        let conn = state.0.lock().map_err(|e| e.to_string())?;
+        if let Some(cached) = load_cache_from_db(&conn) {
+            println!("[Rust] Fast load from DB ({} paths)", cached.len());
             script_paths = cached;
             let mut seen = HashSet::new();
             script_paths.retain(|p| seen.insert(p.to_lowercase()));
         } else {
-            println!("[Rust] No cache — returning empty (user should refresh or set up scan paths)");
+            println!("[Rust] No scripts in DB — returning empty (user should refresh or set up scan paths)");
             script_paths = Vec::new();
         }
+        drop(conn);
     }
 
     // Load tags and IDs from DB (fast, single queries)
@@ -1440,38 +1416,21 @@ async fn save_tag_icon(
     Ok(())
 }
 
-fn get_icon_cache_path() -> std::path::PathBuf {
-    get_ini_path().with_file_name("icon_cache.json")
+#[tauri::command]
+async fn load_icon_cache(state: tauri::State<'_, db::DbState>) -> Result<HashMap<String, (String, String)>, String> {
+    let conn = state.0.lock().map_err(|e| e.to_string())?;
+    Ok(db::load_icon_svg_cache(&conn))
 }
 
 #[tauri::command]
-async fn load_icon_cache() -> HashMap<String, (String, String)> {
-    let path = get_icon_cache_path();
-    if !path.exists() {
-        return HashMap::new();
-    }
-    let content = fs::read_to_string(&path).unwrap_or_default();
-    let parsed: HashMap<String, Vec<String>> = serde_json::from_str(&content).unwrap_or_default();
-    parsed.into_iter()
-        .filter_map(|(k, v)| {
-            if v.len() >= 2 { Some((k, (v[0].clone(), v[1].clone()))) } else { None }
-        })
-        .collect()
-}
-
-#[tauri::command]
-async fn save_icon_to_cache(name: String, bold: String, fill: String) -> Result<(), String> {
-    let path = get_icon_cache_path();
-    let mut cache: serde_json::Map<String, serde_json::Value> = if path.exists() {
-        let content = fs::read_to_string(&path).unwrap_or_default();
-        serde_json::from_str(&content).unwrap_or_default()
-    } else {
-        serde_json::Map::new()
-    };
-    cache.insert(name, serde_json::json!([bold, fill]));
-    let json = serde_json::to_string_pretty(&cache).map_err(|e| e.to_string())?;
-    fs::write(&path, json).map_err(|e| e.to_string())?;
-    Ok(())
+async fn save_icon_to_cache(
+    state: tauri::State<'_, db::DbState>,
+    name: String,
+    bold: String,
+    fill: String,
+) -> Result<(), String> {
+    let conn = state.0.lock().map_err(|e| e.to_string())?;
+    db::save_icon_svg(&conn, &name, &bold, &fill).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -1530,7 +1489,11 @@ fn urlencoding(s: &str) -> String {
 }
 
 #[tauri::command]
-async fn fetch_icon_paths(names: Vec<String>, prefix: String) -> Result<HashMap<String, (String, String)>, String> {
+async fn fetch_icon_paths(
+    state: tauri::State<'_, db::DbState>,
+    names: Vec<String>,
+    prefix: String,
+) -> Result<HashMap<String, (String, String)>, String> {
     let mut result: HashMap<String, (String, String)> = HashMap::new();
     let is_phosphor = prefix == "ph";
 
@@ -1583,19 +1546,11 @@ async fn fetch_icon_paths(names: Vec<String>, prefix: String) -> Result<HashMap<
         }
     }
 
-    // Auto-save to cache
-    let cache_path = get_icon_cache_path();
-    let mut cache: serde_json::Map<String, serde_json::Value> = if cache_path.exists() {
-        let content = fs::read_to_string(&cache_path).unwrap_or_default();
-        serde_json::from_str(&content).unwrap_or_default()
-    } else {
-        serde_json::Map::new()
-    };
-    for (name, (bold, fill)) in &result {
-        cache.insert(name.clone(), serde_json::json!([bold, fill]));
-    }
-    if let Ok(json) = serde_json::to_string_pretty(&cache) {
-        let _ = fs::write(&cache_path, json);
+    // Auto-save to DB
+    if !result.is_empty() {
+        if let Ok(conn) = state.0.lock() {
+            let _ = db::save_icon_svgs_batch(&conn, &result);
+        }
     }
 
     Ok(result)
@@ -1693,8 +1648,6 @@ async fn set_scan_paths(
 ) -> Result<(), String> {
     let conn = state.0.lock().map_err(|e| e.to_string())?;
     db::set_scan_paths(&conn, &paths).map_err(|e| e.to_string())?;
-    // Clear cache to force rescan with new paths
-    let _ = fs::remove_file(get_cache_path());
     Ok(())
 }
 
@@ -1841,6 +1794,10 @@ pub fn run() {
                         if is_restart {
                             std::thread::sleep(std::time::Duration::from_millis(150));
                             let _ = Command::new("explorer").arg(path).spawn();
+                            // Track last_run in DB
+                            if let Ok(conn) = app_handle.state::<db::DbState>().0.lock() {
+                                let _ = db::set_last_run(&conn, &path_lower, &db::now_iso());
+                            }
                         }
                     } else if let Some(path) = action.strip_prefix("show_ui|") {
                         // Reuse show_script_ui logic via PowerShell PostMessage

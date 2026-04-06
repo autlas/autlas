@@ -19,16 +19,16 @@
 
 | # | Issue | File | Status |
 |---|-------|------|--------|
-| 6 | Tray popup restart/stop don't track `last_run` — no DbState access in callback | `lib.rs:1824` | |
-| 7 | `configparser` in Cargo.toml — unused dead dependency | `Cargo.toml:30` | |
-| 8 | `scripts_cache.txt` and `icon_cache.json` still filesystem, not in SQLite | `lib.rs:733, 1444` | |
+| 6 | Tray popup restart/stop don't track `last_run` — no DbState access in callback | `lib.rs:1824` | FIXED |
+| 7 | `configparser` in Cargo.toml — unused dead dependency | `Cargo.toml:30` | FIXED |
+| 8 | `scripts_cache.txt` and `icon_cache.json` still filesystem, not in SQLite | `lib.rs:733, 1444` | FIXED |
 
 ## MEDIUM
 
 | # | Issue | File | Status |
 |---|-------|------|--------|
 | 9 | 90-day orphan cleanup deletes tags for disconnected USB/network drives | `reconcile.rs:134` | |
-| 10 | Hash computed for EVERY file on EVERY scan — even unchanged files | `reconcile.rs:56` | |
+| 10 | Hash computed for EVERY file on EVERY scan — even unchanged files | `reconcile.rs:56` | FIXED |
 | 11 | `System::new_all()` every 1.5s in watcher — excessive memory/CPU churn | `lib.rs:649` | |
 | 12 | `get_ini_path()` duplicated in lib.rs and migrate.rs | `lib.rs:709, migrate.rs:9` | |
 
