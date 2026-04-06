@@ -1008,6 +1008,8 @@ async fn get_scripts(
 
     // Resolve script paths
     let mut script_paths: Vec<String>;
+    let tags_map: HashMap<String, Vec<String>>;
+    let id_map: HashMap<String, String>;
 
     if force_scan {
         // FULL SCAN: disk scan + reconciliation
@@ -1060,16 +1062,20 @@ async fn get_scripts(
             .filter(|p| std::path::Path::new(p).exists())
             .collect();
 
-        // Reconciliation (only on refresh)
+        // Reconciliation + tag/ID loading in single lock (prevents watcher interleaving)
         let conn = state.0.lock().map_err(|e| e.to_string())?;
         let pending = reconcile::reconcile(&conn, &disk_paths)?;
         if !pending.is_empty() {
             println!("[Rust] {} pending matches need user confirmation", pending.len());
             let _ = app_handle.emit("orphan-matches-found", &pending);
         }
+        tags_map = db::get_all_tags_map(&conn);
+        id_map = db::get_all_active_scripts(&conn)
+            .into_iter().map(|(id, path)| (path, id)).collect();
         drop(conn);
     } else {
         // FAST LOAD: cache only, no reconciliation
+        // Single lock for cache + tags + IDs (prevents watcher interleaving)
         let conn = state.0.lock().map_err(|e| e.to_string())?;
         if let Some(cached) = load_cache_from_db(&conn) {
             println!("[Rust] Fast load from DB ({} paths)", cached.len());
@@ -1082,15 +1088,11 @@ async fn get_scripts(
             println!("[Rust] No scripts in DB — returning empty (user should refresh or set up scan paths)");
             script_paths = Vec::new();
         }
+        tags_map = db::get_all_tags_map(&conn);
+        id_map = db::get_all_active_scripts(&conn)
+            .into_iter().map(|(id, path)| (path, id)).collect();
         drop(conn);
     }
-
-    // Load tags and IDs from DB (fast, single queries)
-    let conn = state.0.lock().map_err(|e| e.to_string())?;
-    let tags_map = db::get_all_tags_map(&conn);
-    let id_map: HashMap<String, String> = db::get_all_active_scripts(&conn)
-        .into_iter().map(|(id, path)| (path, id)).collect();
-    drop(conn);
 
     let tagged_count = tags_map.len();
     let total_tags: usize = tags_map.values().map(|v| v.len()).sum();
