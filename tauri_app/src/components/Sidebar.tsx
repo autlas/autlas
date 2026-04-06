@@ -139,6 +139,8 @@ export default function Sidebar({
   };
 
   const collapsed = sidebarCollapsed;
+  const sideTip = (text: string, child: React.ReactElement) =>
+    collapsed ? <Tooltip text={text} side="right">{child}</Tooltip> : child;
   const sidebarWidth = useTreeStore(s => s.sidebarWidth);
   const setSidebarWidth = useTreeStore(s => s.setSidebarWidth);
   const [isResizing, setIsResizing] = useState(false);
@@ -194,46 +196,49 @@ export default function Sidebar({
       <div className={`flex flex-col space-y-1.5 flex-1 pt-5 pb-5 overflow-x-hidden pl-4 ${collapsed ? 'scrollbar-overlay custom-scrollbar pr-[13px]' : 'overflow-y-auto custom-scrollbar pr-[6px]'}`}>
         {/* Group 1: Hub */}
         <ul className="space-y-1.5 w-full">
-          {[{ id: "hub", label: t("sidebar.hub", "Hub") }].map((tab) => (
-            <li
-              key={tab.id}
-              onMouseEnter={() => { if (!collapsed && draggedScript && !draggedScript.tags.includes("hub")) setDragOverTag(tab.id); }}
-              onMouseLeave={() => { if (!collapsed && draggedScript && dragOverTag === tab.id) setDragOverTag(null); }}
-              className={`h-[52px] rounded-2xl cursor-pointer text-sm font-bold flex items-center whitespace-nowrap relative px-[10px] -ml-[2px]
-                justify-between
-                ${draggedScript && !collapsed
-                  ? (draggedScript.tags.includes("hub")
-                    ? "opacity-20 blur-[1px]"
-                    : `text-indigo-400 tag-pulse-target ${dragOverTag === tab.id ? "tag-drop-hover" : ""}`)
-                  : (activeTab === tab.id && viewMode !== "settings"
-                    ? "bg-gradient-to-r from-indigo-500 to-purple-500 shadow-xl shadow-indigo-900/40 text-white"
-                    : "text-tertiary hover:text-secondary tag-hover")
-                }`}
-              style={{
-                backgroundColor: (activeTab === tab.id && viewMode !== "settings") ? "transparent"
-                  : (!collapsed && draggedScript && dragOverTag === tab.id) ? undefined
-                    : "var(--bg-tag)",
-              }}
-              onClick={() => !draggedScript && onTabClick(tab.id)}
-            >
-              <div className="flex items-center pointer-events-none flex-shrink-0 overflow-hidden">
-                <img src={logoImg} alt="Hub" className={`w-8 h-8 flex-shrink-0 transition-all duration-300 ${activeTab === "hub" && viewMode !== "settings" ? "brightness-0 invert" : ""}`} />
-                <span className={`text-lg tracking-tight transition-[width,margin,opacity] duration-150 ${collapsed ? 'w-0 ml-0 opacity-0' : 'w-auto ml-3 opacity-100'}`}>{tab.label}</span>
-              </div>
-              {activeTab !== "hub" && (
-                <div className={`absolute flex items-center justify-center rounded-full bg-green-500 transition-all duration-300
-                  ${collapsed
-                    ? (runningCount > 0 ? 'top-[-1px] right-[-1px] w-4.5 h-4.5 shadow-[0_0_12px_rgba(34,197,94,0.6)]' : 'top-[22px] right-2 w-2 h-2 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.5)] opacity-0')
-                    : (runningCount > 0 ? 'top-[16px] right-3 w-5 h-5 shadow-[0_0_12px_rgba(34,197,94,0.6)]' : 'top-[22px] right-4 w-2 h-2 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.5)]')
+          {[{ id: "hub", label: t("sidebar.hub", "Hub") }].map((tab) => {
+            const item = (
+              <li
+                key={tab.id}
+                onMouseEnter={() => { if (!collapsed && draggedScript && !draggedScript.tags.includes("hub")) setDragOverTag(tab.id); }}
+                onMouseLeave={() => { if (!collapsed && draggedScript && dragOverTag === tab.id) setDragOverTag(null); }}
+                className={`h-[52px] rounded-2xl cursor-pointer text-sm font-bold flex items-center whitespace-nowrap relative px-[10px] -ml-[2px]
+                  justify-between
+                  ${draggedScript && !collapsed
+                    ? (draggedScript.tags.includes("hub")
+                      ? "opacity-20 blur-[1px]"
+                      : `text-indigo-400 tag-pulse-target ${dragOverTag === tab.id ? "tag-drop-hover" : ""}`)
+                    : (activeTab === tab.id && viewMode !== "settings"
+                      ? "bg-gradient-to-r from-indigo-500 to-purple-500 shadow-xl shadow-indigo-900/40 text-white"
+                      : "text-tertiary hover:text-secondary tag-hover")
                   }`}
-                >
-                  {runningCount > 0 && (
-                    <span className={`font-bold leading-none transition-all duration-300 ${collapsed ? 'text-[14px]' : 'text-[15px]'}`} style={{ color: "var(--bg-secondary)" }}>{runningCount}</span>
-                  )}
+                style={{
+                  backgroundColor: (activeTab === tab.id && viewMode !== "settings") ? "transparent"
+                    : (!collapsed && draggedScript && dragOverTag === tab.id) ? undefined
+                      : "var(--bg-tag)",
+                }}
+                onClick={() => !draggedScript && onTabClick(tab.id)}
+              >
+                <div className="flex items-center pointer-events-none flex-shrink-0 overflow-hidden">
+                  <img src={logoImg} alt="Hub" className={`w-8 h-8 flex-shrink-0 transition-all duration-300 ${activeTab === "hub" && viewMode !== "settings" ? "brightness-0 invert" : ""}`} />
+                  <span className={`text-lg tracking-tight transition-[width,margin,opacity] duration-150 ${collapsed ? 'w-0 ml-0 opacity-0' : 'w-auto ml-3 opacity-100'}`}>{tab.label}</span>
                 </div>
-              )}
-            </li>
-          ))}
+                {activeTab !== "hub" && (
+                  <div className={`absolute flex items-center justify-center rounded-full bg-green-500 transition-all duration-300
+                    ${collapsed
+                      ? (runningCount > 0 ? 'top-[-1px] right-[-1px] w-4.5 h-4.5 shadow-[0_0_12px_rgba(34,197,94,0.6)]' : 'top-[22px] right-2 w-2 h-2 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.5)] opacity-0')
+                      : (runningCount > 0 ? 'top-[16px] right-3 w-5 h-5 shadow-[0_0_12px_rgba(34,197,94,0.6)]' : 'top-[22px] right-4 w-2 h-2 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.5)]')
+                    }`}
+                  >
+                    {runningCount > 0 && (
+                      <span className={`font-bold leading-none transition-all duration-300 ${collapsed ? 'text-[14px]' : 'text-[15px]'}`} style={{ color: "var(--bg-secondary)" }}>{runningCount}</span>
+                    )}
+                  </div>
+                )}
+              </li>
+            );
+            return collapsed ? <Tooltip key={tab.id} text={tab.label} side="right">{item}</Tooltip> : item;
+          })}
         </ul>
 
         <div className="h-[1px] bg-white/5 mx-2 my-2" />
@@ -243,153 +248,161 @@ export default function Sidebar({
           {[
             { id: "all", label: t("sidebar.all", "All") },
             { id: "no_tags", label: t("sidebar.no_tags", "Untagged") },
-          ].map((tab) => (
-            <li
-              key={tab.id}
-              className={`h-12 rounded-2xl cursor-pointer text-sm font-bold transition-[background-color,opacity,filter,box-shadow] duration-200 flex items-center overflow-hidden whitespace-nowrap ${collapsed ? 'w-12' : ''} px-[13px]
-                justify-between
-                ${!collapsed && draggedScript && tab.id !== dragOverTag ? "opacity-20 blur-[1px]" : ""}
-                ${activeTab === tab.id && viewMode !== "settings"
-                  ? "text-white/80 shadow-lg tag-active"
-                  : "text-tertiary hover:text-secondary tag-hover"
-                }`}
-              style={{ backgroundColor: activeTab === tab.id && viewMode !== "settings" ? "var(--bg-tag-active)" : "var(--bg-tag)" }}
-              onClick={() => !draggedScript && onTabClick(tab.id)}
-            >
-              <div className="flex items-center pointer-events-none flex-shrink-0">
-                {tab.id === "all" && <LayersIcon size={22} weight={activeTab === tab.id && viewMode !== "settings" ? "fill" : "bold"} className="flex-shrink-0" />}
-                {tab.id === "no_tags" && <TagOffIcon size={22} weight={activeTab === tab.id && viewMode !== "settings" ? "fill" : "bold"} className="flex-shrink-0 translate-y-[1px]" />}
-                <span className={`transition-[width,margin,opacity] duration-150 ${collapsed ? 'w-0 ml-0 opacity-0' : 'w-auto ml-3 opacity-100'}`}>{tab.label}</span>
-              </div>
-            </li>
-          ))}
+          ].map((tab) => {
+            const item = (
+              <li
+                key={tab.id}
+                className={`h-12 rounded-2xl cursor-pointer text-sm font-bold transition-[background-color,opacity,filter,box-shadow] duration-200 flex items-center overflow-hidden whitespace-nowrap ${collapsed ? 'w-12' : ''} px-[13px]
+                  justify-between
+                  ${!collapsed && draggedScript && tab.id !== dragOverTag ? "opacity-20 blur-[1px]" : ""}
+                  ${activeTab === tab.id && viewMode !== "settings"
+                    ? "text-white/80 shadow-lg tag-active"
+                    : "text-tertiary hover:text-secondary tag-hover"
+                  }`}
+                style={{ backgroundColor: activeTab === tab.id && viewMode !== "settings" ? "var(--bg-tag-active)" : "var(--bg-tag)" }}
+                onClick={() => !draggedScript && onTabClick(tab.id)}
+              >
+                <div className="flex items-center pointer-events-none flex-shrink-0">
+                  {tab.id === "all" && <LayersIcon size={22} weight={activeTab === tab.id && viewMode !== "settings" ? "fill" : "bold"} className="flex-shrink-0" />}
+                  {tab.id === "no_tags" && <TagOffIcon size={22} weight={activeTab === tab.id && viewMode !== "settings" ? "fill" : "bold"} className="flex-shrink-0 translate-y-[1px]" />}
+                  <span className={`transition-[width,margin,opacity] duration-150 ${collapsed ? 'w-0 ml-0 opacity-0' : 'w-auto ml-3 opacity-100'}`}>{tab.label}</span>
+                </div>
+              </li>
+            );
+            return collapsed ? <Tooltip key={tab.id} text={tab.label} side="right">{item}</Tooltip> : item;
+          })}
         </ul>
 
         <div className="h-[1px] bg-white/5 mx-2 my-2" />
 
         {/* Group 3: Tags */}
         <div className="flex flex-col space-y-1.5 w-full">
-          <li
-            className={`h-12 rounded-2xl cursor-pointer text-sm font-bold transition-[background-color,opacity,filter,box-shadow] duration-200 flex items-center overflow-hidden whitespace-nowrap ${collapsed ? 'w-12' : ''} px-[13px]
-              justify-between
-              ${!collapsed && draggedScript ? "opacity-20 blur-[1px]" : ""}
-              ${activeTab === "tags" && viewMode !== "settings"
-                ? "text-white/80 shadow-lg tag-active"
-                : "text-tertiary hover:text-secondary tag-hover"
-              }`}
-            style={{ backgroundColor: activeTab === "tags" && viewMode !== "settings" ? "var(--bg-tag-active)" : "var(--bg-tag)", listStyle: "none" }}
-            onClick={() => !draggedScript && onTabClick("tags")}
-          >
-            <div className="flex items-center pointer-events-none flex-shrink-0">
-              <TagIcon size={22} weight={activeTab === "tags" && viewMode !== "settings" ? "fill" : "bold"} className="flex-shrink-0 translate-y-[1px]" />
-              <span className={`transition-[width,margin,opacity] duration-150 ${collapsed ? 'w-0 ml-0 opacity-0' : 'w-auto ml-3 opacity-100'}`}>{t("sidebar.tags", "Tags")}</span>
-            </div>
-            {!collapsed && (
-              <button
-                onClick={(e) => { e.stopPropagation(); setTagsCollapsed(v => { const next = !v; safeSetItem("ahk_tags_collapsed", String(next)); return next; }); }}
-                className="text-white/20 hover:text-white/50 transition-colors cursor-pointer p-1"
-              >
-                <ChevronDownIcon className={`transition-transform duration-200 ${tagsCollapsed ? '-rotate-90' : ''}`} />
-              </button>
-            )}
-          </li>
+          {sideTip(t("sidebar.tags", "Tags"),
+            <li
+              className={`h-12 rounded-2xl cursor-pointer text-sm font-bold transition-[background-color,opacity,filter,box-shadow] duration-200 flex items-center overflow-hidden whitespace-nowrap ${collapsed ? 'w-12' : ''} px-[13px]
+                justify-between
+                ${!collapsed && draggedScript ? "opacity-20 blur-[1px]" : ""}
+                ${activeTab === "tags" && viewMode !== "settings"
+                  ? "text-white/80 shadow-lg tag-active"
+                  : "text-tertiary hover:text-secondary tag-hover"
+                }`}
+              style={{ backgroundColor: activeTab === "tags" && viewMode !== "settings" ? "var(--bg-tag-active)" : "var(--bg-tag)", listStyle: "none" }}
+              onClick={() => !draggedScript && onTabClick("tags")}
+            >
+              <div className="flex items-center pointer-events-none flex-shrink-0">
+                <TagIcon size={22} weight={activeTab === "tags" && viewMode !== "settings" ? "fill" : "bold"} className="flex-shrink-0 translate-y-[1px]" />
+                <span className={`transition-[width,margin,opacity] duration-150 ${collapsed ? 'w-0 ml-0 opacity-0' : 'w-auto ml-3 opacity-100'}`}>{t("sidebar.tags", "Tags")}</span>
+              </div>
+              {!collapsed && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); setTagsCollapsed(v => { const next = !v; safeSetItem("ahk_tags_collapsed", String(next)); return next; }); }}
+                  className="text-white/20 hover:text-white/50 transition-colors cursor-pointer p-1"
+                >
+                  <ChevronDownIcon className={`transition-transform duration-200 ${tagsCollapsed ? '-rotate-90' : ''}`} />
+                </button>
+              )}
+            </li>
+          )}
 
           <ul className={`flex flex-col space-y-1.5 px-0 w-full transition-all duration-300 overflow-hidden ${tagsCollapsed && !collapsed ? 'max-h-0 opacity-0' : 'max-h-[2000px] opacity-100'}`}>
-            {userTags.map((tag) => (
-              <li
-                key={tag}
-                onMouseDown={(e) => !collapsed && handleTagDragStart(e, tag)}
-                onMouseEnter={() => {
-                  if (collapsed) return;
-                  if (draggedTag && draggedTag !== tag) {
-                    const newOrder = [...userTags];
-                    const dragIdx = newOrder.indexOf(draggedTag);
-                    const hoverIdx = newOrder.indexOf(tag);
-                    if (dragIdx !== -1 && hoverIdx !== -1) {
-                      newOrder.splice(dragIdx, 1);
-                      newOrder.splice(hoverIdx, 0, draggedTag);
-                      // @ts-ignore
-                      if (document.startViewTransition) {
+            {userTags.map((tag) => {
+              const item = (
+                <li
+                  key={tag}
+                  onMouseDown={(e) => !collapsed && handleTagDragStart(e, tag)}
+                  onMouseEnter={() => {
+                    if (collapsed) return;
+                    if (draggedTag && draggedTag !== tag) {
+                      const newOrder = [...userTags];
+                      const dragIdx = newOrder.indexOf(draggedTag);
+                      const hoverIdx = newOrder.indexOf(tag);
+                      if (dragIdx !== -1 && hoverIdx !== -1) {
+                        newOrder.splice(dragIdx, 1);
+                        newOrder.splice(hoverIdx, 0, draggedTag);
                         // @ts-ignore
-                        document.startViewTransition(() => setUserTags(newOrder));
-                      } else {
-                        setUserTags(newOrder);
-                      }
-                    }
-                  } else if (draggedScript) {
-                    setDragOverTag(tag);
-                  }
-                }}
-                onMouseLeave={() => {
-                  if (collapsed) return;
-                  setActiveTabPressed(null);
-                  draggedScript && dragOverTag === tag && setDragOverTag(null);
-                }}
-                className={collapsed
-                  ? `w-12 px-[13px] h-12 rounded-2xl cursor-pointer text-sm font-bold transition-[background-color,opacity,filter,box-shadow] duration-200 flex items-center justify-between overflow-hidden whitespace-nowrap
-                    ${activeTab === tag && viewMode !== "settings"
-                    ? "text-white/80 shadow-lg tag-active"
-                    : "text-tertiary hover:text-secondary tag-hover"
-                  }`
-                  : navItemClass(tag, true, { activeTab, draggedScript, draggedTag, dragOverTag, activeTabPressed })
-                }
-                style={collapsed
-                  ? { backgroundColor: activeTab === tag ? "var(--bg-tag-active)" : "var(--bg-tag)" }
-                  : {
-                    backgroundColor: (dragOverTag === tag || (draggedScript && !draggedScript.tags.includes(tag)))
-                      ? undefined
-                      : (activeTab === tag ? "var(--bg-tag-active)" : "var(--bg-tag)"),
-                    // @ts-ignore
-                    viewTransitionName: `tag-${tag.replace(/\s+/g, "-")}`,
-                  }
-                }
-                onClick={() => { if (!draggedScript) onTabClick(tag); }}
-              >
-                {isRenamingTag === tag && !collapsed ? (
-                  <div className="flex items-center flex-shrink-0 w-full">
-                    {tagIcons[tag]
-                      ? <TagIconSvg name={tagIcons[tag]} size={22} weight="bold" className="flex-shrink-0" />
-                      : <TagDotIcon size={22} weight="bold" className="flex-shrink-0" />
-                    }
-                    <input
-                      autoFocus
-                      className="bg-transparent border-none outline-none text-sm font-bold w-full text-white ml-3"
-                      value={editTagName}
-                      onChange={(e) => setEditTagName(e.target.value)}
-                      onClick={(e) => e.stopPropagation()}
-                      onBlur={async () => {
-                        const newName = editTagName.trim();
-                        if (newName && newName !== tag) {
-                          await invoke("rename_tag", { oldTag: tag, newTag: newName });
-                          const newOrder = userTags.map(t => t === tag ? newName : t);
+                        if (document.startViewTransition) {
+                          // @ts-ignore
+                          document.startViewTransition(() => setUserTags(newOrder));
+                        } else {
                           setUserTags(newOrder);
-                          await invoke("save_tag_order", { order: newOrder });
-                          if (activeTab === tag) setActiveTab(newName);
-                          triggerScan();
                         }
-                        setIsRenamingTag(null);
-                      }}
-                      onKeyDown={async (e) => {
-                        if (e.key === "Enter") {
-                          (e.target as HTMLInputElement).blur();
-                        } else if (e.key === "Escape") {
-                          setEditTagName(tag);
-                          setIsRenamingTag(null);
-                        }
-                      }}
-                    />
-                  </div>
-                ) : (
-                  <div className="flex items-center pointer-events-none flex-shrink-0">
-                    {tagIcons[tag]
-                      ? <TagIconSvg name={tagIcons[tag]} size={22} weight={activeTab === tag && viewMode !== "settings" ? "fill" : "bold"} className="flex-shrink-0" />
-                      : <TagDotIcon size={22} weight={activeTab === tag && viewMode !== "settings" ? "fill" : "bold"} className="flex-shrink-0" />
+                      }
+                    } else if (draggedScript) {
+                      setDragOverTag(tag);
                     }
-                    <span className={`relative z-50 font-bold transition-[width,margin,opacity] duration-150 ${collapsed ? 'w-0 ml-0 opacity-0' : 'w-auto ml-3 opacity-100 truncate'}`}>{tag}</span>
-                  </div>
-                )}
-              </li>
-            ))}
+                  }}
+                  onMouseLeave={() => {
+                    if (collapsed) return;
+                    setActiveTabPressed(null);
+                    draggedScript && dragOverTag === tag && setDragOverTag(null);
+                  }}
+                  className={collapsed
+                    ? `w-12 px-[13px] h-12 rounded-2xl cursor-pointer text-sm font-bold transition-[background-color,opacity,filter,box-shadow] duration-200 flex items-center justify-between overflow-hidden whitespace-nowrap
+                      ${activeTab === tag && viewMode !== "settings"
+                      ? "text-white/80 shadow-lg tag-active"
+                      : "text-tertiary hover:text-secondary tag-hover"
+                    }`
+                    : navItemClass(tag, true, { activeTab, draggedScript, draggedTag, dragOverTag, activeTabPressed })
+                  }
+                  style={collapsed
+                    ? { backgroundColor: activeTab === tag ? "var(--bg-tag-active)" : "var(--bg-tag)" }
+                    : {
+                      backgroundColor: (dragOverTag === tag || (draggedScript && !draggedScript.tags.includes(tag)))
+                        ? undefined
+                        : (activeTab === tag ? "var(--bg-tag-active)" : "var(--bg-tag)"),
+                      // @ts-ignore
+                      viewTransitionName: `tag-${tag.replace(/\s+/g, "-")}`,
+                    }
+                  }
+                  onClick={() => { if (!draggedScript) onTabClick(tag); }}
+                >
+                  {isRenamingTag === tag && !collapsed ? (
+                    <div className="flex items-center flex-shrink-0 w-full">
+                      {tagIcons[tag]
+                        ? <TagIconSvg name={tagIcons[tag]} size={22} weight="bold" className="flex-shrink-0" />
+                        : <TagDotIcon size={22} weight="bold" className="flex-shrink-0" />
+                      }
+                      <input
+                        autoFocus
+                        className="bg-transparent border-none outline-none text-sm font-bold w-full text-white ml-3"
+                        value={editTagName}
+                        onChange={(e) => setEditTagName(e.target.value)}
+                        onClick={(e) => e.stopPropagation()}
+                        onBlur={async () => {
+                          const newName = editTagName.trim();
+                          if (newName && newName !== tag) {
+                            await invoke("rename_tag", { oldTag: tag, newTag: newName });
+                            const newOrder = userTags.map(t => t === tag ? newName : t);
+                            setUserTags(newOrder);
+                            await invoke("save_tag_order", { order: newOrder });
+                            if (activeTab === tag) setActiveTab(newName);
+                            triggerScan();
+                          }
+                          setIsRenamingTag(null);
+                        }}
+                        onKeyDown={async (e) => {
+                          if (e.key === "Enter") {
+                            (e.target as HTMLInputElement).blur();
+                          } else if (e.key === "Escape") {
+                            setEditTagName(tag);
+                            setIsRenamingTag(null);
+                          }
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex items-center pointer-events-none flex-shrink-0">
+                      {tagIcons[tag]
+                        ? <TagIconSvg name={tagIcons[tag]} size={22} weight={activeTab === tag && viewMode !== "settings" ? "fill" : "bold"} className="flex-shrink-0" />
+                        : <TagDotIcon size={22} weight={activeTab === tag && viewMode !== "settings" ? "fill" : "bold"} className="flex-shrink-0" />
+                      }
+                      <span className={`relative z-50 font-bold transition-[width,margin,opacity] duration-150 ${collapsed ? 'w-0 ml-0 opacity-0' : 'w-auto ml-3 opacity-100 truncate'}`}>{tag}</span>
+                    </div>
+                  )}
+                </li>
+              );
+              return collapsed ? <Tooltip key={tag} text={tag} side="right">{item}</Tooltip> : item;
+            })}
             {!collapsed && draggedScript && (
               <li
                 className={navItemClass("new-tag", true, { activeTab, draggedScript, draggedTag, dragOverTag, activeTabPressed })}
@@ -428,7 +441,7 @@ export default function Sidebar({
 
       {/* Bottom: settings + refresh */}
       <div className={`flex w-full mt-auto pl-4 pr-[13px] ${collapsed ? 'flex-col items-center space-y-1.5 pb-5' : 'items-center space-x-3'}`}>
-        <Tooltip text={t("sidebar.settings")}>
+        <Tooltip text={t("sidebar.settings")} side={collapsed ? "right" : undefined}>
           <button
             onClick={() => onTabClick("settings")}
             className={`${collapsed ? 'w-12' : 'flex-1'} h-12 rounded-xl flex items-center justify-center transition-[background-color,opacity,filter,box-shadow] duration-200 group cursor-pointer ${!collapsed && draggedScript ? "opacity-20 blur-[1px]" : ""
@@ -444,7 +457,7 @@ export default function Sidebar({
           </button>
         </Tooltip>
 
-        <Tooltip text={t("sidebar.refresh")}>
+        <Tooltip text={t("sidebar.refresh")} side={collapsed ? "right" : undefined}>
           <button
             onClick={() => { triggerScan(); onRefresh(); }}
             onMouseEnter={() => onHoveringRefresh(true)}

@@ -5,11 +5,12 @@ interface TooltipProps {
     text: string;
     children: ReactElement;
     delay?: number;
+    side?: "top" | "bottom" | "right";
 }
 
-export default function Tooltip({ text, children, delay = 0 }: TooltipProps) {
+export default function Tooltip({ text, children, delay = 0, side: preferredSide }: TooltipProps) {
     const [visible, setVisible] = useState(false);
-    const [pos, setPos] = useState<{ x: number; y: number; side: "top" | "bottom"; arrowX: number } | null>(null);
+    const [pos, setPos] = useState<{ x: number; y: number; side: "top" | "bottom" | "right"; arrowY?: number; arrowX: number } | null>(null);
     const triggerRef = useRef<HTMLElement>(null);
     const tooltipRef = useRef<HTMLDivElement>(null);
     const timerRef = useRef<ReturnType<typeof setTimeout>>(null);
@@ -37,6 +38,16 @@ export default function Tooltip({ text, children, delay = 0 }: TooltipProps) {
             const GAP = 10;
             const EDGE_PAD = 8;
 
+            if (preferredSide === "right") {
+                const x = tr.right + GAP;
+                const centerY = tr.top + tr.height / 2;
+                let y = centerY - tt.height / 2;
+                y = Math.max(EDGE_PAD, Math.min(y, window.innerHeight - tt.height - EDGE_PAD));
+                const arrowY = Math.max(8, Math.min(centerY - y, tt.height - 8));
+                setPos({ x, y, side: "right", arrowX: 0, arrowY });
+                return;
+            }
+
             let side: "top" | "bottom" = "top";
             let y = tr.top - tt.height - GAP;
             if (y < EDGE_PAD) {
@@ -54,7 +65,7 @@ export default function Tooltip({ text, children, delay = 0 }: TooltipProps) {
         };
 
         requestAnimationFrame(compute);
-    }, [visible]);
+    }, [visible, preferredSide]);
 
     useEffect(() => {
         return () => { if (timerRef.current) clearTimeout(timerRef.current); };
@@ -100,7 +111,13 @@ export default function Tooltip({ text, children, delay = 0 }: TooltipProps) {
                         <span className="text-xs font-bold text-secondary">{text}</span>
                         <div
                             className="absolute w-0 h-0"
-                            style={{
+                            style={pos?.side === "right" ? {
+                                left: -10,
+                                top: pos.arrowY! - 10,
+                                borderTop: "10px solid transparent",
+                                borderBottom: "10px solid transparent",
+                                borderRight: "10px solid #303032",
+                            } : {
                                 left: pos ? pos.arrowX - 10 : "50%",
                                 ...(pos?.side === "top"
                                     ? { bottom: -10, borderLeft: "10px solid transparent", borderRight: "10px solid transparent", borderTop: "10px solid #303032" }
@@ -110,7 +127,13 @@ export default function Tooltip({ text, children, delay = 0 }: TooltipProps) {
                         />
                         <div
                             className="absolute w-0 h-0"
-                            style={{
+                            style={pos?.side === "right" ? {
+                                left: -8,
+                                top: pos.arrowY! - 8,
+                                borderTop: "8px solid transparent",
+                                borderBottom: "8px solid transparent",
+                                borderRight: "8px solid rgba(26,26,28,0.95)",
+                            } : {
                                 left: pos ? pos.arrowX - 8 : "50%",
                                 ...(pos?.side === "top"
                                     ? { bottom: -8, borderLeft: "8px solid transparent", borderRight: "8px solid transparent", borderTop: "8px solid rgba(26,26,28,0.95)" }
