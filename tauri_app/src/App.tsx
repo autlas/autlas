@@ -371,8 +371,12 @@ function App() {
   }, []);
 
   const handleExposeActions = useCallback((actions: typeof scriptActionsRef.current) => {
+    const prev = scriptActionsRef.current;
     scriptActionsRef.current = actions;
-    setDataVersion(v => v + 1);
+    // Only force re-render when data the detail panel actually uses has changed
+    if (prev.allScripts !== actions.allScripts || prev.pendingScripts !== actions.pendingScripts) {
+      setDataVersion(v => v + 1);
+    }
   }, []);
 
   const handleSelectScript = useCallback((s: Script) => {
