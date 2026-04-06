@@ -77,7 +77,18 @@
         "show_file_size": "Show file size",
         "show_file_size_desc": "Display script file size next to name",
         "auto_refresh": "Auto-refresh on startup",
-        "auto_refresh_desc": "Scan disk for changes when app opens"
+        "auto_refresh_desc": "Scan disk for changes when app opens",
+        "data_management": "Data Management",
+        "cleanup_orphans": "Clean Up Orphans",
+        "cleanup_orphans_desc": "Remove all orphaned script records that were not reconciled",
+        "cleanup_btn": "Clean Up",
+        "cleanup_done": "Deleted: {{count}}",
+        "reset_database": "Reset Database",
+        "reset_database_desc": "Clear all tags, metadata, and icon cache. Files on disk are not affected.",
+        "reset_btn": "Reset",
+        "reset_confirm": "Confirm",
+        "reset_cancel": "Cancel",
+        "reset_done": "Done!"
     },
     "context": {
         "stop": "Stop",

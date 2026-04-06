@@ -522,6 +522,7 @@ function App() {
                 onInstallEverything={() => setShowInstallModal(true)}
                 orphanCount={orphanMatches.length}
                 onReviewOrphans={() => setShowOrphanDialog(true)}
+                onRefresh={triggerScan}
               />
             </div>
 

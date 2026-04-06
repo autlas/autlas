@@ -43,3 +43,11 @@ export async function launchEverything(): Promise<void> {
 export async function installEverything(): Promise<void> {
     return await invoke("install_everything");
 }
+
+export async function cleanupOrphans(): Promise<number> {
+    return await invoke("cleanup_orphans_cmd");
+}
+
+export async function resetDatabase(): Promise<void> {
+    return await invoke("reset_database_cmd");
+}

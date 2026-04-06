@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { useEffect, useMemo, useState, useCallback } from "react";
-import { checkEverythingStatus, launchEverything } from "../api";
+import { checkEverythingStatus, launchEverything, cleanupOrphans, resetDatabase } from "../api";
 import { useTranslation } from "react-i18next";
 import LanguageSelector from "./LanguageSelector";
 import ToggleGroup from "./ui/ToggleGroup";
@@ -27,6 +27,7 @@ interface SettingsPanelProps {
   onInstallEverything?: () => void;
   orphanCount?: number;
   onReviewOrphans?: () => void;
+  onRefresh?: () => void;
 }
 
 export default function SettingsPanel({
@@ -35,7 +36,7 @@ export default function SettingsPanel({
   fontScale, setFontScale,
   animationsEnabled, toggleAnimations,
   vimModeNav, setVimModeNav,
-  scanPaths, onAddPath, onRemovePath, onInstallEverything, orphanCount, onReviewOrphans,
+  scanPaths, onAddPath, onRemovePath, onInstallEverything, orphanCount, onReviewOrphans, onRefresh,
 }: SettingsPanelProps) {
   const { t } = useTranslation();
   const showFileSize = useTreeStore(s => s.showFileSize);
@@ -58,6 +59,10 @@ export default function SettingsPanel({
   const [everythingStatus, setEverythingStatus] = useState<"running" | "installed" | "not_installed" | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(() => localStorage.getItem("ahk_auto_refresh") === "true");
   const [everythingLoading, setEverythingLoading] = useState(false);
+  const [confirmCleanup, setConfirmCleanup] = useState(false);
+  const [cleanupResult, setCleanupResult] = useState<number | null>(null);
+  const [confirmReset, setConfirmReset] = useState(false);
+  const [resetDone, setResetDone] = useState(false);
 
   useEffect(() => {
     checkEverythingStatus().then(setEverythingStatus);
@@ -348,6 +353,86 @@ export default function SettingsPanel({
             <PlusIcon size={18} className="group-hover:scale-110 transition-transform" />
             {t("settings.add_path")}
           </button>
+        </div>
+      </SettingsSection>
+
+      <SettingsSection>
+        <h3 className="text-sm font-bold tracking-widest text-tertiary uppercase">{t("settings.data_management", "Data Management")}</h3>
+
+        <div className="flex justify-between items-center px-2">
+          <div className="flex flex-col">
+            <span className="text-base font-bold text-secondary">{t("settings.cleanup_orphans", "Clean Up Orphans")}</span>
+            <span className="text-xs text-tertiary mt-1">{t("settings.cleanup_orphans_desc", "Remove all orphaned script records that were not reconciled")}</span>
+          </div>
+          {cleanupResult != null ? (
+            <span className="text-xs font-mono text-green-400 font-bold tracking-widest uppercase">{t("settings.cleanup_done", "Deleted: {{count}}", { count: cleanupResult })}</span>
+          ) : !confirmCleanup ? (
+            <button
+              onClick={() => setConfirmCleanup(true)}
+              className="text-xs font-mono text-amber-400 font-bold bg-amber-400/10 px-4 py-1.5 rounded-full tracking-widest uppercase hover:bg-amber-400/20 transition-colors cursor-pointer"
+            >
+              {t("settings.cleanup_btn", "Clean Up")}
+            </button>
+          ) : (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={async () => {
+                  const count = await cleanupOrphans();
+                  setConfirmCleanup(false);
+                  setCleanupResult(count);
+                  setTimeout(() => setCleanupResult(null), 3000);
+                }}
+                className="text-xs font-mono text-amber-400 font-bold bg-amber-500/20 px-4 py-1.5 rounded-full tracking-widest uppercase hover:bg-amber-500/30 transition-colors cursor-pointer border border-amber-500/30"
+              >
+                {t("settings.reset_confirm", "Confirm")}
+              </button>
+              <button
+                onClick={() => setConfirmCleanup(false)}
+                className="text-xs font-mono text-tertiary font-bold bg-white/5 px-4 py-1.5 rounded-full tracking-widest uppercase hover:bg-white/10 transition-colors cursor-pointer"
+              >
+                {t("settings.reset_cancel", "Cancel")}
+              </button>
+            </div>
+          )}
+        </div>
+
+        <div className="flex justify-between items-center px-2 pt-4 border-t border-white/5">
+          <div className="flex flex-col">
+            <span className="text-base font-bold text-secondary">{t("settings.reset_database", "Reset Database")}</span>
+            <span className="text-xs text-tertiary mt-1">{t("settings.reset_database_desc", "Clear all tags, metadata, and icon cache. Files on disk are not affected.")}</span>
+          </div>
+          {!confirmReset ? (
+            <button
+              onClick={() => setConfirmReset(true)}
+              className="text-xs font-mono text-red-400 font-bold bg-red-400/10 px-4 py-1.5 rounded-full tracking-widest uppercase hover:bg-red-400/20 transition-colors cursor-pointer"
+            >
+              {t("settings.reset_btn", "Reset")}
+            </button>
+          ) : (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={async () => {
+                  await resetDatabase();
+                  setConfirmReset(false);
+                  setResetDone(true);
+                  onRefresh?.();
+                  setTimeout(() => setResetDone(false), 3000);
+                }}
+                className="text-xs font-mono text-red-400 font-bold bg-red-500/20 px-4 py-1.5 rounded-full tracking-widest uppercase hover:bg-red-500/30 transition-colors cursor-pointer border border-red-500/30"
+              >
+                {t("settings.reset_confirm", "Confirm")}
+              </button>
+              <button
+                onClick={() => setConfirmReset(false)}
+                className="text-xs font-mono text-tertiary font-bold bg-white/5 px-4 py-1.5 rounded-full tracking-widest uppercase hover:bg-white/10 transition-colors cursor-pointer"
+              >
+                {t("settings.reset_cancel", "Cancel")}
+              </button>
+            </div>
+          )}
+          {resetDone && (
+            <span className="text-xs font-mono text-green-400 font-bold tracking-widest uppercase">{t("settings.reset_done", "Done!")}</span>
+          )}
         </div>
       </SettingsSection>
     </div>
