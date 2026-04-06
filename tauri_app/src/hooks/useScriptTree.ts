@@ -25,6 +25,9 @@ const smoothScrollTo = (container: HTMLElement, target: number, duration: number
 
 let _cachedScripts: Script[] = [];
 
+/** @internal — test-only reset */
+export function __resetCachedScripts() { _cachedScripts = []; }
+
 interface UseScriptTreeOptions {
     filterTag: string;
     onTagsLoaded: (tags: string[]) => void;
@@ -85,10 +88,13 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
                 const merged = data.map(d => {
                     const p = prevMap.get(d.path);
                     if (!p) { anyChanged = true; return d; }
+                    // Preserve runtime status from watcher events — scan doesn't know about running processes
+                    const is_running = p.is_running || d.is_running;
+                    const has_ui = is_running ? (p.has_ui || d.has_ui) : false;
                     const tagsMatch = p.tags.length === d.tags.length && p.tags.every((t, i) => t === d.tags[i]);
-                    if (p.id === d.id && p.is_running === d.is_running && p.is_hidden === d.is_hidden && tagsMatch) return p;
+                    if (p.id === d.id && p.is_running === is_running && p.has_ui === has_ui && p.is_hidden === d.is_hidden && tagsMatch) return p;
                     anyChanged = true;
-                    return d;
+                    return { ...d, is_running, has_ui };
                 });
 
                 return anyChanged ? merged : prev;
@@ -151,7 +157,10 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
     }, []);
 
     useEffect(() => {
-        fetchData(); // Fast load from cache
+        // Skip cache load if data already available from module-level cache (avoids redundant DB query on tab switch)
+        if (_cachedScripts.length === 0) {
+            fetchData(); // Fast load from cache
+        }
         // Auto-refresh on startup if setting enabled
         if (localStorage.getItem("ahk_auto_refresh") === "true") {
             fetchData(true);
