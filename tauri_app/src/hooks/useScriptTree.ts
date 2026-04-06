@@ -196,11 +196,14 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
         import('@tauri-apps/api/event').then(({ listen }) => {
             if (!mounted) return; // Component unmounted before import resolved
 
-            listen<{ id: string; tags: string[] }>('script-tags-changed', (event) => {
-                const { id, tags } = event.payload;
-                _cachedScripts = _cachedScripts.map(s => s.id === id ? { ...s, tags } : s);
+            listen<{ id: string; tags: string[]; path?: string }>('script-tags-changed', (event) => {
+                const { id, tags, path } = event.payload;
+                const pathLower = path?.toLowerCase();
+                // Match by id OR by path (orphan link sends new path with old id)
+                const matches = (s: Script) => s.id === id || (pathLower && s.path.toLowerCase() === pathLower);
+                _cachedScripts = _cachedScripts.map(s => matches(s) ? { ...s, id, tags } : s);
                 setAllScripts(prev => prev.map(s =>
-                    s.id === id ? { ...s, tags } : s
+                    matches(s) ? { ...s, id, tags } : s
                 ));
             }).then(fn => {
                 if (mounted) { unlisten = fn; } else { fn(); } // Immediately unlisten if already unmounted

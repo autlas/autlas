@@ -1749,17 +1749,35 @@ async fn resolve_orphan(
     match action.as_str() {
         "link" => {
             if let Some(path) = new_path {
+                let path_lower = db::normalize_path(&path);
                 let path_buf = std::path::PathBuf::from(&path);
                 let filename = path_buf.file_name()
                     .map(|f| f.to_string_lossy().to_string())
                     .unwrap_or_default();
                 let hash = db::compute_file_hash(&path_buf).unwrap_or_default();
                 let now = db::now_iso();
-                db::reconcile_orphan(&conn, &orphan_id, &path, &filename, &hash, &now)
+
+                // Delete the duplicate entry created during scan for this path
+                // (it has a new UUID with no tags — the orphan's UUID is the real one)
+                let _ = conn.execute(
+                    "DELETE FROM script_tags WHERE script_id IN (SELECT id FROM scripts WHERE LOWER(path) = ?1 AND id != ?2)",
+                    rusqlite::params![path_lower, orphan_id],
+                );
+                let _ = conn.execute(
+                    "DELETE FROM scripts WHERE LOWER(path) = ?1 AND id != ?2",
+                    rusqlite::params![path_lower, orphan_id],
+                );
+
+                db::reconcile_orphan(&conn, &orphan_id, &path_lower, &filename, &hash, &now)
                     .map_err(|e| e.to_string())?;
-                // Emit tags so frontend updates without rescan
+
+                // Emit with BOTH id and path so frontend can match by either
                 let tags = db::get_tags_for_script(&conn, &orphan_id);
-                let _ = app.emit("script-tags-changed", serde_json::json!({ "id": orphan_id, "tags": tags }));
+                let _ = app.emit("script-tags-changed", serde_json::json!({
+                    "id": orphan_id,
+                    "path": path_lower,
+                    "tags": tags
+                }));
             }
         }
         "discard" => {
