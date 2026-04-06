@@ -526,8 +526,8 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
         const root: TreeNode = { name: "Root", fullName: "Root", scripts: [], children: {} };
         filtered.forEach(script => {
             const pathParts = script.path.split(/[\\\/]/);
-            const desktopIdx = pathParts.findIndex(p => p === "Desktop");
-            const ahkIdx = pathParts.findIndex(p => p === "AHKmanager");
+            const desktopIdx = pathParts.findIndex(p => p.toLowerCase() === "desktop");
+            const ahkIdx = pathParts.findIndex(p => p.toLowerCase() === "ahkmanager");
             let startIdx = 0;
             if (desktopIdx !== -1) startIdx = desktopIdx;
             else if (ahkIdx !== -1) startIdx = ahkIdx;
