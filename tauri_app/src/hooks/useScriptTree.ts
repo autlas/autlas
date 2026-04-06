@@ -193,6 +193,7 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
 
             listen<{ id: string; tags: string[] }>('script-tags-changed', (event) => {
                 const { id, tags } = event.payload;
+                _cachedScripts = _cachedScripts.map(s => s.id === id ? { ...s, tags } : s);
                 setAllScripts(prev => prev.map(s =>
                     s.id === id ? { ...s, tags } : s
                 ));
@@ -203,11 +204,14 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
             listen<{ path: string; is_running: boolean; has_ui: boolean }>('script-status-changed', (event) => {
                 const { path, is_running, has_ui } = event.payload;
                 const pathLower = path.toLowerCase();
+                const newHasUi = is_running ? has_ui : false;
+                _cachedScripts = _cachedScripts.map(s =>
+                    s.path.toLowerCase() === pathLower ? { ...s, is_running, has_ui: newHasUi } : s
+                );
                 startTransition(() => {
                     setAllScripts(prev => {
                         const target = prev.find(s => s.path.toLowerCase() === pathLower);
                         if (!target) return prev;
-                        const newHasUi = is_running ? has_ui : false;
                         if (target.is_running === is_running && target.has_ui === newHasUi) {
                             return prev;
                         }
@@ -379,12 +383,14 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
             return;
         }
         const updatedTags = [...script.tags, trimmed];
+        _cachedScripts = _cachedScripts.map(s => s.id === script.id ? { ...s, tags: updatedTags } : s);
         setAllScripts(prev => prev.map(s => s.id === script.id ? { ...s, tags: updatedTags } : s));
         useTreeStore.getState().setEditingScript(null);
         try {
             await invoke("save_script_tags", { id: script.id, tags: updatedTags });
         } catch (e) {
             console.error(e);
+            _cachedScripts = _cachedScripts.map(s => s.id === script.id ? { ...s, tags: script.tags } : s);
             setAllScripts(prev => prev.map(s => s.id === script.id ? { ...s, tags: script.tags } : s));
         }
     }, []);
@@ -395,12 +401,14 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
         useTreeStore.getState().addRemovingTag(tagId);
         await new Promise(r => setTimeout(r, 90));
         const newTags = script.tags.filter(t => t !== tagToRemove);
+        _cachedScripts = _cachedScripts.map(s => s.id === script.id ? { ...s, tags: newTags } : s);
         setAllScripts(prev => prev.map(s => s.id === script.id ? { ...s, tags: newTags } : s));
         useTreeStore.getState().clearRemovingTag(tagId);
         try {
             await invoke("save_script_tags", { id: script.id, tags: newTags });
         } catch (e) {
             console.error(e);
+            _cachedScripts = _cachedScripts.map(s => s.id === script.id ? { ...s, tags: script.tags } : s);
             setAllScripts(prev => prev.map(s => s.id === script.id ? { ...s, tags: script.tags } : s));
         }
     }, [removingTags]);
