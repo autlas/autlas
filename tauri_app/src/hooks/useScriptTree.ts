@@ -413,6 +413,20 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
         }
     }, [removingTags]);
 
+    const deleteTagFromAll = useCallback((tag: string) => {
+        _cachedScripts = _cachedScripts.map(s => ({
+            ...s, tags: s.tags.filter(t => t.toLowerCase() !== tag.toLowerCase())
+        }));
+        setAllScripts(prev => prev.map(s => ({
+            ...s, tags: s.tags.filter(t => t.toLowerCase() !== tag.toLowerCase())
+        })));
+    }, []);
+
+    const toggleHiddenByPath = useCallback((folderPath: string) => {
+        // Re-fetch scripts to get updated is_hidden from DB (lightweight, no disk scan)
+        fetchData();
+    }, []);
+
     const handleCustomMouseDown = useCallback((e: React.MouseEvent, script: Script) => {
         if (e.button !== 0) {
             e.preventDefault();
@@ -788,6 +802,7 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
         handleToggle, handleRestart, startEditing, stopEditing,
         addTag, removeTag, handleCustomMouseDown,
         visibleItems, moveFocus,
-        setTagIcon, removeTagIcon
+        setTagIcon, removeTagIcon,
+        deleteTagFromAll, toggleHiddenByPath
     };
 }

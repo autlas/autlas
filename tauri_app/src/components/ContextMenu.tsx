@@ -16,6 +16,8 @@ interface ContextMenuProps {
   onStartRenameTag: (tag: string) => void;
   onRefresh: () => void;
   onChooseTagIcon?: (tag: string) => void;
+  onDeleteTag?: (tag: string) => void;
+  onToggleHideFolder?: (path: string) => void;
 }
 
 function ContextMenuItem({ label, icon, onClick, danger = false }: { label: string; icon: ReactNode; onClick: () => void; danger?: boolean }) {
@@ -70,7 +72,7 @@ function ConfirmDialog({ tag, onConfirm, onCancel }: { tag: string; onConfirm: (
   );
 }
 
-export default function ContextMenu({ contextMenu, onClose, onStartRenameTag, onRefresh, onChooseTagIcon }: ContextMenuProps) {
+export default function ContextMenu({ contextMenu, onClose, onStartRenameTag, onRefresh, onChooseTagIcon, onDeleteTag, onToggleHideFolder }: ContextMenuProps) {
   const { t } = useTranslation();
   const [confirmTag, setConfirmTag] = useState<string | null>(null);
 
@@ -150,7 +152,8 @@ export default function ContextMenu({ contextMenu, onClose, onStartRenameTag, on
               onClick={async () => {
                 await invoke("toggle_hide_folder", { path: contextMenu.data.fullName });
                 onClose();
-                onRefresh();
+                if (onToggleHideFolder) onToggleHideFolder(contextMenu.data.fullName);
+                else onRefresh();
               }}
             />
             <div className="h-[1px] bg-white/5 my-1" />
@@ -166,7 +169,8 @@ export default function ContextMenu({ contextMenu, onClose, onStartRenameTag, on
             await invoke("delete_tag", { tag: confirmTag });
             setConfirmTag(null);
             onClose();
-            onRefresh();
+            if (onDeleteTag) onDeleteTag(confirmTag);
+            else onRefresh();
           }}
           onCancel={() => setConfirmTag(null)}
         />

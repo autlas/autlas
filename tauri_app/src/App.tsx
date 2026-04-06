@@ -57,7 +57,7 @@ function App() {
   const [isHoveringRefresh, setIsHoveringRefresh] = useState(false);
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
   const [detailPinned, setDetailPinned] = useState(() => localStorage.getItem("ahk_detail_pinned") === "true");
-  const scriptActionsRef = useRef<{ toggle: (s: Script) => void; restart: (s: Script) => void; pendingScripts: Record<string, "run" | "kill" | "restart">; allScripts: Script[]; setTagIcon: (tag: string, iconName: string) => void; removeTagIcon: (tag: string) => void }>({ toggle: () => { }, restart: () => { }, pendingScripts: {}, allScripts: [], setTagIcon: () => { }, removeTagIcon: () => { } });
+  const scriptActionsRef = useRef<{ toggle: (s: Script) => void; restart: (s: Script) => void; pendingScripts: Record<string, "run" | "kill" | "restart">; allScripts: Script[]; setTagIcon: (tag: string, iconName: string) => void; removeTagIcon: (tag: string) => void; deleteTagFromAll: (tag: string) => void; toggleHiddenByPath: (path: string) => void }>({ toggle: () => { }, restart: () => { }, pendingScripts: {}, allScripts: [], setTagIcon: () => { }, removeTagIcon: () => { }, deleteTagFromAll: () => { }, toggleHiddenByPath: () => { } });
   const [, setDataVersion] = useState(0);
 
   const { brightness, setBrightness, textContrast, setTextContrast, fontScale, setFontScale, animationsEnabled, toggleAnimations, vimModeNav, setVimModeNav } = useTheme();
@@ -613,6 +613,8 @@ function App() {
         onStartRenameTag={(tag) => { setIsRenamingTag(tag); setEditTagName(tag); }}
         onRefresh={triggerScan}
         onChooseTagIcon={(tag) => setIconPickerTag(tag)}
+        onDeleteTag={(tag) => scriptActionsRef.current.deleteTagFromAll(tag)}
+        onToggleHideFolder={(path) => scriptActionsRef.current.toggleHiddenByPath(path)}
       />
 
       {iconPickerTag && (
