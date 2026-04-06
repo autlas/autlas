@@ -71,12 +71,12 @@ export const TreeNodeRenderer = memo(function TreeNodeRenderer({
     // These need subscriptions so tree view reacts to changes
     const editingScript = useTreeStore(s => s.editingScript);
     const contextMenu = useTreeStore(s => s.contextMenu);
+    const pendingScripts = useTreeStore(s => s.pendingScripts);
 
     // Everything else: read on demand, no subscription
     const st = useTreeStore.getState();
     const isDragging = st.isDragging;
     const draggedScriptPath = st.draggedScriptPath;
-    const pendingScripts = st.pendingScripts;
     const removingTags = st.removingTags;
     const showHidden = st.showHidden;
     const isVimMode = st.isVimMode;
