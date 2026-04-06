@@ -714,6 +714,9 @@ struct Script {
     is_running: bool,
     has_ui: bool,
     size: u64,
+    created_at: String,
+    modified_at: String,
+    last_run: String,
 }
 
 
@@ -1110,6 +1113,7 @@ async fn get_scripts(
 
     // Enrich scripts (file I/O for running scripts only)
     let mut scripts = Vec::new();
+    let conn_for_runs = state.0.lock().map_err(|e| e.to_string())?;
     for path_str in &script_paths {
         let path_buf = std::path::PathBuf::from(path_str);
         let path_lower = path_str.to_lowercase();
@@ -1134,10 +1138,15 @@ async fn get_scripts(
             } else { false }
         } else { false };
 
-        // exists() + size from same syscall
-        let meta = fs::metadata(&path_buf);
-        if meta.is_err() { continue; } // skip deleted files
-        let size = meta.unwrap().len();
+        // exists() + size + dates from same syscall
+        let meta = match fs::metadata(&path_buf) {
+            Ok(m) => m,
+            Err(_) => continue, // skip deleted files
+        };
+        let size = meta.len();
+        let created_at = meta.created().map(format_system_time).unwrap_or_default();
+        let modified_at = meta.modified().map(format_system_time).unwrap_or_default();
+        let last_run_val = db::get_last_run(&conn_for_runs, &path_lower).unwrap_or_default();
 
         scripts.push(Script {
             id: script_id,
@@ -1149,8 +1158,12 @@ async fn get_scripts(
             is_running,
             has_ui,
             size,
+            created_at,
+            modified_at,
+            last_run: last_run_val,
         });
     }
+    drop(conn_for_runs);
 
     scripts.sort_by(|a, b| a.path.cmp(&b.path));
     scripts.dedup_by(|a, b| a.path == b.path);

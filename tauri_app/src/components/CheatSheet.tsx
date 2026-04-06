@@ -77,7 +77,7 @@ const CheatSheet = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void 
                             <ShortcutItem keys={['i']} desc="Focus Search" />
                             <ShortcutItem keys={['/']} desc="Global Search" />
                             <ShortcutItem keys={['q', 'w', 'e']} desc="Tree / Tiles / List" />
-                            <ShortcutItem keys={['s']} desc="Toggle Sort (N/P)" />
+                            <ShortcutItem keys={['s']} desc="Cycle Sort Mode" />
                             <ShortcutItem keys={['?']} desc="Show Help" />
                             <ShortcutItem keys={['r']} desc="Restart Script" />
                             <ShortcutItem keys={['t']} desc="Edit Tags" />

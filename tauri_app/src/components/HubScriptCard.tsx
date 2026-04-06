@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import { PlusIcon, CloseIcon, RestartIcon, PlayIcon, InterfaceIcon, MinusIcon, StarIcon } from "./ui/Icons";
 import { useTreeStore } from "../store/useTreeStore";
 import Tooltip from "./ui/Tooltip";
+import { formatDate } from "../utils/formatDate";
 
 
 function formatSize(bytes: number): string {
@@ -22,7 +23,8 @@ const HubScriptCard = memo(function HubScriptCard({
 }: HubScriptCardProps) {
     const isFocused = useTreeStore(store => store.focusedPath === s.path);
     const isVimMode = useTreeStore(store => store.isVimMode);
-    const showFileSize = useTreeStore(store => store.showFileSize);
+    const sortBy = useTreeStore(store => store.sortBy);
+    const showInfo = sortBy !== "name";
     const { t } = useTranslation();
     const cardRef = React.useRef<HTMLDivElement>(null);
 
@@ -101,8 +103,13 @@ const HubScriptCard = memo(function HubScriptCard({
                     </Tooltip>
                 </div>
                 <div className="flex items-center gap-4 flex-shrink-0">
-                    {showFileSize && (
-                        <span className="text-xs text-tertiary/50 font-mono">{formatSize(s.size)}</span>
+                    {showInfo && (
+                        <span className="text-xs text-tertiary/50 font-mono">{
+                            sortBy === "created" ? formatDate(s.created_at)
+                            : sortBy === "modified" ? formatDate(s.modified_at)
+                            : sortBy === "last_run" ? (s.last_run ? formatDate(s.last_run) : "—")
+                            : formatSize(s.size)
+                        }</span>
                     )}
                     <div className={`w-3 h-3 rounded-full transition-all duration-500 ${isPending ? (pendingType === 'kill' ? 'bg-red-500 animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.6)]' : 'bg-yellow-500 animate-pulse shadow-[0_0_10px_rgba(234,179,8,0.6)]') : s.is_running ? 'bg-green-500 animate-status-glow shadow-[0_0_12px_rgba(34,197,94,0.8)]' : 'bg-white/10'} ${isDragging ? 'opacity-20' : ''}`}></div>
                 </div>

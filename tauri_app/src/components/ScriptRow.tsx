@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next";
 import { PlusIcon, CloseIcon, RestartIcon, PlayIcon, InterfaceIcon, MinusIcon, StarIcon } from "./ui/Icons";
 import Tooltip from "./ui/Tooltip";
 import ActionButton from "./ui/ActionButton";
+import { formatDate } from "../utils/formatDate";
 
 function formatSize(bytes: number): string {
     if (bytes < 1024) return `${bytes} B`;
@@ -24,7 +25,8 @@ const ScriptRow = memo(function ScriptRow({
     const { t } = useTranslation();
     const isFocused = useTreeStore(store => store.focusedPath === s.path);
     const isVimMode = useTreeStore(store => store.isVimMode);
-    const showFileSize = useTreeStore(store => store.showFileSize);
+    const sortBy = useTreeStore(store => store.sortBy);
+    const showInfo = sortBy !== "name";
 
     const [isLeftPressed, setIsLeftPressed] = useState(false);
     const [visibleCount, setVisibleCount] = useState(s.tags.length);
@@ -243,12 +245,18 @@ const ScriptRow = memo(function ScriptRow({
 
             {!isDragging && (
                 <div className="absolute right-3 flex items-center pointer-events-auto">
-                    {showFileSize && (
-                        <span className={`text-xs text-tertiary/50 font-mono flex-shrink-0 transition-opacity ${isFocused && isVimMode ? 'opacity-0' : 'opacity-100 group-hover:opacity-0'}`}>
-                            {formatSize(s.size)}
-                        </span>
-                    )}
-                    <div className={`${showFileSize ? 'absolute right-0' : ''} transition-opacity flex items-center space-x-2 ${isFocused && isVimMode ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+                    {showInfo && (() => {
+                        const label = sortBy === "created" ? formatDate(s.created_at)
+                            : sortBy === "modified" ? formatDate(s.modified_at)
+                            : sortBy === "last_run" ? (s.last_run ? formatDate(s.last_run) : "—")
+                            : formatSize(s.size);
+                        return (
+                            <span className={`text-xs text-tertiary/50 font-mono flex-shrink-0 transition-opacity ${isFocused && isVimMode ? 'opacity-0' : 'opacity-100 group-hover:opacity-0'}`}>
+                                {label}
+                            </span>
+                        );
+                    })()}
+                    <div className={`${showInfo ? 'absolute right-0' : ''} transition-opacity flex items-center space-x-2 ${isFocused && isVimMode ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
                         {s.is_running && !isPending && s.has_ui && (
                             <ActionButton color="indigo" onClick={() => onShowUI(s)} title={t("tooltips.interface")} animateIn animationDelay={0}>
                                 <InterfaceIcon />

@@ -18,7 +18,8 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
     const [gridEverMounted, setGridEverMounted] = useState(viewMode !== "tree");
     const lastGridMode = useRef<"tiles" | "list">(viewMode !== "tree" ? viewMode as "tiles" | "list" : "tiles");
     const isInstantScrollRef = useRef(false);
-    const [sortBy, setSortBy] = useState<"name" | "size">("name");
+    const sortBy = useTreeStore(store => store.sortBy);
+    const setSortBy = useTreeStore(store => store.setSortBy);
 
     // Hub collapsed sections
     const [hubCollapsed, setHubCollapsed] = useState<Set<string>>(() => {
@@ -192,7 +193,11 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
     useHotkeys('q', () => onViewModeChange('tree'), { enabled: isActive });
     useHotkeys('w', () => onViewModeChange('tiles'), { enabled: isActive });
     useHotkeys('e', () => onViewModeChange('list'), { enabled: isActive });
-    useHotkeys('s', () => setSortBy(prev => prev === 'name' ? 'size' : 'name'), { enabled: isActive });
+    useHotkeys('s', () => {
+        const order = ["name", "size", "created", "modified", "last_run"] as const;
+        const idx = order.indexOf(sortBy);
+        setSortBy(order[(idx + 1) % order.length]);
+    }, { enabled: isActive });
 
     useHotkeys('i', (e) => {
         const now = performance.now();

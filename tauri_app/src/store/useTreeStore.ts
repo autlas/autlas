@@ -63,6 +63,10 @@ interface TreeStore {
   setShowFileSize: (v: boolean) => void;
   toggleShowFileSize: () => void;
 
+  // Sort mode (for display in cards)
+  sortBy: "name" | "size" | "created" | "modified" | "last_run";
+  setSortBy: (v: "name" | "size" | "created" | "modified" | "last_run") => void;
+
   // Sidebar collapsed
   sidebarCollapsed: boolean;
   setSidebarCollapsed: (v: boolean) => void;
@@ -174,6 +178,10 @@ export const useTreeStore = create<TreeStore>((set) => ({
     safeSetItem("ahk_show_file_size", String(v));
     return { showFileSize: v };
   }),
+
+  // Sort mode
+  sortBy: "name",
+  setSortBy: (v) => set({ sortBy: v }),
 
   // Sidebar collapsed
   sidebarCollapsed: localStorage.getItem("ahk_sidebar_collapsed") === "true",

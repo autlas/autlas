@@ -205,7 +205,10 @@
         "view": "View",
         "sort": "Sort",
         "name": "Name",
-        "size": "Size"
+        "size": "Size",
+        "created": "Created",
+        "modified": "Modified",
+        "last_run": "Last Run"
     },
     "hub_card": {
         "restarting": "RESTARTING...",

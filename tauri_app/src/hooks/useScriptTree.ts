@@ -44,7 +44,7 @@ interface UseScriptTreeOptions {
     refreshKey?: number;
     onScanComplete?: (timestamp: number) => void;
     viewMode: "tree" | "tiles" | "list";
-    sortBy: "name" | "size";
+    sortBy: "name" | "size" | "created" | "modified" | "last_run";
 }
 
 export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, searchQuery, setSearchQuery, onRunningCountChange, refreshKey, onScanComplete, viewMode, sortBy }: UseScriptTreeOptions) {
@@ -555,6 +555,9 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
 
         const sortList = (list: Script[]) => {
             if (sortBy === "size") return list.sort((a, b) => b.size - a.size);
+            if (sortBy === "created") return list.sort((a, b) => b.created_at.localeCompare(a.created_at));
+            if (sortBy === "modified") return list.sort((a, b) => b.modified_at.localeCompare(a.modified_at));
+            if (sortBy === "last_run") return list.sort((a, b) => (b.last_run || "").localeCompare(a.last_run || ""));
             return list.sort((a, b) => a.filename.localeCompare(b.filename));
         };
 
@@ -587,8 +590,10 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
     const prevTreeRef = useRef<TreeNode | null>(null);
 
     const tree = useMemo(() => {
-        const scriptSort = sortBy === "size"
-            ? (a: Script, b: Script) => b.size - a.size
+        const scriptSort = sortBy === "size" ? (a: Script, b: Script) => b.size - a.size
+            : sortBy === "created" ? (a: Script, b: Script) => b.created_at.localeCompare(a.created_at)
+            : sortBy === "modified" ? (a: Script, b: Script) => b.modified_at.localeCompare(a.modified_at)
+            : sortBy === "last_run" ? (a: Script, b: Script) => (b.last_run || "").localeCompare(a.last_run || "")
             : (a: Script, b: Script) => a.filename.localeCompare(b.filename);
 
         const root: TreeNode = { name: "Root", fullName: "Root", scripts: [], children: {} };
@@ -691,6 +696,14 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
         return newTree;
     }, [filtered, showHidden, sortBy]);
 
+    const scriptSortFn = useMemo(() => {
+        if (sortBy === "size") return (a: Script, b: Script) => b.size - a.size;
+        if (sortBy === "created") return (a: Script, b: Script) => b.created_at.localeCompare(a.created_at);
+        if (sortBy === "modified") return (a: Script, b: Script) => b.modified_at.localeCompare(a.modified_at);
+        if (sortBy === "last_run") return (a: Script, b: Script) => (b.last_run || "").localeCompare(a.last_run || "");
+        return (a: Script, b: Script) => a.filename.localeCompare(b.filename);
+    }, [sortBy]);
+
     const groupedHub = useMemo(() => {
         if (filterTag !== "hub") return null;
         const systemTags = ["hub", "fav", "favourites"];
@@ -710,16 +723,16 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
         const sortedTags = Object.keys(groups).sort((a, b) => a.localeCompare(b));
         const result: { tag: string; scripts: Script[] }[] = sortedTags.map(tag => ({
             tag,
-            scripts: groups[tag].sort(sortBy === "size" ? (a, b) => b.size - a.size : (a, b) => a.filename.localeCompare(b.filename))
+            scripts: groups[tag].sort(scriptSortFn)
         }));
         if (scriptsWithoutTags.length > 0) {
             result.push({
                 tag: t("hub.other", "other"),
-                scripts: scriptsWithoutTags.sort(sortBy === "size" ? (a, b) => b.size - a.size : (a, b) => a.filename.localeCompare(b.filename))
+                scripts: scriptsWithoutTags.sort(scriptSortFn)
             });
         }
         return result;
-    }, [filtered, filterTag, sortBy]);
+    }, [filtered, filterTag, scriptSortFn]);
 
     const allFolderPaths = useMemo(() => {
         const paths: string[] = [];

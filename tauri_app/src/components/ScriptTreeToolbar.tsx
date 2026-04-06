@@ -11,8 +11,8 @@ interface ScriptTreeToolbarProps {
     onViewModeChange: (mode: "tree" | "tiles" | "list") => void;
     isDragging: boolean;
     draggedScriptPath: string | null;
-    sortBy: "name" | "size";
-    setSortBy: (s: "name" | "size") => void;
+    sortBy: "name" | "size" | "created" | "modified" | "last_run";
+    setSortBy: (s: "name" | "size" | "created" | "modified" | "last_run") => void;
     isAllExpanded: boolean;
     toggleAll: () => void;
     isAllHubExpanded?: boolean;
@@ -70,9 +70,13 @@ export default function ScriptTreeToolbar({
 
     const [sortOpen, setSortOpen] = useState(false);
     const sortRef = useRef<HTMLDivElement>(null);
-    const sortOptions: { id: "name" | "size"; label: string }[] = [
+    type SortId = "name" | "size" | "created" | "modified" | "last_run";
+    const sortOptions: { id: SortId; label: string }[] = [
         { id: "name", label: t("toolbar.name") },
         { id: "size", label: t("toolbar.size") },
+        { id: "created", label: t("toolbar.created") },
+        { id: "modified", label: t("toolbar.modified") },
+        { id: "last_run", label: t("toolbar.last_run") },
     ];
     const currentSortLabel = sortOptions.find(o => o.id === sortBy)?.label ?? sortBy;
 

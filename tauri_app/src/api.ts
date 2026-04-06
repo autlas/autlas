@@ -10,6 +10,9 @@ export interface Script {
     is_running: boolean;
     has_ui?: boolean;
     size: number;
+    created_at: string;
+    modified_at: string;
+    last_run: string;
 }
 
 export async function getScripts(forceScan: boolean = false): Promise<Script[]> {

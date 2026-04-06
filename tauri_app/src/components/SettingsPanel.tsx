@@ -8,7 +8,6 @@ import { PlusIcon, CloseIcon, FolderIcon } from "./ui/Icons";
 import { Question } from "@phosphor-icons/react";
 import Tooltip from "./ui/Tooltip";
 import SettingsSection from "./ui/SettingsSection";
-import { useTreeStore } from "../store/useTreeStore";
 import { safeSetItem } from "../utils/safeStorage";
 
 interface SettingsPanelProps {
@@ -40,8 +39,6 @@ export default function SettingsPanel({
   scanPaths, onAddPath, onRemovePath, onInstallEverything, orphanCount, onReviewOrphans, onRefresh,
 }: SettingsPanelProps) {
   const { t } = useTranslation();
-  const showFileSize = useTreeStore(s => s.showFileSize);
-  const toggleShowFileSize = useTreeStore(s => s.toggleShowFileSize);
 
   const [closeToTray, setCloseToTray] = useState(true);
 
@@ -194,19 +191,6 @@ export default function SettingsPanel({
             onChange={(v) => { setVimModeNav(v); safeSetItem("ahk_vim_mode_nav", v); }}
             className="flex-shrink-0 w-[145px]"
           />
-        </div>
-
-        <div className="flex justify-between items-center pt-4 border-t border-white/5">
-          <div className="flex flex-col">
-            <span className="text-base font-bold text-secondary">{t("settings.show_file_size")}</span>
-            <span className="text-xs text-tertiary mt-1">{t("settings.show_file_size_desc")}</span>
-          </div>
-          <button
-            onClick={toggleShowFileSize}
-            className={`relative w-14 h-7 rounded-full transition-all duration-300 cursor-pointer border ${showFileSize ? "bg-indigo-500/30 border-indigo-400/40 shadow-[0_0_12px_rgba(99,102,241,0.3)]" : "bg-white/5 border-white/10"}`}
-          >
-            <div className={`absolute top-[3px] w-5 h-5 rounded-full transition-all duration-300 shadow-lg ${showFileSize ? "left-[30px] bg-indigo-400 shadow-indigo-500/50" : "left-[3px] bg-white/30"}`} />
-          </button>
         </div>
 
         <div className="flex justify-between items-center pt-4 border-t border-white/5">
