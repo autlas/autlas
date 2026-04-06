@@ -143,9 +143,14 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
 
     const onRunningCountChangeRef = useRef(onRunningCountChange);
     onRunningCountChangeRef.current = onRunningCountChange;
+    const prevRunningCountRef = useRef(-1);
 
     useEffect(() => {
-        onRunningCountChangeRef.current?.(allScripts.filter(s => s.is_running).length);
+        const count = allScripts.filter(s => s.is_running).length;
+        if (count !== prevRunningCountRef.current) {
+            prevRunningCountRef.current = count;
+            onRunningCountChangeRef.current?.(count);
+        }
     }, [allScripts]);
 
     useEffect(() => {
