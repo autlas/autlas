@@ -15,8 +15,10 @@ function updatePalette(val: number) {
   document.documentElement.style.setProperty("--bg-tag-active-hover", `rgb(${tagActiveHover}, ${tagActiveHover}, ${tagActiveHover})`);
   document.documentElement.style.setProperty("--bg-tag-hover", `rgb(${tagHover}, ${tagHover}, ${tagHover})`);
   document.documentElement.style.setProperty("--bg-tag-drag", `rgb(${tagDrag}, ${tagDrag}, ${tagDrag})`);
-  document.documentElement.style.setProperty("--bg-tertiary", val < 10 ? "rgba(255, 255, 255, 0.05)" : "rgba(255, 255, 255, 0.03)");
-  document.documentElement.style.setProperty("--border-color", val < 10 ? "rgba(255, 255, 255, 0.1)" : "rgba(255, 255, 255, 0.05)");
+  const surfaceOpacity = val < 10 ? 0 : 0.03;
+  document.documentElement.style.setProperty("--bg-tertiary", surfaceOpacity === 0 ? 'transparent' : `rgba(255, 255, 255, ${surfaceOpacity})`);
+  document.documentElement.style.setProperty("--bg-tertiary-hover", `rgba(255, 255, 255, ${val < 10 ? 0.02 : 0.06})`);
+  document.documentElement.style.setProperty("--border-color", val < 10 ? "rgba(255, 255, 255, 0.06)" : "rgba(255, 255, 255, 0.05)");
   document.documentElement.style.setProperty("--accent-indigo", "#6366f1");
 }
 

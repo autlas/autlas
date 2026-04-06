@@ -81,7 +81,7 @@ export default function ToggleGroup<T extends string>({
     return (
         <div
             ref={containerRef}
-            className={`relative flex bg-white/[0.03] border border-white/5 rounded-xl p-1 gap-1 h-[42px] items-center ${className ?? ""}`}
+            className={`relative flex bg-[var(--bg-tertiary)] border border-white/5 rounded-xl p-1 gap-1 h-[42px] items-center ${className ?? ""}`}
         >
             <div
                 ref={pillRef}

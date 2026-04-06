@@ -1,4 +1,4 @@
-import { useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import CheatSheet from "./CheatSheet";
 import { SearchContext } from "../context/SearchContext";
 import { ScriptTreeProps } from "../types/script";

@@ -127,9 +127,9 @@ export default function ScriptTreeToolbar({
                     <div ref={sortRef} className="relative">
                         <button
                             onClick={() => !isDragging && setSortOpen(!sortOpen)}
-                            className={`h-[42px] min-w-[110px] px-4 flex items-center justify-between gap-2 rounded-xl bg-white/[0.03] border border-white/5 transition-all cursor-pointer
-                                ${!isDragging ? 'hover:bg-white/[0.06] hover:border-white/10' : 'opacity-20 pointer-events-none'}
-                                ${sortOpen ? 'border-indigo-500/50 bg-white/[0.05]' : ''}`}
+                            className={`h-[42px] min-w-[110px] px-4 flex items-center justify-between gap-2 rounded-xl bg-[var(--bg-tertiary)] border border-white/5 transition-all cursor-pointer
+                                ${!isDragging ? 'hover:bg-[var(--bg-tertiary-hover)] hover:border-white/10' : 'opacity-20 pointer-events-none'}
+                                ${sortOpen ? 'border-indigo-500/50 bg-[var(--bg-tertiary-hover)]' : ''}`}
                         >
                             <span className="text-sm text-secondary font-medium">{currentSortLabel}</span>
                             <ChevronDownIcon className="text-tertiary" />
@@ -163,8 +163,8 @@ export default function ScriptTreeToolbar({
                             <Tooltip text={t(expanded ? "context.collapse_all" : "context.expand_all")}>
                             <button
                                 onClick={onToggle}
-                                className={`h-[42px] w-[42px] flex flex-shrink-0 flex-col items-center justify-center rounded-xl bg-white/[0.03] border border-white/5 transition-all cursor-pointer focus:outline-none
-                                    ${!isDragging ? 'hover:bg-white/[0.06] hover:border-white/10 group/collapse' : 'opacity-20 pointer-events-none'}`}
+                                className={`h-[42px] w-[42px] flex flex-shrink-0 flex-col items-center justify-center rounded-xl bg-[var(--bg-tertiary)] border border-white/5 transition-all cursor-pointer focus:outline-none
+                                    ${!isDragging ? 'hover:bg-[var(--bg-tertiary-hover)] hover:border-white/10 group/collapse' : 'opacity-20 pointer-events-none'}`}
                             >
                                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-25 transition-opacity duration-200 group-hover/collapse:opacity-50">
                                     <path style={{ d: `path("M 6 ${expanded ? 3 : 8} L 12 ${expanded ? 9 : 2} L 18 ${expanded ? 3 : 8}")`, transition: 'd 350ms cubic-bezier(0.4, 0, 0.2, 1)' } as React.CSSProperties} />
@@ -185,13 +185,13 @@ export default function ScriptTreeToolbar({
                                     setSearchFocused(true);
                                     setTimeout(() => searchInputRef.current?.focus(), 50);
                                 }}
-                                className="h-[42px] w-[42px] flex items-center justify-center rounded-xl bg-white/[0.03] border border-white/5 text-tertiary hover:text-secondary hover:bg-white/[0.06] transition-all cursor-pointer"
+                                className="h-[42px] w-[42px] flex items-center justify-center rounded-xl bg-[var(--bg-tertiary)] border border-white/5 text-tertiary hover:text-secondary hover:bg-[var(--bg-tertiary-hover)] transition-all cursor-pointer"
                             >
                                 <SearchIcon />
                             </button>
                         </Tooltip>
                     ) : (
-                        <div className="relative group flex items-center bg-white/[0.03] border border-white/5 rounded-xl h-[42px] transition-all focus-within:border-indigo-500/50 focus-within:bg-white/[0.05]">
+                        <div className="relative group flex items-center bg-[var(--bg-tertiary)] border border-white/5 rounded-xl h-[42px] transition-all focus-within:border-indigo-500/50 focus-within:bg-[var(--bg-tertiary-hover)]">
                             <div className="pl-3 text-tertiary group-focus-within:text-indigo-400 transition-colors pointer-events-none">
                                 <SearchIcon />
                             </div>
@@ -254,7 +254,7 @@ export default function ScriptTreeToolbar({
                             else setShowHidden('none');
                         }}
                         className={`h-[42px] w-[42px] flex items-center justify-center rounded-xl transition-all cursor-pointer border
-                            ${showHidden === 'none' ? "bg-white/[0.03] border-white/5 text-tertiary hover:text-secondary hover:bg-white/[0.05]" :
+                            ${showHidden === 'none' ? "bg-[var(--bg-tertiary)] border-white/5 text-tertiary hover:text-secondary hover:bg-[var(--bg-tertiary-hover)]" :
                                 showHidden === 'all' ? "bg-white/10 border-white/20 text-white shadow-lg" :
                                     "bg-white/10 border-white/20 text-indigo-400 shadow-lg"}
                             ${isDragging ? 'opacity-20 pointer-events-none' : ''}`}

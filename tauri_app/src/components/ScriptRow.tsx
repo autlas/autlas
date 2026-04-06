@@ -125,7 +125,7 @@ const ScriptRow = memo(function ScriptRow({
             className={`flex items-center space-x-3 h-[42px] px-3 rounded-xl z-20 relative mb-1 border border-transparent hover:z-[50] scroll-mt-[250px] scroll-mb-[250px] long-press-shrink
                 ${isFocused && isVimMode ? 'vim-focus-instant bg-indigo-500/25 shadow-[0_0_20px_rgba(99,102,241,0.15)]' : ''}
                 ${!draggedScriptPath ? (isVimMode ? (isFocused ? '' : 'bg-transparent') : 'bg-transparent hover:bg-white/[0.05] cursor-pointer group') : 'bg-transparent text-tertiary cursor-default pointer-events-none'}
-                ${(isContextMenuOpen || isEditing) ? 'bg-white/5 border-white/10' : ''}
+                ${(isContextMenuOpen || isEditing) ? 'bg-[var(--bg-tertiary)] border-white/10' : ''}
                 ${s.path === draggedScriptPath ? 'opacity-0 pointer-events-none' : ''}
                 ${s.is_hidden && visibilityMode !== 'only' ? 'opacity-40 grayscale-[0.5]' : ''}
                 ${s.is_running ? 'border-green-500/10' : ''}
@@ -153,7 +153,7 @@ const ScriptRow = memo(function ScriptRow({
                         {/* Hidden measuring container */}
                         <div ref={measureRef} className="absolute opacity-0 pointer-events-none flex whitespace-nowrap -z-50">
                             {displayedTags.map(t => (
-                                <span key={t} className="text-xs font-bold px-3 h-7 rounded-lg mr-2 leading-none flex items-center bg-white/5 border border-white/5">{t}</span>
+                                <span key={t} className="text-xs font-bold px-3 h-7 rounded-lg mr-2 leading-none flex items-center bg-[var(--bg-tertiary)] border border-white/5">{t}</span>
                             ))}
                         </div>
 
@@ -184,7 +184,7 @@ const ScriptRow = memo(function ScriptRow({
                             );
                         })}
                         {displayedTags.length > visibleCount && (
-                            <span className="h-7 px-2 rounded-lg bg-white/5 border border-white/10 text-[10px] font-black text-indigo-400 flex items-center justify-center mr-2 flex-shrink-0 cursor-default shadow-xl">
+                            <span className="h-7 px-2 rounded-lg bg-[var(--bg-tertiary)] border border-white/10 text-[10px] font-black text-indigo-400 flex items-center justify-center mr-2 flex-shrink-0 cursor-default shadow-xl">
                                 +{displayedTags.length - visibleCount}
                             </span>
                         )}
@@ -202,7 +202,7 @@ const ScriptRow = memo(function ScriptRow({
                             }}
                             onMouseDown={(e) => e.stopPropagation()}
                             onDoubleClick={(e) => e.stopPropagation()}
-                            className={`w-[28px] h-[28px] flex-shrink-0 flex items-center justify-center border border-dashed border-white/10 rounded-lg transition-all cursor-pointer pointer-events-auto text-[#666] hover:text-[#aaa] hover:border-white/20 ${isEditing || (isFocused && isVimMode) ? 'opacity-100 bg-white/5' : 'opacity-0 group-hover:opacity-100'}`}
+                            className={`w-[28px] h-[28px] flex-shrink-0 flex items-center justify-center border border-dashed border-white/10 rounded-lg transition-all cursor-pointer pointer-events-auto text-[#666] hover:text-[#aaa] hover:border-white/20 ${isEditing || (isFocused && isVimMode) ? 'opacity-100 bg-[var(--bg-tertiary)]' : 'opacity-0 group-hover:opacity-100'}`}
                         >
                             <PlusIcon />
                         </button>
@@ -250,7 +250,7 @@ const ScriptRow = memo(function ScriptRow({
                                         pendingType === 'restart' ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20 animate-pulse' :
                                             pendingType === 'kill' ? 'bg-red-500/10 text-red-500 border-red-500/20 animate-pulse' :
                                                 'bg-green-500/10 text-green-500 border-green-500/20 animate-pulse'
-                                    ) : s.is_running ? 'bg-white/5 text-[#71717a] border-white/5 hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/20' : 'bg-white/5 text-[#71717a] border-white/5 hover:bg-green-500/10 hover:text-green-500 hover:border-green-500/20'}
+                                    ) : s.is_running ? 'bg-[var(--bg-tertiary)] text-[#71717a] border-white/5 hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/20' : 'bg-[var(--bg-tertiary)] text-[#71717a] border-white/5 hover:bg-green-500/10 hover:text-green-500 hover:border-green-500/20'}
                             `}
                             >
                                 {isPending ? (

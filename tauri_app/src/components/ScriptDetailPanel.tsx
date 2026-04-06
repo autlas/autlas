@@ -44,7 +44,7 @@ function MetaRow({ label, value, mono, copiedLabel, copyLabel }: { label: string
   const [copied, setCopied] = useState(false);
   return (
     <div
-      className="flex items-center gap-3 group/meta cursor-pointer rounded-lg px-2 py-1 -mx-2 hover:bg-white/[0.03] transition-colors"
+      className="flex items-center gap-3 group/meta cursor-pointer rounded-lg px-2 py-1 -mx-2 hover:bg-[var(--bg-tertiary)] transition-colors"
       onClick={() => { navigator.clipboard.writeText(value); setCopied(true); setTimeout(() => setCopied(false), 1200); }}
     >
       <span className="text-[11px] font-bold text-white/15 uppercase tracking-wider w-15 flex-shrink-0">{label}</span>
@@ -212,7 +212,7 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
           <Tooltip text={pinned ? t("tooltips.unpin") : t("tooltips.pin")}>
             <button
               onClick={onPinToggle}
-              className="w-7 h-7 flex items-center justify-center rounded-lg transition-all cursor-pointer bg-white/5 text-white/25 hover:text-white/50 hover:bg-white/10"
+              className="w-7 h-7 flex items-center justify-center rounded-lg transition-all cursor-pointer bg-[var(--bg-tertiary)] text-white/25 hover:text-white/50 hover:bg-white/10"
             >
               <PinIcon size={14} fill={pinned ? "#888" : "none"} />
             </button>
@@ -220,7 +220,7 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
           <Tooltip text={t("tooltips.close")}>
             <button
               onClick={onClose}
-              className="w-7 h-7 flex items-center justify-center rounded-lg bg-white/5 text-[#666] hover:bg-white/10 hover:text-white/60 transition-all cursor-pointer"
+              className="w-7 h-7 flex items-center justify-center rounded-lg bg-[var(--bg-tertiary)] text-[#666] hover:bg-white/10 hover:text-white/60 transition-all cursor-pointer"
             >
               <CloseIcon className="pointer-events-none" />
             </button>
@@ -232,7 +232,7 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
       <Tooltip text={t("context.copy_path")}>
         <button
           onClick={copyPath}
-          className="group/path mx-5 mb-4 px-3 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.06] text-left cursor-pointer hover:bg-white/[0.06] transition-all relative"
+          className="group/path mx-5 mb-4 px-3 py-1.5 rounded-lg bg-[var(--bg-tertiary)] border border-white/[0.06] text-left cursor-pointer hover:bg-[var(--bg-tertiary-hover)] transition-all relative"
         >
           <span className={`text-[14px] font-mono text-white/30 leading-relaxed transition-opacity ${copied ? 'opacity-0' : ''}`}>
             {script.path.split(/(?<=[\\/])/).map((seg, i) => <span key={i} style={{ display: 'inline-block' }}>{seg}</span>)}
@@ -254,7 +254,7 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
           <Tooltip text={t("tooltips.interface")}>
             <button
               onClick={() => onShowUI(script)}
-              className="w-[80px] h-[42px] flex items-center justify-center rounded-2xl bg-white/5 text-[#71717a] border border-white/5 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-500/30 transition-all cursor-pointer"
+              className="w-[80px] h-[42px] flex items-center justify-center rounded-2xl bg-[var(--bg-tertiary)] text-[#71717a] border border-white/5 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-500/30 transition-all cursor-pointer"
             >
               <InterfaceIcon size={22} />
             </button>
@@ -264,7 +264,7 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
           <Tooltip text={t("tooltips.restart")}>
             <button
               onClick={() => onRestart(script)}
-              className="w-[80px] h-[42px] flex items-center justify-center rounded-2xl bg-white/5 text-[#71717a] border border-white/5 hover:bg-yellow-500/10 hover:text-yellow-500 hover:border-yellow-500/30 transition-all cursor-pointer"
+              className="w-[80px] h-[42px] flex items-center justify-center rounded-2xl bg-[var(--bg-tertiary)] text-[#71717a] border border-white/5 hover:bg-yellow-500/10 hover:text-yellow-500 hover:border-yellow-500/30 transition-all cursor-pointer"
             >
               <RestartIcon size={22} />
             </button>
@@ -279,8 +279,8 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
                   : pendingType === "restart" ? "bg-yellow-500/10 text-yellow-500 border-yellow-500/20 animate-pulse"
                     : "bg-green-500/10 text-green-500 border-green-500/20 animate-pulse"
                 : script.is_running
-                  ? 'bg-white/5 text-[#71717a] border-white/5 hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/20'
-                  : 'bg-white/5 text-[#71717a] border-white/5 hover:bg-green-500/10 hover:text-green-500 hover:border-green-500/20'
+                  ? 'bg-[var(--bg-tertiary)] text-[#71717a] border-white/5 hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/20'
+                  : 'bg-[var(--bg-tertiary)] text-[#71717a] border-white/5 hover:bg-green-500/10 hover:text-green-500 hover:border-green-500/20'
               }`}
           >
             {pendingType ? (
@@ -292,7 +292,7 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
         <Tooltip text={t("tooltips.edit")}>
           <button
             onClick={handleEdit}
-            className="w-[80px] h-[42px] flex items-center justify-center rounded-2xl bg-white/5 text-[#71717a] border border-white/5 hover:bg-white/10 hover:text-white/60 transition-all cursor-pointer"
+            className="w-[80px] h-[42px] flex items-center justify-center rounded-2xl bg-[var(--bg-tertiary)] text-[#71717a] border border-white/5 hover:bg-white/10 hover:text-white/60 transition-all cursor-pointer"
           >
             <EditIcon size={22} />
           </button>
@@ -300,7 +300,7 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
         <Tooltip text={t("tooltips.open_with")}>
           <button
             onClick={handleOpenWith}
-            className="w-[80px] h-[42px] flex items-center justify-center rounded-2xl bg-white/5 text-[#71717a] border border-white/5 hover:bg-white/10 hover:text-white/60 transition-all cursor-pointer"
+            className="w-[80px] h-[42px] flex items-center justify-center rounded-2xl bg-[var(--bg-tertiary)] text-[#71717a] border border-white/5 hover:bg-white/10 hover:text-white/60 transition-all cursor-pointer"
           >
             <OpenWithIcon size={22} />
           </button>
@@ -308,7 +308,7 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
         <Tooltip text={t("tooltips.show_in_folder")}>
           <button
             onClick={handleOpenFolder}
-            className="w-[80px] h-[42px] flex items-center justify-center rounded-2xl bg-white/5 text-[#71717a] border border-white/5 hover:bg-white/10 hover:text-white/60 transition-all cursor-pointer"
+            className="w-[80px] h-[42px] flex items-center justify-center rounded-2xl bg-[var(--bg-tertiary)] text-[#71717a] border border-white/5 hover:bg-white/10 hover:text-white/60 transition-all cursor-pointer"
           >
             <FolderIcon size={22} />
           </button>
@@ -322,7 +322,7 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
       <div className="flex flex-wrap items-center gap-2 px-5 mb-4">
         {displayedTags.map(tag => (
           <div key={tag} className="relative group/tag inline-flex items-center">
-            <span className="text-sm font-bold px-4 h-[42px] rounded-2xl bg-white/5 text-tertiary border border-white/5 cursor-default flex items-center justify-center">
+            <span className="text-sm font-bold px-4 h-[42px] rounded-2xl bg-[var(--bg-tertiary)] text-tertiary border border-white/5 cursor-default flex items-center justify-center">
               {tag}
             </span>
             <Tooltip text={t("context.delete_tag_simple", { tag })}>
@@ -339,7 +339,7 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
           <button
             ref={addBtnRef}
             onClick={() => setIsEditingTags(!isEditingTags)}
-            className="w-[42px] h-[42px] flex-shrink-0 flex items-center justify-center border border-dashed border-white/10 rounded-2xl transition-all cursor-pointer text-[#666] hover:text-[#aaa] hover:border-white/20 bg-white/5"
+            className="w-[42px] h-[42px] flex-shrink-0 flex items-center justify-center border border-dashed border-white/10 rounded-2xl transition-all cursor-pointer text-[#666] hover:text-[#aaa] hover:border-white/20 bg-[var(--bg-tertiary)]"
           >
             <PlusIcon />
           </button>
@@ -384,7 +384,7 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
             <table className="border-collapse">
               <tbody>
                 {highlightedLines.map((line, i) => (
-                  <tr key={i} className="hover:bg-white/[0.03]">
+                  <tr key={i} className="hover:bg-[var(--bg-tertiary)]">
                     <td className="text-right pr-4 text-white/15 select-none align-top w-[1%] whitespace-nowrap">{i + 1}</td>
                     <td className="whitespace-pre" dangerouslySetInnerHTML={{ __html: line || " " }} />
                   </tr>

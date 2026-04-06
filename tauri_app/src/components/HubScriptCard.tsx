@@ -69,7 +69,7 @@ const HubScriptCard = memo(function HubScriptCard({
             className={`pt-[21px] pb-6 px-6 rounded-[24px] border flex flex-col select-none relative long-press-shrink ${isEditing ? 'z-[200]' : 'z-10'}
                 ${isFocused && isVimMode ? 'vim-focus-instant !bg-indigo-500/20 shadow-[0_0_40px_rgba(99,102,241,0.2)] ring-2 ring-indigo-500/30' : 'transition-all duration-150'}
                 ${!draggedScriptPath
-                    ? `${isVimMode ? '' : 'group hover:z-[100] hover:bg-white/[0.06]'} ${isEditing || isContextMenuOpen ? 'shadow-2xl bg-white/[0.05]' : (isVimMode ? 'bg-white/[0.03]' : 'bg-white/[0.03] hover:shadow-2xl cursor-pointer')}`
+                    ? `${isVimMode ? '' : 'group hover:z-[100] hover:bg-[var(--bg-tertiary-hover)]'} ${isEditing || isContextMenuOpen ? 'shadow-2xl bg-[var(--bg-tertiary-hover)]' : (isVimMode ? 'bg-[var(--bg-tertiary)]' : 'bg-[var(--bg-tertiary)] hover:shadow-2xl cursor-pointer')}`
 
                     : (s.path === draggedScriptPath ? 'opacity-0 pointer-events-none' : 'z-10')}
                 ${s.is_running && !isDragging ? '' : ''}
@@ -114,7 +114,7 @@ const HubScriptCard = memo(function HubScriptCard({
                                 onDoubleClick={(e) => e.stopPropagation()}
                             >
                                 <div className={isRemoving ? 'animate-tag-out' : 'animate-tag-in'}>
-                                    <span className={`h-[42px] text-xs px-5 bg-white/5 border border-white/5 text-secondary font-bold rounded-xl shadow-lg leading-none flex items-center transition-opacity ${isDragging ? 'opacity-20' : ''}`}>{tag}</span>
+                                    <span className={`h-[42px] text-xs px-5 bg-[var(--bg-tertiary)] border border-white/5 text-secondary font-bold rounded-xl shadow-lg leading-none flex items-center transition-opacity ${isDragging ? 'opacity-20' : ''}`}>{tag}</span>
                                 </div>
                                 <Tooltip text={t("context.delete_tag_simple", { tag: tag })}>
                                 <button
@@ -142,7 +142,7 @@ const HubScriptCard = memo(function HubScriptCard({
                         onMouseDown={(e) => e.stopPropagation()}
                         onDoubleClick={(e) => e.stopPropagation()}
                         className={`w-[42px] h-[42px] flex items-center justify-center border border-dashed border-white/10 rounded-xl transition-all cursor-pointer pointer-events-auto text-[#666] hover:text-[#aaa] hover:border-white/20
-                                ${isDragging ? 'opacity-0 pointer-events-none' : (isEditing || (isFocused && isVimMode) ? 'opacity-100 bg-white/5' : 'opacity-0 group-hover:opacity-100')}`}
+                                ${isDragging ? 'opacity-0 pointer-events-none' : (isEditing || (isFocused && isVimMode) ? 'opacity-100 bg-[var(--bg-tertiary)]' : 'opacity-0 group-hover:opacity-100')}`}
                     >
                         <PlusIcon />
                     </button>
@@ -158,7 +158,7 @@ const HubScriptCard = memo(function HubScriptCard({
                             <button
                                 onClick={(e) => { e.stopPropagation(); onShowUI(s); }}
                                 onMouseDown={(e) => e.stopPropagation()}
-                                className={`h-[42px] rounded-2xl flex items-center justify-center bg-white/5 text-[#71717a] border border-white/5 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-500/30 transition-all duration-150 cursor-pointer pointer-events-auto overflow-hidden ${!isPending ? 'flex-1 opacity-100' : 'w-0 flex-[0] opacity-0 border-0 px-0'} ${!isPending ? 'animate-action-in' : ''}`}
+                                className={`h-[42px] rounded-2xl flex items-center justify-center bg-[var(--bg-tertiary)] text-[#71717a] border border-white/5 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-500/30 transition-all duration-150 cursor-pointer pointer-events-auto overflow-hidden ${!isPending ? 'flex-1 opacity-100' : 'w-0 flex-[0] opacity-0 border-0 px-0'} ${!isPending ? 'animate-action-in' : ''}`}
                             >
                                 <InterfaceIcon size={22} />
                             </button>
@@ -173,7 +173,7 @@ const HubScriptCard = memo(function HubScriptCard({
                                     ? 'flex-1 bg-yellow-500/10 text-yellow-500 border border-yellow-500/30 animate-pulse'
                                     : isPending
                                         ? 'w-0 flex-[0] opacity-0 border-0 px-0'
-                                        : 'flex-1 bg-white/5 text-[#71717a] border border-white/5 hover:bg-yellow-500/10 hover:text-yellow-500 hover:border-yellow-500/30 animate-action-in'
+                                        : 'flex-1 bg-[var(--bg-tertiary)] text-[#71717a] border border-white/5 hover:bg-yellow-500/10 hover:text-yellow-500 hover:border-yellow-500/30 animate-action-in'
                                 }`}
                             style={!isPending ? { animationDelay: `${s.has_ui ? 50 : 0}ms` } : undefined}
                         >
@@ -192,7 +192,7 @@ const HubScriptCard = memo(function HubScriptCard({
                                     ? 'flex-1 bg-red-500/10 text-red-500 border border-red-500/30 animate-pulse'
                                     : isPending
                                         ? 'w-0 flex-[0] opacity-0 border-0 px-0'
-                                        : 'flex-1 bg-white/5 text-[#71717a] border border-white/5 hover:bg-red-500/15 hover:text-red-500 hover:border-red-500/30 animate-action-in'
+                                        : 'flex-1 bg-[var(--bg-tertiary)] text-[#71717a] border border-white/5 hover:bg-red-500/15 hover:text-red-500 hover:border-red-500/30 animate-action-in'
                                 }`}
                             style={!isPending ? { animationDelay: `${s.has_ui ? 100 : 50}ms` } : undefined}
                         >
@@ -211,7 +211,7 @@ const HubScriptCard = memo(function HubScriptCard({
                         className={`w-full h-[42px] rounded-2xl text-[14px] font-bold tracking-[0.1em] transition-all transform cursor-pointer active:scale-95 pointer-events-auto shadow-xl
                             ${isPending
                                 ? 'bg-green-500/10 text-green-500 border border-green-500/30 animate-pulse'
-                                : "bg-white/5 text-[#71717a] border border-white/5 hover:bg-green-600/15 hover:text-green-500 hover:border-green-500/30"
+                                : "bg-[var(--bg-tertiary)] text-[#71717a] border border-white/5 hover:bg-green-600/15 hover:text-green-500 hover:border-green-500/30"
                             }
                         `}
                     >
