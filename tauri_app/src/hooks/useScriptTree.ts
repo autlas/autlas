@@ -206,41 +206,58 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
                 if (mounted) { unlisten = fn; } else { fn(); } // Immediately unlisten if already unmounted
             });
 
-            listen<{ path: string; is_running: boolean; has_ui: boolean }>('script-status-changed', (event) => {
-                const { path, is_running, has_ui } = event.payload;
-                const fname = path.split(/[\\\/]/).pop() || path;
-                console.log(`[Watcher Event] "${fname}" is_running=${is_running} has_ui=${has_ui}`);
-                const pathLower = path.toLowerCase();
-                const newHasUi = is_running ? has_ui : false;
-                _cachedScripts = _cachedScripts.map(s =>
-                    s.path.toLowerCase() === pathLower ? { ...s, is_running, has_ui: newHasUi } : s
-                );
+            // Debounced status handler — batches rapid watcher events (start/stop/start/stop)
+            // into a single state update to prevent React update depth overflow.
+            const pendingStatus = new Map<string, { is_running: boolean; has_ui: boolean }>();
+            let statusTimer: number | null = null;
+
+            const flushStatusUpdates = () => {
+                statusTimer = null;
+                if (pendingStatus.size === 0) return;
+                const updates = new Map(pendingStatus);
+                pendingStatus.clear();
+
+                // Update _cachedScripts synchronously
+                _cachedScripts = _cachedScripts.map(s => {
+                    const u = updates.get(s.path.toLowerCase());
+                    return u ? { ...s, is_running: u.is_running, has_ui: u.has_ui } : s;
+                });
+
+                // Batch React state update
                 startTransition(() => {
                     setAllScripts(prev => {
-                        const target = prev.find(s => s.path.toLowerCase() === pathLower);
-                        if (!target) return prev;
-                        if (target.is_running === is_running && target.has_ui === newHasUi) {
-                            return prev;
-                        }
-                        return prev.map(s =>
-                            s.path.toLowerCase() === pathLower
-                                ? { ...s, is_running, has_ui: newHasUi }
-                                : s
-                        );
+                        let changed = false;
+                        const updated = prev.map(s => {
+                            const u = updates.get(s.path.toLowerCase());
+                            if (!u) return s;
+                            if (s.is_running === u.is_running && s.has_ui === u.has_ui) return s;
+                            changed = true;
+                            return { ...s, is_running: u.is_running, has_ui: u.has_ui };
+                        });
+                        return changed ? updated : prev;
                     });
                 });
-                {
-                    const store = useTreeStore.getState();
+
+                // Clear pending scripts
+                const store = useTreeStore.getState();
+                for (const [pathLower, { is_running }] of updates) {
                     const key = Object.keys(store.pendingScripts).find(k => k.toLowerCase() === pathLower);
                     if (key) {
                         const pending = store.pendingScripts[key];
-                        const shouldClear =
-                            (pending === "run" && is_running) ||
-                            (pending === "kill" && !is_running) ||
-                            (pending === "restart" && is_running);
-                        if (shouldClear) store.clearPendingScript(key);
+                        if ((pending === "run" && is_running) || (pending === "kill" && !is_running) || (pending === "restart" && is_running)) {
+                            store.clearPendingScript(key);
+                        }
                     }
                 }
+            };
+
+            listen<{ path: string; is_running: boolean; has_ui: boolean }>('script-status-changed', (event) => {
+                const { path, is_running, has_ui } = event.payload;
+                const pathLower = path.toLowerCase();
+                const newHasUi = is_running ? has_ui : false;
+                pendingStatus.set(pathLower, { is_running, has_ui: newHasUi });
+                if (statusTimer) clearTimeout(statusTimer);
+                statusTimer = window.setTimeout(flushStatusUpdates, 150);
             }).then(fn => {
                 if (mounted) { unlistenStatus = fn; } else { fn(); }
             });
