@@ -36,6 +36,6 @@
 
 | # | Issue | File | Status |
 |---|-------|------|--------|
-| 13 | Symlinks/junctions create duplicate UUIDs for same file | reconcile.rs | |
-| 14 | Errors in reconciliation suppressed via `let _ =` | reconcile.rs | |
-| 15 | `.unwrap()` on mutex — panic instead of graceful error | lib.rs:1028 | |
+| 13 | Symlinks/junctions create duplicate UUIDs for same file | reconcile.rs | FIXED (canonicalize) |
+| 14 | Errors in reconciliation suppressed via `let _ =` | reconcile.rs | FIXED (? propagation) |
+| 15 | `.unwrap()` on mutex — panic instead of graceful error | lib.rs:1028 | FIXED (into_inner) |

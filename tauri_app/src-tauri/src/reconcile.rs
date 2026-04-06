@@ -15,7 +15,7 @@ pub struct PendingMatch {
 
 /// Run the full reconciliation algorithm.
 /// Returns a list of pending matches that need user confirmation.
-pub fn reconcile(conn: &Connection, disk_paths: &HashSet<String>) -> Vec<PendingMatch> {
+pub fn reconcile(conn: &Connection, disk_paths: &HashSet<String>) -> Result<Vec<PendingMatch>, String> {
     let start = std::time::Instant::now();
     let now = db::now_iso();
     let mut pending_matches: Vec<PendingMatch> = Vec::new();
@@ -30,7 +30,7 @@ pub fn reconcile(conn: &Connection, disk_paths: &HashSet<String>) -> Vec<Pending
         if !disk_paths.contains(db_path) {
             let path = Path::new(db_path);
             if !path.exists() {
-                let _ = db::mark_orphaned(conn, id, &now);
+                db::mark_orphaned(conn, id, &now).map_err(|e| e.to_string())?;
                 stats.orphaned += 1;
                 println!("[Reconcile]   Orphaned: {}", db_path);
             }
@@ -50,7 +50,7 @@ pub fn reconcile(conn: &Connection, disk_paths: &HashSet<String>) -> Vec<Pending
     println!("[Reconcile] Phase 2: Processing {} disk paths ({} already known)", disk_paths.len(), known_paths.len());
 
     // Batch update last_seen for all known paths (single SQL statement)
-    let _ = db::touch_all_last_seen(conn, &known_paths, &now);
+    db::touch_all_last_seen(conn, &known_paths, &now).map_err(|e| e.to_string())?;
 
     for disk_path in disk_paths {
         if let Some(info) = known_scripts.get(disk_path) {
@@ -66,7 +66,7 @@ pub fn reconcile(conn: &Connection, disk_paths: &HashSet<String>) -> Vec<Pending
                 let filename = path_buf.file_name()
                     .map(|f| f.to_string_lossy().to_string())
                     .unwrap_or_default();
-                let _ = db::upsert_script(conn, &info.id, disk_path, &filename, &new_hash, &now);
+                db::upsert_script(conn, &info.id, disk_path, &filename, &new_hash, &now).map_err(|e| e.to_string())?;
                 stats.rehashed += 1;
             }
             stats.updated += 1;
@@ -87,7 +87,7 @@ pub fn reconcile(conn: &Connection, disk_paths: &HashSet<String>) -> Vec<Pending
             let hash_matches = db::find_orphans_by_hash(conn, &new_hash);
             if hash_matches.len() == 1 {
                 let (orphan_id, old_path, _old_filename) = &hash_matches[0];
-                let _ = db::reconcile_orphan(conn, orphan_id, disk_path, &filename, &new_hash, &now);
+                db::reconcile_orphan(conn, orphan_id, disk_path, &filename, &new_hash, &now).map_err(|e| e.to_string())?;
                 println!("[Reconcile]   Hash match: {} → {}", old_path, disk_path);
                 stats.hash_matched += 1;
                 matched = true;
@@ -96,13 +96,13 @@ pub fn reconcile(conn: &Connection, disk_paths: &HashSet<String>) -> Vec<Pending
                 if let Some((orphan_id, old_path, _)) = hash_matches.iter()
                     .find(|(_, _, old_fn)| old_fn.to_lowercase() == filename_lower)
                 {
-                    let _ = db::reconcile_orphan(conn, orphan_id, disk_path, &filename, &new_hash, &now);
+                    db::reconcile_orphan(conn, orphan_id, disk_path, &filename, &new_hash, &now).map_err(|e| e.to_string())?;
                     println!("[Reconcile]   Hash+filename match: {} → {}", old_path, disk_path);
                     stats.hash_matched += 1;
                     matched = true;
                 } else {
                     let (orphan_id, old_path, _) = &hash_matches[0];
-                    let _ = db::reconcile_orphan(conn, orphan_id, disk_path, &filename, &new_hash, &now);
+                    db::reconcile_orphan(conn, orphan_id, disk_path, &filename, &new_hash, &now).map_err(|e| e.to_string())?;
                     println!("[Reconcile]   Hash match (first of {}): {} → {}", hash_matches.len(), old_path, disk_path);
                     stats.hash_matched += 1;
                     matched = true;
@@ -134,7 +134,7 @@ pub fn reconcile(conn: &Connection, disk_paths: &HashSet<String>) -> Vec<Pending
         // Step 3: No match — create new script
         if !matched {
             let id = uuid::Uuid::new_v4().to_string();
-            let _ = db::upsert_script(conn, &id, disk_path, &filename, &new_hash, &now);
+            db::upsert_script(conn, &id, disk_path, &filename, &new_hash, &now).map_err(|e| e.to_string())?;
             stats.new_scripts += 1;
         }
     }
@@ -146,7 +146,7 @@ pub fn reconcile(conn: &Connection, disk_paths: &HashSet<String>) -> Vec<Pending
     println!("[Reconcile] Done in {:.1?}: {} updated ({} rehashed), {} new, {} hash-matched, {} filename-pending, {} orphaned",
         elapsed, stats.updated, stats.rehashed, stats.new_scripts, stats.hash_matched, stats.filename_pending, stats.orphaned);
 
-    pending_matches
+    Ok(pending_matches)
 }
 
 #[derive(Default)]

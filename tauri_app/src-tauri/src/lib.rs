@@ -474,11 +474,11 @@ mod native_popup {
             );
             POPUP_HWND.store(hwnd, Ordering::SeqCst);
         }
-        *STATE.lock().unwrap() = Some(PopupState { scripts: vec![], hover_index: -1, hover_btn: -1 });
+        *STATE.lock().unwrap_or_else(|e| e.into_inner()) = Some(PopupState { scripts: vec![], hover_index: -1, hover_btn: -1 });
     }
 
     pub fn set_action_callback<F: Fn(&str) + Send + 'static>(f: F) {
-        *ACTION_CB.lock().unwrap() = Some(Box::new(f));
+        *ACTION_CB.lock().unwrap_or_else(|e| e.into_inner()) = Some(Box::new(f));
     }
 
     pub fn update_scripts(scripts: Vec<RunningScript>) {
@@ -1039,7 +1039,12 @@ async fn get_scripts(
         }
         // Cache is implicitly saved by reconciliation (upsert_script writes paths to DB)
 
-        // Deduplicate
+        // Resolve symlinks/junctions and deduplicate
+        script_paths = script_paths.into_iter().map(|p| {
+            std::fs::canonicalize(&p)
+                .map(|c| c.to_string_lossy().to_string())
+                .unwrap_or(p)
+        }).collect();
         let mut seen = HashSet::new();
         script_paths.retain(|p| seen.insert(p.to_lowercase()));
 
@@ -1050,7 +1055,7 @@ async fn get_scripts(
 
         // Reconciliation (only on refresh)
         let conn = state.0.lock().map_err(|e| e.to_string())?;
-        let pending = reconcile::reconcile(&conn, &disk_paths);
+        let pending = reconcile::reconcile(&conn, &disk_paths)?;
         if !pending.is_empty() {
             println!("[Rust] {} pending matches need user confirmation", pending.len());
             let _ = app_handle.emit("orphan-matches-found", &pending);
