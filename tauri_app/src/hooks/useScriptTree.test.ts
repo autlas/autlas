@@ -293,55 +293,9 @@ describe("hub grouping (groupedHub useMemo)", () => {
 // 5. Merge logic — runtime status handling
 // ---------------------------------------------------------------------------
 describe("merge logic", () => {
-  it("preserves is_running from watcher events when scan returns stale data", async () => {
-    // Scan doesn't check process status — watcher events are authoritative for is_running.
-    // When watcher says running=true AFTER scan started but BEFORE scan returns,
-    // merge should keep is_running=true (watcher is more recent).
-    const scriptPath = "c:/scripts/daemon.ahk";
-    const scriptsInitial = [
-      makeScript({ id: "d1", path: scriptPath, filename: "daemon.ahk", is_running: false }),
-    ];
-
-    const mockInvoke = vi.mocked(invoke);
-    let callCount = 0;
-
-    mockInvoke.mockImplementation(async (cmd: string) => {
-      if (cmd === "get_scripts") {
-        callCount++;
-        if (callCount <= 1) return scriptsInitial;
-        return [makeScript({ id: "d1", path: scriptPath, filename: "daemon.ahk", is_running: false })];
-      }
-      if (cmd === "get_tag_icons") return {};
-      if (cmd === "load_icon_cache") return {};
-      return undefined;
-    });
-
-    const { result, rerender } = renderHook(
-      (props) => useScriptTree(props),
-      { initialProps: defaultOpts({ refreshKey: 0 }) }
-    );
-
-    await waitFor(() => { expect(result.current.loading).toBe(false); });
-    expect(result.current.allScripts[0].is_running).toBe(false);
-
-    // Watcher event: script started running
-    act(() => { __emit("script-status-changed", { path: scriptPath, is_running: true, has_ui: false }); });
-    await waitFor(() => { expect(result.current.allScripts[0].is_running).toBe(true); });
-
-    // Force scan returns stale is_running=false
-    rerender(defaultOpts({ refreshKey: 1 }));
-    await waitFor(() => { expect(callCount).toBeGreaterThanOrEqual(2); });
-
-    // Watcher event was more recent → merge should preserve is_running=true
-    await waitFor(() => { expect(result.current.allScripts[0].is_running).toBe(true); });
-  });
-
-  it("BUG FIX: scan returning is_running=false must override stale prev state", async () => {
-    // BUG: merge uses `p.is_running || d.is_running`. Once is_running=true from
-    // a watcher event, scan returning false can NEVER clear it.
-    // Scenario: user kills script → scan triggers before watcher detects the kill.
-    // Scan correctly returns is_running=false, but merge does true||false=true.
-    // Script "sticks" as running in UI.
+  it("scan data is authoritative for is_running (overrides stale prev state)", async () => {
+    // After fix: scan backend checks actual processes, so scan data is truth.
+    // Watcher events update status between scans, but scan results win.
     const scriptPath = "c:/scripts/killme.ahk";
     const mockInvoke = vi.mocked(invoke);
     let callCount = 0;
@@ -349,7 +303,6 @@ describe("merge logic", () => {
     mockInvoke.mockImplementation(async (cmd: string) => {
       if (cmd === "get_scripts") {
         callCount++;
-        // Scan always returns is_running=false (process is dead)
         return [makeScript({ id: "k1", path: scriptPath, filename: "killme.ahk", is_running: false })];
       }
       if (cmd === "get_tag_icons") return {};
@@ -363,20 +316,39 @@ describe("merge logic", () => {
     );
     await waitFor(() => { expect(result.current.loading).toBe(false); });
 
-    // Watcher event: script was running
+    // Watcher: script was running
     act(() => { __emit("script-status-changed", { path: scriptPath, is_running: true, has_ui: true }); });
     await waitFor(() => { expect(result.current.allScripts[0].is_running).toBe(true); });
 
-    // Now process was killed externally. Scan triggers BEFORE watcher notices.
-    // Scan returns is_running=false (correct — process is dead).
-    // NO kill event has arrived yet, so prev state still has is_running=true.
+    // Scan returns is_running=false (process is dead)
     rerender(defaultOpts({ refreshKey: 1 }));
     await waitFor(() => { expect(callCount).toBeGreaterThanOrEqual(2); });
 
-    // DESIRED: scan data should be able to reset is_running to false
-    // CURRENT BUG: true || false = true — script stays "running" forever
+    // Scan data wins — is_running reset to false
     await waitFor(() => {
       expect(result.current.allScripts[0].is_running).toBe(false);
+      expect(result.current.allScripts[0].has_ui).toBe(false);
+    });
+  });
+
+  it("watcher events still update is_running between scans", async () => {
+    const scriptPath = "c:/scripts/daemon.ahk";
+    const { result } = await renderLoaded([
+      makeScript({ id: "d1", path: scriptPath, filename: "daemon.ahk", is_running: false }),
+    ]);
+
+    // Watcher event: script started
+    act(() => { __emit("script-status-changed", { path: scriptPath, is_running: true, has_ui: true }); });
+    await waitFor(() => {
+      expect(result.current.allScripts[0].is_running).toBe(true);
+      expect(result.current.allScripts[0].has_ui).toBe(true);
+    });
+
+    // Watcher event: script killed
+    act(() => { __emit("script-status-changed", { path: scriptPath, is_running: false, has_ui: false }); });
+    await waitFor(() => {
+      expect(result.current.allScripts[0].is_running).toBe(false);
+      expect(result.current.allScripts[0].has_ui).toBe(false);
     });
   });
 });

@@ -52,6 +52,7 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
     const [allScripts, setAllScripts] = useState<Script[]>(_cachedScripts);
     const [loading, setLoading] = useState(_cachedScripts.length === 0);
     const [isFetching, setIsFetching] = useState(false);
+    const [error, setError] = useState<string | null>(null);
     const expandedFolders = useTreeStore(s => s.expandedFolders);
     const editingScript = useTreeStore(s => s.editingScript);
     const popoverRef = useRef<HTMLDivElement>(null);
@@ -62,6 +63,7 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
     const pendingDragRef = useRef<{ script: Script, x: number, y: number } | null>(null);
     const dragTimerRef = useRef<number | null>(null);
     const folderRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+    const burstIntervalsRef = useRef<Set<number>>(new Set());
     const lastTagsKeyRef = useRef<string>('');
     const storeSetTagIcons = useTreeStore(s => s.setTagIcons);
 
@@ -101,19 +103,20 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
                 const merged = data.map(d => {
                     const p = prevMap.get(d.path);
                     if (!p) { anyChanged = true; return d; }
-                    // Preserve runtime status from watcher events — scan doesn't know about running processes
-                    const is_running = p.is_running || d.is_running;
-                    const has_ui = is_running ? (p.has_ui || d.has_ui) : false;
+                    // Scan data is authoritative for is_running — backend checks actual processes.
+                    // Watcher events update status between scans but scan results are fresh truth.
                     const tagsMatch = p.tags.length === d.tags.length && p.tags.every((t, i) => t === d.tags[i]);
-                    if (p.id === d.id && p.is_running === is_running && p.has_ui === has_ui && p.is_hidden === d.is_hidden && tagsMatch) return p;
+                    if (p.id === d.id && p.is_running === d.is_running && p.has_ui === d.has_ui && p.is_hidden === d.is_hidden && tagsMatch) return p;
                     anyChanged = true;
-                    return { ...d, is_running, has_ui };
+                    return d;
                 });
 
                 return anyChanged ? merged : prev;
             });
+            setError(null);
         } catch (e) {
-            // silence
+            console.error("[useScriptTree] fetchData error:", e);
+            setError(e instanceof Error ? e.message : String(e));
         } finally {
             setLoading(false);
             setIsFetching(false);
@@ -227,6 +230,9 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
         return () => {
             if (unlisten) unlisten();
             if (unlistenStatus) unlistenStatus();
+            // Clean up any active burst polling intervals
+            burstIntervalsRef.current.forEach(id => clearInterval(id));
+            burstIntervalsRef.current.clear();
         };
     }, []);
 
@@ -291,12 +297,13 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
 
     const startBurst = useCallback((path: string, expectedRunning: boolean) => {
         let attempts = 0;
-        const id = setInterval(async () => {
+        const id = window.setInterval(async () => {
             attempts++;
             try {
                 const status = await invoke<{ is_running: boolean; has_ui: boolean }>("get_script_status", { path });
                 if (status.is_running === expectedRunning) {
                     clearInterval(id);
+                    burstIntervalsRef.current.delete(id);
                     clearPending(path);
                     setAllScripts(prev => prev.map(s =>
                         s.path === path
@@ -305,13 +312,16 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
                     ));
                 } else if (attempts >= 33) {
                     clearInterval(id);
+                    burstIntervalsRef.current.delete(id);
                     clearPending(path);
                 }
             } catch {
                 clearInterval(id);
+                burstIntervalsRef.current.delete(id);
                 clearPending(path);
             }
         }, 300);
+        burstIntervalsRef.current.add(id);
     }, [clearPending]);
 
     const handleToggle = useCallback(async (script: Script, force?: boolean) => {
@@ -757,7 +767,7 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
     }, [visibleItems]);
 
     return {
-        loading, isFetching, allScripts, filtered, tree, groupedHub,
+        loading, isFetching, error, allScripts, filtered, tree, groupedHub,
         isAllExpanded, allUniqueTags, searchQuery,
         popoverRef, folderRefs,
         setSearchQuery,
