@@ -606,3 +606,63 @@ fn test_scan_paths_crud() {
     assert_eq!(paths.len(), 1);
     assert_eq!(paths[0], "E:\\New");
 }
+
+// ═══════════════════════════════════════════════════════════
+// Error propagation tests (LOW fix #14)
+// ═══════════════════════════════════════════════════════════
+
+#[test]
+fn test_upsert_script_error_on_closed_db() {
+    let conn = setup_db();
+    // Insert valid script
+    insert_script(&conn, "uuid-1", "c:\\a.ahk", "a.ahk");
+
+    // Drop all tables to simulate corruption
+    conn.execute_batch("DROP TABLE script_tags; DROP TABLE scripts;").unwrap();
+
+    // upsert should fail, not silently succeed
+    let result = conn.execute(
+        "INSERT INTO scripts (id, path, filename, content_hash, first_seen, last_seen, is_orphaned)
+         VALUES ('uuid-2', 'c:\\b.ahk', 'b.ahk', '', '2026-01-01', '2026-01-01', 0)
+         ON CONFLICT(id) DO UPDATE SET path = 'c:\\b.ahk'
+         ON CONFLICT(path) DO UPDATE SET filename = 'b.ahk'",
+        [],
+    );
+    assert!(result.is_err(), "upsert on dropped table should return error");
+}
+
+#[test]
+fn test_mark_orphaned_error_on_missing_table() {
+    let conn = setup_db();
+    conn.execute_batch("DROP TABLE script_tags; DROP TABLE scripts;").unwrap();
+
+    let result = conn.execute(
+        "UPDATE scripts SET is_orphaned = 1, orphaned_at = '2026-01-01' WHERE id = 'ghost'",
+        [],
+    );
+    assert!(result.is_err(), "mark_orphaned on dropped table should return error");
+}
+
+#[test]
+fn test_touch_all_last_seen_error_propagates() {
+    let conn = setup_db();
+    conn.execute_batch("DROP TABLE script_tags; DROP TABLE scripts;").unwrap();
+
+    let result = conn.execute(
+        "UPDATE scripts SET last_seen = '2026-01-01' WHERE path = 'c:\\a.ahk' AND is_orphaned = 0",
+        [],
+    );
+    assert!(result.is_err(), "touch on dropped table should return error");
+}
+
+#[test]
+fn test_reconcile_orphan_error_propagates() {
+    let conn = setup_db();
+    conn.execute_batch("DROP TABLE script_tags; DROP TABLE scripts;").unwrap();
+
+    let result = conn.execute(
+        "UPDATE scripts SET path = 'new', filename = 'new', content_hash = '', last_seen = '2026-01-01', is_orphaned = 0, orphaned_at = NULL WHERE id = 'ghost'",
+        [],
+    );
+    assert!(result.is_err(), "reconcile_orphan on dropped table should return error");
+}
