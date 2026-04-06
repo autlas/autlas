@@ -18,6 +18,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { useTranslation } from "react-i18next";
 import { useTreeStore } from "./store/useTreeStore";
+import { safeSetItem } from "./utils/safeStorage";
 import "./App.css";
 
 const MemoizedScriptTree = React.memo(ScriptTree);
@@ -51,7 +52,7 @@ function App() {
       return parseInt(saved);
     }
     const now = Date.now();
-    localStorage.setItem("ahk_last_scan_timestamp", now.toString());
+    safeSetItem("ahk_last_scan_timestamp", now.toString());
     return now;
   });
   const [isHoveringRefresh, setIsHoveringRefresh] = useState(false);
@@ -87,7 +88,7 @@ function App() {
 
   const handleScanComplete = useCallback((timestamp: number) => {
     setLastScanTimestamp(timestamp);
-    localStorage.setItem("ahk_last_scan_timestamp", timestamp.toString());
+    safeSetItem("ahk_last_scan_timestamp", timestamp.toString());
     toast.custom(() => (
       <div className="flex items-center gap-3 w-full px-5 py-3 bg-[#1a1a1f] border border-white/10 rounded-2xl shadow-2xl">
         <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]" />
@@ -591,7 +592,7 @@ function App() {
               allUniqueTags={userTags}
               pinned={detailPinned}
               pendingType={scriptActionsRef.current.pendingScripts[selectedPath] ?? null}
-              onPinToggle={() => setDetailPinned(p => { const v = !p; localStorage.setItem("ahk_detail_pinned", String(v)); return v; })}
+              onPinToggle={() => setDetailPinned(p => { const v = !p; safeSetItem("ahk_detail_pinned", String(v)); return v; })}
               onClose={() => setSelectedPath(null)}
               onToggle={handleDetailToggle}
               onRestart={handleDetailRestart}

@@ -5,6 +5,7 @@ import { GearIcon, TagIcon, TagDotIcon, TagIconSvg, LayersIcon, TagOffIcon, Sync
 import { useTreeStore } from "../store/useTreeStore";
 import Tooltip from "./ui/Tooltip";
 import logoImg from "../assets/logo.png";
+import { safeSetItem } from "../utils/safeStorage";
 
 interface SidebarProps {
   activeTab: string;
@@ -285,7 +286,7 @@ export default function Sidebar({
             </div>
             {!collapsed && (
               <button
-                onClick={(e) => { e.stopPropagation(); setTagsCollapsed(v => { const next = !v; localStorage.setItem("ahk_tags_collapsed", String(next)); return next; }); }}
+                onClick={(e) => { e.stopPropagation(); setTagsCollapsed(v => { const next = !v; safeSetItem("ahk_tags_collapsed", String(next)); return next; }); }}
                 className="text-white/20 hover:text-white/50 transition-colors cursor-pointer p-1"
               >
                 <ChevronDownIcon className={`transition-transform duration-200 ${tagsCollapsed ? '-rotate-90' : ''}`} />

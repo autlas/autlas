@@ -10,6 +10,7 @@ import { createHighlighterCore } from "shiki/core";
 import { createOnigurumaEngine } from "shiki/engine/oniguruma";
 import githubDark from "shiki/themes/github-dark-default.mjs";
 import ahk2Grammar from "../syntaxes/ahk2.tmLanguage.json";
+import { safeSetItem } from "../utils/safeStorage";
 
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -153,7 +154,7 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
       setIsResizing(false);
       document.removeEventListener("mousemove", onMouseMove);
       document.removeEventListener("mouseup", onMouseUp);
-      localStorage.setItem("ahk_detail_panel_width", String(currentWidth));
+      safeSetItem("ahk_detail_panel_width", String(currentWidth));
     };
     document.addEventListener("mousemove", onMouseMove);
     document.addEventListener("mouseup", onMouseUp);

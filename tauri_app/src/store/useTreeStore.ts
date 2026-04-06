@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { safeSetItem } from "../utils/safeStorage";
 
 interface TreeStore {
   // Expand/collapse state
@@ -147,10 +148,10 @@ export const useTreeStore = create<TreeStore>((set) => ({
 
   // Detail pinned
   detailPinned: localStorage.getItem("ahk_detail_pinned") === "true",
-  setDetailPinned: (v) => { localStorage.setItem("ahk_detail_pinned", String(v)); set({ detailPinned: v }); },
+  setDetailPinned: (v) => { safeSetItem("ahk_detail_pinned", String(v)); set({ detailPinned: v }); },
   toggleDetailPinned: () => set((s) => {
     const v = !s.detailPinned;
-    localStorage.setItem("ahk_detail_pinned", String(v));
+    safeSetItem("ahk_detail_pinned", String(v));
     return { detailPinned: v };
   }),
 
@@ -167,25 +168,25 @@ export const useTreeStore = create<TreeStore>((set) => ({
 
   // Show file size
   showFileSize: localStorage.getItem("ahk_show_file_size") === "true",
-  setShowFileSize: (v) => { localStorage.setItem("ahk_show_file_size", String(v)); set({ showFileSize: v }); },
+  setShowFileSize: (v) => { safeSetItem("ahk_show_file_size", String(v)); set({ showFileSize: v }); },
   toggleShowFileSize: () => set((s) => {
     const v = !s.showFileSize;
-    localStorage.setItem("ahk_show_file_size", String(v));
+    safeSetItem("ahk_show_file_size", String(v));
     return { showFileSize: v };
   }),
 
   // Sidebar collapsed
   sidebarCollapsed: localStorage.getItem("ahk_sidebar_collapsed") === "true",
-  setSidebarCollapsed: (v) => { localStorage.setItem("ahk_sidebar_collapsed", String(v)); set({ sidebarCollapsed: v }); },
+  setSidebarCollapsed: (v) => { safeSetItem("ahk_sidebar_collapsed", String(v)); set({ sidebarCollapsed: v }); },
   toggleSidebarCollapsed: () => set((s) => {
     const v = !s.sidebarCollapsed;
-    localStorage.setItem("ahk_sidebar_collapsed", String(v));
+    safeSetItem("ahk_sidebar_collapsed", String(v));
     return { sidebarCollapsed: v };
   }),
 
   // Sidebar width
   sidebarWidth: parseInt(localStorage.getItem("ahk_sidebar_width") ?? "288"),
-  setSidebarWidth: (v) => { localStorage.setItem("ahk_sidebar_width", String(v)); set({ sidebarWidth: v }); },
+  setSidebarWidth: (v) => { safeSetItem("ahk_sidebar_width", String(v)); set({ sidebarWidth: v }); },
 
   // Tag icons
   tagIcons: {},

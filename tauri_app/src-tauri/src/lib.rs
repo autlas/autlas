@@ -1119,7 +1119,12 @@ async fn get_scripts(
 
         let script_id = id_map.get(&path_lower).cloned().unwrap_or_default();
         let tags = tags_map.get(&path_lower).cloned().unwrap_or_default();
-        let is_hidden = hidden_folders.iter().any(|h| path_lower.contains(&h.to_lowercase()));
+        let is_hidden = hidden_folders.iter().any(|h| {
+            let h_norm = h.to_lowercase().replace('/', "\\");
+            let h_trimmed = h_norm.trim_end_matches('\\');
+            path_lower.starts_with(h_trimmed) &&
+                (path_lower.len() == h_trimmed.len() || path_lower.as_bytes().get(h_trimmed.len()) == Some(&b'\\'))
+        });
         let is_running = running_cmds.iter().any(|cmd| cmd.contains(&path_lower));
 
         let has_ui = if is_running {
@@ -1793,6 +1798,18 @@ async fn resolve_orphan(
     Ok(())
 }
 
+#[tauri::command]
+async fn cleanup_orphans_cmd(state: tauri::State<'_, db::DbState>) -> Result<usize, String> {
+    let conn = state.0.lock().map_err(|e| e.to_string())?;
+    db::cleanup_orphans(&conn).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn reset_database_cmd(state: tauri::State<'_, db::DbState>) -> Result<(), String> {
+    let conn = state.0.lock().map_err(|e| e.to_string())?;
+    db::reset_database(&conn).map_err(|e| e.to_string())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     // Open SQLite database and run migration if needed
@@ -1991,7 +2008,9 @@ pub fn run() {
             quit_app_cmd,
             get_orphaned_scripts_cmd,
             resolve_orphan,
-            get_script_meta
+            get_script_meta,
+            cleanup_orphans_cmd,
+            reset_database_cmd
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -379,12 +379,25 @@ pub fn get_orphaned_scripts(conn: &Connection) -> Vec<(String, String, String)> 
     }).map(|rows| rows.filter_map(|r| r.ok()).collect()).unwrap_or_default()
 }
 
-#[allow(dead_code)]
-pub fn cleanup_old_orphans_sql(conn: &Connection, days: i64) -> rusqlite::Result<usize> {
-    conn.execute(
-        "DELETE FROM scripts WHERE is_orphaned = 1 AND orphaned_at < datetime('now', ?1)",
-        params![format!("-{} days", days)],
-    )
+/// Delete orphaned scripts (temporary/stale entries)
+pub fn cleanup_orphans(conn: &Connection) -> rusqlite::Result<usize> {
+    let tx = conn.unchecked_transaction()?;
+    tx.execute("DELETE FROM script_tags WHERE script_id IN (SELECT id FROM scripts WHERE is_orphaned = 1)", [])?;
+    let count = tx.execute("DELETE FROM scripts WHERE is_orphaned = 1", [])?;
+    tx.commit()?;
+    Ok(count)
+}
+
+/// Full database reset — deletes all scripts, tags, metadata. Keeps scan_paths and settings.
+pub fn reset_database(conn: &Connection) -> rusqlite::Result<()> {
+    let tx = conn.unchecked_transaction()?;
+    tx.execute_batch("
+        DELETE FROM script_tags;
+        DELETE FROM scripts;
+        DELETE FROM tag_meta;
+        DELETE FROM icon_svg_cache;
+    ")?;
+    tx.commit()
 }
 
 // ── Tags ──

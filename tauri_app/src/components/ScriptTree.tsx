@@ -9,6 +9,7 @@ import ScriptTreeToolbar from "./ScriptTreeToolbar";
 import ScriptGridView from "./ScriptGridView";
 import { TreeContext, TreeNodeRenderer, setTreeCallbacks } from "./TreeNodeRenderer";
 import { useTreeStore } from "../store/useTreeStore";
+import { safeSetItem } from "../utils/safeStorage";
 
 export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, onRunningCountChange, viewMode, onViewModeChange, onCustomDragStart, isDragging, draggedScriptPath, animationsEnabled, onScriptContextMenu, onFolderContextMenu, searchQuery, setSearchQuery, contextMenu, onShowUI, refreshKey, onScanComplete, isPathsEmpty, onAddPath, onRemovePath, scanPaths, onRefresh, isRefreshing, onOpenSettings, onSelectScript, onExposeActions, isDetailOpen, onCloseDetail, isActive = true }: ScriptTreeProps) {
     const searchInputRef = useRef<HTMLInputElement>(null);
@@ -27,7 +28,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
         setHubCollapsed(prev => {
             const next = new Set(prev);
             next.has(tag) ? next.delete(tag) : next.add(tag);
-            localStorage.setItem("ahk_hub_collapsed", JSON.stringify([...next]));
+            safeSetItem("ahk_hub_collapsed", JSON.stringify([...next]));
             return next;
         });
     }, []);
@@ -49,7 +50,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
     const toggleAllHub = useCallback(() => {
         setHubCollapsed(() => {
             const next = new Set(isAllHubExpanded ? hubTags : [] as string[]);
-            localStorage.setItem("ahk_hub_collapsed", JSON.stringify([...next]));
+            safeSetItem("ahk_hub_collapsed", JSON.stringify([...next]));
             return next;
         });
     }, [isAllHubExpanded, hubTags]);

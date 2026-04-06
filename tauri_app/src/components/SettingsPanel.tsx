@@ -8,6 +8,7 @@ import { PlusIcon, CloseIcon, FolderIcon } from "./ui/Icons";
 import Tooltip from "./ui/Tooltip";
 import SettingsSection from "./ui/SettingsSection";
 import { useTreeStore } from "../store/useTreeStore";
+import { safeSetItem } from "../utils/safeStorage";
 
 interface SettingsPanelProps {
   brightness: number;
@@ -182,7 +183,7 @@ export default function SettingsPanel({
           <ToggleGroup
               options={vimNavOptions}
               value={vimModeNav}
-              onChange={(v) => { setVimModeNav(v); localStorage.setItem("ahk_vim_mode_nav", v); }}
+              onChange={(v) => { setVimModeNav(v); safeSetItem("ahk_vim_mode_nav", v); }}
               className="flex-shrink-0 w-[145px]"
           />
         </div>
@@ -206,7 +207,7 @@ export default function SettingsPanel({
             <span className="text-xs text-tertiary mt-1">{t("settings.auto_refresh_desc", "Scan disk for changes when app opens")}</span>
           </div>
           <button
-            onClick={() => { const v = localStorage.getItem("ahk_auto_refresh") !== "true"; localStorage.setItem("ahk_auto_refresh", String(v)); setAutoRefresh(v); }}
+            onClick={() => { const v = localStorage.getItem("ahk_auto_refresh") !== "true"; safeSetItem("ahk_auto_refresh", String(v)); setAutoRefresh(v); }}
             className={`relative w-14 h-7 rounded-full transition-all duration-300 cursor-pointer border ${autoRefresh ? "bg-indigo-500/30 border-indigo-400/40 shadow-[0_0_12px_rgba(99,102,241,0.3)]" : "bg-white/5 border-white/10"}`}
           >
             <div className={`absolute top-[3px] w-5 h-5 rounded-full transition-all duration-300 shadow-lg ${autoRefresh ? "left-[30px] bg-indigo-400 shadow-indigo-500/50" : "left-[3px] bg-white/30"}`} />

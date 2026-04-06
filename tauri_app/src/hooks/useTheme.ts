@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { safeSetItem } from "../utils/safeStorage";
 
 function updatePalette(val: number) {
   const base = Math.floor((31 * val) / 100);
@@ -28,23 +29,23 @@ export function useTheme() {
 
   useEffect(() => {
     updatePalette(brightness);
-    localStorage.setItem("app-brightness", brightness.toString());
+    safeSetItem("app-brightness", brightness.toString());
   }, [brightness]);
 
   useEffect(() => {
     document.documentElement.style.setProperty("--contrast-factor", textContrast.toFixed(2));
-    localStorage.setItem("text-contrast", textContrast.toString());
+    safeSetItem("text-contrast", textContrast.toString());
   }, [textContrast]);
 
   useEffect(() => {
     document.documentElement.style.setProperty("--font-scale", fontScale.toFixed(2));
-    localStorage.setItem("font-scale", fontScale.toString());
+    safeSetItem("font-scale", fontScale.toString());
   }, [fontScale]);
 
   const toggleAnimations = () => {
     setAnimationsEnabled(prev => {
       const next = !prev;
-      localStorage.setItem("animations-enabled", String(next));
+      safeSetItem("animations-enabled", String(next));
       return next;
     });
   };

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import type { MutableRefObject } from "react";
+import { safeSetItem } from "../utils/safeStorage";
 
 type PhysicsRefs = {
   pendingImpulseRef: MutableRefObject<number>;
@@ -25,7 +26,7 @@ export function useNavigation(userTags: string[], physics: PhysicsRefs) {
   const [searchQuery, setSearchQuery] = useState("");
 
   const handleTabClick = (tab: string) => {
-    localStorage.setItem("ahk_active_tab", tab);
+    safeSetItem("ahk_active_tab", tab);
 
     // All state updates batched into one render (React 18 auto-batching)
     setActiveTab(tab);
@@ -47,7 +48,7 @@ export function useNavigation(userTags: string[], physics: PhysicsRefs) {
   const toggleDisplayMode = (mode: "tree" | "tiles" | "list") => {
     setDisplayMode(mode);
     const key = activeTab === "hub" ? "ahk_hub_display_mode" : "ahk_tree_display_mode";
-    localStorage.setItem(key, mode);
+    safeSetItem(key, mode);
   };
 
   const TABS = ["hub", "all", "no_tags", ...userTags, "settings"];
