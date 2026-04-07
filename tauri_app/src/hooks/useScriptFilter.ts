@@ -151,7 +151,12 @@ export function useScriptFilter({ allScripts, filterTag, searchQuery, sortBy }: 
             return true;
         });
 
-        return sortList(applySearch(list));
+        // When the user is searching, preserve fuse's relevance order — that's
+        // the whole point of fuzzy ranking. Fall back to the user's sort
+        // preference only when the query is empty. The tree view re-sorts its
+        // own folders inside the tree builder, so it's unaffected.
+        const searched = applySearch(list);
+        return rawQuery ? searched : sortList(searched);
     }, [allScripts, filterTag, showHidden, searchQuery, sortBy, fuseThreshold, fuseMinMatchLen, fuseFindAllMatches, fuseSearchPath]);
 
     const prevTreeRef = useRef<TreeNode | null>(null);
