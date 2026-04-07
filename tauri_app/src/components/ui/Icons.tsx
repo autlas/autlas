@@ -175,10 +175,16 @@ import { TAG_ICONS } from "../../data/tagIcons";
 import { useTreeStore } from "../../store/useTreeStore";
 
 export function TagIconSvg({ name, size = 18, weight = "bold", className }: IconProps & { name: string }) {
-    const cached = useTreeStore(s => s.iconCache[name]);
-    const paths = TAG_ICONS[name] ?? cached;
+    // Backwards compat: legacy bare names (no ':') are treated as Phosphor.
+    // The DB migration handles persisted rows; this guard catches anything
+    // still in flight (in-memory state, props passed through old paths).
+    const ref = name.includes(":") ? name : `phosphor:${name}`;
+    const [lib, baseName] = ref.split(":", 2) as [string, string];
+    const cached = useTreeStore(s => s.iconCache[ref]);
+    // Local Phosphor dict is keyed by bare name; everything else lives in cache.
+    const paths = lib === "phosphor" ? (TAG_ICONS[baseName] ?? cached) : cached;
     if (!paths) return <CircleDashed size={size} weight={weight} className={className} />;
-    const viewBox = name.startsWith("si:") ? "0 0 24 24" : "0 0 256 256";
+    const viewBox = lib === "si" ? "0 0 24 24" : "0 0 256 256";
     return (
         <svg
             width={size}

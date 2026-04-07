@@ -182,6 +182,30 @@ fn create_schema(conn: &Connection) -> rusqlite::Result<()> {
         CREATE INDEX IF NOT EXISTS idx_scripts_orphaned ON scripts(is_orphaned);
         CREATE INDEX IF NOT EXISTS idx_script_tags_tag ON script_tags(tag);"
     )?;
+
+    // Icon namespacing migration: previously Phosphor icons were stored as
+    // bare names ("acorn"), Simple-Icons as "si:github". Now everything must
+    // be prefixed: "phosphor:acorn" / "si:github". A bare row (no ':' inside)
+    // is by definition pre-migration Phosphor data.
+    //
+    // Idempotent: only updates rows missing a prefix.
+    conn.execute(
+        "UPDATE tag_meta SET icon = 'phosphor:' || icon
+         WHERE icon IS NOT NULL AND icon != '' AND instr(icon, ':') = 0",
+        [],
+    )?;
+    conn.execute(
+        "UPDATE OR IGNORE icon_svg_cache SET name = 'phosphor:' || name
+         WHERE instr(name, ':') = 0",
+        [],
+    )?;
+    // OR IGNORE above silently drops any cache row that would collide with an
+    // already-prefixed row. Clean up the leftover bare duplicates.
+    conn.execute(
+        "DELETE FROM icon_svg_cache WHERE instr(name, ':') = 0",
+        [],
+    )?;
+
     Ok(())
 }
 

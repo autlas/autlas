@@ -170,13 +170,15 @@ export default function TagIconPicker({ tag, currentIcon, onSelect, onClose }: T
         return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
     }, [query, searchApi]);
 
-    const handleSelectApiIcon = (name: string, paths: [string, string]) => {
-        invoke("save_icon_to_cache", { name, bold: paths[0], fill: paths[1] }).catch(() => {});
-        onSelect(tag, name);
+    // `ref` must already be a fully-qualified library:name (e.g. "phosphor:acorn",
+    // "si:github"). Caller is responsible for adding the prefix.
+    const handleSelectApiIcon = (ref: string, paths: [string, string]) => {
+        invoke("save_icon_to_cache", { name: ref, bold: paths[0], fill: paths[1] }).catch(() => {});
+        onSelect(tag, ref);
         onClose();
     };
 
-    const hasPhResults = phResults.some(n => phPaths[n]);
+    const hasPhResults = phResults.some(n => phPaths[`phosphor:${n}`]);
     const hasSiResults = siResults.some(n => siPaths[`si:${n}`]);
     const isSearchingAny = phSearching || siSearching;
 
@@ -185,11 +187,13 @@ export default function TagIconPicker({ tag, currentIcon, onSelect, onClose }: T
     const navItems = useMemo((): NavItem[] => {
         const items: NavItem[] = [];
         filtered.forEach(name => {
-            items.push({ key: name, action: () => { onSelect(tag, name); onClose(); } });
+            const ref = `phosphor:${name}`;
+            items.push({ key: ref, action: () => { onSelect(tag, ref); onClose(); } });
         });
         phResults.forEach(name => {
-            const paths = phPaths[name];
-            if (paths) items.push({ key: `ph:${name}`, action: () => handleSelectApiIcon(name, paths) });
+            const ref = `phosphor:${name}`;
+            const paths = phPaths[ref];
+            if (paths) items.push({ key: ref, action: () => handleSelectApiIcon(ref, paths) });
         });
         siResults.forEach(name => {
             const cacheKey = `si:${name}`;
@@ -324,19 +328,22 @@ export default function TagIconPicker({ tag, currentIcon, onSelect, onClose }: T
                     {/* Section 1: Static/loaded icons */}
                     {filtered.length > 0 && (
                         <div ref={gridRef} className="grid grid-cols-[repeat(auto-fill,42px)] gap-1.5 justify-center">
-                            {filtered.map((name, i) => (
-                                <IconButton
-                                    key={name}
-                                    name={name}
-                                    viewBox="0 0 256 256"
-                                    svgHtml={TAG_ICONS[name][0]}
-                                    isSelected={name === currentIcon}
-                                    isFocused={vimActive && focusIdx === i}
-                                    btnRef={vimActive && focusIdx === i ? focusedBtnRef : undefined}
-                                    onClick={() => { onSelect(tag, name); onClose(); }}
-                                    onMouseEnter={() => { if (vimActive) { setVimActive(false); setFocusIdx(-1); } }}
-                                />
-                            ))}
+                            {filtered.map((name, i) => {
+                                const ref = `phosphor:${name}`;
+                                return (
+                                    <IconButton
+                                        key={ref}
+                                        name={name}
+                                        viewBox="0 0 256 256"
+                                        svgHtml={TAG_ICONS[name][0]}
+                                        isSelected={ref === currentIcon}
+                                        isFocused={vimActive && focusIdx === i}
+                                        btnRef={vimActive && focusIdx === i ? focusedBtnRef : undefined}
+                                        onClick={() => { onSelect(tag, ref); onClose(); }}
+                                        onMouseEnter={() => { if (vimActive) { setVimActive(false); setFocusIdx(-1); } }}
+                                    />
+                                );
+                            })}
                         </div>
                     )}
 
@@ -348,19 +355,20 @@ export default function TagIconPicker({ tag, currentIcon, onSelect, onClose }: T
                             {hasPhResults && (
                                 <div className={`grid grid-cols-[repeat(auto-fill,42px)] gap-1.5 justify-center transition-opacity ${phSearching ? "opacity-30 animate-pulse pointer-events-none" : ""}`}>
                                     {(() => { let offset = filtered.length; return phResults.map(name => {
-                                        const paths = phPaths[name];
+                                        const ref = `phosphor:${name}`;
+                                        const paths = phPaths[ref];
                                         if (!paths) return null;
                                         const idx = offset++;
                                         return (
                                             <IconButton
-                                                key={`ph:${name}`}
+                                                key={ref}
                                                 name={name}
                                                 viewBox="0 0 256 256"
                                                 svgHtml={paths[0]}
-                                                isSelected={name === currentIcon}
+                                                isSelected={ref === currentIcon}
                                                 isFocused={vimActive && focusIdx === idx}
                                                 btnRef={vimActive && focusIdx === idx ? focusedBtnRef : undefined}
-                                                onClick={() => handleSelectApiIcon(name, paths)}
+                                                onClick={() => handleSelectApiIcon(ref, paths)}
                                                 onMouseEnter={() => { if (vimActive) { setVimActive(false); setFocusIdx(-1); } }}
                                             />
                                         );
@@ -377,7 +385,7 @@ export default function TagIconPicker({ tag, currentIcon, onSelect, onClose }: T
                             {siSearching && !hasSiResults && <Spinner label={t("icon_picker.searching", "Searching...")} />}
                             {hasSiResults && (
                                 <div className={`grid grid-cols-[repeat(auto-fill,42px)] gap-1.5 justify-center transition-opacity ${siSearching ? "opacity-30 animate-pulse pointer-events-none" : ""}`}>
-                                    {(() => { let offset = filtered.length + phResults.filter(n => phPaths[n]).length; return siResults.map(name => {
+                                    {(() => { let offset = filtered.length + phResults.filter(n => phPaths[`phosphor:${n}`]).length; return siResults.map(name => {
                                         const cacheKey = `si:${name}`;
                                         const paths = siPaths[cacheKey];
                                         if (!paths) return null;

@@ -1656,7 +1656,10 @@ async fn fetch_icon_paths(
                         .unwrap_or("")
                         .to_string();
                     if !bold_body.is_empty() && !fill_body.is_empty() {
-                        result.insert(base_name.clone(), (bold_body, fill_body));
+                        // Namespace Phosphor cache rows so they can't collide
+                        // with other libraries that share short names.
+                        let cache_key = format!("phosphor:{}", base_name);
+                        result.insert(cache_key, (bold_body, fill_body));
                     }
                 } else {
                     // Simple Icons: one path, same for both slots
