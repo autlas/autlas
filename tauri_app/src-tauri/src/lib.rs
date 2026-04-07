@@ -2,7 +2,20 @@ use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::process::Command;
+#[cfg(windows)]
+use std::os::windows::process::CommandExt;
 use std::sync::Mutex;
+
+#[cfg(windows)]
+const CREATE_NO_WINDOW: u32 = 0x08000000;
+
+/// Create a `Command` that does not flash a console window on Windows.
+fn cmd<S: AsRef<std::ffi::OsStr>>(program: S) -> Command {
+    let mut c = Command::new(program);
+    #[cfg(windows)]
+    c.creation_flags(CREATE_NO_WINDOW);
+    c
+}
 use sysinfo::System;
 use tauri::tray::{TrayIconBuilder, TrayIconEvent, MouseButton, MouseButtonState, TrayIcon};
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
@@ -745,7 +758,7 @@ fn find_everything_exe() -> Option<String> {
     use std::process::Command;
 
     // 1. Check if Everything.exe is in PATH
-    if let Ok(output) = Command::new("where.exe").arg("Everything.exe").output() {
+    if let Ok(output) = cmd("where.exe").arg("Everything.exe").output() {
         if output.status.success() {
             let stdout = String::from_utf8_lossy(&output.stdout);
             if let Some(line) = stdout.lines().next() {
@@ -758,7 +771,7 @@ fn find_everything_exe() -> Option<String> {
     }
 
     // 2. Check registry via reg.exe
-    if let Ok(output) = Command::new("reg.exe")
+    if let Ok(output) = cmd("reg.exe")
         .args(&["query", r"HKCU\Software\voidtools\Everything", "/v", "InstallFolder"])
         .output()
     {
@@ -789,7 +802,7 @@ fn find_everything_exe() -> Option<String> {
     }
 
     // 4. If es.exe is in PATH, find Everything.exe next to it
-    if let Ok(output) = Command::new("where.exe").arg("es.exe").output() {
+    if let Ok(output) = cmd("where.exe").arg("es.exe").output() {
         if output.status.success() {
             let stdout = String::from_utf8_lossy(&output.stdout);
             if let Some(line) = stdout.lines().next() {
@@ -813,7 +826,7 @@ fn find_everything_exe() -> Option<String> {
 
 fn es_exe_available() -> bool {
     // Actually try running es.exe — WindowsApps stubs exist even after uninstall
-    std::process::Command::new("es.exe")
+    cmd("es.exe")
         .arg("-get-everything-version")
         .output()
         .map(|o| o.status.success())
@@ -822,7 +835,7 @@ fn es_exe_available() -> bool {
 
 fn is_everything_running() -> bool {
     // Check if Everything IPC is actually available (not just the process)
-    if let Ok(output) = std::process::Command::new("es.exe")
+    if let Ok(output) = cmd("es.exe")
         .arg("-get-result-count")
         .output()
     {
@@ -847,7 +860,7 @@ async fn check_everything_status() -> String {
 #[tauri::command]
 async fn launch_everything() -> Result<(), String> {
     if let Some(exe_path) = find_everything_exe() {
-        std::process::Command::new(&exe_path)
+        cmd(&exe_path)
             .arg("-startup")
             .spawn()
             .map_err(|e| format!("Failed to launch Everything: {}", e))?;
@@ -879,7 +892,7 @@ async fn install_everything(window: tauri::Window) -> Result<(), String> {
     // Launch Everything in tray mode
     std::thread::sleep(std::time::Duration::from_millis(500));
     if let Some(exe_path) = find_everything_exe() {
-        let _ = std::process::Command::new(&exe_path)
+        let _ = cmd(&exe_path)
             .arg("-startup")
             .spawn();
         std::thread::sleep(std::time::Duration::from_millis(1500));
@@ -925,7 +938,7 @@ async fn install_everything_direct(window: &tauri::Window) -> Result<(), String>
         "progress": 100
     }));
 
-    let status = std::process::Command::new(&installer_path)
+    let status = cmd(&installer_path)
         .arg("/S")
         .status()
         .map_err(|e| format!("Installer failed: {}", e))?;
@@ -940,7 +953,7 @@ async fn install_everything_direct(window: &tauri::Window) -> Result<(), String>
 }
 
 fn install_everything_winget() -> Result<(), String> {
-    let output = std::process::Command::new("winget")
+    let output = cmd("winget")
         .args(&["install", "voidtools.Everything", "--silent", "--accept-package-agreements", "--accept-source-agreements"])
         .output()
         .map_err(|e| format!("Failed to run winget: {}", e))?;
@@ -966,7 +979,7 @@ fn scan_with_everything(scan_dirs: &[std::path::PathBuf]) -> Option<Vec<String>>
     let mut all_paths = Vec::new();
     for dir in scan_dirs {
         let dir_str = dir.to_string_lossy();
-        let output = Command::new("es.exe")
+        let output = cmd("es.exe")
             .args(&["ext:ahk", &format!("path:{}", dir_str)])
             .output();
 
@@ -1009,8 +1022,8 @@ async fn get_scripts(
     for (_pid, process) in sys.processes() {
         let name = process.name().to_string_lossy().to_lowercase();
         if name.contains("autohotkey") {
-            let cmd: Vec<String> = process.cmd().iter().map(|s| s.to_string_lossy().into_owned()).collect();
-            running_cmds.push(cmd.join(" ").to_lowercase());
+            let proc_cmd: Vec<String> = process.cmd().iter().map(|s| s.to_string_lossy().into_owned()).collect();
+            running_cmds.push(proc_cmd.join(" ").to_lowercase());
         }
     }
 
@@ -1185,7 +1198,7 @@ async fn run_script(
     state: tauri::State<'_, db::DbState>,
     path: String,
 ) -> Result<(), String> {
-    Command::new("explorer").arg(&path).spawn().map_err(|e| e.to_string())?;
+    cmd("explorer").arg(&path).spawn().map_err(|e| e.to_string())?;
     let conn = state.0.lock().map_err(|e| e.to_string())?;
     let _ = db::set_last_run(&conn, &path.to_lowercase(), &db::now_iso());
     Ok(())
@@ -1207,7 +1220,7 @@ async fn kill_script(path: String) -> Result<(), String> {
                 s == path_lower
             });
             if matched {
-                let _ = Command::new("taskkill")
+                let _ = cmd("taskkill")
                     .args(["/F", "/T", "/PID", &pid.as_u32().to_string()])
                     .output();
             }
@@ -1236,7 +1249,7 @@ async fn restart_script(
                 s == path_lower
             });
             if matched {
-                let _ = Command::new("taskkill")
+                let _ = cmd("taskkill")
                     .args(["/F", "/T", "/PID", &pid.as_u32().to_string()])
                     .output();
             }
@@ -1247,7 +1260,7 @@ async fn restart_script(
     std::thread::sleep(std::time::Duration::from_millis(150));
     
     // 3. Run it again
-    Command::new("explorer").arg(&path).spawn().map_err(|e| e.to_string())?;
+    cmd("explorer").arg(&path).spawn().map_err(|e| e.to_string())?;
     let conn = state.0.lock().map_err(|e| e.to_string())?;
     let _ = db::set_last_run(&conn, &path.to_lowercase(), &db::now_iso());
     Ok(())
@@ -1263,8 +1276,8 @@ async fn show_script_ui(path: String) -> Result<(), String> {
     for (pid, process) in sys.processes() {
         let name = process.name().to_string_lossy().to_lowercase();
         if name.contains("autohotkey") {
-            let cmd: Vec<String> = process.cmd().iter().map(|s| s.to_string_lossy().into_owned()).collect();
-            let cmd_str = cmd.join(" ").to_lowercase().replace("/", "\\");
+            let proc_cmd: Vec<String> = process.cmd().iter().map(|s| s.to_string_lossy().into_owned()).collect();
+            let cmd_str = proc_cmd.join(" ").to_lowercase().replace("/", "\\");
             
             if cmd_str.contains(&path_lower) {
                 let pid_val = pid.as_u32();
@@ -1301,7 +1314,7 @@ async fn show_script_ui(path: String) -> Result<(), String> {
                     pid_val, pid_val, pid_val
                 );
                 
-                let output = Command::new("powershell")
+                let output = cmd("powershell")
                     .arg("-NoProfile")
                     .arg("-Command")
                     .arg(ps_script)
@@ -1326,11 +1339,11 @@ async fn show_script_ui(path: String) -> Result<(), String> {
 async fn open_in_explorer(path: String) -> Result<(), String> {
     let path_buf = std::path::PathBuf::from(&path);
     if path_buf.exists() {
-        let mut cmd = Command::new("explorer");
+        let mut c = cmd("explorer");
         if path_buf.is_file() {
-            cmd.arg("/select,");
+            c.arg("/select,");
         }
-        cmd.arg(path)
+        c.arg(path)
             .spawn()
             .map_err(|e| e.to_string())?;
     }
@@ -1340,7 +1353,7 @@ async fn open_in_explorer(path: String) -> Result<(), String> {
 #[tauri::command]
 async fn edit_script(path: String) -> Result<(), String> {
     // Open in default editor using the 'Edit' verb
-    Command::new("powershell")
+    cmd("powershell")
         .arg("-NoProfile")
         .arg("-Command")
         .arg(format!("Start-Process -FilePath '{}' -Verb Edit", path))
@@ -1351,7 +1364,7 @@ async fn edit_script(path: String) -> Result<(), String> {
 
 #[tauri::command]
 async fn open_url(url: String) -> Result<(), String> {
-    Command::new("cmd")
+    cmd("cmd")
         .args(&["/c", "start", "", &url])
         .spawn()
         .map_err(|e| e.to_string())?;
@@ -1363,7 +1376,7 @@ async fn open_with(path: String) -> Result<(), String> {
     // Convert to short (8.3) path to avoid rundll32 issues with spaces
     let short_path = get_short_path(&path).unwrap_or_else(|| path.clone());
 
-    Command::new("rundll32.exe")
+    cmd("rundll32.exe")
         .arg("shell32.dll,OpenAs_RunDLL")
         .arg(&short_path)
         .spawn()
@@ -1413,12 +1426,19 @@ async fn remove_script_tag(
 
 #[tauri::command]
 async fn rename_tag(
+    app: tauri::AppHandle,
     state: tauri::State<'_, db::DbState>,
     old_tag: String,
     new_tag: String,
 ) -> Result<(), String> {
+    use tauri::Emitter;
     let conn = state.0.lock().map_err(|e| e.to_string())?;
-    db::rename_tag_all(&conn, &old_tag, &new_tag).map_err(|e| e.to_string())?;
+    let affected_ids = db::rename_tag_all(&conn, &old_tag, &new_tag).map_err(|e| e.to_string())?;
+    // Emit per-script tag updates so all mounted ScriptTree instances refresh.
+    for id in affected_ids {
+        let tags = db::get_tags_for_script(&conn, &id);
+        let _ = app.emit("script-tags-changed", serde_json::json!({ "id": id, "tags": tags }));
+    }
     Ok(())
 }
 
@@ -1876,7 +1896,7 @@ pub fn run() {
                                         arg.to_string_lossy().trim_matches('"').replace('/', "\\").to_lowercase() == path_lower
                                     });
                                     if matched {
-                                        let _ = Command::new("taskkill")
+                                        let _ = cmd("taskkill")
                                             .args(["/F", "/T", "/PID", &pid.as_u32().to_string()])
                                             .output();
                                     }
@@ -1884,7 +1904,7 @@ pub fn run() {
                             }
                             if is_restart {
                                 std::thread::sleep(std::time::Duration::from_millis(150));
-                                let _ = Command::new("explorer").arg(&path_owned).spawn();
+                                let _ = cmd("explorer").arg(&path_owned).spawn();
                                 if let Ok(conn) = handle.state::<db::DbState>().0.lock() {
                                     let _ = db::set_last_run(&conn, &path_lower, &db::now_iso());
                                 }
@@ -1906,7 +1926,7 @@ pub fn run() {
                                             "Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; public class W32 {{ [DllImport(\"user32.dll\")] public static extern bool PostMessage(IntPtr h, uint m, IntPtr w, IntPtr l); [DllImport(\"user32.dll\")] public static extern uint GetWindowThreadProcessId(IntPtr h, out uint p); public delegate bool EP(IntPtr h, IntPtr l); [DllImport(\"user32.dll\")] public static extern bool EnumWindows(EP e, IntPtr l); static uint T; static int C; public static int Go(uint pid) {{ T=pid;C=0; EnumWindows((h,l)=>{{ uint p; GetWindowThreadProcessId(h,out p); if(p==T){{ PostMessage(h,0x0401,IntPtr.Zero,IntPtr.Zero); C++; }} return true; }}, IntPtr.Zero); return C; }} }}'; [W32]::Go({})",
                                             pid_val
                                         );
-                                        let _ = Command::new("powershell").arg("-NoProfile").arg("-Command").arg(ps).output();
+                                        let _ = cmd("powershell").arg("-NoProfile").arg("-Command").arg(ps).output();
                                         break;
                                     }
                                 }

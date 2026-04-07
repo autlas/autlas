@@ -44,7 +44,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
         addTag, removeTag, handleCustomMouseDown,
         visibleItems, moveFocus,
         setTagIcon, removeTagIcon,
-        deleteTagFromAll, toggleHiddenByPath
+        deleteTagFromAll, renameTag, toggleHiddenByPath
     } = useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, searchQuery, setSearchQuery, onRunningCountChange, refreshKey, onScanComplete, viewMode, sortBy });
 
     const hubTags = useMemo(() => groupedHub?.map(g => g.tag) ?? [], [groupedHub]);
@@ -66,8 +66,8 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
     const removingTags = useTreeStore(s => s.removingTags);
 
     useEffect(() => {
-        onExposeActions?.({ toggle: handleToggle, restart: handleRestart, pendingScripts, allScripts, setTagIcon, removeTagIcon, deleteTagFromAll, toggleHiddenByPath });
-    }, [handleToggle, handleRestart, pendingScripts, allScripts, setTagIcon, removeTagIcon, deleteTagFromAll, toggleHiddenByPath, onExposeActions]);
+        onExposeActions?.({ toggle: handleToggle, restart: handleRestart, pendingScripts, allScripts, setTagIcon, removeTagIcon, deleteTagFromAll, renameTag, toggleHiddenByPath });
+    }, [handleToggle, handleRestart, pendingScripts, allScripts, setTagIcon, removeTagIcon, deleteTagFromAll, renameTag, toggleHiddenByPath, onExposeActions]);
 
     const [isCheatSheetOpen, setIsCheatSheetOpen] = useState(false);
     const toolbarRef = useRef<HTMLDivElement>(null);

@@ -37,7 +37,7 @@ export interface ScriptTreeProps {
     isRefreshing?: boolean;
     onOpenSettings?: () => void;
     onSelectScript?: (s: Script) => void;
-    onExposeActions?: (actions: { toggle: (s: Script) => void; restart: (s: Script) => void; pendingScripts: Record<string, "run" | "kill" | "restart">; allScripts: Script[]; setTagIcon: (tag: string, iconName: string) => void; removeTagIcon: (tag: string) => void; deleteTagFromAll: (tag: string) => void; toggleHiddenByPath: (path: string) => void }) => void;
+    onExposeActions?: (actions: { toggle: (s: Script) => void; restart: (s: Script) => void; pendingScripts: Record<string, "run" | "kill" | "restart">; allScripts: Script[]; setTagIcon: (tag: string, iconName: string) => void; removeTagIcon: (tag: string) => void; deleteTagFromAll: (tag: string) => void; renameTag: (oldTag: string, newTag: string) => Promise<void>; toggleHiddenByPath: (path: string) => void }) => void;
     isDetailOpen?: boolean;
     onCloseDetail?: () => void;
     isActive?: boolean;

@@ -37,6 +37,7 @@ interface SidebarProps {
   setContextMenu: (menu: any) => void;
   setUserTags: (tags: string[]) => void;
   triggerScan: () => void;
+  onRenameTag: (oldTag: string, newTag: string) => Promise<void>;
   onRefresh: () => void;
   onHoveringRefresh: (hovering: boolean) => void;
   onCustomDrop: (id: string, tag: string) => void;
@@ -71,7 +72,7 @@ export default function Sidebar({
   activeTab, viewMode, userTags, draggedScript, draggedTag, dragOverTag, isCreatingTagFor, isRenamingTag, editTagName,
   runningCount, isRefreshing, isHoveringRefresh, lastScanTimestamp, activeTabPressed, newTagName,
   onTabClick, setActiveTab, setDragOverTag, setDraggedTag, setIsCreatingTagFor, setNewTagName, setIsRenamingTag, setEditTagName,
-  setActiveTabPressed, setDragGhostSize, setContextMenu, setUserTags, triggerScan, onRefresh, onHoveringRefresh, onCustomDrop,
+  setActiveTabPressed, setDragGhostSize, setContextMenu, setUserTags, triggerScan, onRenameTag, onRefresh, onHoveringRefresh, onCustomDrop,
   settingsIconRef, refreshIconRef, ghostRef, tagDragOffsetYRef, tagDragOffsetXRef, pendingTagDragRef, formatLastScan,
 }: SidebarProps) {
   const { t } = useTranslation();
@@ -371,12 +372,11 @@ export default function Sidebar({
                         onBlur={async () => {
                           const newName = editTagName.trim();
                           if (newName && newName !== tag) {
-                            await invoke("rename_tag", { oldTag: tag, newTag: newName });
+                            await onRenameTag(tag, newName);
                             const newOrder = userTags.map(t => t === tag ? newName : t);
                             setUserTags(newOrder);
                             await invoke("save_tag_order", { order: newOrder });
                             if (activeTab === tag) setActiveTab(newName);
-                            triggerScan();
                           }
                           setIsRenamingTag(null);
                         }}

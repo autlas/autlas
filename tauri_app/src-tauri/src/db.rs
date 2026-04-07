@@ -448,7 +448,18 @@ pub fn remove_tag_from_script(conn: &Connection, script_id: &str, tag: &str) -> 
     Ok(())
 }
 
-pub fn rename_tag_all(conn: &Connection, old_tag: &str, new_tag: &str) -> rusqlite::Result<()> {
+/// Rename a tag everywhere. Returns the list of script_ids that were affected
+/// so the caller can emit per-script update events to the frontend.
+pub fn rename_tag_all(conn: &Connection, old_tag: &str, new_tag: &str) -> rusqlite::Result<Vec<String>> {
+    // Collect affected script ids BEFORE the rename runs.
+    let affected: Vec<String> = {
+        let mut stmt = conn.prepare(
+            "SELECT DISTINCT script_id FROM script_tags WHERE LOWER(tag) = LOWER(?1)"
+        )?;
+        let rows = stmt.query_map(params![old_tag], |row| row.get::<_, String>(0))?;
+        rows.filter_map(|r| r.ok()).collect()
+    };
+
     let tx = conn.unchecked_transaction()?;
     // First delete old_tag entries where script already has new_tag (prevents PK violation)
     tx.execute(
@@ -464,7 +475,8 @@ pub fn rename_tag_all(conn: &Connection, old_tag: &str, new_tag: &str) -> rusqli
         "UPDATE tag_meta SET tag = ?2 WHERE LOWER(tag) = LOWER(?1)",
         params![old_tag, new_tag],
     )?;
-    tx.commit()
+    tx.commit()?;
+    Ok(affected)
 }
 
 pub fn delete_tag_all(conn: &Connection, tag: &str) -> rusqlite::Result<()> {
