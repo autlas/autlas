@@ -17,10 +17,11 @@ const ScriptRow = memo(function ScriptRow({
     allUniqueTags, popoverRef, visibilityMode,
     onMouseDown, onDoubleClick, onToggle, onStartEditing, onAddTag, onRemoveTag, onCloseEditing,
     onScriptContextMenu, onShowUI, onRestart,
-    setFocusedPath, onSelectScript
+    setFocusedPath, onSelectScript, focusKey
 }: ScriptRowProps) {
     const { t } = useTranslation();
-    const isFocused = useTreeStore(store => store.focusedPath === s.path);
+    const navKey = focusKey ?? s.path;
+    const isFocused = useTreeStore(store => store.focusedPath === navKey);
     const isVimMode = useTreeStore(store => store.isVimMode);
     const sortBy = useTreeStore(store => store.sortBy);
     const showInfo = sortBy !== "name";
@@ -69,10 +70,10 @@ const ScriptRow = memo(function ScriptRow({
             onMouseLeave={handleMouseLeave}
             onClick={handleClick}
             onMouseEnter={() => {
-                if (!isVimMode) setFocusedPath(s.path);
+                if (!isVimMode) setFocusedPath(navKey);
             }}
             onDoubleClick={() => !isDragging && onDoubleClick(s)}
-            id={`script-${s.path}`}
+            id={`script-${navKey}`}
             className={`flex items-center space-x-3 h-[42px] px-3 rounded-xl z-20 relative mb-1 border border-transparent hover:z-[50] scroll-mt-[250px] scroll-mb-[250px] long-press-shrink
                 ${isFocused && isVimMode ? 'vim-focus-instant bg-indigo-500/25 shadow-[0_0_20px_rgba(99,102,241,0.15)]' : ''}
                 ${!draggedScriptPath ? (isVimMode ? (isFocused ? '' : 'bg-transparent') : 'bg-transparent hover:bg-white/[0.05] cursor-pointer group') : 'bg-transparent text-tertiary cursor-default pointer-events-none'}

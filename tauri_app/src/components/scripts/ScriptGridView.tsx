@@ -81,31 +81,48 @@ export default React.memo(function ScriptGridView({
     const gridGap = isTiles ? "gap-6" : "gap-x-8 gap-y-1";
     const colClass = isTiles ? "flex flex-col gap-6" : "flex flex-col gap-y-1";
 
-    const renderCard = (s: Script) => {
+    const renderCard = (s: Script, groupTag?: string) => {
+        // В Hub-режиме один и тот же скрипт может появиться в нескольких группах
+        // (по одной карточке на тег). Чтобы открытый tag-picker привязывался
+        // только к конкретной карточке, а не ко всем дублям, scope-им editingScript
+        // через ключ "groupTag::path".
+        const editingKey = groupTag ? `${groupTag}::${s.path}` : s.path;
+        const scopedEditingScript = editingScript === editingKey ? s.path : null;
+        const scopedStartEditing = groupTag
+            ? () => useTreeStore.getState().setEditingScript(editingKey)
+            : startEditing;
+        // Тот же scope для contextMenu: помечаем data._groupTag, чтобы из нескольких
+        // карточек одного скрипта подсвечивалась только та, на которой кликнули.
+        const scopedContextMenu = groupTag
+            ? (e: React.MouseEvent, sc: Script) => onScriptContextMenu(e, { ...sc, _groupTag: groupTag } as Script)
+            : onScriptContextMenu;
+        const isContextMenuOpenScoped = contextMenu?.type === 'script'
+            && contextMenu?.data?.path === s.path
+            && (contextMenu?.data?._groupTag ?? undefined) === groupTag;
         if (isTiles) {
             return (
                 <HubScriptCard
-                    key={s.path}
+                    key={editingKey}
                     s={s}
                     isDragging={isDragging}
                     draggedScriptPath={draggedScriptPath}
-                    editingScript={editingScript}
+                    editingScript={scopedEditingScript}
                     pendingScripts={pendingScripts}
                     removingTags={removingTags}
                     allUniqueTags={allUniqueTags}
                     popoverRef={popoverRef}
                     visibilityMode={showHidden}
-                    isContextMenuOpen={contextMenu?.type === 'script' && contextMenu?.data?.path === s.path}
+                    isContextMenuOpen={isContextMenuOpenScoped}
                     onMouseDown={handleCustomMouseDown}
                     onToggle={handleToggle}
-                    onStartEditing={startEditing}
+                    onStartEditing={scopedStartEditing}
                     onAddTag={addTag}
                     onRemoveTag={removeTag}
                     onCloseEditing={stopEditing}
-                    onScriptContextMenu={onScriptContextMenu}
+                    onScriptContextMenu={scopedContextMenu}
                     onShowUI={onShowUI}
                     onRestart={onRestart}
-
+                    focusKey={editingKey}
                     setFocusedPath={setFocusedPath}
                     onSelectScript={onSelectScript}
                 />
@@ -114,28 +131,29 @@ export default React.memo(function ScriptGridView({
         const removingTagKeys = Array.from(removingTags as Set<string>).filter(k => k.startsWith(s.path + '-'));
         return (
             <ScriptRow
-                key={s.path}
+                key={editingKey}
                 s={s}
                 isDragging={isDragging}
                 draggedScriptPath={draggedScriptPath}
-                isEditing={editingScript === s.path}
+                isEditing={scopedEditingScript === s.path}
                 isPending={!!pendingScripts[s.path]}
                 pendingType={pendingScripts[s.path]}
                 removingTagKeys={removingTagKeys}
                 allUniqueTags={allUniqueTags}
                 popoverRef={popoverRef}
                 visibilityMode={showHidden}
-                isContextMenuOpen={contextMenu?.type === 'script' && contextMenu?.data?.path === s.path}
+                isContextMenuOpen={isContextMenuOpenScoped}
                 onMouseDown={handleCustomMouseDown}
                 onDoubleClick={handleToggle}
                 onToggle={handleToggle}
-                onStartEditing={startEditing}
+                onStartEditing={scopedStartEditing}
+                onScriptContextMenu={scopedContextMenu}
                 onAddTag={addTag}
                 onRemoveTag={removeTag}
                 onCloseEditing={stopEditing}
-                onScriptContextMenu={onScriptContextMenu}
                 onShowUI={onShowUI}
                 onRestart={onRestart}
+                focusKey={editingKey}
                 setFocusedPath={setFocusedPath}
                 onSelectScript={onSelectScript}
             />
@@ -173,7 +191,7 @@ export default React.memo(function ScriptGridView({
                                     >
                                         {sectionMasonry.map((col, colIdx) => (
                                             <div key={colIdx} className={colClass}>
-                                                {col.map(s => renderCard(s))}
+                                                {col.map(s => renderCard(s, tag))}
                                             </div>
                                         ))}
                                     </div>

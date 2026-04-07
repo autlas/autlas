@@ -183,6 +183,16 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
         lastFTimeRef.current = performance.now();
     }, { enabled: isActive });
 
+    // Direct scroll fallback: scrollIntoView via subscriber may skip when
+    // store updates fire in the wrong order (path before vim mode), or when
+    // the element appears "visible" inside the toolbar padding. Force it.
+    const scrollPathIntoView = useCallback((path: string) => {
+        requestAnimationFrame(() => {
+            const el = folderRefs.current.get(path) || document.getElementById(`script-${path}`);
+            if (el) el.scrollIntoView({ behavior: 'auto', block: 'nearest' });
+        });
+    }, [folderRefs]);
+
     useHotkeys('g', () => {
         const now = performance.now();
         const diff = now - lastGTimeRef.current;
@@ -190,8 +200,9 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
             if (visibleItems.length > 0) {
                 isInstantScrollRef.current = true;
                 const target = visibleItems.find(i => i.type === 'script') || visibleItems[0];
-                setFocusedPath(target.path);
                 setIsVimMode(true);
+                setFocusedPath(target.path);
+                scrollPathIntoView(target.path);
             }
             lastGTimeRef.current = 0;
         } else {
@@ -203,8 +214,10 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
         e.preventDefault();
         if (visibleItems.length > 0) {
             isInstantScrollRef.current = true;
-            setFocusedPath(visibleItems[visibleItems.length - 1].path);
             setIsVimMode(true);
+            const lastPath = visibleItems[visibleItems.length - 1].path;
+            setFocusedPath(lastPath);
+            scrollPathIntoView(lastPath);
         }
     }, { enabled: isActive });
 
@@ -394,7 +407,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
                 onScroll={handleScroll}
                 onMouseMove={() => { if (useTreeStore.getState().isVimMode) setIsVimMode(false); }}
                 className={`absolute inset-0 overflow-y-auto custom-scrollbar pl-4 pr-[6px] ${draggedScriptPath ? 'opacity-30 blur-[1px] transition-all duration-300' : ''}`}
-                style={{ paddingTop: toolbarH }}
+                style={{ paddingTop: toolbarH, scrollPaddingTop: toolbarH + 16, scrollPaddingBottom: 16 }}
                 id="script-list-container"
             >
                 <SearchContext.Provider value={{

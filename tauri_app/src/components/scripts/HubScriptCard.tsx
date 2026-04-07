@@ -14,9 +14,10 @@ const HubScriptCard = memo(function HubScriptCard({
     s, isDragging, draggedScriptPath, editingScript, pendingScripts, removingTags,
     isContextMenuOpen, allUniqueTags, popoverRef, visibilityMode, onMouseDown, onToggle, onStartEditing, onAddTag, onRemoveTag, onCloseEditing,
     onScriptContextMenu, onShowUI, onRestart,
-    setFocusedPath, onSelectScript
+    setFocusedPath, onSelectScript, focusKey
 }: HubScriptCardProps) {
-    const isFocused = useTreeStore(store => store.focusedPath === s.path);
+    const navKey = focusKey ?? s.path;
+    const isFocused = useTreeStore(store => store.focusedPath === navKey);
     const isVimMode = useTreeStore(store => store.isVimMode);
     const sortBy = useTreeStore(store => store.sortBy);
     const showInfo = sortBy !== "name";
@@ -60,10 +61,10 @@ const HubScriptCard = memo(function HubScriptCard({
             onMouseLeave={handleMouseLeave}
             onClick={handleClick}
             onMouseEnter={() => {
-                if (!isVimMode) setFocusedPath(s.path);
+                if (!isVimMode) setFocusedPath(navKey);
             }}
             onDoubleClick={() => !isDragging && onToggle(s)}
-            id={`script-${s.path}`}
+            id={`script-${navKey}`}
             className={`pt-[21px] pb-6 px-6 rounded-[24px] border flex flex-col select-none relative long-press-shrink ${isEditing ? 'z-[200]' : 'z-10'}
                 ${isFocused && isVimMode ? 'vim-focus-instant !bg-indigo-500/20 shadow-[0_0_40px_rgba(99,102,241,0.2)] ring-2 ring-indigo-500/30' : 'transition-all duration-150'}
                 ${!draggedScriptPath

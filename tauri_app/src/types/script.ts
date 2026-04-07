@@ -77,6 +77,9 @@ export interface ScriptRowProps {
     onRestart: (s: Script) => void;
     setFocusedPath: (path: string | null) => void;
     onSelectScript?: (s: Script) => void;
+    /** Уникальный ключ для focused-state и DOM id. По умолчанию `s.path`.
+     *  В Hub режиме скрипт может встречаться в нескольких группах — нужен scope. */
+    focusKey?: string;
 }
 
 export interface HubScriptCardProps {
@@ -101,4 +104,5 @@ export interface HubScriptCardProps {
     onRestart: (s: Script) => void;
     setFocusedPath: (path: string | null) => void;
     onSelectScript?: (s: Script) => void;
+    focusKey?: string;
 }

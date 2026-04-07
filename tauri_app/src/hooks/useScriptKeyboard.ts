@@ -31,14 +31,20 @@ export function useScriptKeyboard({ tree, filtered, groupedHub, filterTag, viewM
     }, [allFolderPaths, expandedFolders]);
 
     useEffect(() => {
-        if (searchQuery.trim().length > 0) {
-            const next: Record<string, boolean> = {};
-            const traverse = (node: TreeNode) => {
-                if (node.name !== "Root") next[node.fullName] = true;
-                Object.values(node.children).forEach(traverse);
-            };
-            traverse(tree);
-            useTreeStore.getState().setExpandedFolders(next);
+        if (searchQuery.trim().length === 0) return;
+        const next: Record<string, boolean> = {};
+        const traverse = (node: TreeNode) => {
+            if (node.name !== "Root") next[node.fullName] = true;
+            Object.values(node.children).forEach(traverse);
+        };
+        traverse(tree);
+        // Idempotency guard: skip the store write if all paths are already expanded.
+        // Without this guard, if any downstream code recomputes `tree` identity in
+        // response to expandedFolders changing, we end up in an infinite render loop.
+        const current = useTreeStore.getState().expandedFolders;
+        const allEqual = Object.keys(next).every(p => current[p] === true);
+        if (!allEqual) {
+            useTreeStore.getState().setExpandedFolders({ ...current, ...next });
         }
     }, [searchQuery, tree]);
 
@@ -87,10 +93,13 @@ export function useScriptKeyboard({ tree, filtered, groupedHub, filterTag, viewM
             };
             traverse(tree);
         } else if (filterTag === "hub" && groupedHub) {
+            // Скрипт может появиться в нескольких группах — scope-им навигационный
+            // ключ через "groupTag::path", чтобы каждая карточка имела уникальный
+            // фокус и vim-навигация ходила по дублям корректно.
             groupedHub.forEach(group => {
                 items.push({ path: `tag-${group.tag}`, type: 'folder', data: group.tag });
                 group.scripts.forEach(s => {
-                    items.push({ path: s.path, type: 'script', data: s });
+                    items.push({ path: `${group.tag}::${s.path}`, type: 'script', data: s });
                 });
             });
         } else {
