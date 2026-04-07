@@ -34,7 +34,7 @@ export function usePanelResize(
     let currentWidth = startWidth;
     const target = e.currentTarget as HTMLElement;
     const parentWidth = target.parentElement?.parentElement?.clientWidth ?? 1200;
-    const maxWidth = options?.max ?? (parentWidth - 400);
+    const maxWidth = options?.max ?? (parentWidth - 450);
 
     const onMouseMove = (ev: globalThis.MouseEvent) => {
       currentWidth = Math.min(maxWidth, Math.max(min, startWidth + (startX - ev.clientX)));

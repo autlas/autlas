@@ -33,6 +33,24 @@ export const TreeContext = createContext<TreeContextValue>(null as any);
 let _treeCallbacks: TreeContextValue | null = null;
 export function setTreeCallbacks(cb: TreeContextValue) { _treeCallbacks = cb; }
 
+/**
+ * Проверяет, что узел и все его дочерние папки развёрнуты
+ * (читает текущее состояние expandedFolders из store на момент вызова).
+ * Используется чтобы задизейблить пункт "развернуть всё" в context menu
+ * когда разворачивать уже нечего.
+ */
+function isSubtreeFullyExpanded(node: TreeNode): boolean {
+    const expanded = useTreeStore.getState().expandedFolders;
+    const check = (n: TreeNode): boolean => {
+        if (n.name !== "Root" && expanded[n.fullName] === false) return false;
+        for (const child of Object.values(n.children)) {
+            if (!check(child)) return false;
+        }
+        return true;
+    };
+    return check(node);
+}
+
 export const TreeNodeRenderer = memo(function TreeNodeRenderer({
     node,
     depth,
@@ -145,6 +163,7 @@ export const TreeNodeRenderer = memo(function TreeNodeRenderer({
                         onFolderContextMenu(e, {
                             ...node,
                             is_hidden: !!node.is_hidden,
+                            isAllExpanded: isSubtreeFullyExpanded(node),
                             onExpandAll: () => setFolderExpansionRecursive(node, true),
                             onCollapseAll: () => setFolderExpansionRecursive(node, false),
                         } as any);
@@ -199,6 +218,7 @@ export const TreeNodeRenderer = memo(function TreeNodeRenderer({
                                                     name: part,
                                                     fullName: partFullName,
                                                     is_hidden: !!node.is_hidden,
+                                                    isAllExpanded: isSubtreeFullyExpanded(node),
                                                     onExpandAll: () => setFolderExpansionRecursive(node, true),
                                                     onCollapseAll: () => setFolderExpansionRecursive(node, false),
                                                 } as any);

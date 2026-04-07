@@ -1,7 +1,7 @@
 import { useState, ReactNode } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useTranslation } from "react-i18next";
-import { EditIcon, FolderIcon, OpenWithIcon, CopyIcon, PinIcon, UnpinIcon, PlusIcon, CloseIcon, EyeOffIcon, TagIcon } from "../ui/Icons";
+import { EditIcon, FolderIcon, OpenWithIcon, CopyIcon, PlusIcon, CloseIcon, EyeOffIcon, TagIcon, StarIcon } from "../ui/Icons";
 import { hasHubTag, isHubTag } from "../../constants";
 
 interface ContextMenuState {
@@ -21,16 +21,18 @@ interface ContextMenuProps {
   onToggleHideFolder?: (path: string) => void;
 }
 
-function ContextMenuItem({ label, icon, onClick, danger = false }: { label: string; icon: ReactNode; onClick: () => void; danger?: boolean }) {
+function ContextMenuItem({ label, icon, onClick, danger = false, disabled = false }: { label: string; icon: ReactNode; onClick: () => void; danger?: boolean; disabled?: boolean }) {
   return (
     <button
+      disabled={disabled}
       onClick={(e) => {
         e.stopPropagation();
+        if (disabled) return;
         onClick();
       }}
-      className={`w-full px-4 py-2.5 text-xs font-bold flex items-center space-x-3 transition-all cursor-pointer group ${danger ? "text-red-400 hover:bg-red-500/10" : "text-secondary hover:bg-white/5 hover:text-white"}`}
+      className={`w-full px-4 py-2.5 text-xs font-bold flex items-center space-x-3 transition-all group ${disabled ? "text-white/20 cursor-not-allowed" : danger ? "text-red-400 hover:bg-red-500/10 cursor-pointer" : "text-secondary hover:bg-white/5 hover:text-white cursor-pointer"}`}
     >
-      <span className="w-[18px] h-[18px] flex items-center justify-center opacity-70 group-hover:opacity-100">{icon}</span>
+      <span className={`w-[18px] h-[18px] flex items-center justify-center ${disabled ? "opacity-30" : "opacity-70 group-hover:opacity-100"}`}>{icon}</span>
       <span>{label}</span>
     </button>
   );
@@ -94,8 +96,8 @@ export default function ContextMenu({ contextMenu, onClose, onStartRenameTag, on
           <>
             {hasHubTag(contextMenu.data.tags) ? (
               <ContextMenuItem
-                label={t("context.unpin")}
-                icon={<UnpinIcon />}
+                label={t("context.remove_from_hub", "Удалить из хаба")}
+                icon={<StarIcon size={16} weight="fill" />}
                 onClick={async () => {
                   const tagToRemove = contextMenu.data.tags.find((tag: string) => isHubTag(tag));
                   if (tagToRemove) await invoke("remove_script_tag", { id: contextMenu.data.id, tag: tagToRemove });
@@ -104,8 +106,8 @@ export default function ContextMenu({ contextMenu, onClose, onStartRenameTag, on
               />
             ) : (
               <ContextMenuItem
-                label={t("context.pin")}
-                icon={<PinIcon />}
+                label={t("context.add_to_hub", "Добавить в хаб")}
+                icon={<StarIcon size={16} weight="bold" />}
                 onClick={async () => {
                   await invoke("add_script_tag", { id: contextMenu.data.id, tag: "hub" });
                   onClose();
@@ -146,7 +148,12 @@ export default function ContextMenu({ contextMenu, onClose, onStartRenameTag, on
           <>
             <ContextMenuItem label={t("context.show_in_folder")} icon={<FolderIcon />} onClick={() => { invoke("open_in_explorer", { path: contextMenu.data.fullName }); onClose(); }} />
             <div className="h-[1px] bg-white/5 my-1" />
-            <ContextMenuItem label={t("context.expand_all")} icon={<PlusIcon size={18} />} onClick={() => { contextMenu.data.onExpandAll(); onClose(); }} />
+            <ContextMenuItem
+              label={t("context.expand_all")}
+              icon={<PlusIcon size={18} />}
+              disabled={contextMenu.data.isAllExpanded}
+              onClick={() => { contextMenu.data.onExpandAll(); onClose(); }}
+            />
             <ContextMenuItem
               label={contextMenu.data.is_hidden ? t("context.show_hidden") : t("context.hide_folder")}
               icon={<EyeOffIcon />}

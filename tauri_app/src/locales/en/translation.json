@@ -101,6 +101,8 @@
         "run": "Run",
         "unpin": "Unpin from Hub",
         "pin": "Pin to Hub",
+        "add_to_hub": "Add to Hub",
+        "remove_from_hub": "Remove from Hub",
         "edit": "Edit",
         "show_in_folder": "Show in folder",
         "open_with": "Open with...",

@@ -5,10 +5,10 @@ import { useHotkeys } from "react-hotkeys-hook";
 import { useTranslation } from "react-i18next";
 import { formatDate } from "../../utils/formatDate";
 import TagPickerPopover from "../tags/TagPickerPopover";
-import { CloseIcon, PlayIcon, RestartIcon, InterfaceIcon, PlusIcon, EditIcon, FolderIcon, OpenWithIcon, MinusIcon, PinIcon, CopyIcon } from "../ui/Icons";
+import { CloseIcon, PlayIcon, RestartIcon, InterfaceIcon, PlusIcon, EditIcon, FolderIcon, OpenWithIcon, MinusIcon, PinIcon, CopyIcon, StarIcon } from "../ui/Icons";
 import Tooltip from "../ui/Tooltip";
 import { formatSize } from "../../utils/formatSize";
-import { withoutHubTags } from "../../constants";
+import { hasHubTag, withoutHubTags } from "../../constants";
 import { useScriptContent } from "../../hooks/useScriptContent";
 import { usePanelResize } from "../../hooks/usePanelResize";
 
@@ -59,7 +59,7 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
     const parent = panelRef.current?.parentElement;
     if (!parent) return;
     const clamp = () => {
-      const maxWidth = parent.clientWidth - 400;
+      const maxWidth = parent.clientWidth - 450;
       setPanelWidth(prev => Math.min(prev, Math.max(280, maxWidth)));
     };
     const observer = new ResizeObserver(clamp);
@@ -95,6 +95,7 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
   const handleOpenWith = () => invoke("open_with", { path: script.path });
 
   const name = script.filename.replace(/\.ahk$/i, "");
+  const isHub = hasHubTag(script.tags);
   const displayedTags = withoutHubTags(script.tags);
 
   const panelContent = (
@@ -114,6 +115,17 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
               : "bg-white/10"
             }`} />
           <h2 className="text-lg font-semibold text-white truncate">{name}</h2>
+          <Tooltip text={isHub ? t("tooltips.remove_from_hub") : t("tooltips.add_to_hub")}>
+            <button
+              onClick={() => {
+                if (isHub) onRemoveTag(script, "hub");
+                else onAddTag(script, "hub");
+              }}
+              className={`w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-lg transition-all cursor-pointer ${isHub ? 'text-white/60 hover:text-white/90' : 'text-white/25 hover:text-white/50'}`}
+            >
+              <StarIcon size={15} weight={isHub ? "fill" : "bold"} />
+            </button>
+          </Tooltip>
         </div>
         <div className="flex items-center gap-1.5 flex-shrink-0">
           <Tooltip text={pinned ? t("tooltips.unpin") : t("tooltips.pin")}>
@@ -204,20 +216,20 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
             <EditIcon size={22} />
           </button>
         </Tooltip>
-        <Tooltip text={t("tooltips.open_with")}>
-          <button
-            onClick={handleOpenWith}
-            className="w-[80px] h-[42px] flex items-center justify-center rounded-2xl bg-[var(--bg-tertiary)] text-[#71717a] border border-white/5 hover:bg-white/10 hover:text-white/60 transition-all cursor-pointer"
-          >
-            <OpenWithIcon size={22} />
-          </button>
-        </Tooltip>
         <Tooltip text={t("tooltips.show_in_folder")}>
           <button
             onClick={handleOpenFolder}
             className="w-[80px] h-[42px] flex items-center justify-center rounded-2xl bg-[var(--bg-tertiary)] text-[#71717a] border border-white/5 hover:bg-white/10 hover:text-white/60 transition-all cursor-pointer"
           >
             <FolderIcon size={22} />
+          </button>
+        </Tooltip>
+        <Tooltip text={t("tooltips.open_with")}>
+          <button
+            onClick={handleOpenWith}
+            className="w-[80px] h-[42px] flex items-center justify-center rounded-2xl bg-[var(--bg-tertiary)] text-[#71717a] border border-white/5 hover:bg-white/10 hover:text-white/60 transition-all cursor-pointer"
+          >
+            <OpenWithIcon size={22} />
           </button>
         </Tooltip>
       </div>
