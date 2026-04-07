@@ -82,13 +82,10 @@ export function useTagOverflow(
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [tagsKey, containerEl]);
 
-    // Observe container resize via the shared ResizeObserver hook.
-    const observedRef = useResizeObserver<HTMLElement>(() => {
+    // Observe container resize — recalculate visible count when width changes.
+    useResizeObserver(containerEl, () => {
         requestAnimationFrame(recalc);
     });
-    useLayoutEffect(() => {
-        observedRef.current = containerEl;
-    }, [containerEl, observedRef]);
 
     return {
         visibleCount,
