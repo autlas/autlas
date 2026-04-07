@@ -22,6 +22,7 @@ interface SettingsPanelProps {
   vimModeNav: "hjkl" | "jk";
   setVimModeNav: (v: "hjkl" | "jk") => void;
   scanPaths: string[];
+  pathCounts?: Record<string, number>;
   onAddPath: () => void;
   onRemovePath: (path: string) => void;
   onInstallEverything?: () => void;
@@ -36,7 +37,7 @@ export default function SettingsPanel({
   fontScale, setFontScale,
   animationsEnabled, toggleAnimations,
   vimModeNav, setVimModeNav,
-  scanPaths, onAddPath, onRemovePath, onInstallEverything, orphanCount, onReviewOrphans, onRefresh,
+  scanPaths, pathCounts, onAddPath, onRemovePath, onInstallEverything, orphanCount, onReviewOrphans, onRefresh,
 }: SettingsPanelProps) {
   const { t } = useTranslation();
 
@@ -229,6 +230,9 @@ export default function SettingsPanel({
                 <div key={path} className="flex items-center space-x-4 p-2.5 px-4 bg-white/[0.03] border border-white/10 rounded-2xl hover:bg-white/[0.05] transition-all group">
                   <div className="w-1.5 h-1.5 rounded-full bg-indigo-500/50 group-hover:bg-indigo-500 shadow-lg shadow-indigo-500/20" />
                   <span className="flex-1 text-[16px] font-bold text-secondary truncate font-mono tracking-tight">{path}</span>
+                  <span className="text-[14px] font-normal tracking-wide text-tertiary opacity-50 flex-shrink-0">
+                    {(pathCounts?.[path] ?? 0)} {t("settings.scripts_count", "scripts")}
+                  </span>
                   <div className="flex items-center gap-1">
                     <Tooltip text={t("context.show_in_folder")}>
                       <button

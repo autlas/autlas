@@ -506,6 +506,24 @@ function App() {
                 vimModeNav={vimModeNav}
                 setVimModeNav={setVimModeNav}
                 scanPaths={scanPaths}
+                pathCounts={(() => {
+                    const counts: Record<string, number> = {};
+                    const norm = (p: string) => p.replace(/\\/g, '/').toLowerCase().replace(/\/+$/, '');
+                    const normPaths = scanPaths.map(p => ({ orig: p, n: norm(p) }));
+                    // Count under EVERY matching scan path, not just the first.
+                    // Nested scan paths (e.g. C:\ and C:\Users\Heavym\Desktop)
+                    // both legitimately "contain" a deep script — both should
+                    // show a count even though the actual scan dedupes them.
+                    for (const s of scriptActionsRef.current.allScripts) {
+                        const sp = norm(s.path);
+                        for (const { orig, n } of normPaths) {
+                            if (sp === n || sp.startsWith(n + '/')) {
+                                counts[orig] = (counts[orig] || 0) + 1;
+                            }
+                        }
+                    }
+                    return counts;
+                })()}
                 onAddPath={handleAddScanPath}
                 onRemovePath={handleRemoveScanPath}
                 onInstallEverything={() => setShowInstallModal(true)}

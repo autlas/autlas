@@ -7,12 +7,9 @@ const LanguageSelector = () => {
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
-    // Windows doesn't render flag emojis (falls back to regional indicator
-    // letters like "US"), which made the button read "US English EN".
-    // Drop the flag — label + sub are enough.
     const languages = [
-        { code: "en", label: "English", sub: "EN" },
-        { code: "ru", label: "Русский", sub: "RU" },
+        { code: "en", label: "English" },
+        { code: "ru", label: "Русский" },
     ];
 
     const currentLang = languages.find((l) => l.code === (i18n.resolvedLanguage || "en")) || languages[0];
@@ -36,14 +33,9 @@ const LanguageSelector = () => {
                     : "bg-white/[0.03] border-white/5 hover:bg-white/5 hover:border-white/10"
                     }`}
             >
-                <div className="flex flex-col items-start leading-tight">
-                    <span className="text-sm font-bold text-secondary group-hover:text-white transition-colors">
-                        {currentLang.label}
-                    </span>
-                    <span className="text-[10px] font-black tracking-widest text-tertiary opacity-50 uppercase">
-                        {currentLang.sub}
-                    </span>
-                </div>
+                <span className="text-sm font-bold text-secondary group-hover:text-white transition-colors leading-tight">
+                    {currentLang.label}
+                </span>
                 <ChevronDownIcon className={`text-tertiary transition-transform duration-300 ${isOpen ? "rotate-180 text-indigo-400" : ""}`} />
             </button>
 
@@ -64,12 +56,7 @@ const LanguageSelector = () => {
                                 : "text-secondary hover:bg-white/5 hover:text-white"
                                 }`}
                         >
-                            <div className="flex items-center space-x-3">
-                                <div className="flex flex-col items-start leading-tight">
-                                    <span className="text-sm font-bold">{lang.label}</span>
-                                    <span className="text-[9px] font-black tracking-widest opacity-40 uppercase">{lang.sub}</span>
-                                </div>
-                            </div>
+                            <span className="text-sm font-bold leading-tight">{lang.label}</span>
                             {lang.code === currentLang.code && (
                                 <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(79,70,229,0.8)]" />
                             )}
