@@ -70,8 +70,18 @@ export function useScriptData({ onTagsLoaded, onRunningCountChange, refreshKey, 
             });
             setError(null);
         } catch (e) {
-            console.error("[useScriptTree] fetchData error:", e);
-            setError(e instanceof Error ? e.message : String(e));
+            // Backend returns "scan superseded" when this scan was overtaken
+            // by a newer one (e.g. slow WalkDir overtaken by fast Everything
+            // after the user installs Everything mid-scan). The newer scan
+            // will populate state on its own — we silently drop this result
+            // instead of surfacing it as an error.
+            const msg = e instanceof Error ? e.message : String(e);
+            if (msg.includes("scan superseded")) {
+                console.log("[Scan] superseded by newer scan, discarding");
+            } else {
+                console.error("[useScriptTree] fetchData error:", e);
+                setError(msg);
+            }
         } finally {
             setLoading(false);
             setIsFetching(false);

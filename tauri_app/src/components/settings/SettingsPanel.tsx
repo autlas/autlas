@@ -25,6 +25,12 @@ interface SettingsPanelProps {
   pathCounts?: Record<string, number>;
   onAddPath: () => void;
   onRemovePath: (path: string) => void;
+  blacklist: string[];
+  onAddBlacklist: () => void;
+  onRemoveBlacklist: (path: string) => void;
+  hiddenFolders: string[];
+  onUnhideFolder: (path: string) => void;
+  onAddHiddenFolder: () => void;
   onInstallEverything?: () => void;
   orphanCount?: number;
   onReviewOrphans?: () => void;
@@ -37,11 +43,34 @@ export default function SettingsPanel({
   fontScale, setFontScale,
   animationsEnabled, toggleAnimations,
   vimModeNav, setVimModeNav,
-  scanPaths, pathCounts, onAddPath, onRemovePath, onInstallEverything, orphanCount, onReviewOrphans, onRefresh,
+  scanPaths, pathCounts, onAddPath, onRemovePath, blacklist, onAddBlacklist, onRemoveBlacklist, hiddenFolders, onUnhideFolder, onAddHiddenFolder, onInstallEverything, orphanCount, onReviewOrphans, onRefresh,
 }: SettingsPanelProps) {
   const { t } = useTranslation();
 
   const [closeToTray, setCloseToTray] = useState(true);
+  const [blacklistCounts, setBlacklistCounts] = useState<Record<string, number>>({});
+  const [hiddenCounts, setHiddenCounts] = useState<Record<string, number>>({});
+
+  // Walk each blacklist/hidden folder once and cache the .ahk count.
+  // We can't reuse pathCounts (which is computed from in-memory scripts)
+  // because blacklisted/hidden entries are filtered out before reaching here.
+  useEffect(() => {
+    if (blacklist.length === 0) { setBlacklistCounts({}); return; }
+    invoke<number[]>("count_ahk_files", { paths: blacklist }).then(arr => {
+      const map: Record<string, number> = {};
+      blacklist.forEach((p, i) => { map[p] = arr[i] ?? 0; });
+      setBlacklistCounts(map);
+    }).catch(console.error);
+  }, [blacklist]);
+
+  useEffect(() => {
+    if (hiddenFolders.length === 0) { setHiddenCounts({}); return; }
+    invoke<number[]>("count_ahk_files", { paths: hiddenFolders }).then(arr => {
+      const map: Record<string, number> = {};
+      hiddenFolders.forEach((p, i) => { map[p] = arr[i] ?? 0; });
+      setHiddenCounts(map);
+    }).catch(console.error);
+  }, [hiddenFolders]);
 
   useEffect(() => {
     invoke<{ close_to_tray: boolean }>("get_tray_settings").then((s) => {
@@ -264,6 +293,122 @@ export default function SettingsPanel({
             <PlusIcon size={18} className="group-hover:scale-110 transition-transform" />
             {t("settings.add_path")}
           </button>
+
+          {/* Blacklist */}
+          <div className="pt-6 mt-2 border-t border-white/5 space-y-2">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-bold tracking-widest text-tertiary uppercase">
+                {t("settings.blacklist", "Excluded folders")}
+              </span>
+              <Tooltip text={t("settings.blacklist_info", "Folders skipped during scan. Useful for nested junk inside a scanned root.")}>
+                <span className="text-tertiary hover:text-secondary transition-colors cursor-help inline-flex">
+                  <Question size={16} weight="bold" />
+                </span>
+              </Tooltip>
+            </div>
+
+            {blacklist.length === 0 ? (
+              <div className="p-6 border border-dashed border-white/5 rounded-2xl flex items-center justify-center text-tertiary">
+                <span className="text-[11px] font-bold opacity-40 uppercase tracking-widest">
+                  {t("settings.no_blacklist", "No excluded folders")}
+                </span>
+              </div>
+            ) : (
+              blacklist.map((path) => (
+                <div key={path} className="flex items-center space-x-4 p-2.5 px-4 bg-white/[0.03] border border-white/10 rounded-2xl hover:bg-white/[0.05] transition-all group">
+                  <div className="w-1.5 h-1.5 rounded-full bg-red-500/50 group-hover:bg-red-500 shadow-lg shadow-red-500/20" />
+                  <span className="flex-1 text-[16px] font-bold text-secondary truncate font-mono tracking-tight">{path}</span>
+                  <span className="text-[14px] font-normal tracking-wide text-tertiary opacity-50 flex-shrink-0">
+                    {(blacklistCounts[path] ?? 0)} {t("settings.scripts_count", "scripts")}
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <Tooltip text={t("context.show_in_folder")}>
+                      <button
+                        onClick={() => invoke("open_in_explorer", { path })}
+                        className="p-2 text-tertiary hover:text-white hover:bg-white/10 rounded-xl transition-all border-none bg-transparent cursor-pointer"
+                      >
+                        <FolderIcon />
+                      </button>
+                    </Tooltip>
+                    <Tooltip text={t("settings.remove_blacklist", "Убрать из исключений")}>
+                      <button
+                        onClick={() => onRemoveBlacklist(path)}
+                        className="p-2 text-tertiary hover:text-red-400 hover:bg-red-400/10 rounded-xl transition-all border-none bg-transparent cursor-pointer"
+                      >
+                        <CloseIcon />
+                      </button>
+                    </Tooltip>
+                  </div>
+                </div>
+              ))
+            )}
+
+            <button
+              onClick={onAddBlacklist}
+              className="w-full h-12 bg-red-600/10 hover:bg-red-600 text-red-400 hover:text-white rounded-2xl text-xs font-bold tracking-widest transition-all shadow-xl hover:shadow-red-500/20 active:scale-[0.98] flex items-center justify-center gap-3 group border border-red-500/20 hover:border-red-500 cursor-pointer"
+            >
+              <PlusIcon size={18} className="group-hover:scale-110 transition-transform" />
+              {t("settings.add_blacklist", "Exclude folder")}
+            </button>
+          </div>
+
+          {/* Hidden folders */}
+          <div className="pt-6 mt-2 border-t border-white/5 space-y-2">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-bold tracking-widest text-tertiary uppercase">
+                {t("settings.hidden_folders", "Hidden folders")}
+              </span>
+              <Tooltip text={t("settings.hidden_folders_info", "Folders hidden from the script tree. They are still scanned, just not shown in the UI by default.")}>
+                <span className="text-tertiary hover:text-secondary transition-colors cursor-help inline-flex">
+                  <Question size={16} weight="bold" />
+                </span>
+              </Tooltip>
+            </div>
+
+            {hiddenFolders.length === 0 ? (
+              <div className="p-6 border border-dashed border-white/5 rounded-2xl flex items-center justify-center text-tertiary">
+                <span className="text-[11px] font-bold opacity-40 uppercase tracking-widest">
+                  {t("settings.no_hidden_folders", "No hidden folders")}
+                </span>
+              </div>
+            ) : (
+              hiddenFolders.map((path) => (
+                <div key={path} className="flex items-center space-x-4 p-2.5 px-4 bg-white/[0.03] border border-white/10 rounded-2xl hover:bg-white/[0.05] transition-all group">
+                  <div className="w-1.5 h-1.5 rounded-full bg-white/20 group-hover:bg-white/40" />
+                  <span className="flex-1 text-[16px] font-bold text-secondary truncate font-mono tracking-tight opacity-60">{path}</span>
+                  <span className="text-[14px] font-normal tracking-wide text-tertiary opacity-50 flex-shrink-0">
+                    {(hiddenCounts[path] ?? 0)} {t("settings.scripts_count", "scripts")}
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <Tooltip text={t("context.show_in_folder")}>
+                      <button
+                        onClick={() => invoke("open_in_explorer", { path })}
+                        className="p-2 text-tertiary hover:text-white hover:bg-white/10 rounded-xl transition-all border-none bg-transparent cursor-pointer"
+                      >
+                        <FolderIcon />
+                      </button>
+                    </Tooltip>
+                    <Tooltip text={t("settings.unhide_folder", "Показать в дереве")}>
+                      <button
+                        onClick={() => onUnhideFolder(path)}
+                        className="p-2 text-tertiary hover:text-red-400 hover:bg-red-400/10 rounded-xl transition-all border-none bg-transparent cursor-pointer"
+                      >
+                        <CloseIcon />
+                      </button>
+                    </Tooltip>
+                  </div>
+                </div>
+              ))
+            )}
+
+            <button
+              onClick={onAddHiddenFolder}
+              className="w-full h-12 bg-white/5 hover:bg-white/15 text-tertiary hover:text-white rounded-2xl text-xs font-bold tracking-widest transition-all shadow-xl active:scale-[0.98] flex items-center justify-center gap-3 group border border-white/10 hover:border-white/20 cursor-pointer"
+            >
+              <PlusIcon size={18} className="group-hover:scale-110 transition-transform" />
+              {t("settings.add_hidden_folder", "Скрыть папку")}
+            </button>
+          </div>
         </div>
 
         {/* Everything integration */}

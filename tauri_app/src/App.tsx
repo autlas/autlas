@@ -12,6 +12,8 @@ import { Toaster, toast } from "sonner";
 import { CloseIcon } from "./components/ui/Icons";
 import { useTheme } from "./hooks/useTheme";
 import { useScanPaths } from "./hooks/useScanPaths";
+import { useScanBlacklist } from "./hooks/useScanBlacklist";
+import { useHiddenFolders } from "./hooks/useHiddenFolders";
 import { usePhysicsMotion } from "./hooks/usePhysicsMotion";
 import { useNavigation } from "./hooks/useNavigation";
 import { invoke } from "@tauri-apps/api/core";
@@ -72,6 +74,8 @@ function App() {
   }, []);
 
   const { scanPaths, handleAddScanPath, handleRemoveScanPath } = useScanPaths(triggerScan);
+  const { blacklist, handleAddBlacklist, handleRemoveBlacklist, addBlacklistPath } = useScanBlacklist(triggerScan);
+  const { hiddenFolders, unhideFolder, refreshHiddenFolders, handleAddHiddenFolder } = useHiddenFolders(triggerScan);
 
   const { settingsIconRef, pendingImpulseRef, momentumRef, motionImpulseRef, motionImpulseInitialRef } = usePhysicsMotion();
   const navPhysics = { pendingImpulseRef, momentumRef, motionImpulseRef, motionImpulseInitialRef };
@@ -526,6 +530,12 @@ function App() {
                 })()}
                 onAddPath={handleAddScanPath}
                 onRemovePath={handleRemoveScanPath}
+                blacklist={blacklist}
+                onAddBlacklist={handleAddBlacklist}
+                onRemoveBlacklist={handleRemoveBlacklist}
+                hiddenFolders={hiddenFolders}
+                onUnhideFolder={unhideFolder}
+                onAddHiddenFolder={handleAddHiddenFolder}
                 onInstallEverything={() => setShowInstallModal(true)}
                 orphanCount={orphanMatches.length}
                 onReviewOrphans={() => setShowOrphanDialog(true)}
@@ -627,7 +637,8 @@ function App() {
         onRefresh={triggerScan}
         onChooseTagIcon={(tag) => setIconPickerTag(tag)}
         onDeleteTag={(tag) => scriptActionsRef.current.deleteTagFromAll(tag)}
-        onToggleHideFolder={(path) => scriptActionsRef.current.toggleHiddenByPath(path)}
+        onToggleHideFolder={(path) => { scriptActionsRef.current.toggleHiddenByPath(path); refreshHiddenFolders(); }}
+        onBlacklistFolder={addBlacklistPath}
       />
 
       {iconPickerTag && (

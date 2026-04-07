@@ -2,8 +2,14 @@ use rusqlite::{Connection, params};
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Mutex;
+use std::sync::atomic::AtomicUsize;
 
-pub struct DbState(pub Mutex<Connection>);
+/// Tuple struct: `.0` is the DB connection mutex (preserved for existing
+/// `state.0.lock()` call sites), `.1` is a monotonic scan-generation counter.
+/// A scan task captures its generation at start; if the global counter has
+/// advanced by the time it's ready to write, the task discards its results
+/// — a newer scan has superseded it.
+pub struct DbState(pub Mutex<Connection>, pub AtomicUsize);
 
 /// Canonical path normalization: lowercase, strip \\?\ prefix, backslashes.
 /// Used everywhere paths are stored or compared.
@@ -153,6 +159,10 @@ fn create_schema(conn: &Connection) -> rusqlite::Result<()> {
         );
 
         CREATE TABLE IF NOT EXISTS scan_paths (
+            path TEXT PRIMARY KEY
+        );
+
+        CREATE TABLE IF NOT EXISTS scan_blacklist (
             path TEXT PRIMARY KEY
         );
 
@@ -574,6 +584,24 @@ pub fn get_scan_paths(conn: &Connection) -> Vec<String> {
 pub fn set_scan_paths(conn: &Connection, paths: &[String]) -> rusqlite::Result<()> {
     conn.execute("DELETE FROM scan_paths", [])?;
     let mut stmt = conn.prepare("INSERT INTO scan_paths (path) VALUES (?1)")?;
+    for p in paths {
+        stmt.execute(params![p])?;
+    }
+    Ok(())
+}
+
+// ── Scan blacklist ──
+
+pub fn get_scan_blacklist(conn: &Connection) -> Vec<String> {
+    let Ok(mut stmt) = conn.prepare("SELECT path FROM scan_blacklist") else { return Vec::new() };
+    stmt.query_map([], |row| row.get::<_, String>(0))
+        .map(|rows| rows.filter_map(|r| r.ok()).collect())
+        .unwrap_or_default()
+}
+
+pub fn set_scan_blacklist(conn: &Connection, paths: &[String]) -> rusqlite::Result<()> {
+    conn.execute("DELETE FROM scan_blacklist", [])?;
+    let mut stmt = conn.prepare("INSERT INTO scan_blacklist (path) VALUES (?1)")?;
     for p in paths {
         stmt.execute(params![p])?;
     }

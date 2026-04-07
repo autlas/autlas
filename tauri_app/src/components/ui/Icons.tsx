@@ -5,7 +5,7 @@ import {
     ArrowsClockwise, Rocket, Stack, Tag, CircleDashed,
     ArrowSquareOut, Copy, PushPin, PushPinSlash, EyeSlash,
     CaretDown, CaretRight, Question, ListDashes, SquaresFour,
-    ListBullets, Stop, Star,
+    ListBullets, Stop, Star, Prohibit,
 } from "@phosphor-icons/react";
 import type { IconWeight } from "@phosphor-icons/react";
 
@@ -95,6 +95,10 @@ export function UnpinIcon({ size = 18, className, weight = "bold" }: IconProps) 
 
 export function EyeOffIcon({ size = 18, className, weight = "bold" }: IconProps) {
     return <EyeSlash size={size} weight={weight} className={className} />;
+}
+
+export function BlockIcon({ size = 18, className, weight = "bold" }: IconProps) {
+    return <Prohibit size={size} weight={weight} className={className} />;
 }
 
 export function LayersIcon({ size = 18, className, weight = "bold" }: IconProps) {

@@ -208,20 +208,20 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
           </button>
         </Tooltip>
         <div className="flex-1" />
-        <Tooltip text={t("tooltips.edit")}>
-          <button
-            onClick={handleEdit}
-            className="w-[80px] h-[42px] flex items-center justify-center rounded-2xl bg-[var(--bg-tertiary)] text-[#71717a] border border-white/5 hover:bg-white/10 hover:text-white/60 transition-all cursor-pointer"
-          >
-            <EditIcon size={22} />
-          </button>
-        </Tooltip>
         <Tooltip text={t("tooltips.show_in_folder")}>
           <button
             onClick={handleOpenFolder}
             className="w-[80px] h-[42px] flex items-center justify-center rounded-2xl bg-[var(--bg-tertiary)] text-[#71717a] border border-white/5 hover:bg-white/10 hover:text-white/60 transition-all cursor-pointer"
           >
             <FolderIcon size={22} />
+          </button>
+        </Tooltip>
+        <Tooltip text={t("tooltips.edit")}>
+          <button
+            onClick={handleEdit}
+            className="w-[80px] h-[42px] flex items-center justify-center rounded-2xl bg-[var(--bg-tertiary)] text-[#71717a] border border-white/5 hover:bg-white/10 hover:text-white/60 transition-all cursor-pointer"
+          >
+            <EditIcon size={22} />
           </button>
         </Tooltip>
         <Tooltip text={t("tooltips.open_with")}>

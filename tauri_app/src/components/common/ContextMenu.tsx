@@ -1,7 +1,7 @@
 import { useState, ReactNode } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useTranslation } from "react-i18next";
-import { EditIcon, FolderIcon, OpenWithIcon, CopyIcon, PlusIcon, CloseIcon, EyeOffIcon, TagIcon, StarIcon } from "../ui/Icons";
+import { EditIcon, FolderIcon, OpenWithIcon, CopyIcon, PlusIcon, CloseIcon, EyeOffIcon, TagIcon, StarIcon, BlockIcon } from "../ui/Icons";
 import { hasHubTag, isHubTag } from "../../constants";
 
 interface ContextMenuState {
@@ -19,6 +19,7 @@ interface ContextMenuProps {
   onChooseTagIcon?: (tag: string) => void;
   onDeleteTag?: (tag: string) => void;
   onToggleHideFolder?: (path: string) => void;
+  onBlacklistFolder?: (path: string) => void;
 }
 
 function ContextMenuItem({ label, icon, onClick, danger = false, disabled = false }: { label: string; icon: ReactNode; onClick: () => void; danger?: boolean; disabled?: boolean }) {
@@ -75,7 +76,7 @@ function ConfirmDialog({ tag, onConfirm, onCancel }: { tag: string; onConfirm: (
   );
 }
 
-export default function ContextMenu({ contextMenu, onClose, onStartRenameTag, onRefresh, onChooseTagIcon, onDeleteTag, onToggleHideFolder }: ContextMenuProps) {
+export default function ContextMenu({ contextMenu, onClose, onStartRenameTag, onRefresh, onChooseTagIcon, onDeleteTag, onToggleHideFolder, onBlacklistFolder }: ContextMenuProps) {
   const { t } = useTranslation();
   const [confirmTag, setConfirmTag] = useState<string | null>(null);
 
@@ -94,6 +95,12 @@ export default function ContextMenu({ contextMenu, onClose, onStartRenameTag, on
       >
         {contextMenu.type === "script" && contextMenu.data && (
           <>
+            <ContextMenuItem label={t("context.copy_path")} icon={<CopyIcon size={18} />} onClick={() => { navigator.clipboard.writeText(contextMenu.data.path); onClose(); }} />
+            <ContextMenuItem label={t("context.show_in_folder")} icon={<FolderIcon />} onClick={() => { invoke("open_in_explorer", { path: contextMenu.data.path }); onClose(); }} />
+            <div className="h-[1px] bg-white/5 my-1" />
+            <ContextMenuItem label={t("context.edit")} icon={<EditIcon />} onClick={() => { invoke("edit_script", { path: contextMenu.data.path }); onClose(); }} />
+            <ContextMenuItem label={t("context.open_with")} icon={<OpenWithIcon />} onClick={() => { invoke("open_with", { path: contextMenu.data.path }); onClose(); }} />
+            <div className="h-[1px] bg-white/5 my-1" />
             {hasHubTag(contextMenu.data.tags) ? (
               <ContextMenuItem
                 label={t("context.remove_from_hub", "Удалить из хаба")}
@@ -114,12 +121,6 @@ export default function ContextMenu({ contextMenu, onClose, onStartRenameTag, on
                 }}
               />
             )}
-            <div className="h-[1px] bg-white/5 my-1" />
-            <ContextMenuItem label={t("context.edit")} icon={<EditIcon />} onClick={() => { invoke("edit_script", { path: contextMenu.data.path }); onClose(); }} />
-            <ContextMenuItem label={t("context.show_in_folder")} icon={<FolderIcon />} onClick={() => { invoke("open_in_explorer", { path: contextMenu.data.path }); onClose(); }} />
-            <ContextMenuItem label={t("context.open_with")} icon={<OpenWithIcon />} onClick={() => { invoke("open_with", { path: contextMenu.data.path }); onClose(); }} />
-            <div className="h-[1px] bg-white/5 my-1" />
-            <ContextMenuItem label={t("context.copy_path")} icon={<CopyIcon size={18} />} onClick={() => { navigator.clipboard.writeText(contextMenu.data.path); onClose(); }} />
           </>
         )}
 
@@ -146,6 +147,7 @@ export default function ContextMenu({ contextMenu, onClose, onStartRenameTag, on
 
         {contextMenu.type === "folder" && (
           <>
+            <ContextMenuItem label={t("context.copy_path")} icon={<CopyIcon size={18} />} onClick={() => { navigator.clipboard.writeText(contextMenu.data.fullName); onClose(); }} />
             <ContextMenuItem label={t("context.show_in_folder")} icon={<FolderIcon />} onClick={() => { invoke("open_in_explorer", { path: contextMenu.data.fullName }); onClose(); }} />
             <div className="h-[1px] bg-white/5 my-1" />
             <ContextMenuItem
@@ -164,8 +166,12 @@ export default function ContextMenu({ contextMenu, onClose, onStartRenameTag, on
                 else onRefresh();
               }}
             />
-            <div className="h-[1px] bg-white/5 my-1" />
-            <ContextMenuItem label={t("context.copy_path")} icon={<CopyIcon size={18} />} onClick={() => { navigator.clipboard.writeText(contextMenu.data.fullName); onClose(); }} />
+            <ContextMenuItem
+              label={t("context.blacklist_folder", "Exclude from scan")}
+              icon={<BlockIcon />}
+              danger
+              onClick={() => { onBlacklistFolder?.(contextMenu.data.fullName); onClose(); }}
+            />
           </>
         )}
       </div>

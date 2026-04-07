@@ -1028,9 +1028,17 @@ async fn get_scripts(
     }
 
     // Read config from DB (short lock)
-    let (scan_paths_list, hidden_folders) = {
+    let (scan_paths_list, hidden_folders, blacklist) = {
         let conn = state.0.lock().map_err(|e| e.to_string())?;
-        (db::get_scan_paths(&conn), db::get_hidden_folders(&conn))
+        (db::get_scan_paths(&conn), db::get_hidden_folders(&conn), db::get_scan_blacklist(&conn))
+    };
+    // Pre-normalize blacklist entries once for prefix matching below.
+    let blacklist_norm: Vec<String> = blacklist.iter()
+        .map(|p| p.to_lowercase().replace('/', r"\").trim_end_matches('\\').to_string())
+        .collect();
+    let is_blacklisted = |path: &str| -> bool {
+        let p = path.to_lowercase().replace('/', r"\");
+        blacklist_norm.iter().any(|b| p == *b || p.starts_with(&format!("{}\\", b)))
     };
 
     // Resolve script paths
@@ -1038,9 +1046,15 @@ async fn get_scripts(
     let tags_map: HashMap<String, Vec<String>>;
     let id_map: HashMap<String, String>;
 
+    // Capture our generation. Bump global counter so any in-flight scan
+    // started before us knows it has been superseded and will discard
+    // its results when it eventually returns.
+    use std::sync::atomic::Ordering;
+    let my_gen = state.1.fetch_add(1, Ordering::SeqCst) + 1;
+
     if force_scan {
         // FULL SCAN: disk scan + reconciliation
-        println!("[Rust] Manual refresh requested (force_scan=true). Starting full disk scan...");
+        println!("[Rust] Manual refresh requested (force_scan=true, gen={}). Starting full disk scan...", my_gen);
         let scan_start = std::time::Instant::now();
         let mut scan_dirs = Vec::new();
         for p in &scan_paths_list {
@@ -1083,11 +1097,23 @@ async fn get_scripts(
         }).collect();
         let mut seen = HashSet::new();
         script_paths.retain(|p| seen.insert(p.to_lowercase()));
+        // Drop blacklisted paths so reconciliation marks them as removed and
+        // they disappear from the tree on the next render.
+        script_paths.retain(|p| !is_blacklisted(p));
 
         let disk_paths: HashSet<String> = script_paths.iter()
             .map(|p| p.to_lowercase())
             .filter(|p| std::path::Path::new(p).exists())
             .collect();
+
+        // Bail out if a newer scan started while we were walking the disk.
+        // Without this, a slow WalkDir scan kicked off when Everything was
+        // unavailable would later overwrite a fast Everything scan triggered
+        // after the user installed/launched Everything.
+        if state.1.load(Ordering::SeqCst) != my_gen {
+            println!("[Rust] Scan gen={} superseded; discarding stale results", my_gen);
+            return Err("scan superseded".to_string());
+        }
 
         // Reconciliation + tag/ID loading in single lock (prevents watcher interleaving)
         let conn = state.0.lock().map_err(|e| e.to_string())?;
@@ -1111,6 +1137,9 @@ async fn get_scripts(
                 .collect();
             let mut seen = HashSet::new();
             script_paths.retain(|p| seen.insert(p.to_lowercase()));
+            // Apply blacklist on the cached load path too — otherwise the tree
+            // shows blacklisted scripts until the user manually rescans.
+            script_paths.retain(|p| !is_blacklisted(p));
         } else {
             println!("[Rust] No scripts in DB — returning empty (user should refresh or set up scan paths)");
             script_paths = Vec::new();
@@ -1469,6 +1498,35 @@ async fn toggle_hide_folder(
 }
 
 #[tauri::command]
+async fn get_hidden_folders(state: tauri::State<'_, db::DbState>) -> Result<Vec<String>, String> {
+    let conn = state.0.lock().map_err(|e| e.to_string())?;
+    Ok(db::get_hidden_folders(&conn))
+}
+
+/// Count .ahk files under each given folder. Used by Settings to show
+/// per-entry script counts on blacklist + hidden folder lists, where the
+/// in-memory script list can't be used because those entries are deliberately
+/// filtered out before reaching the frontend.
+#[tauri::command]
+async fn count_ahk_files(paths: Vec<String>) -> Result<Vec<usize>, String> {
+    let mut counts = Vec::with_capacity(paths.len());
+    for p in &paths {
+        let pb = std::path::PathBuf::from(p);
+        if !pb.exists() || !pb.is_dir() {
+            counts.push(0);
+            continue;
+        }
+        let n = WalkDir::new(&pb)
+            .into_iter()
+            .filter_map(|e| e.ok())
+            .filter(|e| e.path().extension().map_or(false, |ext| ext == "ahk"))
+            .count();
+        counts.push(n);
+    }
+    Ok(counts)
+}
+
+#[tauri::command]
 async fn get_tag_icons(state: tauri::State<'_, db::DbState>) -> Result<HashMap<String, String>, String> {
     let conn = state.0.lock().map_err(|e| e.to_string())?;
     Ok(db::get_tag_icons(&conn))
@@ -1720,6 +1778,22 @@ async fn set_scan_paths(
     Ok(())
 }
 
+#[tauri::command]
+async fn get_scan_blacklist(state: tauri::State<'_, db::DbState>) -> Result<Vec<String>, String> {
+    let conn = state.0.lock().map_err(|e| e.to_string())?;
+    Ok(db::get_scan_blacklist(&conn))
+}
+
+#[tauri::command]
+async fn set_scan_blacklist(
+    state: tauri::State<'_, db::DbState>,
+    paths: Vec<String>,
+) -> Result<(), String> {
+    let conn = state.0.lock().map_err(|e| e.to_string())?;
+    db::set_scan_blacklist(&conn, &paths).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 fn load_tray_settings(conn: &rusqlite::Connection) -> TraySettings {
     let close_to_tray = db::get_setting(conn, "close_to_tray")
         .map(|v| v != "false" && v != "0")
@@ -1862,7 +1936,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_notification::init())
-        .manage(db::DbState(Mutex::new(conn)))
+        .manage(db::DbState(Mutex::new(conn), std::sync::atomic::AtomicUsize::new(0)))
         .manage(TraySettingsState(Mutex::new(initial_tray)))
         .setup(|app| {
             let handle = app.handle().clone();
@@ -2032,12 +2106,16 @@ pub fn run() {
             edit_script,
             delete_tag,
             toggle_hide_folder,
+            get_hidden_folders,
+            count_ahk_files,
             show_script_ui,
             restart_script,
             open_with,
             open_url,
             get_scan_paths,
             set_scan_paths,
+            get_scan_blacklist,
+            set_scan_blacklist,
             check_everything_status,
             launch_everything,
             install_everything,
