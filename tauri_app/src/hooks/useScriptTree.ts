@@ -34,7 +34,7 @@ interface UseScriptTreeOptions {
     setSearchQuery: (query: string) => void;
     onRunningCountChange?: (count: number) => void;
     refreshKey?: number;
-    onScanComplete?: (timestamp: number) => void;
+    onScanComplete?: (timestamp: number, count?: number, durationMs?: number) => void;
     viewMode: "tree" | "tiles" | "list";
     sortBy: "name" | "size" | "created" | "modified" | "last_run";
 }

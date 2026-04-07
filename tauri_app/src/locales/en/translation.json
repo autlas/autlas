@@ -13,6 +13,7 @@
         "scripts_found": "Scripts found:",
         "last_scan": "Last Scan",
         "library_synced": "Library synced",
+        "scan_complete": "Disk scanned. Found {{count}} files in {{seconds}}s",
         "just_now": "just now",
         "ago": "ago",
         "time_s": "s",

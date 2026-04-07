@@ -93,15 +93,19 @@ function App() {
   const ghostRef = useRef<HTMLDivElement>(null);
   const [dragGhostSize, setDragGhostSize] = useState({ w: 0, h: 0 });
 
-  const handleScanComplete = useCallback((timestamp: number) => {
+  const handleScanComplete = useCallback((timestamp: number, count?: number, durationMs?: number) => {
     setLastScanTimestamp(timestamp);
     safeSetItem("ahk_last_scan_timestamp", timestamp.toString());
+    const seconds = durationMs !== undefined ? (durationMs / 1000).toFixed(1) : "0.0";
+    const message = count !== undefined
+      ? t("sidebar.scan_complete", { count, seconds })
+      : t("sidebar.library_synced");
     toast.custom(() => (
       <div className="flex items-center gap-3 w-full px-5 py-3 bg-black/20 backdrop-blur-md border border-white/10 rounded-2xl shadow-2xl">
         <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]" />
-        <span className="text-xs font-medium text-white/70 flex-1">{t("sidebar.library_synced")}</span>
+        <span className="text-xs font-medium text-white/70 flex-1">{message}</span>
       </div>
-    ), { id: "scan", duration: 2500 });
+    ), { id: "scan", duration: 3500 });
   }, [t]);
 
   // Listen for scan progress events

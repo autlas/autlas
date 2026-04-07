@@ -22,7 +22,7 @@ interface UseScriptDataOptions {
     onTagsLoaded: (tags: string[]) => void;
     onRunningCountChange?: (count: number) => void;
     refreshKey?: number;
-    onScanComplete?: (timestamp: number) => void;
+    onScanComplete?: (timestamp: number, count?: number, durationMs?: number) => void;
 }
 
 export function useScriptData({ onTagsLoaded, onRunningCountChange, refreshKey, onScanComplete }: UseScriptDataOptions) {
@@ -38,6 +38,7 @@ export function useScriptData({ onTagsLoaded, onRunningCountChange, refreshKey, 
         setIsFetching(true);
         try {
             let data: Script[];
+            let scanDurationMs = 0;
             if (forceScan && _scanPromise) {
                 data = await _scanPromise;
             } else {
@@ -46,11 +47,12 @@ export function useScriptData({ onTagsLoaded, onRunningCountChange, refreshKey, 
                 if (forceScan) _scanPromise = promise;
                 data = await promise;
                 if (forceScan) _scanPromise = null;
-                console.log(`[Scan] ${forceScan ? 'Full scan' : 'Cache load'}: ${data.length} scripts in ${(performance.now() - t0).toFixed(0)}ms`);
+                scanDurationMs = performance.now() - t0;
+                console.log(`[Scan] ${forceScan ? 'Full scan' : 'Cache load'}: ${data.length} scripts in ${scanDurationMs.toFixed(0)}ms`);
             }
             _cachedScripts = data;
             if (forceScan && onScanComplete) {
-                onScanComplete(Date.now());
+                onScanComplete(Date.now(), data.length, scanDurationMs);
             }
             setAllScripts(prev => {
                 const prevMap = new Map(prev.map(s => [s.path, s]));

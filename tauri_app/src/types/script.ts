@@ -28,7 +28,7 @@ export interface ScriptTreeProps {
     onShowUI: (s: Script) => void;
     onRestart?: (s: Script) => void;
     refreshKey?: number;
-    onScanComplete?: (timestamp: number) => void;
+    onScanComplete?: (timestamp: number, count?: number, durationMs?: number) => void;
     isPathsEmpty?: boolean;
     onAddPath?: () => void;
     onRemovePath?: (path: string) => void;
