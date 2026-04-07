@@ -113,6 +113,16 @@ interface TreeStore {
   // Icon picker
   iconPickerTag: string | null;
   setIconPickerTag: (tag: string | null) => void;
+
+  // Fuse search engine config
+  fuseThreshold: number;          // 0..1, fuzzy strictness
+  fuseMinMatchLen: number;        // min contiguous match length
+  fuseFindAllMatches: boolean;    // find every match in the field, not just the first
+  fuseSearchPath: boolean;        // also do literal substring search on directory portion
+  setFuseThreshold: (v: number) => void;
+  setFuseMinMatchLen: (v: number) => void;
+  setFuseFindAllMatches: (v: boolean) => void;
+  setFuseSearchPath: (v: boolean) => void;
 }
 
 export const useTreeStore = create<TreeStore>((set) => ({
@@ -258,6 +268,15 @@ export const useTreeStore = create<TreeStore>((set) => ({
   // Icon picker
   iconPickerTag: null,
   setIconPickerTag: (tag) => set({ iconPickerTag: tag }),
+
+  fuseThreshold: typeof localStorage !== "undefined" ? Number(localStorage.getItem("ahk_fuse_threshold") ?? 0.4) : 0.4,
+  fuseMinMatchLen: typeof localStorage !== "undefined" ? Number(localStorage.getItem("ahk_fuse_min_match") ?? 2) : 2,
+  fuseFindAllMatches: typeof localStorage !== "undefined" ? localStorage.getItem("ahk_fuse_find_all") !== "false" : true,
+  fuseSearchPath: typeof localStorage !== "undefined" ? localStorage.getItem("ahk_fuse_search_path") !== "false" : true,
+  setFuseThreshold: (v) => { try { localStorage.setItem("ahk_fuse_threshold", String(v)); } catch {} set({ fuseThreshold: v }); },
+  setFuseMinMatchLen: (v) => { try { localStorage.setItem("ahk_fuse_min_match", String(v)); } catch {} set({ fuseMinMatchLen: v }); },
+  setFuseFindAllMatches: (v) => { try { localStorage.setItem("ahk_fuse_find_all", String(v)); } catch {} set({ fuseFindAllMatches: v }); },
+  setFuseSearchPath: (v) => { try { localStorage.setItem("ahk_fuse_search_path", String(v)); } catch {} set({ fuseSearchPath: v }); },
 
   // Removing tags
   removingTags: new Set(),

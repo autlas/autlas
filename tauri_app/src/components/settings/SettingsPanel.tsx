@@ -9,6 +9,7 @@ import { Question } from "@phosphor-icons/react";
 import Tooltip from "../ui/Tooltip";
 import TruncatedTooltip from "../ui/TruncatedTooltip";
 import SettingsSection from "../ui/SettingsSection";
+import { useTreeStore } from "../../store/useTreeStore";
 import { safeSetItem } from "../../utils/safeStorage";
 
 interface SettingsPanelProps {
@@ -120,6 +121,15 @@ export default function SettingsPanel({
     { id: "hjkl" as const, label: "hjkl" },
     { id: "jk" as const, label: "jk" },
   ], []);
+
+  const fuseThreshold = useTreeStore(s => s.fuseThreshold);
+  const fuseMinMatchLen = useTreeStore(s => s.fuseMinMatchLen);
+  const fuseFindAllMatches = useTreeStore(s => s.fuseFindAllMatches);
+  const fuseSearchPath = useTreeStore(s => s.fuseSearchPath);
+  const setFuseThreshold = useTreeStore(s => s.setFuseThreshold);
+  const setFuseMinMatchLen = useTreeStore(s => s.setFuseMinMatchLen);
+  const setFuseFindAllMatches = useTreeStore(s => s.setFuseFindAllMatches);
+  const setFuseSearchPath = useTreeStore(s => s.setFuseSearchPath);
 
 
   return (
@@ -236,6 +246,105 @@ export default function SettingsPanel({
             className={`relative w-14 h-7 rounded-full transition-all duration-300 cursor-pointer border ${closeToTray ? "bg-indigo-500/30 border-indigo-400/40 shadow-[0_0_12px_rgba(99,102,241,0.3)]" : "bg-white/5 border-white/10"}`}
           >
             <div className={`absolute top-[3px] w-5 h-5 rounded-full transition-all duration-300 shadow-lg ${closeToTray ? "left-[30px] bg-indigo-400 shadow-indigo-500/50" : "left-[3px] bg-white/30"}`} />
+          </button>
+        </div>
+      </SettingsSection>
+
+      {/* ─── Search ─── */}
+      <SettingsSection>
+        <h3 className="text-sm font-bold tracking-widest text-tertiary uppercase">{t("settings.search", "Search")}</h3>
+
+        {/* Threshold slider */}
+        <div className="space-y-2">
+          <div className="flex justify-between items-end">
+            <div className="flex flex-col">
+              <span className="text-base font-bold text-secondary inline-flex items-center gap-1.5">
+                {t("settings.fuse_threshold", "Толерантность к опечаткам")}
+                <Tooltip text={t("settings.fuse_threshold_info", "Бюджет ошибок относительно длины запроса. 0.0 — только точное совпадение, 1.0 — почти любое слово засчитается. На практике 0.3 строго, 0.4 прощает одну опечатку в коротких словах, 0.5+ начинает ловить ложные совпадения.")}>
+                  <span className="text-tertiary hover:text-secondary transition-colors cursor-help inline-flex translate-y-[2px]">
+                    <Question size={16} weight="bold" />
+                  </span>
+                </Tooltip>
+              </span>
+            </div>
+            <span className="text-xs font-mono text-indigo-400 font-bold bg-indigo-400/10 px-4 py-1.5 rounded-full tracking-widest uppercase">{fuseThreshold.toFixed(2)}</span>
+          </div>
+          <input
+            type="range" min="0" max="1" step="0.05"
+            value={fuseThreshold}
+            onChange={(e) => setFuseThreshold(parseFloat(e.target.value))}
+            className="w-full h-2 bg-white/5 rounded-lg appearance-none cursor-pointer accent-indigo-500 hover:accent-indigo-400 transition-all opacity-80 hover:opacity-100"
+          />
+          <div className="flex justify-between text-xs text-tertiary font-bold uppercase tracking-[0.3em]">
+            <span>{t("settings.fuse_strict", "Строго")}</span>
+            <span>{t("settings.fuse_loose", "Свободно")}</span>
+          </div>
+        </div>
+
+        {/* Min match length */}
+        <div className="space-y-2 pt-4 border-t border-white/5">
+          <div className="flex justify-between items-end">
+            <div className="flex flex-col">
+              <span className="text-base font-bold text-secondary inline-flex items-center gap-1.5">
+                {t("settings.fuse_min_match", "Минимальная длина совпадения")}
+                <Tooltip text={t("settings.fuse_min_match_info", "Минимальная длина непрерывной подпоследовательности букв запроса, которая засчитывается. Меньше — ловит больше фрагментированных совпадений, но добавляет шума. 2 — разумный баланс, 3 — почти отключает короткие случайные матчи.")}>
+                  <span className="text-tertiary hover:text-secondary transition-colors cursor-help inline-flex translate-y-[2px]">
+                    <Question size={16} weight="bold" />
+                  </span>
+                </Tooltip>
+              </span>
+            </div>
+            <span className="text-xs font-mono text-indigo-400 font-bold bg-indigo-400/10 px-4 py-1.5 rounded-full tracking-widest uppercase">{fuseMinMatchLen}</span>
+          </div>
+          <input
+            type="range" min="1" max="5" step="1"
+            value={fuseMinMatchLen}
+            onChange={(e) => setFuseMinMatchLen(parseInt(e.target.value))}
+            className="w-full h-2 bg-white/5 rounded-lg appearance-none cursor-pointer accent-indigo-500 hover:accent-indigo-400 transition-all opacity-80 hover:opacity-100"
+          />
+          <div className="flex justify-between text-xs text-tertiary font-bold uppercase tracking-[0.3em]">
+            <span>1</span>
+            <span>5</span>
+          </div>
+        </div>
+
+        {/* Find all matches toggle */}
+        <div className="flex justify-between items-center pt-4 border-t border-white/5">
+          <div className="flex flex-col">
+            <span className="text-base font-bold text-secondary inline-flex items-center gap-1.5">
+              {t("settings.fuse_find_all", "Все совпадения в имени")}
+              <Tooltip text={t("settings.fuse_find_all_info", "Если включено — fuse находит все вхождения запроса в имени файла, а не только первое. Лучше для подсветки и ранжирует выше файлы где запрос встречается несколько раз. Если выключить — чуть быстрее, но подсветка обрывается на первом совпадении.")}>
+                <span className="text-tertiary hover:text-secondary transition-colors cursor-help inline-flex translate-y-[2px]">
+                  <Question size={16} weight="bold" />
+                </span>
+              </Tooltip>
+            </span>
+          </div>
+          <button
+            onClick={() => setFuseFindAllMatches(!fuseFindAllMatches)}
+            className={`relative w-14 h-7 rounded-full transition-all duration-300 cursor-pointer border ${fuseFindAllMatches ? "bg-indigo-500/30 border-indigo-400/40 shadow-[0_0_12px_rgba(99,102,241,0.3)]" : "bg-white/5 border-white/10"}`}
+          >
+            <div className={`absolute top-[3px] w-5 h-5 rounded-full transition-all duration-300 shadow-lg ${fuseFindAllMatches ? "left-[30px] bg-indigo-400 shadow-indigo-500/50" : "left-[3px] bg-white/30"}`} />
+          </button>
+        </div>
+
+        {/* Search path toggle */}
+        <div className="flex justify-between items-center pt-4 border-t border-white/5">
+          <div className="flex flex-col">
+            <span className="text-base font-bold text-secondary inline-flex items-center gap-1.5">
+              {t("settings.fuse_search_path", "Искать по пути папок")}
+              <Tooltip text={t("settings.fuse_search_path_info", "Если включено — кроме имени файла поиск также пробегает по названию папок (без fuzzy, только точное вхождение подстроки). Полезно чтобы найти все скрипты в папке `automation`. Если выключить — поиск только по именам файлов, без шума из системных путей.")}>
+                <span className="text-tertiary hover:text-secondary transition-colors cursor-help inline-flex translate-y-[2px]">
+                  <Question size={16} weight="bold" />
+                </span>
+              </Tooltip>
+            </span>
+          </div>
+          <button
+            onClick={() => setFuseSearchPath(!fuseSearchPath)}
+            className={`relative w-14 h-7 rounded-full transition-all duration-300 cursor-pointer border ${fuseSearchPath ? "bg-indigo-500/30 border-indigo-400/40 shadow-[0_0_12px_rgba(99,102,241,0.3)]" : "bg-white/5 border-white/10"}`}
+          >
+            <div className={`absolute top-[3px] w-5 h-5 rounded-full transition-all duration-300 shadow-lg ${fuseSearchPath ? "left-[30px] bg-indigo-400 shadow-indigo-500/50" : "left-[3px] bg-white/30"}`} />
           </button>
         </div>
       </SettingsSection>

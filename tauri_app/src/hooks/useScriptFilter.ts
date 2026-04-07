@@ -19,6 +19,10 @@ interface UseScriptFilterOptions {
 export function useScriptFilter({ allScripts, filterTag, searchQuery, sortBy }: UseScriptFilterOptions) {
     const { t } = useTranslation();
     const showHidden = useTreeStore(s => s.showHidden);
+    const fuseThreshold = useTreeStore(s => s.fuseThreshold);
+    const fuseMinMatchLen = useTreeStore(s => s.fuseMinMatchLen);
+    const fuseFindAllMatches = useTreeStore(s => s.fuseFindAllMatches);
+    const fuseSearchPath = useTreeStore(s => s.fuseSearchPath);
 
     const allUniqueTags = useMemo(() => {
         const tags = new Set<string>();
@@ -95,9 +99,9 @@ export function useScriptFilter({ allScripts, filterTag, searchQuery, sortBy }: 
                 ],
                 includeMatches: true,
                 ignoreLocation: true,
-                threshold: 0.4,
-                minMatchCharLength: 2,
-                findAllMatches: true,
+                threshold: fuseThreshold,
+                minMatchCharLength: fuseMinMatchLen,
+                findAllMatches: fuseFindAllMatches,
             });
             const results = fuse.search(rawQuery);
             const filenameHitPaths = new Set<string>();
@@ -111,7 +115,7 @@ export function useScriptFilter({ allScripts, filterTag, searchQuery, sortBy }: 
                 filenameHits.push(r.item);
                 filenameHitPaths.add(r.item.path);
             }
-            const pathHits = collectPathSubstringHits(filenameHitPaths);
+            const pathHits = fuseSearchPath ? collectPathSubstringHits(filenameHitPaths) : [];
             searchMatchesRef.current = matches;
             return [...filenameHits, ...pathHits];
         };
@@ -148,7 +152,7 @@ export function useScriptFilter({ allScripts, filterTag, searchQuery, sortBy }: 
         });
 
         return sortList(applySearch(list));
-    }, [allScripts, filterTag, showHidden, searchQuery, sortBy]);
+    }, [allScripts, filterTag, showHidden, searchQuery, sortBy, fuseThreshold, fuseMinMatchLen, fuseFindAllMatches, fuseSearchPath]);
 
     const prevTreeRef = useRef<TreeNode | null>(null);
 
