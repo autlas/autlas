@@ -7,6 +7,7 @@ import { formatDate } from "../../utils/formatDate";
 import TagPickerPopover from "../tags/TagPickerPopover";
 import { CloseIcon, PlayIcon, RestartIcon, InterfaceIcon, PlusIcon, EditIcon, FolderIcon, OpenWithIcon, MinusIcon, PinIcon, CopyIcon, StarIcon } from "../ui/Icons";
 import Tooltip from "../ui/Tooltip";
+import TruncatedTooltip from "../ui/TruncatedTooltip";
 import { formatSize } from "../../utils/formatSize";
 import { hasHubTag, withoutHubTags } from "../../constants";
 import { useScriptContent } from "../../hooks/useScriptContent";
@@ -114,7 +115,9 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
             : script.is_running ? "bg-green-500 animate-status-glow shadow-[0_0_12px_rgba(34,197,94,0.8)]"
               : "bg-white/10"
             }`} />
-          <h2 className="text-lg font-semibold text-white truncate">{name}</h2>
+          <TruncatedTooltip text={name}>
+            <h2 className="text-lg font-semibold text-white truncate">{name}</h2>
+          </TruncatedTooltip>
           <Tooltip text={isHub ? t("tooltips.remove_from_hub") : t("tooltips.add_to_hub")}>
             <button
               onClick={() => {

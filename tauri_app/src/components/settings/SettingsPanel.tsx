@@ -7,6 +7,7 @@ import ToggleGroup from "../ui/ToggleGroup";
 import { PlusIcon, CloseIcon, FolderIcon } from "../ui/Icons";
 import { Question } from "@phosphor-icons/react";
 import Tooltip from "../ui/Tooltip";
+import TruncatedTooltip from "../ui/TruncatedTooltip";
 import SettingsSection from "../ui/SettingsSection";
 import { safeSetItem } from "../../utils/safeStorage";
 
@@ -258,7 +259,7 @@ export default function SettingsPanel({
               scanPaths.map((path) => (
                 <div key={path} className="flex items-center space-x-4 p-2.5 px-4 bg-white/[0.03] border border-white/10 rounded-2xl hover:bg-white/[0.05] transition-all group">
                   <div className="w-1.5 h-1.5 rounded-full bg-indigo-500/50 group-hover:bg-indigo-500 shadow-lg shadow-indigo-500/20" />
-                  <span className="flex-1 text-[16px] font-bold text-secondary truncate font-mono tracking-tight">{path}</span>
+                  <TruncatedTooltip text={path}><span className="flex-1 text-[16px] font-bold text-secondary truncate font-mono tracking-tight">{path}</span></TruncatedTooltip>
                   <span className="text-[14px] font-normal tracking-wide text-tertiary opacity-50 flex-shrink-0">
                     {(pathCounts?.[path] ?? 0)} {t("settings.scripts_count", "scripts")}
                   </span>
@@ -317,7 +318,7 @@ export default function SettingsPanel({
               blacklist.map((path) => (
                 <div key={path} className="flex items-center space-x-4 p-2.5 px-4 bg-white/[0.03] border border-white/10 rounded-2xl hover:bg-white/[0.05] transition-all group">
                   <div className="w-1.5 h-1.5 rounded-full bg-red-500/50 group-hover:bg-red-500 shadow-lg shadow-red-500/20" />
-                  <span className="flex-1 text-[16px] font-bold text-secondary truncate font-mono tracking-tight">{path}</span>
+                  <TruncatedTooltip text={path}><span className="flex-1 text-[16px] font-bold text-secondary truncate font-mono tracking-tight">{path}</span></TruncatedTooltip>
                   <span className="text-[14px] font-normal tracking-wide text-tertiary opacity-50 flex-shrink-0">
                     {(blacklistCounts[path] ?? 0)} {t("settings.scripts_count", "scripts")}
                   </span>
@@ -375,7 +376,7 @@ export default function SettingsPanel({
               hiddenFolders.map((path) => (
                 <div key={path} className="flex items-center space-x-4 p-2.5 px-4 bg-white/[0.03] border border-white/10 rounded-2xl hover:bg-white/[0.05] transition-all group">
                   <div className="w-1.5 h-1.5 rounded-full bg-white/20 group-hover:bg-white/40" />
-                  <span className="flex-1 text-[16px] font-bold text-secondary truncate font-mono tracking-tight opacity-60">{path}</span>
+                  <TruncatedTooltip text={path}><span className="flex-1 text-[16px] font-bold text-secondary truncate font-mono tracking-tight opacity-60">{path}</span></TruncatedTooltip>
                   <span className="text-[14px] font-normal tracking-wide text-tertiary opacity-50 flex-shrink-0">
                     {(hiddenCounts[path] ?? 0)} {t("settings.scripts_count", "scripts")}
                   </span>

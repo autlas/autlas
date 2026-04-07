@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import { PlusIcon, CloseIcon, RestartIcon, PlayIcon, InterfaceIcon, MinusIcon, StarIcon } from "../ui/Icons";
 import { useTreeStore } from "../../store/useTreeStore";
 import Tooltip from "../ui/Tooltip";
+import TruncatedTooltip from "../ui/TruncatedTooltip";
 import { formatDate } from "../../utils/formatDate";
 import { formatSize } from "../../utils/formatSize";
 import { hasHubTag, withoutHubTags } from "../../constants";
@@ -80,9 +81,11 @@ const HubScriptCard = memo(function HubScriptCard({
         >
             <div className="flex justify-between items-start pointer-events-none">
                 <div className="flex items-center overflow-hidden flex-1 -mt-[8px] gap-2">
-                    <span className={`text-xl font-black truncate pr-0 transition-colors tracking-tight stabilize-text ${!isDragging ? (isEditing || isContextMenuOpen ? 'text-indigo-400' : 'text-secondary') : 'text-secondary'}`}>
-                        <HighlightText text={s.filename.replace(/\.ahk$/i, '')} variant="file" />
-                    </span>
+                    <TruncatedTooltip text={s.filename.replace(/\.ahk$/i, '')}>
+                        <span className={`text-xl font-black truncate pr-0 transition-colors tracking-tight stabilize-text pointer-events-auto ${!isDragging ? (isEditing || isContextMenuOpen ? 'text-indigo-400' : 'text-secondary') : 'text-secondary'}`}>
+                            <HighlightText text={s.filename.replace(/\.ahk$/i, '')} variant="file" />
+                        </span>
+                    </TruncatedTooltip>
                     <Tooltip text={isHub ? t("tooltips.remove_from_hub") : t("tooltips.add_to_hub")}>
                     <button
                         onClick={(e) => {

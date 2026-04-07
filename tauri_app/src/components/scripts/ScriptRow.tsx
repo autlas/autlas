@@ -6,6 +6,7 @@ import { useTreeStore } from "../../store/useTreeStore";
 import { useTranslation } from "react-i18next";
 import { PlusIcon, CloseIcon, RestartIcon, PlayIcon, InterfaceIcon, MinusIcon, StarIcon } from "../ui/Icons";
 import Tooltip from "../ui/Tooltip";
+import TruncatedTooltip from "../ui/TruncatedTooltip";
 import ActionButton from "../ui/ActionButton";
 import { formatDate } from "../../utils/formatDate";
 import { formatSize } from "../../utils/formatSize";
@@ -95,10 +96,12 @@ const ScriptRow = memo(function ScriptRow({
                     ${isPending ? (pendingType === 'kill' ? 'bg-red-500 animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.6)]' : 'bg-yellow-500 animate-pulse shadow-[0_0_10px_rgba(234,179,8,0.6)]') :
                         s.is_running ? 'bg-green-500 animate-status-glow shadow-[0_0_12px_rgba(34,197,94,0.8)]' : 'bg-white/10'}
                 `}></div>
-                <span className={`text-base font-medium tracking-tight truncate min-w-0 transition-colors stabilize-text ${!isDragging ? (isEditing || isContextMenuOpen ? 'text-indigo-400' : 'text-secondary/90 group-hover:text-white') : 'text-secondary/50'
-                    }`}>
-                    <HighlightText text={s.filename.replace(/\.ahk$/i, '')} variant="file" />
-                </span>
+                <TruncatedTooltip text={s.filename.replace(/\.ahk$/i, '')}>
+                    <span className={`text-base font-medium tracking-tight truncate min-w-0 transition-colors stabilize-text ${!isDragging ? (isEditing || isContextMenuOpen ? 'text-indigo-400' : 'text-secondary/90 group-hover:text-white') : 'text-secondary/50'
+                        }`}>
+                        <HighlightText text={s.filename.replace(/\.ahk$/i, '')} variant="file" />
+                    </span>
+                </TruncatedTooltip>
 
                 {!isDragging && (
                     <Tooltip text={isHub ? t("tooltips.remove_from_hub") : t("tooltips.add_to_hub")}>
