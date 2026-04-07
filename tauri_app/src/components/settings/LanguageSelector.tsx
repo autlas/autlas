@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { ChevronDownIcon } from "./ui/Icons";
+import { ChevronDownIcon } from "../ui/Icons";
 
 const LanguageSelector = () => {
     const { i18n, t } = useTranslation();

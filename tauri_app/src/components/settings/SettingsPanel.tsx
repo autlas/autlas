@@ -1,14 +1,14 @@
 import { invoke } from "@tauri-apps/api/core";
 import { useEffect, useMemo, useState, useCallback } from "react";
-import { checkEverythingStatus, launchEverything, cleanupOrphans, resetDatabase } from "../api";
+import { checkEverythingStatus, launchEverything, cleanupOrphans, resetDatabase } from "../../api";
 import { useTranslation } from "react-i18next";
 import LanguageSelector from "./LanguageSelector";
-import ToggleGroup from "./ui/ToggleGroup";
-import { PlusIcon, CloseIcon, FolderIcon } from "./ui/Icons";
+import ToggleGroup from "../ui/ToggleGroup";
+import { PlusIcon, CloseIcon, FolderIcon } from "../ui/Icons";
 import { Question } from "@phosphor-icons/react";
-import Tooltip from "./ui/Tooltip";
-import SettingsSection from "./ui/SettingsSection";
-import { safeSetItem } from "../utils/safeStorage";
+import Tooltip from "../ui/Tooltip";
+import SettingsSection from "../ui/SettingsSection";
+import { safeSetItem } from "../../utils/safeStorage";
 
 interface SettingsPanelProps {
   brightness: number;

@@ -1,16 +1,16 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Script } from "../api";
+import { Script } from "../../api";
 import { invoke } from "@tauri-apps/api/core";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useTranslation } from "react-i18next";
-import { formatDate } from "../utils/formatDate";
-import TagPickerPopover from "./TagPickerPopover";
-import { CloseIcon, PlayIcon, RestartIcon, InterfaceIcon, PlusIcon, EditIcon, FolderIcon, OpenWithIcon, MinusIcon, PinIcon, CopyIcon } from "./ui/Icons";
-import Tooltip from "./ui/Tooltip";
-import { formatSize } from "../utils/formatSize";
-import { withoutHubTags } from "../constants";
-import { useScriptContent } from "../hooks/useScriptContent";
-import { usePanelResize } from "../hooks/usePanelResize";
+import { formatDate } from "../../utils/formatDate";
+import TagPickerPopover from "../tags/TagPickerPopover";
+import { CloseIcon, PlayIcon, RestartIcon, InterfaceIcon, PlusIcon, EditIcon, FolderIcon, OpenWithIcon, MinusIcon, PinIcon, CopyIcon } from "../ui/Icons";
+import Tooltip from "../ui/Tooltip";
+import { formatSize } from "../../utils/formatSize";
+import { withoutHubTags } from "../../constants";
+import { useScriptContent } from "../../hooks/useScriptContent";
+import { usePanelResize } from "../../hooks/usePanelResize";
 
 function MetaRow({ label, value, mono, copiedLabel, copyLabel }: { label: string; value: string; mono?: boolean; copiedLabel?: string; copyLabel?: string }) {
   const [copied, setCopied] = useState(false);

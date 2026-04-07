@@ -1,8 +1,8 @@
 import { useState, ReactNode } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useTranslation } from "react-i18next";
-import { EditIcon, FolderIcon, OpenWithIcon, CopyIcon, PinIcon, UnpinIcon, PlusIcon, CloseIcon, EyeOffIcon, TagIcon } from "./ui/Icons";
-import { hasHubTag, isHubTag } from "../constants";
+import { EditIcon, FolderIcon, OpenWithIcon, CopyIcon, PinIcon, UnpinIcon, PlusIcon, CloseIcon, EyeOffIcon, TagIcon } from "../ui/Icons";
+import { hasHubTag, isHubTag } from "../../constants";
 
 interface ContextMenuState {
   x: number;

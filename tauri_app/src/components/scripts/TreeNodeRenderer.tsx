@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef, createContext, memo } from "react";
-import { useTreeStore } from "../store/useTreeStore";
-import { HighlightText } from "./HighlightText";
+import { useTreeStore } from "../../store/useTreeStore";
+import { HighlightText } from "../common/HighlightText";
 import ScriptRow from "./ScriptRow";
-import { Script } from "../api";
-import { TreeNode } from "../types/script";
+import { Script } from "../../api";
+import { TreeNode } from "../../types/script";
 
 // Stable context: only callbacks and refs — never changes after mount, no re-renders
 export interface TreeContextValue {

@@ -1,10 +1,10 @@
 import React from "react";
 import HubScriptCard from "./HubScriptCard";
 import ScriptRow from "./ScriptRow";
-import EmptyState from "./EmptyState";
-import { Script } from "../api";
-import { ChevronDownIcon, TagIconSvg, TagDotIcon } from "./ui/Icons";
-import { useTreeStore } from "../store/useTreeStore";
+import EmptyState from "../common/EmptyState";
+import { Script } from "../../api";
+import { ChevronDownIcon, TagIconSvg, TagDotIcon } from "../ui/Icons";
+import { useTreeStore } from "../../store/useTreeStore";
 
 const TagSectionHeader = ({ tag, isCollapsed, onToggle, runningCount }: { tag: string; isCollapsed: boolean; onToggle: () => void; runningCount: number }) => {
     const tagIcon = useTreeStore(s => s.tagIcons[tag]);
@@ -184,7 +184,7 @@ export default React.memo(function ScriptGridView({
                 })
             ) : (
                 <div
-                    className={`grid ${gridGap} items-start pt-6 pb-10`}
+                    className={`grid ${gridGap} items-start pb-10`}
                     style={{ gridTemplateColumns: `repeat(${columnsCount}, minmax(0, 1fr))` }}
                 >
                     {masonryColumns.map((col, colIdx) => (

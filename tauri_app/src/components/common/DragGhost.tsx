@@ -1,6 +1,6 @@
 import React from "react";
-import { TagDotIcon, TagIconSvg } from "./ui/Icons";
-import { useTreeStore } from "../store/useTreeStore";
+import { TagDotIcon, TagIconSvg } from "../ui/Icons";
+import { useTreeStore } from "../../store/useTreeStore";
 
 interface DragGhostProps {
   ghostRef: React.RefObject<HTMLDivElement | null>;

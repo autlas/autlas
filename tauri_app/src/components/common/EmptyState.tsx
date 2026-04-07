@@ -1,9 +1,9 @@
 import { useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { PlusIcon, CloseIcon, FolderIcon, GearIcon, SyncIcon } from "./ui/Icons";
-import EmptyStateIcon from "./ui/EmptyStateIcon";
+import { PlusIcon, CloseIcon, FolderIcon, GearIcon, SyncIcon } from "../ui/Icons";
+import EmptyStateIcon from "../ui/EmptyStateIcon";
 import { invoke } from "@tauri-apps/api/core";
-import Tooltip from "./ui/Tooltip";
+import Tooltip from "../ui/Tooltip";
 
 interface EmptyStateProps {
     isPathsEmpty: boolean;

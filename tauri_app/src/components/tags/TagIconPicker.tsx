@@ -2,9 +2,9 @@ import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { invoke } from "@tauri-apps/api/core";
-import { TAG_ICONS } from "../data/tagIcons";
-import { SearchIcon, CloseIcon } from "./ui/Icons";
-import { useTreeStore } from "../store/useTreeStore";
+import { TAG_ICONS } from "../../data/tagIcons";
+import { SearchIcon, CloseIcon } from "../ui/Icons";
+import { useTreeStore } from "../../store/useTreeStore";
 
 const ALL_ICON_NAMES = Object.keys(TAG_ICONS);
 

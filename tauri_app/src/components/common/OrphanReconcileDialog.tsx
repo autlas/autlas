@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useTranslation } from "react-i18next";
-import { CloseIcon } from "./ui/Icons";
-import { withoutHubTags } from "../constants";
+import { CloseIcon } from "../ui/Icons";
+import { withoutHubTags } from "../../constants";
 
 export interface PendingMatch {
     orphan_id: string;

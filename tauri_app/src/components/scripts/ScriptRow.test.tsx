@@ -1,11 +1,11 @@
 import React, { createRef } from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import ScriptRow from "./ScriptRow";
-import { makeScript } from "../test/fixtures";
-import { useTreeStore } from "../store/useTreeStore";
-import type { Script } from "../api";
-import type { ScriptRowProps } from "../types/script";
-import { SearchContext } from "../context/SearchContext";
+import { makeScript } from "../../test/fixtures";
+import { useTreeStore } from "../../store/useTreeStore";
+import type { Script } from "../../api";
+import type { ScriptRowProps } from "../../types/script";
+import { SearchContext } from "../../context/SearchContext";
 
 // ─── helpers ──────────────────────────────────────────────────
 

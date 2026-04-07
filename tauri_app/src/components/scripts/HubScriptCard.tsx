@@ -1,14 +1,14 @@
 import React, { useState, memo } from "react";
-import { HubScriptCardProps } from "../types/script";
-import TagPickerPopover from "./TagPickerPopover";
-import { HighlightText } from "./HighlightText";
+import { HubScriptCardProps } from "../../types/script";
+import TagPickerPopover from "../tags/TagPickerPopover";
+import { HighlightText } from "../common/HighlightText";
 import { useTranslation } from "react-i18next";
-import { PlusIcon, CloseIcon, RestartIcon, PlayIcon, InterfaceIcon, MinusIcon, StarIcon } from "./ui/Icons";
-import { useTreeStore } from "../store/useTreeStore";
-import Tooltip from "./ui/Tooltip";
-import { formatDate } from "../utils/formatDate";
-import { formatSize } from "../utils/formatSize";
-import { hasHubTag, withoutHubTags } from "../constants";
+import { PlusIcon, CloseIcon, RestartIcon, PlayIcon, InterfaceIcon, MinusIcon, StarIcon } from "../ui/Icons";
+import { useTreeStore } from "../../store/useTreeStore";
+import Tooltip from "../ui/Tooltip";
+import { formatDate } from "../../utils/formatDate";
+import { formatSize } from "../../utils/formatSize";
+import { hasHubTag, withoutHubTags } from "../../constants";
 
 const HubScriptCard = memo(function HubScriptCard({
     s, isDragging, draggedScriptPath, editingScript, pendingScripts, removingTags,

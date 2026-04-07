@@ -1,10 +1,10 @@
 import React, { useMemo, useState, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import ToggleGroup from "./ui/ToggleGroup";
-import { SearchIcon, CloseIcon, ChevronDownIcon } from "./ui/Icons";
+import ToggleGroup from "../ui/ToggleGroup";
+import { SearchIcon, CloseIcon, ChevronDownIcon } from "../ui/Icons";
 import { SquaresFour, EyeSlash, Eye } from "@phosphor-icons/react";
-import SectionLabel from "./ui/SectionLabel";
-import Tooltip from "./ui/Tooltip";
+import SectionLabel from "../ui/SectionLabel";
+import Tooltip from "../ui/Tooltip";
 
 interface ScriptTreeToolbarProps {
     viewMode: "tree" | "tiles" | "list";

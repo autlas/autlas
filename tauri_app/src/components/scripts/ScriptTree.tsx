@@ -1,16 +1,16 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import CheatSheet from "./CheatSheet";
-import { SearchContext } from "../context/SearchContext";
-import { ScriptTreeProps } from "../types/script";
-import { useScriptTree } from "../hooks/useScriptTree";
+import CheatSheet from "../common/CheatSheet";
+import { SearchContext } from "../../context/SearchContext";
+import { ScriptTreeProps } from "../../types/script";
+import { useScriptTree } from "../../hooks/useScriptTree";
 import { useHotkeys } from "react-hotkeys-hook";
-import EmptyState from "./EmptyState";
+import EmptyState from "../common/EmptyState";
 import ScriptTreeToolbar from "./ScriptTreeToolbar";
 import ScriptGridView from "./ScriptGridView";
 import { TreeContext, TreeNodeRenderer, setTreeCallbacks } from "./TreeNodeRenderer";
-import { hasHubTag } from "../constants";
-import { useTreeStore } from "../store/useTreeStore";
-import { safeSetItem } from "../utils/safeStorage";
+import { hasHubTag } from "../../constants";
+import { useTreeStore } from "../../store/useTreeStore";
+import { safeSetItem } from "../../utils/safeStorage";
 
 export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, onRunningCountChange, viewMode, onViewModeChange, onCustomDragStart, isDragging, draggedScriptPath, animationsEnabled, onScriptContextMenu, onFolderContextMenu, searchQuery, setSearchQuery, contextMenu, onShowUI, refreshKey, onScanComplete, isPathsEmpty, onAddPath, onRemovePath, scanPaths, onRefresh, isRefreshing, onOpenSettings, onSelectScript, onExposeActions, isDetailOpen, onCloseDetail, isActive = true }: ScriptTreeProps) {
     const searchInputRef = useRef<HTMLInputElement>(null);
@@ -366,7 +366,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
     setTreeCallbacks(treeContextValue);
 
     const masonryColumns = useMemo(() => {
-        const cols: import("../api").Script[][] = Array.from({ length: columnsCount }, () => []);
+        const cols: import("../../api").Script[][] = Array.from({ length: columnsCount }, () => []);
         filtered.forEach((s, i) => cols[i % columnsCount].push(s));
         return cols;
     }, [filtered, columnsCount]);

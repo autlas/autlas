@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useMemo, useRef, memo } from "react";
 import { createPortal } from "react-dom";
-import { TagPickerProps } from "../types/script";
+import { TagPickerProps } from "../../types/script";
 import { useTranslation } from "react-i18next";
-import { PlusIcon, TagDotIcon, TagIconSvg } from "./ui/Icons";
-import { useTreeStore } from "../store/useTreeStore";
-import { isHubTag } from "../constants";
+import { PlusIcon, TagDotIcon, TagIconSvg } from "../ui/Icons";
+import { useTreeStore } from "../../store/useTreeStore";
+import { isHubTag } from "../../constants";
 
 const TagPickerPopover = memo(function TagPickerPopover({ script, allUniqueTags, popoverRef, onAdd, onClose, variant, anchorRef }: TagPickerProps) {
     const { t } = useTranslation();

@@ -1,6 +1,6 @@
 import React from "react";
 import { createPortal } from "react-dom";
-import { HelpIcon } from "./ui/Icons";
+import { HelpIcon } from "../ui/Icons";
 
 const ShortcutItem = ({ keys, desc, sets }: { keys?: string[], desc: string, sets?: string[][] }) => (
     <div className="flex items-center justify-between group/item min-h-[40px]">

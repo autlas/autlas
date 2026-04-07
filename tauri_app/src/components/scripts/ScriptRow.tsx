@@ -1,16 +1,16 @@
 import React, { useState, memo, useRef } from "react";
-import { ScriptRowProps } from "../types/script";
-import TagPickerPopover from "./TagPickerPopover";
-import { HighlightText } from "./HighlightText";
-import { useTreeStore } from "../store/useTreeStore";
+import { ScriptRowProps } from "../../types/script";
+import TagPickerPopover from "../tags/TagPickerPopover";
+import { HighlightText } from "../common/HighlightText";
+import { useTreeStore } from "../../store/useTreeStore";
 import { useTranslation } from "react-i18next";
-import { PlusIcon, CloseIcon, RestartIcon, PlayIcon, InterfaceIcon, MinusIcon, StarIcon } from "./ui/Icons";
-import Tooltip from "./ui/Tooltip";
-import ActionButton from "./ui/ActionButton";
-import { formatDate } from "../utils/formatDate";
-import { formatSize } from "../utils/formatSize";
-import { hasHubTag, withoutHubTags } from "../constants";
-import { useTagOverflow } from "../hooks/useTagOverflow";
+import { PlusIcon, CloseIcon, RestartIcon, PlayIcon, InterfaceIcon, MinusIcon, StarIcon } from "../ui/Icons";
+import Tooltip from "../ui/Tooltip";
+import ActionButton from "../ui/ActionButton";
+import { formatDate } from "../../utils/formatDate";
+import { formatSize } from "../../utils/formatSize";
+import { hasHubTag, withoutHubTags } from "../../constants";
+import { useTagOverflow } from "../../hooks/useTagOverflow";
 
 const ScriptRow = memo(function ScriptRow({
     s, isDragging, draggedScriptPath, isEditing, isPending, pendingType, isContextMenuOpen, removingTagKeys,

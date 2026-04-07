@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useTranslation } from "react-i18next";
-import { GearIcon, TagIcon, TagDotIcon, TagIconSvg, LayersIcon, TagOffIcon, SyncIcon, ChevronDownIcon } from "./ui/Icons";
-import { useTreeStore } from "../store/useTreeStore";
-import Tooltip from "./ui/Tooltip";
-import logoImg from "../assets/logo.png";
-import { safeSetItem } from "../utils/safeStorage";
+import { GearIcon, TagIcon, TagDotIcon, TagIconSvg, LayersIcon, TagOffIcon, SyncIcon, ChevronDownIcon } from "../ui/Icons";
+import { useTreeStore } from "../../store/useTreeStore";
+import Tooltip from "../ui/Tooltip";
+import logoImg from "../../assets/logo.png";
+import { safeSetItem } from "../../utils/safeStorage";
 
 interface SidebarProps {
   activeTab: string;
