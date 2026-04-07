@@ -7,9 +7,12 @@ const LanguageSelector = () => {
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
+    // Windows doesn't render flag emojis (falls back to regional indicator
+    // letters like "US"), which made the button read "US English EN".
+    // Drop the flag — label + sub are enough.
     const languages = [
-        { code: "en", label: "English", sub: "EN", flag: "🇺🇸" },
-        { code: "ru", label: "Русский", sub: "RU", flag: "🇷🇺" },
+        { code: "en", label: "English", sub: "EN" },
+        { code: "ru", label: "Русский", sub: "RU" },
     ];
 
     const currentLang = languages.find((l) => l.code === (i18n.resolvedLanguage || "en")) || languages[0];
@@ -33,7 +36,6 @@ const LanguageSelector = () => {
                     : "bg-white/[0.03] border-white/5 hover:bg-white/5 hover:border-white/10"
                     }`}
             >
-                <span className="text-lg leading-none">{currentLang.flag}</span>
                 <div className="flex flex-col items-start leading-tight">
                     <span className="text-sm font-bold text-secondary group-hover:text-white transition-colors">
                         {currentLang.label}
@@ -63,7 +65,6 @@ const LanguageSelector = () => {
                                 }`}
                         >
                             <div className="flex items-center space-x-3">
-                                <span className="text-base">{lang.flag}</span>
                                 <div className="flex flex-col items-start leading-tight">
                                     <span className="text-sm font-bold">{lang.label}</span>
                                     <span className="text-[9px] font-black tracking-widest opacity-40 uppercase">{lang.sub}</span>

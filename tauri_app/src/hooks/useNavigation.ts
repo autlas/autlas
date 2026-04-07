@@ -51,7 +51,7 @@ export function useNavigation(userTags: string[], physics: PhysicsRefs) {
     safeSetItem(key, mode);
   };
 
-  const TABS = ["hub", "all", "no_tags", ...userTags, "settings"];
+  const TABS = ["hub", "all", "no_tags", "tags", ...userTags, "settings"];
 
   useHotkeys("shift+alt+j", (e) => {
     e.preventDefault();

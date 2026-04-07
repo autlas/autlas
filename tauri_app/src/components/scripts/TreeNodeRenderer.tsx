@@ -130,8 +130,11 @@ export const TreeNodeRenderer = memo(function TreeNodeRenderer({
             if (animated) {
                 // Frame 1: display:grid + 0fr + no transition
                 setAnim('expanding');
-                // Frame 2: enable transition + 1fr → animate open
-                requestAnimationFrame(() => setAnim('expanded'));
+                // Frame 2-3: enable transition + 1fr → animate open
+                // Double rAF: ensures the 0fr baseline is painted before
+                // we flip to 1fr, otherwise the browser collapses both
+                // style changes into a single paint and skips the animation.
+                requestAnimationFrame(() => requestAnimationFrame(() => setAnim('expanded')));
             } else {
                 setAnim('expanded');
             }
