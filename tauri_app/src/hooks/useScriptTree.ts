@@ -5,6 +5,7 @@ import { getScripts, Script, runScript, killScript } from "../api";
 import { invoke } from "@tauri-apps/api/core";
 import { TreeNode } from "../types/script";
 import { useTreeStore } from "../store/useTreeStore";
+import { hasHubTag, withoutHubTags } from "../constants";
 
 const smoothScrollTo = (container: HTMLElement, target: number, duration: number) => {
     const start = container.scrollTop;
@@ -125,10 +126,9 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
     };
 
     useEffect(() => {
-        const systemTagNames = ["hub", "fav", "favourites"];
         const filteredScripts = allScripts.map(s => ({
             ...s,
-            tags: s.tags.filter(t => !systemTagNames.includes(t.toLowerCase()))
+            tags: withoutHubTags(s.tags)
         }));
 
         const tagsKey = filteredScripts.flatMap(s => s.tags).sort().join(',');
@@ -476,7 +476,7 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
         })));
     }, []);
 
-    const toggleHiddenByPath = useCallback((folderPath: string) => {
+    const toggleHiddenByPath = useCallback((_folderPath: string) => {
         // Re-fetch scripts to get updated is_hidden from DB (lightweight, no disk scan)
         fetchData();
     }, []);
@@ -538,7 +538,6 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
 
     const filtered = useMemo(() => {
         const rawQuery = searchQuery.trim().toLowerCase();
-        const hubTags = new Set(["hub", "fav", "favourites"]);
 
         const applySearch = (list: Script[]) => {
             if (!rawQuery) return list;
@@ -562,7 +561,7 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
         };
 
         if (filterTag === "hub") {
-            return applySearch(allScripts.filter(s => s.is_running || s.tags.some(t => hubTags.has(t.toLowerCase()))));
+            return applySearch(allScripts.filter(s => s.is_running || hasHubTag(s.tags)));
         }
 
         let list = allScripts.filter(s => {
@@ -706,11 +705,10 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
 
     const groupedHub = useMemo(() => {
         if (filterTag !== "hub") return null;
-        const systemTags = ["hub", "fav", "favourites"];
         const groups: Record<string, Script[]> = {};
         const scriptsWithoutTags: Script[] = [];
         filtered.forEach(s => {
-            const userTags = s.tags.filter(t => !systemTags.includes(t.toLowerCase()));
+            const userTags = withoutHubTags(s.tags);
             if (userTags.length === 0) {
                 scriptsWithoutTags.push(s);
             } else {

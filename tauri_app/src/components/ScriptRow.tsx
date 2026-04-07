@@ -1,4 +1,4 @@
-import React, { useState, memo, useRef, useLayoutEffect } from "react";
+import React, { useState, memo, useRef } from "react";
 import { ScriptRowProps } from "../types/script";
 import TagPickerPopover from "./TagPickerPopover";
 import { HighlightText } from "./HighlightText";
@@ -8,12 +8,9 @@ import { PlusIcon, CloseIcon, RestartIcon, PlayIcon, InterfaceIcon, MinusIcon, S
 import Tooltip from "./ui/Tooltip";
 import ActionButton from "./ui/ActionButton";
 import { formatDate } from "../utils/formatDate";
-
-function formatSize(bytes: number): string {
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
+import { formatSize } from "../utils/formatSize";
+import { hasHubTag, withoutHubTags } from "../constants";
+import { useTagOverflow } from "../hooks/useTagOverflow";
 
 const ScriptRow = memo(function ScriptRow({
     s, isDragging, draggedScriptPath, isEditing, isPending, pendingType, isContextMenuOpen, removingTagKeys,
@@ -29,66 +26,17 @@ const ScriptRow = memo(function ScriptRow({
     const showInfo = sortBy !== "name";
 
     const [isLeftPressed, setIsLeftPressed] = useState(false);
-    const [visibleCount, setVisibleCount] = useState(s.tags.length);
     const containerRef = useRef<HTMLDivElement>(null);
-    const measureRef = useRef<HTMLDivElement>(null);
-    const [tagWidths, setTagWidths] = useState<number[]>([]);
-    const tagWidthsRef = useRef<number[]>([]);
     const prevTagsRef = useRef<string[]>(s.tags);
     const newTagsSet = new Set(s.tags.filter(t => !prevTagsRef.current.includes(t)));
+    prevTagsRef.current = s.tags;
     const addBtnRef = useRef<HTMLButtonElement>(null);
 
     // Filtered tags for display (hide system tags)
-    const isHub = s.tags.some(t => ["hub", "fav", "favourites"].includes(t.toLowerCase()));
-    const displayedTags = s.tags.filter(t => !["hub", "fav", "favourites"].includes(t.toLowerCase()));
+    const isHub = hasHubTag(s.tags);
+    const displayedTags = withoutHubTags(s.tags);
 
-    const recalcVisible = () => {
-        if (!containerRef.current) return;
-        const containerWidth = containerRef.current.offsetWidth;
-        if (containerWidth < 30) return;
-        const widths = tagWidthsRef.current;
-        const ADD_BTN_WIDTH = 0;
-        const COUNTER_WIDTH = 42;
-        const available = containerWidth - ADD_BTN_WIDTH;
-
-        if (widths.length === 0 || widths.length < displayedTags.length) return;
-
-        let totalWidth = 0;
-        let count = 0;
-        for (let i = 0; i < widths.length; i++) {
-            const isLast = (i === widths.length - 1);
-            const reqSpace = totalWidth + widths[i] + (isLast ? 0 : COUNTER_WIDTH);
-            if (reqSpace > available) break;
-            totalWidth += widths[i];
-            count++;
-        }
-        if (count === 0 && widths.length > 0) count = 1;
-        setVisibleCount(count);
-    };
-
-    useLayoutEffect(() => {
-        prevTagsRef.current = s.tags;
-        if (measureRef.current) {
-            const children = Array.from(measureRef.current.children) as HTMLElement[];
-            const widths = children.map(c => c.offsetWidth + 8);
-            tagWidthsRef.current = widths;
-            setTagWidths(widths);
-        }
-        recalcVisible();
-    }, [s.tags]);
-
-    useLayoutEffect(() => {
-        if (!containerRef.current) return;
-
-        const observer = new ResizeObserver(() => {
-            requestAnimationFrame(recalcVisible);
-        });
-
-        observer.observe(containerRef.current);
-        requestAnimationFrame(recalcVisible);
-
-        return () => observer.disconnect();
-    }, [displayedTags, tagWidths, isDragging]);
+    const { visibleCount } = useTagOverflow(displayedTags, containerRef);
 
     const handleMouseDown = (e: React.MouseEvent) => {
         if (e.button === 2) {
@@ -170,13 +118,6 @@ const ScriptRow = memo(function ScriptRow({
 
                 {!isDragging && (
                     <div ref={containerRef} className="flex-1 flex items-center pr-2 min-w-[130px] w-0">
-                        {/* Hidden measuring container */}
-                        <div ref={measureRef} className="absolute opacity-0 pointer-events-none flex whitespace-nowrap -z-50">
-                            {displayedTags.map(t => (
-                                <span key={t} className="text-xs font-bold px-3 h-7 rounded-lg mr-2 leading-none flex items-center bg-[var(--bg-tertiary)] border border-white/5">{t}</span>
-                            ))}
-                        </div>
-
                         {/* Visible tags */}
                         {displayedTags.slice(0, visibleCount).map(tag => {
                             const isRemoving = removingTagKeys.includes(`${s.path}-${tag}`);

@@ -7,13 +7,8 @@ import { PlusIcon, CloseIcon, RestartIcon, PlayIcon, InterfaceIcon, MinusIcon, S
 import { useTreeStore } from "../store/useTreeStore";
 import Tooltip from "./ui/Tooltip";
 import { formatDate } from "../utils/formatDate";
-
-
-function formatSize(bytes: number): string {
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
+import { formatSize } from "../utils/formatSize";
+import { hasHubTag, withoutHubTags } from "../constants";
 
 const HubScriptCard = memo(function HubScriptCard({
     s, isDragging, draggedScriptPath, editingScript, pendingScripts, removingTags,
@@ -55,7 +50,7 @@ const HubScriptCard = memo(function HubScriptCard({
     const isEditing = editingScript === s.path;
     const pendingType = pendingScripts[s.path];
     const isPending = !!pendingType;
-    const isHub = s.tags.some(t => ["hub", "fav", "favourites"].includes(t.toLowerCase()));
+    const isHub = hasHubTag(s.tags);
 
     return (
         <div
@@ -128,7 +123,7 @@ const HubScriptCard = memo(function HubScriptCard({
                     />
                 )}
                 <div className="flex flex-wrap gap-2 pointer-events-none">
-                    {s.tags.filter(tag => !["hub", "fav", "favourites"].includes(tag.toLowerCase())).map(tag => {
+                    {withoutHubTags(s.tags).map(tag => {
                         const isRemoving = removingTags.has(`${s.path}-${tag}`);
                         return (
                             <div key={tag}

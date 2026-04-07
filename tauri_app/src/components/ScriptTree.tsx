@@ -8,6 +8,7 @@ import EmptyState from "./EmptyState";
 import ScriptTreeToolbar from "./ScriptTreeToolbar";
 import ScriptGridView from "./ScriptGridView";
 import { TreeContext, TreeNodeRenderer, setTreeCallbacks } from "./TreeNodeRenderer";
+import { hasHubTag } from "../constants";
 import { useTreeStore } from "../store/useTreeStore";
 import { safeSetItem } from "../utils/safeStorage";
 
@@ -371,9 +372,8 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
     }, [filtered, columnsCount]);
 
     const hasAnyContent = useMemo(() => {
-        const sysTagNames = ["hub", "fav", "favourites"];
         return allScripts.some(s => {
-            if (filterTag === "hub") return s.is_running || s.tags.some(t => sysTagNames.includes(t.toLowerCase()));
+            if (filterTag === "hub") return s.is_running || hasHubTag(s.tags);
             if (filterTag === "running") return s.is_running;
             if (filterTag === "hidden") return s.is_hidden;
             if (filterTag === "no_tags") return s.tags.length === 0;

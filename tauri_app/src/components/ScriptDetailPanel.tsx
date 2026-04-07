@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback, useRef, MouseEvent as ReactMouseEvent } from "react";
-import { Script, readScriptContent } from "../api";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { Script } from "../api";
 import { invoke } from "@tauri-apps/api/core";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useTranslation } from "react-i18next";
@@ -7,17 +7,10 @@ import { formatDate } from "../utils/formatDate";
 import TagPickerPopover from "./TagPickerPopover";
 import { CloseIcon, PlayIcon, RestartIcon, InterfaceIcon, PlusIcon, EditIcon, FolderIcon, OpenWithIcon, MinusIcon, PinIcon, CopyIcon } from "./ui/Icons";
 import Tooltip from "./ui/Tooltip";
-import { createHighlighterCore } from "shiki/core";
-import { createOnigurumaEngine } from "shiki/engine/oniguruma";
-import githubDark from "shiki/themes/github-dark-default.mjs";
-import ahk2Grammar from "../syntaxes/ahk2.tmLanguage.json";
-import { safeSetItem } from "../utils/safeStorage";
-
-function formatSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
+import { formatSize } from "../utils/formatSize";
+import { withoutHubTags } from "../constants";
+import { useScriptContent } from "../hooks/useScriptContent";
+import { usePanelResize } from "../hooks/usePanelResize";
 
 function MetaRow({ label, value, mono, copiedLabel, copyLabel }: { label: string; value: string; mono?: boolean; copiedLabel?: string; copyLabel?: string }) {
   const [copied, setCopied] = useState(false);
@@ -35,12 +28,6 @@ function MetaRow({ label, value, mono, copiedLabel, copyLabel }: { label: string
   );
 }
 
-const shikiPromise = createHighlighterCore({
-  themes: [githubDark],
-  langs: [ahk2Grammar as any],
-  engine: createOnigurumaEngine(import("shiki/wasm")),
-});
-
 interface ScriptDetailPanelProps {
   script: Script;
   allUniqueTags: string[];
@@ -57,16 +44,12 @@ interface ScriptDetailPanelProps {
 
 export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendingType, onPinToggle, onClose, onToggle, onRestart, onShowUI, onAddTag, onRemoveTag }: ScriptDetailPanelProps) {
   const { t } = useTranslation();
-  const [content, setContent] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { html: highlightedLinesFromHook, source: content, isLoading: loading } = useScriptContent(script.path);
+  const highlightedLines: string[] = (highlightedLinesFromHook as any) || [];
   const [copied, setCopied] = useState(false);
   const [scriptMeta, setScriptMeta] = useState<{ hash: string; created: string; modified: string; last_run: string } | null>(null);
   const [isEditingTags, setIsEditingTags] = useState(false);
-  const [panelWidth, setPanelWidth] = useState(() => {
-    const saved = localStorage.getItem("ahk_detail_panel_width");
-    return saved ? parseInt(saved) : 420;
-  });
-  const [isResizing, setIsResizing] = useState(false);
+  const { width: panelWidth, setWidth: setPanelWidth, handleProps: resizeHandleProps, isResizing } = usePanelResize("ahk_detail_panel_width", 420, { min: 280 });
   const panelRef = useRef<HTMLDivElement>(null);
   const addBtnRef = useRef<HTMLButtonElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
@@ -85,16 +68,7 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
   }, []);
 
   useEffect(() => {
-    setLoading(true);
-    setContent(null);
     setScriptMeta(null);
-    readScriptContent(script.path).then(c => {
-      setContent(c);
-      setLoading(false);
-    }).catch(() => {
-      setContent(null);
-      setLoading(false);
-    });
     invoke<{ hash: string; created: string; modified: string; last_run: string }>("get_script_meta", { path: script.path })
       .then(setScriptMeta).catch(() => { });
   }, [script.path]);
@@ -116,64 +90,18 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
     setTimeout(() => setCopied(false), 1500);
   }, [script.path]);
 
-  const handleResizeStart = useCallback((e: ReactMouseEvent) => {
-    e.preventDefault();
-    setIsResizing(true);
-    const startX = e.clientX;
-    const startWidth = panelWidth;
-    let currentWidth = startWidth;
-    const parentWidth = panelRef.current?.parentElement?.clientWidth ?? 1200;
-    const maxWidth = parentWidth - 400;
-
-    const onMouseMove = (ev: globalThis.MouseEvent) => {
-      currentWidth = Math.min(maxWidth, Math.max(280, startWidth + (startX - ev.clientX)));
-      setPanelWidth(currentWidth);
-    };
-    const onMouseUp = () => {
-      setIsResizing(false);
-      document.removeEventListener("mousemove", onMouseMove);
-      document.removeEventListener("mouseup", onMouseUp);
-      safeSetItem("ahk_detail_panel_width", String(currentWidth));
-    };
-    document.addEventListener("mousemove", onMouseMove);
-    document.addEventListener("mouseup", onMouseUp);
-  }, [panelWidth]);
-
   const handleEdit = () => invoke("edit_script", { path: script.path });
   const handleOpenFolder = () => invoke("open_in_explorer", { path: script.path });
   const handleOpenWith = () => invoke("open_with", { path: script.path });
 
   const name = script.filename.replace(/\.ahk$/i, "");
-  const [highlightedLines, setHighlightedLines] = useState<string[]>([]);
-  useEffect(() => {
-    if (!content) { setHighlightedLines([]); return; }
-    const plain = content.split("\n").map(l => l.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"));
-    setHighlightedLines(plain);
-    let cancelled = false;
-    shikiPromise.then(shiki => {
-      if (cancelled) return;
-      try {
-        const tokens = shiki.codeToTokensBase(content, { lang: "autohotkey2" });
-        setHighlightedLines(tokens.map(line =>
-          line.map(token => {
-            const color = token.color && token.color !== "#e1e4e8" ? ` style="color:${token.color}"` : "";
-            const escaped = token.content.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-            return color ? `<span${color}>${escaped}</span>` : escaped;
-          }).join("")
-        ));
-      } catch (e) {
-        console.error("Shiki highlight error:", e);
-      }
-    });
-    return () => { cancelled = true; };
-  }, [content]);
-  const displayedTags = script.tags.filter(t => !["hub", "fav", "favourites"].includes(t.toLowerCase()));
+  const displayedTags = withoutHubTags(script.tags);
 
   const panelContent = (
     <>
       {/* Resize handle */}
       <div
-        onMouseDown={handleResizeStart}
+        {...resizeHandleProps}
         className={`absolute left-0 top-0 bottom-0 w-[5px] cursor-col-resize z-50 group hover:bg-indigo-500/30 transition-colors ${!pinned ? "rounded-l-2xl" : ""}`}
       >
         <div className="absolute left-0 top-0 bottom-0 w-px bg-white/[0.06] group-hover:bg-indigo-500/60 transition-colors" />

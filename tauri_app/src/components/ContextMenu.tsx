@@ -2,6 +2,7 @@ import { useState, ReactNode } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useTranslation } from "react-i18next";
 import { EditIcon, FolderIcon, OpenWithIcon, CopyIcon, PinIcon, UnpinIcon, PlusIcon, CloseIcon, EyeOffIcon, TagIcon } from "./ui/Icons";
+import { hasHubTag, isHubTag } from "../constants";
 
 interface ContextMenuState {
   x: number;
@@ -91,12 +92,12 @@ export default function ContextMenu({ contextMenu, onClose, onStartRenameTag, on
       >
         {contextMenu.type === "script" && contextMenu.data && (
           <>
-            {contextMenu.data.tags.some((tag: string) => ["hub", "fav", "favourites"].includes(tag.toLowerCase())) ? (
+            {hasHubTag(contextMenu.data.tags) ? (
               <ContextMenuItem
                 label={t("context.unpin")}
                 icon={<UnpinIcon />}
                 onClick={async () => {
-                  const tagToRemove = contextMenu.data.tags.find((tag: string) => ["hub", "fav", "favourites"].includes(tag.toLowerCase()));
+                  const tagToRemove = contextMenu.data.tags.find((tag: string) => isHubTag(tag));
                   if (tagToRemove) await invoke("remove_script_tag", { id: contextMenu.data.id, tag: tagToRemove });
                   onClose();
                 }}
