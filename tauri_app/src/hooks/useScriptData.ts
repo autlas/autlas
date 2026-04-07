@@ -54,7 +54,10 @@ export function useScriptData({ onTagsLoaded, onRunningCountChange, refreshKey, 
             }
             setAllScripts(prev => {
                 const prevMap = new Map(prev.map(s => [s.path, s]));
-                let anyChanged = false;
+                // Length mismatch = at least one removal/addition. Without
+                // this we'd silently keep blacklisted/deleted scripts on
+                // screen until something else changed.
+                let anyChanged = prev.length !== data.length;
 
                 const merged = data.map(d => {
                     const p = prevMap.get(d.path);

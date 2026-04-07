@@ -10,7 +10,7 @@ const TagSectionHeader = ({ tag, isCollapsed, onToggle, runningCount }: { tag: s
     const tagIcon = useTreeStore(s => s.tagIcons[tag]);
     return (
         <div className="flex items-center mb-1 mt-12 first:mt-2 px-2 sticky top-0 z-40 py-4 cursor-pointer select-none group" onClick={onToggle}>
-            <span className="text-white/15 flex-shrink-0">
+            <span className="text-white/30 flex-shrink-0">
                 {tagIcon ? <TagIconSvg name={tagIcon} size={32} /> : <TagDotIcon size={32} />}
             </span>
             <span className="text-[22px] font-black uppercase tracking-[0.15em] text-white/30 flex items-center leading-none ml-5">
