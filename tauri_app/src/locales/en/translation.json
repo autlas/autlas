@@ -67,7 +67,7 @@
         "system_tray": "System Tray",
         "script_library": "Script Library",
         "scripts_count": "scripts",
-        "blacklist": "Excluded folders",
+                "blacklist": "Excluded folders",
         "blacklist_info": "Folders skipped during scan. Useful for nested junk inside a scanned root.",
         "no_blacklist": "No excluded folders",
         "add_blacklist": "Exclude folder",

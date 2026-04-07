@@ -1,9 +1,13 @@
 import { useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
+import Fuse from "fuse.js";
 import { Script } from "../api";
 import { TreeNode } from "../types/script";
 import { useTreeStore } from "../store/useTreeStore";
 import { hasHubTag, withoutHubTags } from "../constants";
+
+/** Precomputed match ranges for highlighting, keyed by script path. */
+export type SearchMatches = Map<string, { filename?: ReadonlyArray<readonly [number, number]>; path?: ReadonlyArray<readonly [number, number]> }>;
 
 interface UseScriptFilterOptions {
     allScripts: Script[];
@@ -22,20 +26,94 @@ export function useScriptFilter({ allScripts, filterTag, searchQuery, sortBy }: 
         return Array.from(tags).sort();
     }, [allScripts]);
 
+    const searchMatchesRef = useRef<SearchMatches>(new Map());
+
     const filtered = useMemo(() => {
         const rawQuery = searchQuery.trim().toLowerCase();
+        const matches: SearchMatches = new Map();
 
-        const applySearch = (list: Script[]) => {
-            if (!rawQuery) return list;
+        const applySearch = (list: Script[]): Script[] => {
+            if (!rawQuery) { searchMatchesRef.current = matches; return list; }
+
+            // Keep literal prefixes (`file:`, `path:`) as plain substring matching.
+            // Power-user escape hatch: no ranking, no typo tolerance — they asked
+            // for exact. HighlightText already handles that via indexOf.
             if (rawQuery.startsWith("file:")) {
                 const q = rawQuery.slice(5).trim();
+                searchMatchesRef.current = matches;
                 return q ? list.filter(s => s.filename.toLowerCase().includes(q)) : list;
             }
             if (rawQuery.startsWith("path:")) {
                 const q = rawQuery.slice(5).trim();
+                searchMatchesRef.current = matches;
                 return q ? list.filter(s => s.path.toLowerCase().replace(s.filename.toLowerCase(), "").includes(q)) : list;
             }
-            return list.filter(s => s.filename.toLowerCase().includes(rawQuery) || s.path.toLowerCase().includes(rawQuery));
+
+            // Two-pass strategy:
+            //   filename → fuzzy (forgive typos like "mangaer" → "manager")
+            //   path     → strict substring (no fuzzy, no fake hits in deep
+            //              system paths like "Packages" matching "ahk")
+            //
+            // Filename hits ranked first, then path-only hits appended.
+            const lowerQ = rawQuery;
+
+            const collectPathSubstringHits = (excluded: Set<string>) => {
+                const out: Script[] = [];
+                for (const s of list) {
+                    if (excluded.has(s.path)) continue;
+                    // Search the directory portion only — basename is already
+                    // covered by the filename pass.
+                    const dirPart = (s.path || "")
+                        .toLowerCase()
+                        .replace((s.filename || "").toLowerCase(), "");
+                    const idx = dirPart.indexOf(lowerQ);
+                    if (idx !== -1) {
+                        // Range is into the original `path` rendering. We don't
+                        // currently render path strings inside script rows
+                        // (folders use TreeNodeRenderer which has its own
+                        // highlighter), so leaving the range out is fine —
+                        // the script still appears in results without a
+                        // highlight on its filename.
+                        const existing = matches.get(s.path) ?? {};
+                        matches.set(s.path, { ...existing, path: [[idx, idx + lowerQ.length - 1]] });
+                        out.push(s);
+                    }
+                }
+                return out;
+            };
+
+            // Fuzzy on filename, literal on path.
+            //
+            // threshold: 0.4 — Bitap counts a single transposition as TWO
+            // edits, so for a 3-char query at 0.3 the error budget is 0.9
+            // (less than one edit), which silently kills typos like "akh"
+            // → "ahk". 0.4 raises the budget enough to forgive one swap on
+            // short queries while still rejecting unrelated noise.
+            const fuse = new Fuse(list, {
+                keys: [
+                    { name: "filename", getFn: (s) => (s.filename || "").replace(/\.ahk$/i, "") },
+                ],
+                includeMatches: true,
+                ignoreLocation: true,
+                threshold: 0.4,
+                minMatchCharLength: 2,
+                findAllMatches: true,
+            });
+            const results = fuse.search(rawQuery);
+            const filenameHitPaths = new Set<string>();
+            const filenameHits: Script[] = [];
+            for (const r of results) {
+                const entry: { filename?: [number, number][] } = {};
+                for (const m of r.matches ?? []) {
+                    if (m.key === "filename") entry.filename = m.indices.map(([a, b]) => [a, b]);
+                }
+                matches.set(r.item.path, entry);
+                filenameHits.push(r.item);
+                filenameHitPaths.add(r.item.path);
+            }
+            const pathHits = collectPathSubstringHits(filenameHitPaths);
+            searchMatchesRef.current = matches;
+            return [...filenameHits, ...pathHits];
         };
 
         const sortList = (list: Script[]) => {
@@ -213,5 +291,5 @@ export function useScriptFilter({ allScripts, filterTag, searchQuery, sortBy }: 
         return result;
     }, [filtered, filterTag, scriptSortFn]);
 
-    return { filtered, tree, groupedHub, allUniqueTags };
+    return { filtered, tree, groupedHub, allUniqueTags, searchMatches: searchMatchesRef.current };
 }

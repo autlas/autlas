@@ -52,7 +52,7 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
     const { allScripts, setAllScripts, loading, isFetching, error, burstIntervalsRef, toggleHiddenByPath } = data;
 
     // ----- Filtering: filtered list, tree, groupedHub, allUniqueTags -----
-    const { filtered, tree, groupedHub, allUniqueTags } = useScriptFilter({
+    const { filtered, tree, groupedHub, allUniqueTags, searchMatches } = useScriptFilter({
         allScripts, filterTag, searchQuery, sortBy
     });
 
@@ -179,7 +179,7 @@ export function useScriptTree({ filterTag, onTagsLoaded, onCustomDragStart, sear
     }, [onCustomDragStart]);
 
     return {
-        loading, isFetching, error, allScripts, filtered, tree, groupedHub,
+        loading, isFetching, error, allScripts, filtered, tree, groupedHub, searchMatches,
         isAllExpanded: keyboard.isAllExpanded, allUniqueTags, searchQuery,
         popoverRef, folderRefs,
         setSearchQuery,

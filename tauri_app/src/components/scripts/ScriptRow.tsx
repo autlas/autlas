@@ -99,7 +99,7 @@ const ScriptRow = memo(function ScriptRow({
                 <TruncatedTooltip text={s.filename.replace(/\.ahk$/i, '')}>
                     <span className={`text-base font-medium tracking-tight truncate min-w-0 transition-colors stabilize-text ${!isDragging ? (isEditing || isContextMenuOpen ? 'text-indigo-400' : 'text-secondary/90 group-hover:text-white') : 'text-secondary/50'
                         }`}>
-                        <HighlightText text={s.filename.replace(/\.ahk$/i, '')} variant="file" />
+                        <HighlightText text={s.filename.replace(/\.ahk$/i, '')} variant="file" scriptPath={s.path} />
                     </span>
                 </TruncatedTooltip>
 

@@ -36,7 +36,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
     }, []);
 
     const {
-        loading, isFetching, allScripts, filtered, tree, groupedHub,
+        loading, isFetching, allScripts, filtered, tree, groupedHub, searchMatches,
         isAllExpanded, allUniqueTags,
         popoverRef, folderRefs,
         toggleFolder, toggleAll, setFolderExpansionRecursive,
@@ -414,7 +414,8 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
                     query: searchQuery.toLowerCase().includes("file:") ? searchQuery.replace(/file:/gi, "").trim() :
                         searchQuery.toLowerCase().includes("path:") ? searchQuery.replace(/path:/gi, "").trim() : searchQuery,
                     prefix: searchQuery.toLowerCase().startsWith("file:") ? "file" :
-                        searchQuery.toLowerCase().startsWith("path:") ? "path" : null
+                        searchQuery.toLowerCase().startsWith("path:") ? "path" : null,
+                    matches: searchMatches,
                 }}>
                     {gridEverMounted && <div className={viewMode !== "tree" ? "" : "hidden"}>
                         <ScriptGridView
@@ -492,8 +493,8 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
                     top: 12,
                     left: 12,
                     right: 12,
-                    paddingLeft: 12,
-                    paddingRight: 12,
+                    paddingLeft: 8,
+                    paddingRight: 8,
                     backgroundColor: 'rgba(0,0,0,0.01)',
                     backdropFilter: 'blur(20px)',
                     WebkitBackdropFilter: 'blur(20px)',

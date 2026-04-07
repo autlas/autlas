@@ -83,7 +83,7 @@ const HubScriptCard = memo(function HubScriptCard({
                 <div className="flex items-center overflow-hidden flex-1 -mt-[8px] gap-2">
                     <TruncatedTooltip text={s.filename.replace(/\.ahk$/i, '')}>
                         <span className={`text-xl font-black truncate pr-0 transition-colors tracking-tight stabilize-text pointer-events-auto ${!isDragging ? (isEditing || isContextMenuOpen ? 'text-indigo-400' : 'text-secondary') : 'text-secondary'}`}>
-                            <HighlightText text={s.filename.replace(/\.ahk$/i, '')} variant="file" />
+                            <HighlightText text={s.filename.replace(/\.ahk$/i, '')} variant="file" scriptPath={s.path} />
                         </span>
                     </TruncatedTooltip>
                     <Tooltip text={isHub ? t("tooltips.remove_from_hub") : t("tooltips.add_to_hub")}>

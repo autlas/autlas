@@ -121,6 +121,7 @@ export default function SettingsPanel({
     { id: "jk" as const, label: "jk" },
   ], []);
 
+
   return (
     <div className="max-w-[1200px] mx-auto w-full space-y-12 py-8">
 
@@ -223,6 +224,7 @@ export default function SettingsPanel({
             className="flex-shrink-0 w-[145px]"
           />
         </div>
+
 
         <div className="flex justify-between items-center pt-4 border-t border-white/5">
           <div className="flex flex-col">
