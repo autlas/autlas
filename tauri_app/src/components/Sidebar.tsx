@@ -11,28 +11,13 @@ interface SidebarProps {
   activeTab: string;
   viewMode: "tree" | "hub" | "settings";
   userTags: string[];
-  draggedScript: { id: string; path: string; filename: string; tags: string[] } | null;
-  draggedTag: string | null;
-  dragOverTag: string | null;
-  isCreatingTagFor: { id: string; path: string; filename: string; tags: string[] } | null;
-  isRenamingTag: string | null;
-  editTagName: string;
   runningCount: number;
   isRefreshing: boolean;
   isHoveringRefresh: boolean;
   lastScanTimestamp: number;
-  activeTabPressed: string | null;
-  newTagName: string;
 
   onTabClick: (tab: string) => void;
   setActiveTab: (tab: string) => void;
-  setDragOverTag: (tag: string | null) => void;
-  setDraggedTag: (tag: string | null) => void;
-  setIsCreatingTagFor: (data: any) => void;
-  setNewTagName: (name: string) => void;
-  setIsRenamingTag: (tag: string | null) => void;
-  setEditTagName: (name: string) => void;
-  setActiveTabPressed: (tab: string | null) => void;
   setDragGhostSize: (size: { w: number; h: number }) => void;
   setContextMenu: (menu: any) => void;
   setUserTags: (tags: string[]) => void;
@@ -50,7 +35,15 @@ interface SidebarProps {
   formatLastScan: (ts: number, now: number) => React.ReactNode;
 }
 
-function navItemClass(tab: string, isTag: boolean, state: Pick<SidebarProps, "activeTab" | "draggedScript" | "draggedTag" | "dragOverTag" | "activeTabPressed">): string {
+type NavItemState = {
+  activeTab: string;
+  draggedScript: { id: string; path: string; filename: string; tags: string[] } | null;
+  draggedTag: string | null;
+  dragOverTag: string | null;
+  activeTabPressed: string | null;
+};
+
+function navItemClass(tab: string, isTag: boolean, state: NavItemState): string {
   return `
     px-[13px] h-12 rounded-2xl cursor-pointer text-sm font-bold transition-[background-color,opacity,filter,box-shadow,transform] duration-200 flex items-center justify-between relative z-50
     will-change-transform select-none long-press-shrink ${state.activeTabPressed === tab ? "active-left" : ""}
@@ -69,15 +62,32 @@ function navItemClass(tab: string, isTag: boolean, state: Pick<SidebarProps, "ac
 }
 
 export default function Sidebar({
-  activeTab, viewMode, userTags, draggedScript, draggedTag, dragOverTag, isCreatingTagFor, isRenamingTag, editTagName,
-  runningCount, isRefreshing, isHoveringRefresh, lastScanTimestamp, activeTabPressed, newTagName,
-  onTabClick, setActiveTab, setDragOverTag, setDraggedTag, setIsCreatingTagFor, setNewTagName, setIsRenamingTag, setEditTagName,
-  setActiveTabPressed, setDragGhostSize, setContextMenu, setUserTags, triggerScan, onRenameTag, onRefresh, onHoveringRefresh, onCustomDrop,
+  activeTab, viewMode, userTags,
+  runningCount, isRefreshing, isHoveringRefresh, lastScanTimestamp,
+  onTabClick, setActiveTab,
+  setDragGhostSize, setContextMenu, setUserTags, triggerScan, onRenameTag, onRefresh, onHoveringRefresh, onCustomDrop,
   settingsIconRef, refreshIconRef, ghostRef, tagDragOffsetYRef, tagDragOffsetXRef, pendingTagDragRef, formatLastScan,
 }: SidebarProps) {
   const { t } = useTranslation();
   const sidebarCollapsed = useTreeStore(s => s.sidebarCollapsed);
   const tagIcons = useTreeStore(s => s.tagIcons);
+
+  // Drag + tag editing state from store (one-by-one selectors)
+  const draggedScript = useTreeStore(s => s.draggedScript);
+  const draggedTag = useTreeStore(s => s.draggedTag);
+  const dragOverTag = useTreeStore(s => s.dragOverTag);
+  const isCreatingTagFor = useTreeStore(s => s.isCreatingTagFor);
+  const isRenamingTag = useTreeStore(s => s.isRenamingTag);
+  const editTagName = useTreeStore(s => s.editTagName);
+  const newTagName = useTreeStore(s => s.newTagName);
+  const activeTabPressed = useTreeStore(s => s.activeTabPressed);
+  const setDragOverTag = useTreeStore(s => s.setDragOverTag);
+  const setDraggedTag = useTreeStore(s => s.setDraggedTag);
+  const setIsCreatingTagFor = useTreeStore(s => s.setIsCreatingTagFor);
+  const setNewTagName = useTreeStore(s => s.setNewTagName);
+  const setIsRenamingTag = useTreeStore(s => s.setIsRenamingTag);
+  const setEditTagName = useTreeStore(s => s.setEditTagName);
+  const setActiveTabPressed = useTreeStore(s => s.setActiveTabPressed);
 
   const [currentTime, setCurrentTime] = useState(Date.now());
   useEffect(() => {

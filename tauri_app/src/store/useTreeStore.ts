@@ -1,7 +1,30 @@
 import { create } from "zustand";
 import { safeSetItem } from "../utils/safeStorage";
 
+type DraggedScript = { id: string; path: string; filename: string; tags: string[] } | null;
+
 interface TreeStore {
+  // Drag state (ephemeral)
+  draggedScript: DraggedScript;
+  setDraggedScript: (s: DraggedScript) => void;
+  draggedTag: string | null;
+  setDraggedTag: (t: string | null) => void;
+  dragOverTag: string | null;
+  setDragOverTag: (t: string | null) => void;
+  clearDragState: () => void;
+
+  // Tag editing UI state (ephemeral)
+  isCreatingTagFor: DraggedScript;
+  setIsCreatingTagFor: (s: DraggedScript) => void;
+  isRenamingTag: string | null;
+  setIsRenamingTag: (t: string | null) => void;
+  editTagName: string;
+  setEditTagName: (v: string) => void;
+  newTagName: string;
+  setNewTagName: (v: string) => void;
+  activeTabPressed: string | null;
+  setActiveTabPressed: (t: string | null) => void;
+
   // Expand/collapse state
   expandedFolders: Record<string, boolean>;
   setExpandedFolders: (folders: Record<string, boolean>) => void;
@@ -93,6 +116,27 @@ interface TreeStore {
 }
 
 export const useTreeStore = create<TreeStore>((set) => ({
+  // Drag state
+  draggedScript: null,
+  setDraggedScript: (s) => set({ draggedScript: s }),
+  draggedTag: null,
+  setDraggedTag: (t) => set({ draggedTag: t }),
+  dragOverTag: null,
+  setDragOverTag: (t) => set({ dragOverTag: t }),
+  clearDragState: () => set({ draggedScript: null, draggedTag: null, dragOverTag: null }),
+
+  // Tag editing UI state
+  isCreatingTagFor: null,
+  setIsCreatingTagFor: (s) => set({ isCreatingTagFor: s }),
+  isRenamingTag: null,
+  setIsRenamingTag: (t) => set({ isRenamingTag: t }),
+  editTagName: "",
+  setEditTagName: (v) => set({ editTagName: v }),
+  newTagName: "",
+  setNewTagName: (v) => set({ newTagName: v }),
+  activeTabPressed: null,
+  setActiveTabPressed: (t) => set({ activeTabPressed: t }),
+
   // Expand/collapse
   expandedFolders: {},
   setExpandedFolders: (folders) => set({ expandedFolders: folders }),

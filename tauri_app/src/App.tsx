@@ -27,13 +27,17 @@ function App() {
   const { t } = useTranslation();
   const [userTags, setUserTags] = useState<string[]>([]);
 
-  const [draggedScript, setDraggedScript] = useState<{ id: string; path: string; filename: string; tags: string[] } | null>(null);
-  const [dragOverTag, setDragOverTag] = useState<string | null>(null);
-  const [isCreatingTagFor, setIsCreatingTagFor] = useState<{ id: string; path: string; filename: string; tags: string[] } | null>(null);
-  const [newTagName, setNewTagName] = useState("");
-  const [draggedTag, setDraggedTag] = useState<string | null>(null);
-  const [isRenamingTag, setIsRenamingTag] = useState<string | null>(null);
-  const [editTagName, setEditTagName] = useState("");
+  const draggedScript = useTreeStore(s => s.draggedScript);
+  const setDraggedScript = useTreeStore(s => s.setDraggedScript);
+  const dragOverTag = useTreeStore(s => s.dragOverTag);
+  const setDragOverTag = useTreeStore(s => s.setDragOverTag);
+  const draggedTag = useTreeStore(s => s.draggedTag);
+  const setDraggedTag = useTreeStore(s => s.setDraggedTag);
+  const setIsCreatingTagFor = useTreeStore(s => s.setIsCreatingTagFor);
+  const setNewTagName = useTreeStore(s => s.setNewTagName);
+  const setIsRenamingTag = useTreeStore(s => s.setIsRenamingTag);
+  const setEditTagName = useTreeStore(s => s.setEditTagName);
+  const setActiveTabPressedStore = useTreeStore(s => s.setActiveTabPressed);
   const [refreshKey, setRefreshKey] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [everythingToast, setEverythingToast] = useState<"installed" | "not_installed" | "launching" | "installing" | "started" | null>(null);
@@ -42,7 +46,6 @@ function App() {
   const [orphanMatches, setOrphanMatches] = useState<PendingMatch[]>([]);
   const [showOrphanDialog, setShowOrphanDialog] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; type: "script" | "tag" | "folder" | "general"; data: any } | null>(null);
-  const [activeTabPressed, setActiveTabPressed] = useState<string | null>(null);
   const iconPickerTag = useTreeStore(s => s.iconPickerTag);
   const setIconPickerTag = useTreeStore(s => s.setIconPickerTag);
   const [runningCount, setRunningCount] = useState(0);
@@ -432,8 +435,8 @@ function App() {
     }
 
     pendingTagDragRef.current = null;
-    setActiveTabPressed(null);
-  }, [draggedScript, dragOverTag, draggedTag, userTags]);
+    setActiveTabPressedStore(null);
+  }, [draggedScript, dragOverTag, draggedTag, userTags, setActiveTabPressedStore, setDraggedScript, setDragOverTag, setDraggedTag, setIsCreatingTagFor, setNewTagName]);
 
   useEffect(() => {
     const handleWindowMouseUp = () => {
@@ -460,27 +463,12 @@ function App() {
         activeTab={activeTab}
         viewMode={viewMode}
         userTags={userTags}
-        draggedScript={draggedScript}
-        draggedTag={draggedTag}
-        dragOverTag={dragOverTag}
-        isCreatingTagFor={isCreatingTagFor}
-        isRenamingTag={isRenamingTag}
-        editTagName={editTagName}
         runningCount={runningCount}
         isRefreshing={isRefreshing}
         isHoveringRefresh={isHoveringRefresh}
         lastScanTimestamp={lastScanTimestamp}
-        activeTabPressed={activeTabPressed}
-        newTagName={newTagName}
         onTabClick={handleTabClick}
         setActiveTab={setActiveTab}
-        setDragOverTag={setDragOverTag}
-        setDraggedTag={setDraggedTag}
-        setIsCreatingTagFor={setIsCreatingTagFor}
-        setNewTagName={setNewTagName}
-        setIsRenamingTag={setIsRenamingTag}
-        setEditTagName={setEditTagName}
-        setActiveTabPressed={setActiveTabPressed}
         setDragGhostSize={setDragGhostSize}
         setContextMenu={setContextMenu}
         setUserTags={setUserTags}

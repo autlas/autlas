@@ -162,6 +162,14 @@ export function useScriptActions({ setAllScripts, burstIntervalsRef }: UseScript
         const rewrite = (tags: string[]) => tags.map(t => t.toLowerCase() === lo ? newTag : t);
         setCachedScripts(getCachedScripts().map(s => ({ ...s, tags: rewrite(s.tags) })));
         setAllScripts(prev => prev.map(s => ({ ...s, tags: rewrite(s.tags) })));
+        // Перенести иконку тега под новое имя — иначе после rename иконка
+        // в Sidebar/picker пропадает (store индексирует по имени тега).
+        const store = useTreeStore.getState();
+        const existingIcon = store.tagIcons[oldTag];
+        if (existingIcon !== undefined) {
+            store.removeTagIcon(oldTag);
+            store.setTagIcon(newTag, existingIcon);
+        }
         try {
             await invoke("rename_tag", { oldTag, newTag });
         } catch (e) {
