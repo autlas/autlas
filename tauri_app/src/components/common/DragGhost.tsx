@@ -11,16 +11,20 @@ interface DragGhostProps {
 }
 
 export default function DragGhost({ ghostRef, draggedScript, draggedTag, activeTab, dragGhostSize }: DragGhostProps) {
+  // Collapsed sidebar tag tiles are square (~48×48). The default ghost shape
+  // (wide pill for expanded mode) would render them as rectangles, which the
+  // user rightly flagged as off. Detect square source and mirror it.
+  const isSquareSource = draggedTag && Math.abs(dragGhostSize.w - dragGhostSize.h) < 4;
   return (
     <div
       ref={ghostRef}
       data-dragging="false"
       data-drag-type={draggedTag ? "tag" : draggedScript ? "script" : "none"}
-      className={`drag-ghost-container fixed z-[99999] flex items-center justify-between ${draggedScript || draggedTag ? "opacity-100" : "opacity-0 hidden"}
+      className={`drag-ghost-container fixed z-[99999] flex items-center ${isSquareSource ? 'justify-center' : 'justify-between'} ${draggedScript || draggedTag ? "opacity-100" : "opacity-0 hidden"}
         ${draggedTag
           ? (draggedTag === activeTab
-            ? "w-[240px] px-6 h-12 rounded-2xl shadow-xl text-white/80 font-bold"
-            : "w-[240px] px-6 h-12 rounded-2xl shadow-2xl text-secondary font-bold"
+            ? "rounded-2xl shadow-xl text-white/80 font-bold overflow-hidden"
+            : "rounded-2xl shadow-2xl text-secondary font-bold overflow-hidden"
           )
           : (draggedScript ? "bg-black/20 backdrop-blur-md border border-white/10 shadow-2xl rounded-2xl px-6 py-3 text-white font-bold whitespace-nowrap space-x-3" : "")
         }
@@ -28,10 +32,13 @@ export default function DragGhost({ ghostRef, draggedScript, draggedTag, activeT
       style={{
         left: 0,
         top: 0,
-        width: draggedTag ? `${dragGhostSize.w + 12}px` : "auto",
-        height: draggedTag ? `${dragGhostSize.h + 2}px` : "auto",
-        paddingLeft: draggedTag ? "19px" : undefined,
-        paddingRight: draggedTag ? "19px" : undefined,
+        // For square source the ghost grows by the same small +2 delta on
+        // both axes (matching the original rect-mode vertical delta), so the
+        // cursor stays near the visual center and the icon doesn't jump.
+        width: draggedTag ? `${dragGhostSize.w + (isSquareSource ? 2 : 12)}px` : "auto",
+        height: draggedTag ? `${(isSquareSource ? dragGhostSize.w : dragGhostSize.h) + 2}px` : "auto",
+        paddingLeft: draggedTag ? (isSquareSource ? "0" : "19px") : undefined,
+        paddingRight: draggedTag ? (isSquareSource ? "0" : "19px") : undefined,
         willChange: "transform, opacity",
         backgroundColor: draggedTag
           ? (draggedTag === activeTab ? "var(--bg-tag-active-hover)" : "var(--bg-tag-drag)")
@@ -53,7 +60,9 @@ export default function DragGhost({ ghostRef, draggedScript, draggedTag, activeT
               : <TagDotIcon size={22} weight={draggedTag === activeTab ? "fill" : "bold"} />
             }
           </span>
-          <span className="text-sm font-bold truncate flex-1 ml-3">{draggedTag}</span>
+          {!isSquareSource && (
+            <span className="text-sm font-bold truncate flex-1 ml-3">{draggedTag}</span>
+          )}
         </>
       )}
     </div>

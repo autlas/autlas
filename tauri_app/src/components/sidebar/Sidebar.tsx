@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import { createPortal } from "react-dom";
 import { invoke } from "@tauri-apps/api/core";
 import { useTranslation } from "react-i18next";
 import { GearIcon, TagIcon, TagDotIcon, TagIconSvg, LayersIcon, TagOffIcon, SyncIcon, ChevronDownIcon } from "../ui/Icons";
@@ -88,6 +89,43 @@ export default function Sidebar({
   const setIsRenamingTag = useTreeStore(s => s.setIsRenamingTag);
   const setEditTagName = useTreeStore(s => s.setEditTagName);
   const setActiveTabPressed = useTreeStore(s => s.setActiveTabPressed);
+
+  const newTagLiRef = useRef<HTMLLIElement>(null);
+  // Position for the floating new-tag input shown in collapsed mode. The
+  // "+" li unmounts the instant draggedScript is released, so by the time
+  // `isCreatingTagFor` flips on and a useEffect fires, the ref is already
+  // null. Work around it by tracking the rect in a ref while the "+" exists
+  // (via a callback ref that fires on mount/layout) and then reading it
+  // when the creation popover needs to render.
+  const lastNewTagRectRef = useRef<{ left: number; top: number } | null>(null);
+  const newTagLiCbRef = useCallback((el: HTMLLIElement | null) => {
+    (newTagLiRef as React.MutableRefObject<HTMLLIElement | null>).current = el;
+    if (el) {
+      const r = el.getBoundingClientRect();
+      // Align left edge with the sidebar icon column so the input's
+      // TagDotIcon lands directly under all the other collapsed tiles.
+      // -1 compensates for the portal's 1px border so the icon inside
+      // lands exactly where the static sidebar icons sit.
+      lastNewTagRectRef.current = { left: r.left - 1, top: r.top };
+    }
+  }, []);
+  const [collapsedInputPos, setCollapsedInputPos] = useState<{ left: number; top: number } | null>(null);
+  useEffect(() => {
+    if (!isCreatingTagFor || !sidebarCollapsed) { setCollapsedInputPos(null); return; }
+    setCollapsedInputPos(lastNewTagRectRef.current);
+  }, [isCreatingTagFor, sidebarCollapsed]);
+
+  // Same popover trick for the rename flow. The tag li is still mounted
+  // when rename starts, so we can read its rect directly by selector —
+  // no persisted-ref dance needed.
+  const [collapsedRenamePos, setCollapsedRenamePos] = useState<{ left: number; top: number } | null>(null);
+  useEffect(() => {
+    if (!isRenamingTag || !sidebarCollapsed) { setCollapsedRenamePos(null); return; }
+    const el = document.querySelector<HTMLLIElement>(`li[data-sidebar-tag="${CSS.escape(isRenamingTag)}"]`);
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    setCollapsedRenamePos({ left: r.left - 1, top: r.top });
+  }, [isRenamingTag, sidebarCollapsed]);
 
   const [currentTime, setCurrentTime] = useState(Date.now());
   useEffect(() => {
@@ -211,11 +249,11 @@ export default function Sidebar({
             const item = (
               <li
                 key={tab.id}
-                onMouseEnter={() => { if (!collapsed && draggedScript && !draggedScript.tags.includes("hub")) setDragOverTag(tab.id); }}
-                onMouseLeave={() => { if (!collapsed && draggedScript && dragOverTag === tab.id) setDragOverTag(null); }}
-                className={`h-[52px] rounded-2xl cursor-pointer text-sm font-bold flex items-center whitespace-nowrap relative px-[10px] -ml-[2px]
+                onMouseEnter={() => { if (draggedScript && !draggedScript.tags.includes("hub")) setDragOverTag(tab.id); }}
+                onMouseLeave={() => { if (draggedScript && dragOverTag === tab.id) setDragOverTag(null); }}
+                className={`${collapsed ? 'w-[52px] flex-shrink-0' : ''} h-[52px] rounded-2xl cursor-pointer text-sm font-bold flex items-center whitespace-nowrap relative px-[10px] -ml-[2px]
                   justify-between
-                  ${draggedScript && !collapsed
+                  ${draggedScript
                     ? (draggedScript.tags.includes("hub")
                       ? "opacity-20 blur-[1px]"
                       : `text-indigo-400 tag-pulse-target ${dragOverTag === tab.id ? "tag-drop-hover" : ""}`)
@@ -225,7 +263,7 @@ export default function Sidebar({
                   }`}
                 style={{
                   backgroundColor: (activeTab === tab.id && viewMode !== "settings") ? "transparent"
-                    : (!collapsed && draggedScript && dragOverTag === tab.id) ? undefined
+                    : (draggedScript && dragOverTag === tab.id) ? undefined
                       : "var(--bg-tag)",
                 }}
                 onClick={() => !draggedScript && onTabClick(tab.id)}
@@ -265,7 +303,7 @@ export default function Sidebar({
                 key={tab.id}
                 className={`h-12 rounded-2xl cursor-pointer text-sm font-bold transition-[background-color,opacity,filter,box-shadow] duration-200 flex items-center overflow-hidden whitespace-nowrap ${collapsed ? 'w-12' : ''} px-[13px]
                   justify-between
-                  ${!collapsed && draggedScript && tab.id !== dragOverTag ? "opacity-20 blur-[1px]" : ""}
+                  ${draggedScript && tab.id !== dragOverTag ? "opacity-20 blur-[1px]" : ""}
                   ${activeTab === tab.id && viewMode !== "settings"
                     ? "text-white/80 shadow-lg tag-active"
                     : "text-tertiary hover:text-secondary tag-hover"
@@ -292,7 +330,7 @@ export default function Sidebar({
             <li
               className={`h-12 rounded-2xl cursor-pointer text-sm font-bold transition-[background-color,opacity,filter,box-shadow] duration-200 flex items-center overflow-hidden whitespace-nowrap ${collapsed ? 'w-12' : ''} px-[13px]
                 justify-between
-                ${!collapsed && draggedScript ? "opacity-20 blur-[1px]" : ""}
+                ${draggedScript ? "opacity-20 blur-[1px]" : ""}
                 ${activeTab === "tags" && viewMode !== "settings"
                   ? "text-white/80 shadow-lg tag-active"
                   : "text-tertiary hover:text-secondary tag-hover"
@@ -320,9 +358,9 @@ export default function Sidebar({
               const item = (
                 <li
                   key={tag}
-                  onMouseDown={(e) => !collapsed && handleTagDragStart(e, tag)}
+                  data-sidebar-tag={tag}
+                  onMouseDown={(e) => handleTagDragStart(e, tag)}
                   onMouseEnter={() => {
-                    if (collapsed) return;
                     if (draggedTag && draggedTag !== tag) {
                       const newOrder = [...userTags];
                       const dragIdx = newOrder.indexOf(draggedTag);
@@ -343,28 +381,17 @@ export default function Sidebar({
                     }
                   }}
                   onMouseLeave={() => {
-                    if (collapsed) return;
                     setActiveTabPressed(null);
                     draggedScript && dragOverTag === tag && setDragOverTag(null);
                   }}
-                  className={collapsed
-                    ? `w-12 px-[13px] h-12 rounded-2xl cursor-pointer text-sm font-bold transition-[background-color,opacity,filter,box-shadow] duration-200 flex items-center justify-between overflow-hidden whitespace-nowrap
-                      ${activeTab === tag && viewMode !== "settings"
-                      ? "text-white/80 shadow-lg tag-active"
-                      : "text-tertiary hover:text-secondary tag-hover"
-                    }`
-                    : navItemClass(tag, true, { activeTab, draggedScript, draggedTag, dragOverTag, activeTabPressed })
-                  }
-                  style={collapsed
-                    ? { backgroundColor: activeTab === tag ? "var(--bg-tag-active)" : "var(--bg-tag)" }
-                    : {
+                  className={`${collapsed ? 'w-12 aspect-square overflow-hidden' : ''} ${navItemClass(tag, true, { activeTab, draggedScript, draggedTag, dragOverTag, activeTabPressed })}`}
+                  style={{
                       backgroundColor: (dragOverTag === tag || (draggedScript && !draggedScript.tags.includes(tag)))
                         ? undefined
                         : (activeTab === tag ? "var(--bg-tag-active)" : "var(--bg-tag)"),
                       // @ts-ignore
                       viewTransitionName: `tag-${tag.replace(/\s+/g, "-")}`,
-                    }
-                  }
+                    }}
                   onClick={() => { if (!draggedScript) onTabClick(tag); }}
                 >
                   {isRenamingTag === tag && !collapsed ? (
@@ -413,9 +440,10 @@ export default function Sidebar({
               );
               return collapsed ? <Tooltip key={tag} text={tag} side="right">{item}</Tooltip> : item;
             })}
-            {!collapsed && draggedScript && (
+            {draggedScript && (
               <li
-                className={navItemClass("new-tag", true, { activeTab, draggedScript, draggedTag, dragOverTag, activeTabPressed })}
+                ref={newTagLiCbRef}
+                className={`${collapsed ? 'w-12 aspect-square overflow-hidden' : ''} ${navItemClass("new-tag", true, { activeTab, draggedScript, draggedTag, dragOverTag, activeTabPressed })}`}
                 onMouseEnter={() => setDragOverTag("new-tag")}
                 onMouseLeave={() => dragOverTag === "new-tag" && setDragOverTag(null)}
               >
@@ -449,6 +477,94 @@ export default function Sidebar({
                   />
                 </div>
               </li>
+            )}
+            {collapsed && isCreatingTagFor && collapsedInputPos && createPortal(
+              <div
+                className={`border border-white/10 ${navItemClass("", true, { activeTab, draggedScript, draggedTag, dragOverTag, activeTabPressed })}`}
+                style={{
+                  position: "fixed",
+                  left: collapsedInputPos.left,
+                  top: collapsedInputPos.top,
+                  width: 220,
+                  zIndex: 100,
+                  backgroundColor: "var(--bg-secondary)",
+                  boxShadow: "0 10px 30px rgba(0,0,0,0.5)",
+                }}
+              >
+                <div className="flex items-center flex-shrink-0 w-full">
+                  <TagDotIcon size={22} weight="bold" className="flex-shrink-0" />
+                  <input
+                    autoFocus
+                    type="text"
+                    className="bg-transparent border-none outline-none text-sm font-bold w-full text-white ml-3 placeholder:text-white/20"
+                    placeholder={t("search.tag_name")}
+                    value={newTagName}
+                    onChange={(e) => setNewTagName(e.target.value)}
+                    onBlur={() => setIsCreatingTagFor(null)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && newTagName.trim()) {
+                        const tagName = newTagName.trim();
+                        onCustomDrop(isCreatingTagFor.id, tagName);
+                        setIsCreatingTagFor(null);
+                        useTreeStore.getState().setIconPickerTag(tagName);
+                      } else if (e.key === "Escape") {
+                        setIsCreatingTagFor(null);
+                      }
+                    }}
+                  />
+                </div>
+              </div>,
+              document.body
+            )}
+            {collapsed && isRenamingTag && collapsedRenamePos && createPortal(
+              <div
+                className={`border border-white/10 ${navItemClass("", true, { activeTab, draggedScript, draggedTag, dragOverTag, activeTabPressed })}`}
+                style={{
+                  position: "fixed",
+                  left: collapsedRenamePos.left,
+                  top: collapsedRenamePos.top,
+                  width: 220,
+                  zIndex: 100,
+                  backgroundColor: "var(--bg-secondary)",
+                  boxShadow: "0 10px 30px rgba(0,0,0,0.5)",
+                }}
+              >
+                <div className="flex items-center flex-shrink-0 w-full">
+                  {tagIcons[isRenamingTag]
+                    ? <TagIconSvg name={tagIcons[isRenamingTag]} size={22} weight="bold" className="flex-shrink-0" />
+                    : <TagDotIcon size={22} weight="bold" className="flex-shrink-0" />
+                  }
+                  <input
+                    autoFocus
+                    className="bg-transparent border-none outline-none text-sm font-bold w-full text-white ml-3"
+                    value={editTagName}
+                    onChange={(e) => setEditTagName(e.target.value)}
+                    onClick={(e) => e.stopPropagation()}
+                    onBlur={async () => {
+                      const oldTag = isRenamingTag;
+                      if (!oldTag) return;
+                      const newName = editTagName.trim();
+                      if (newName && newName !== oldTag) {
+                        await onRenameTag(oldTag, newName);
+                        const newOrder = userTags.map(t => t === oldTag ? newName : t);
+                        setUserTags(newOrder);
+                        await invoke("save_tag_order", { order: newOrder });
+                        if (activeTab === oldTag) setActiveTab(newName);
+                      }
+                      setIsRenamingTag(null);
+                    }}
+                    onKeyDown={async (e) => {
+                      if (e.key === "Enter") {
+                        (e.target as HTMLInputElement).blur();
+                      } else if (e.key === "Escape") {
+                        setEditTagName(isRenamingTag || "");
+                        setIsRenamingTag(null);
+                      }
+                    }}
+                  />
+                </div>
+              </div>,
+              document.body
             )}
           </ul>
         </div>
