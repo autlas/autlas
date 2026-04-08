@@ -92,7 +92,7 @@ function App() {
   const [showInstallModal, setShowInstallModal] = useState(false);
   const [orphanMatches, setOrphanMatches] = useState<PendingMatch[]>([]);
   const [showOrphanDialog, setShowOrphanDialog] = useState(false);
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; type: "script" | "tag" | "folder" | "general"; data: any } | null>(null);
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; type: "script" | "tag" | "folder" | "general"; data: any; fromKeyboard?: boolean } | null>(null);
   const iconPickerTag = useTreeStore(s => s.iconPickerTag);
   const setIconPickerTag = useTreeStore(s => s.setIconPickerTag);
   const [runningCount, setRunningCount] = useState(0);
@@ -335,6 +335,28 @@ function App() {
 
   // Sync contextMenu to store for TreeNodeRenderer
   useEffect(() => { useTreeStore.getState().setContextMenu(contextMenu); }, [contextMenu]);
+
+  // vim Ctrl-tap → open context menu on focused script/folder
+  useEffect(() => {
+    const onOpen = (e: Event) => {
+      const d = (e as CustomEvent).detail as { x: number; y: number; type: "script" | "folder"; data: any; path: string };
+      if (d.type === "script") {
+        setContextMenu({ x: d.x, y: d.y, type: "script", data: d.data, fromKeyboard: true });
+      } else {
+        // Folder data from visibleItems lacks the expand-all callbacks that
+        // TreeNodeRenderer plumbs in via right-click. The menu disables the
+        // expand-all entry when those callbacks are missing.
+        setContextMenu({
+          x: d.x, y: d.y, type: "folder", fromKeyboard: true, data: {
+            ...d.data,
+            is_hidden: !!d.data?.is_hidden,
+          }
+        });
+      }
+    };
+    window.addEventListener("ahk-open-context-menu", onOpen);
+    return () => window.removeEventListener("ahk-open-context-menu", onOpen);
+  }, []);
 
   // Global listeners: click-out context menu, devtools shortcut
   useEffect(() => {

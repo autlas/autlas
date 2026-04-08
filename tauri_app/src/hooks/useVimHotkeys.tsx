@@ -569,6 +569,46 @@ export function useVimHotkeys(args: UseVimHotkeysArgs) {
         onShowUI(item.data);
     }, { enabled: hk });
 
+    // ─── Ctrl tap → open context menu on focused item ────────────────
+    // Detected via raw keyup so Ctrl-as-modifier (Ctrl+F etc.) doesn't fire
+    // it. Any other key pressed while Ctrl is held marks the press dirty.
+    useEffect(() => {
+        if (!hk) return;
+        let downAt = 0;
+        let polluted = false;
+        const onDown = (e: KeyboardEvent) => {
+            if (e.key === 'Control') {
+                if (downAt === 0) { downAt = performance.now(); polluted = false; }
+            } else if (downAt > 0) {
+                polluted = true;
+            }
+        };
+        const onUp = (e: KeyboardEvent) => {
+            if (e.key !== 'Control') return;
+            const dt = performance.now() - downAt;
+            const clean = !polluted && downAt > 0 && dt < 500;
+            downAt = 0; polluted = false;
+            if (!clean) return;
+            const item = getFocusedItem();
+            if (!item) { vlog('key: Ctrl (tap) → IGNORED (no focus)'); return; }
+            const elId = item.type === 'folder' ? `folder-${item.path}` : `script-${item.path}`;
+            const el = document.getElementById(elId);
+            const r = el?.getBoundingClientRect();
+            const x = r ? r.left + 20 : window.innerWidth / 2;
+            const y = r ? r.bottom - 5 : window.innerHeight / 2;
+            vlog('key: Ctrl (tap) → open context menu', item.type, item.path);
+            window.dispatchEvent(new CustomEvent('ahk-open-context-menu', {
+                detail: { x, y, type: item.type, data: item.data, path: item.path }
+            }));
+        };
+        window.addEventListener('keydown', onDown, true);
+        window.addEventListener('keyup', onUp, true);
+        return () => {
+            window.removeEventListener('keydown', onDown, true);
+            window.removeEventListener('keyup', onUp, true);
+        };
+    }, [hk, getFocusedItem]);
+
     // Standard "find" shortcut — works even when vim is disabled.
     useHotkeys('ctrl+f', (e) => {
         e.preventDefault();
