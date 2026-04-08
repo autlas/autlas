@@ -272,18 +272,27 @@ export default function Sidebar({
                   <img src={logoImg} alt="Hub" className={`w-8 h-8 flex-shrink-0 transition-all duration-300 ${activeTab === "hub" && viewMode !== "settings" ? "brightness-0 invert" : ""}`} />
                   <span className={`text-lg tracking-tight transition-[width,margin,opacity] duration-150 ${collapsed ? 'w-0 ml-0 opacity-0' : 'w-auto ml-3 opacity-100'}`}>{tab.label}</span>
                 </div>
-                {activeTab !== "hub" && (
-                  <div className={`absolute flex items-center justify-center rounded-full bg-green-500 transition-all duration-300
-                    ${collapsed
-                      ? (runningCount > 0 ? 'top-[-1px] right-[-1px] w-4.5 h-4.5 shadow-[0_0_12px_rgba(34,197,94,0.6)]' : 'top-[22px] right-2 w-2 h-2 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.5)] opacity-0')
-                      : (runningCount > 0 ? 'top-[16px] right-3 w-5 h-5 shadow-[0_0_12px_rgba(34,197,94,0.6)]' : 'top-[22px] right-4 w-2 h-2 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.5)]')
-                    }`}
-                  >
-                    {runningCount > 0 && (
-                      <span className={`font-bold leading-none transition-all duration-300 ${collapsed ? 'text-[14px]' : 'text-[15px]'}`} style={{ color: "var(--bg-secondary)" }}>{runningCount}</span>
-                    )}
-                  </div>
-                )}
+                {(() => {
+                  const isHubActive = activeTab === "hub" && viewMode !== "settings";
+                  // Hide the lonely pulse-dot when hub is focused (no count to show),
+                  // but keep the running-count badge visible — just recolor it from
+                  // green to white with the gradient-purple digit so it reads on the
+                  // active hub background.
+                  if (isHubActive && runningCount === 0) return null;
+                  return (
+                    <div className={`absolute flex items-center justify-center rounded-full transition-all duration-300
+                      ${isHubActive ? 'bg-white shadow-[0_0_12px_rgba(255,255,255,0.4)]' : 'bg-green-500 shadow-[0_0_12px_rgba(34,197,94,0.6)]'}
+                      ${collapsed
+                        ? (runningCount > 0 ? 'top-[-1px] right-[-1px] w-4.5 h-4.5' : 'top-[22px] right-2 w-2 h-2 animate-pulse opacity-0')
+                        : (runningCount > 0 ? 'top-[16px] right-3 w-5 h-5' : 'top-[22px] right-4 w-2 h-2 animate-pulse')
+                      }`}
+                    >
+                      {runningCount > 0 && (
+                        <span className={`font-bold leading-none transition-all duration-300 ${collapsed ? 'text-[14px]' : 'text-[15px]'}`} style={{ color: isHubActive ? "#A44CFF" : "var(--bg-secondary)" }}>{runningCount}</span>
+                      )}
+                    </div>
+                  );
+                })()}
               </li>
             );
             return collapsed ? <Tooltip key={tab.id} text={tab.label} side="right">{item}</Tooltip> : item;
