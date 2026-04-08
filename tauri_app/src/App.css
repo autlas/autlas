@@ -1,1 +1,10 @@
 /* Empty App.css to prevent conflicts with Tailwind */
+
+body.vim-cursor-hidden,
+body.vim-cursor-hidden * {
+  cursor: none !important;
+}
+
+body.vim-cursor-hidden * {
+  pointer-events: none !important;
+}

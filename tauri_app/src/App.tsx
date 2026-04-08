@@ -27,6 +27,14 @@ const MemoizedScriptTree = React.memo(ScriptTree);
 
 function App() {
   const { t } = useTranslation();
+  const isVimMode = useTreeStore(s => s.isVimMode);
+  useEffect(() => {
+    document.body.classList.toggle('vim-cursor-hidden', isVimMode);
+    if (!isVimMode) return;
+    const onMove = () => useTreeStore.getState().setIsVimMode(false);
+    window.addEventListener('mousemove', onMove, { capture: true, once: true });
+    return () => window.removeEventListener('mousemove', onMove, { capture: true } as any);
+  }, [isVimMode]);
   const [userTags, setUserTags] = useState<string[]>([]);
 
   const draggedScript = useTreeStore(s => s.draggedScript);

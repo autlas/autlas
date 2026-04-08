@@ -191,8 +191,11 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
     useHotkeys('f', () => {
         if (!useTreeStore.getState().focusedPath) return;
         const item = visibleItems.find(i => i.path === useTreeStore.getState().focusedPath);
-        if (item && item.type === 'script') {
+        if (!item) return;
+        if (item.type === 'script') {
             invoke("open_in_explorer", { path: item.data.path });
+        } else {
+            invoke("open_in_explorer", { path: item.path });
         }
     }, { preventDefault: true, enabled: hk });
 

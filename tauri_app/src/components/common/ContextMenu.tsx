@@ -147,7 +147,7 @@ export default function ContextMenu({ contextMenu, onClose, onStartRenameTag, on
         {contextMenu.type === "folder" && (
           <>
             <ContextMenuItem label={t("context.copy_path")} icon={<CopyIcon size={18} />} onClick={() => { navigator.clipboard.writeText(contextMenu.data.fullName); onClose(); }} />
-            <ContextMenuItem label={t("context.show_in_folder")} icon={<FolderIcon />} onClick={() => { invoke("open_in_explorer", { path: contextMenu.data.fullName }); onClose(); }} />
+            <ContextMenuItem shortcut="f" label={t("context.show_in_folder")} icon={<FolderIcon />} onClick={() => { invoke("open_in_explorer", { path: contextMenu.data.fullName }); onClose(); }} />
             <div className="h-[1px] bg-white/5 my-1" />
             <ContextMenuItem
               label={t("context.expand_all")}
