@@ -11,6 +11,23 @@ import { useTreeStore } from "../../store/useTreeStore";
 import { safeSetItem } from "../../utils/safeStorage";
 
 export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, onRunningCountChange, viewMode, onViewModeChange, onCustomDragStart, isDragging, draggedScriptPath, animationsEnabled, onScriptContextMenu, onFolderContextMenu, searchQuery, setSearchQuery, contextMenu, onShowUI, refreshKey, onScanComplete, isPathsEmpty, onAddPath, onRemovePath, scanPaths, onRefresh, isRefreshing, onOpenSettings, onSelectScript, onExposeActions, isDetailOpen, onCloseDetail, onDetailPinToggle, isActive = true }: ScriptTreeProps) {
+    // Debug: log mount per instance so we can see how many ScriptTree instances
+    // live at once (one per visited tag tab) and which is active.
+    useEffect(() => {
+        if (localStorage.getItem('ahk_vim_debug') === 'false') return;
+        console.log('[tree] mount filterTag=' + (filterTag || '(all)') + ' isActive=' + isActive + ' viewMode=' + viewMode);
+        return () => console.log('[tree] unmount filterTag=' + (filterTag || '(all)'));
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+    useEffect(() => {
+        if (localStorage.getItem('ahk_vim_debug') === 'false') return;
+        console.log('[tree] isActive=' + isActive + ' filterTag=' + (filterTag || '(all)'));
+    }, [isActive, filterTag]);
+    useEffect(() => {
+        if (localStorage.getItem('ahk_vim_debug') === 'false') return;
+        if (!isActive) return;
+        console.log('[tree] viewMode=' + viewMode);
+    }, [viewMode, isActive]);
     const searchInputRef = useRef<HTMLInputElement>(null);
     const [gridEverMounted, setGridEverMounted] = useState(viewMode !== "tree");
     const lastGridMode = useRef<"tiles" | "list">(viewMode !== "tree" ? viewMode as "tiles" | "list" : "tiles");
@@ -110,6 +127,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
         editingScript,
         searchInputRef,
         isSearchActiveRef,
+        containerRef,
         isInstantScrollRef,
     });
 
@@ -127,35 +145,32 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
 
     useEffect(() => {
         if (!isActive) return;
+        const debug = localStorage.getItem('ahk_vim_debug') !== 'false';
         return useTreeStore.subscribe((state, prev) => {
             if (state.focusedPath === prev.focusedPath) return;
             if (!state.focusedPath || !state.isVimMode) return;
             const container = containerRef.current;
-            if (!container) return;
+            if (!container) { if (debug) console.log('[scroll] BAIL no container'); return; }
             const activeView = viewModeRef.current === "tree" ? treeViewRef.current : gridViewRef.current;
-            // CSS.escape handles backslashes in Windows paths — without it
-            // \U / \D etc. are interpreted as CSS escape sequences and the
-            // query silently returns null.
             const selector = `#script-${CSS.escape(state.focusedPath)}`;
             const fromFolderRefs = folderRefs.current.get(state.focusedPath);
-            // Scope to the current active view first (avoids hidden siblings
-            // inside the same ScriptTree), then to this instance's scroll
-            // container (avoids OTHER ScriptTree instances — one per tag tab
-            // — that keep their DOM mounted with duplicate script ids).
             const fromQuery = activeView?.querySelector<HTMLElement>(selector)
                 || container.querySelector<HTMLElement>(selector);
             const el = fromFolderRefs || fromQuery;
 
-            if (!el) return;
+            if (!el) {
+                if (debug) console.log('[scroll] BAIL el=null for', state.focusedPath);
+                return;
+            }
             const eRect = el.getBoundingClientRect();
-            if (eRect.width === 0 && eRect.height === 0) return;
+            if (eRect.width === 0 && eRect.height === 0) {
+                if (debug) console.log('[scroll] BAIL zero rect (element hidden)');
+                return;
+            }
 
             lastScrollTimeRef.current = performance.now();
             isInstantScrollRef.current = false;
 
-            // Manual scroll with scrolloff-like padding. compute-scroll-into-view
-            // ignores CSS scroll-margin so we compute the target directly and
-            // scroll this instance's scroll container.
             const cRect = container.getBoundingClientRect();
             const SCROLLOFF = 120;
             const topBound = cRect.top + toolbarH + SCROLLOFF;
@@ -166,6 +181,12 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
             } else if (eRect.bottom > bottomBound) {
                 delta = eRect.bottom - bottomBound;
             }
+            if (debug) console.log('[scroll]', {
+                source: fromFolderRefs ? 'folderRefs' : 'query',
+                viewMode: viewModeRef.current,
+                delta: Math.round(delta),
+                containerScrollTop: container.scrollTop,
+            });
             if (delta !== 0) container.scrollBy({ top: delta, behavior: 'auto' });
         });
     }, [isActive]);

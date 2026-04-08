@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect, cloneElement, isValidElement, ReactElement } from "react";
 import { createPortal } from "react-dom";
+import { useVimEnabled } from "../../hooks/useVimEnabled";
 
 interface TooltipProps {
     text: string;
@@ -10,7 +11,9 @@ interface TooltipProps {
 }
 
 export default function Tooltip({ text, children, delay = 0, side: preferredSide, shortcut }: TooltipProps) {
-    const shortcutKeys = shortcut == null ? null : (Array.isArray(shortcut) ? shortcut : [shortcut]);
+    const vimEnabled = useVimEnabled();
+    // Hide kbd hints when vim mode is off — the keys won't actually do anything.
+    const shortcutKeys = !vimEnabled || shortcut == null ? null : (Array.isArray(shortcut) ? shortcut : [shortcut]);
     const [visible, setVisible] = useState(false);
     const [pos, setPos] = useState<{ x: number; y: number; side: "top" | "bottom" | "right"; arrowY?: number; arrowX: number } | null>(null);
     const triggerRef = useRef<HTMLElement>(null);

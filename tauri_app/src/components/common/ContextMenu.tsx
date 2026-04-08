@@ -2,6 +2,7 @@ import { useState, ReactNode } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useTranslation } from "react-i18next";
 import { EditIcon, FolderIcon, OpenWithIcon, CopyIcon, PlusIcon, CloseIcon, EyeOffIcon, TagIcon, StarIcon, BlockIcon } from "../ui/Icons";
+import { useVimEnabled } from "../../hooks/useVimEnabled";
 
 interface ContextMenuState {
   x: number;
@@ -22,6 +23,8 @@ interface ContextMenuProps {
 }
 
 function ContextMenuItem({ label, icon, onClick, danger = false, disabled = false, shortcut }: { label: string; icon: ReactNode; onClick: () => void; danger?: boolean; disabled?: boolean; shortcut?: string }) {
+  const vimEnabled = useVimEnabled();
+  const showShortcut = vimEnabled && !!shortcut;
   return (
     <button
       disabled={disabled}
@@ -34,7 +37,7 @@ function ContextMenuItem({ label, icon, onClick, danger = false, disabled = fals
     >
       <span className={`w-[18px] h-[18px] flex items-center justify-center ${disabled ? "opacity-30" : "opacity-70 group-hover:opacity-100"}`}>{icon}</span>
       <span className="flex-1 text-left">{label}</span>
-      {shortcut && <kbd className="px-1.5 py-0.5 rounded-md bg-white/10 border border-white/15 text-[14px] font-bold text-white/60 leading-none">{shortcut}</kbd>}
+      {showShortcut && <kbd className="px-1.5 py-0.5 rounded-md bg-white/10 border border-white/15 text-[14px] font-bold text-white/60 leading-none">{shortcut}</kbd>}
     </button>
   );
 }

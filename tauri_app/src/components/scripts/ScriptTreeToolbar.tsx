@@ -7,6 +7,7 @@ import { SquaresFour, EyeSlash, Eye } from "@phosphor-icons/react";
 import SectionLabel from "../ui/SectionLabel";
 import Tooltip from "../ui/Tooltip";
 import { useTreeStore } from "../../store/useTreeStore";
+import { useVimEnabled } from "../../hooks/useVimEnabled";
 
 interface ScriptTreeToolbarProps {
     viewMode: "tree" | "tiles" | "list";
@@ -79,6 +80,9 @@ export default function ScriptTreeToolbar({
     const cheatsheetOpenRef = useRef(false);
     cheatsheetOpenRef.current = useTreeStore(s => s.cheatsheetOpen);
     useEffect(() => { setModalOpen(sortOpen); }, [sortOpen, setModalOpen]);
+
+    // Sort dropdown is part of vim navigation — disable when vim is off.
+    const vimEnabled = useVimEnabled();
     const sortRef = useRef<HTMLDivElement>(null);
     type SortId = "name" | "size" | "created" | "modified" | "last_run";
     const sortOptions: { id: SortId; label: string }[] = [
@@ -91,18 +95,20 @@ export default function ScriptTreeToolbar({
     const currentSortLabel = sortOptions.find(o => o.id === sortBy)?.label ?? sortBy;
 
     useHotkeys('s', () => {
-        setSortOpen(prev => {
-            const next = !prev;
-            if (next) setSortFocusIdx(Math.max(0, sortOptions.findIndex(o => o.id === sortBy)));
-            return next;
-        });
-    }, { preventDefault: true });
+        const next = !sortOpen;
+        if (next) setSortFocusIdx(Math.max(0, sortOptions.findIndex(o => o.id === sortBy)));
+        if (localStorage.getItem('ahk_vim_debug') !== 'false') {
+            console.log('[sort] key: s →', next ? 'OPEN' : 'CLOSE', 'dropdown');
+        }
+        setSortOpen(next);
+    }, { preventDefault: true, enabled: vimEnabled });
 
     useEffect(() => {
         if (!sortOpen) return;
         const handleClick = (e: MouseEvent) => {
             if (sortRef.current && !sortRef.current.contains(e.target as Node)) setSortOpen(false);
         };
+        const debug = localStorage.getItem('ahk_vim_debug') !== 'false';
         const handleKey = (e: KeyboardEvent) => {
             const k = e.key;
             const c = e.code;
@@ -111,17 +117,23 @@ export default function ScriptTreeToolbar({
             const isAccept = k === ' ' || k === 'Enter';
             const isClose = k === 'Escape' || c === 'KeyS';
             if (!isDown && !isUp && !isAccept && !isClose) return;
-            // Cheatsheet has higher priority on Esc — let global handler close it
-            if (k === 'Escape' && cheatsheetOpenRef.current) return;
+            if (k === 'Escape' && cheatsheetOpenRef.current) {
+                if (debug) console.log('[sort] Esc → FALL-THROUGH (cheatsheet priority)');
+                return;
+            }
             e.preventDefault();
             e.stopPropagation();
             e.stopImmediatePropagation();
-            if (isDown) setSortFocusIdx(i => (i + 1) % sortOptions.length);
-            else if (isUp) setSortFocusIdx(i => (i - 1 + sortOptions.length) % sortOptions.length);
+            if (isDown) { if (debug) console.log('[sort] key: j/↓ → focus next'); setSortFocusIdx(i => (i + 1) % sortOptions.length); }
+            else if (isUp) { if (debug) console.log('[sort] key: k/↑ → focus prev'); setSortFocusIdx(i => (i - 1 + sortOptions.length) % sortOptions.length); }
             else if (isAccept) {
+                if (debug) console.log('[sort] key: Enter/Space → apply', sortOptions[sortFocusIdx].id);
                 setSortBy(sortOptions[sortFocusIdx].id);
                 setSortOpen(false);
-            } else if (isClose) setSortOpen(false);
+            } else if (isClose) {
+                if (debug) console.log('[sort] key: Esc/s → close');
+                setSortOpen(false);
+            }
         };
         document.addEventListener("mousedown", handleClick);
         window.addEventListener("keydown", handleKey, true);
@@ -229,7 +241,7 @@ export default function ScriptTreeToolbar({
                 {/* Search */}
                 <div ref={searchSizerRef} className="flex-1 min-w-0 ml-2">
                     {searchCollapsed && !searchActive ? (
-                        <Tooltip text={t("search.placeholder")} shortcut={["g", "i"]}>
+                        <Tooltip text={t("search.placeholder")} shortcut="gi">
                             <button
                                 data-search-collapsed-btn
                                 onClick={() => {

@@ -30,9 +30,17 @@ function App() {
   const { t } = useTranslation();
   const isVimMode = useTreeStore(s => s.isVimMode);
   useEffect(() => {
+    if (localStorage.getItem('ahk_vim_debug') !== 'false') {
+      console.log('[vim-mode]', isVimMode ? 'ENTER (cursor hidden)' : 'EXIT');
+    }
     document.body.classList.toggle('vim-cursor-hidden', isVimMode);
     if (!isVimMode) return;
-    const onMove = () => useTreeStore.getState().setIsVimMode(false);
+    const onMove = () => {
+      if (localStorage.getItem('ahk_vim_debug') !== 'false') {
+        console.log('[vim-mode] mousemove → exit');
+      }
+      useTreeStore.getState().setIsVimMode(false);
+    };
     window.addEventListener('mousemove', onMove, { capture: true, once: true });
     return () => window.removeEventListener('mousemove', onMove, { capture: true } as any);
   }, [isVimMode]);
@@ -40,9 +48,19 @@ function App() {
   const cheatsheetOpen = useTreeStore(s => s.cheatsheetOpen);
   const setCheatsheetOpen = useTreeStore(s => s.setCheatsheetOpen);
   useEffect(() => {
-    const onOpen = () => setCheatsheetOpen(true);
+    if (localStorage.getItem('ahk_vim_debug') !== 'false') {
+      console.log('[cheatsheet]', cheatsheetOpen ? 'OPEN' : 'CLOSE');
+    }
+  }, [cheatsheetOpen]);
+  useEffect(() => {
+    const debug = localStorage.getItem('ahk_vim_debug') !== 'false';
+    const onOpen = () => {
+      if (debug) console.log('[cheatsheet] open (via ahk-open-cheatsheet event — probably Settings button)');
+      setCheatsheetOpen(true);
+    };
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && useTreeStore.getState().cheatsheetOpen) {
+        if (debug) console.log('[cheatsheet] global Esc → close');
         e.stopPropagation();
         setCheatsheetOpen(false);
       }

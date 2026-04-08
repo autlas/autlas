@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import type { MutableRefObject } from "react";
 import { safeSetItem } from "../utils/safeStorage";
+import { useVimEnabled } from "./useVimEnabled";
 
 type PhysicsRefs = {
   pendingImpulseRef: MutableRefObject<number>;
@@ -53,17 +54,28 @@ export function useNavigation(userTags: string[], physics: PhysicsRefs) {
 
   const TABS = ["hub", "all", "no_tags", "tags", ...userTags, "settings"];
 
+  // Tab-switch hotkeys are part of the vim flow — disable when vim is off.
+  const vimEnabled = useVimEnabled();
+
   useHotkeys("shift+alt+j", (e) => {
     e.preventDefault();
     const idx = TABS.indexOf(activeTab);
-    handleTabClick(TABS[(idx + 1) % TABS.length]);
-  }, { enableOnFormTags: true });
+    const next = TABS[(idx + 1) % TABS.length];
+    if (localStorage.getItem('ahk_vim_debug') !== 'false') {
+      console.log('[tab] Shift+Alt+J →', activeTab, '→', next);
+    }
+    handleTabClick(next);
+  }, { enableOnFormTags: true, enabled: vimEnabled });
 
   useHotkeys("shift+alt+k", (e) => {
     e.preventDefault();
     const idx = TABS.indexOf(activeTab);
-    handleTabClick(TABS[(idx - 1 + TABS.length) % TABS.length]);
-  }, { enableOnFormTags: true });
+    const next = TABS[(idx - 1 + TABS.length) % TABS.length];
+    if (localStorage.getItem('ahk_vim_debug') !== 'false') {
+      console.log('[tab] Shift+Alt+K →', activeTab, '→', next);
+    }
+    handleTabClick(next);
+  }, { enableOnFormTags: true, enabled: vimEnabled });
 
   return {
     activeTab,
