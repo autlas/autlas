@@ -1,21 +1,11 @@
 import { useEffect, useRef, useCallback } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { invoke } from "@tauri-apps/api/core";
-import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { useTreeStore } from "../store/useTreeStore";
 import { useVimEnabled } from "./useVimEnabled";
 import { Script } from "../api";
-
-// Match the existing scan/orphan toast style (App.tsx).
-const showVimToast = (message: string, id: string) => {
-    toast.custom(() => (
-        <div className="flex items-center gap-3 w-full px-5 py-3 bg-black/20 backdrop-blur-md border border-white/10 rounded-2xl shadow-2xl">
-            <div className="w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.8)]" />
-            <span className="text-xs font-medium text-white/70 flex-1">{message}</span>
-        </div>
-    ), { id, duration: 2500 });
-};
+import { appToast } from "../components/ui/AppToast";
 
 // ─── DEBUG LOGGING ────────────────────────────────────────────────────
 // Prefixed with [vim] so users can filter the browser console easily.
@@ -440,7 +430,7 @@ export function useVimHotkeys(args: UseVimHotkeysArgs) {
             handleRestart(item.data);
         } else {
             vlog('key: r → TOAST (not running)', item.data.filename);
-            showVimToast(t("toast.script_not_running", "Скрипт не запущен — нажмите Enter, чтобы запустить"), "vim-hint");
+            appToast.warning(t("toast.script_not_running", "Скрипт не запущен — нажмите Enter, чтобы запустить"), { id: "vim-hint", duration: 2500 });
         }
     }, { preventDefault: true, enabled: hk });
 
@@ -460,6 +450,15 @@ export function useVimHotkeys(args: UseVimHotkeysArgs) {
         } else {
             vlog('key: t → IGNORED (focused is a folder)');
         }
+    }, { preventDefault: true, enabled: hk });
+
+    useHotkeys('c', () => {
+        const item = getFocusedItem();
+        if (!item) { vlog('key: c → IGNORED (no focused item)'); return; }
+        const path = item.type === 'script' ? item.data.path : item.path;
+        vlog('key: c → copy path', path);
+        navigator.clipboard.writeText(path);
+        appToast.success(t("toast.path_copied", "Путь скопирован"), { id: "vim-hint", duration: 2500 });
     }, { preventDefault: true, enabled: hk });
 
     useHotkeys('f', () => {
@@ -557,12 +556,12 @@ export function useVimHotkeys(args: UseVimHotkeysArgs) {
         }
         if (!item.data.is_running) {
             vlog('key: i → TOAST (not running)');
-            showVimToast(t("toast.script_not_running_for_ui", "Скрипт не запущен — нечего показывать"), "vim-hint");
+            appToast.warning(t("toast.script_not_running", "Скрипт не запущен — нажмите Enter, чтобы запустить"), { id: "vim-hint", duration: 2500 });
             return;
         }
         if (!item.data.has_ui) {
             vlog('key: i → TOAST (no UI)');
-            showVimToast(t("toast.script_has_no_ui", "У скрипта нет интерфейса"), "vim-hint");
+            appToast.warning(t("toast.script_has_no_ui", "У скрипта нет интерфейса"), { id: "vim-hint", duration: 2500 });
             return;
         }
         vlog('key: i → onShowUI', item.data.filename);

@@ -9,7 +9,8 @@ import Sidebar from "./components/sidebar/Sidebar";
 import CheatSheet from "./components/common/CheatSheet";
 import OrphanReconcileDialog, { PendingMatch } from "./components/common/OrphanReconcileDialog";
 import { Script, checkEverythingStatus, launchEverything, installEverything } from "./api";
-import { Toaster, toast } from "sonner";
+import { Toaster } from "sonner";
+import { appToast } from "./components/ui/AppToast";
 import { CloseIcon } from "./components/ui/Icons";
 import { useTheme } from "./hooks/useTheme";
 import { useScanPaths } from "./hooks/useScanPaths";
@@ -114,7 +115,7 @@ function App() {
   const { brightness, setBrightness, textContrast, setTextContrast, fontScale, setFontScale, animationsEnabled, toggleAnimations, vimModeNav, setVimModeNav } = useTheme();
 
   const triggerScan = useCallback(() => {
-    toast.dismiss("everything");
+    appToast.dismiss("everything");
     setRefreshKey(p => p + 1);
   }, []);
 
@@ -145,12 +146,7 @@ function App() {
     const message = count !== undefined
       ? t("sidebar.scan_complete", { count, seconds })
       : t("sidebar.library_synced");
-    toast.custom(() => (
-      <div className="flex items-center gap-3 w-full px-5 py-3 bg-black/20 backdrop-blur-md border border-white/10 rounded-2xl shadow-2xl">
-        <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]" />
-        <span className="text-xs font-medium text-white/70 flex-1">{message}</span>
-      </div>
-    ), { id: "scan", duration: 3500 });
+    appToast.success(message, { id: "scan", duration: 3500 });
   }, [t]);
 
   // Listen for scan progress events
@@ -159,33 +155,30 @@ function App() {
     let unlistenOrphan: (() => void) | null = null;
     import('@tauri-apps/api/event').then(({ listen }) => {
       listen<number>('scan-progress', (event) => {
-        toast.custom(() => (
-          <div className="flex items-center gap-3 w-full px-5 py-3 bg-black/20 backdrop-blur-md border border-white/10 rounded-2xl shadow-2xl">
-            <div className="w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.8)] animate-pulse" />
-            <span className="text-xs font-medium text-white/70 flex-1">{t("sidebar.scripts_found")} {event.payload}</span>
-          </div>
-        ), { id: "scan", duration: Infinity });
+        appToast.info(`${t("sidebar.scripts_found")} ${event.payload}`, { id: "scan", duration: Infinity, pulse: true });
       }).then(fn => { unlisten = fn; });
       listen<PendingMatch[]>('orphan-matches-found', (event) => {
         if (event.payload.length > 0) {
           setOrphanMatches(event.payload);
           const count = event.payload.length;
-          toast.custom(() => (
-            <div className="flex items-center gap-3 w-full px-5 py-3 bg-black/20 backdrop-blur-md border border-white/10 rounded-2xl shadow-2xl">
-              <div className="w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.8)]" />
-              <span className="text-xs font-medium text-white/70 flex-1">
-                {count === 1 ? t("orphan.toast_one") : t("orphan.toast_many", { count })}
-              </span>
-              <button
-                onClick={() => { setShowOrphanDialog(true); toast.dismiss("orphan"); }}
-                className="px-3 py-1 text-[11px] font-bold uppercase tracking-wider whitespace-nowrap bg-indigo-500/20 text-indigo-400 rounded-lg hover:bg-indigo-500/30 transition-colors cursor-pointer"
-              >{t("orphan.review")}</button>
-              <button
-                onClick={() => toast.dismiss("orphan")}
-                className="ml-1 text-white/30 hover:text-white/60 transition-colors cursor-pointer"
-              ><CloseIcon size={14} /></button>
-            </div>
-          ), { id: "orphan", duration: Infinity });
+          appToast.info(
+            count === 1 ? t("orphan.toast_one") : t("orphan.toast_many", { count }),
+            {
+              id: "orphan", duration: Infinity,
+              right: (
+                <>
+                  <button
+                    onClick={() => { setShowOrphanDialog(true); appToast.dismiss("orphan"); }}
+                    className="px-3 py-1 text-[11px] font-bold uppercase tracking-wider whitespace-nowrap bg-indigo-500/20 text-indigo-400 rounded-lg hover:bg-indigo-500/30 transition-colors cursor-pointer"
+                  >{t("orphan.review")}</button>
+                  <button
+                    onClick={() => appToast.dismiss("orphan")}
+                    className="ml-1 text-white/30 hover:text-white/60 transition-colors cursor-pointer"
+                  ><CloseIcon size={14} /></button>
+                </>
+              )
+            }
+          );
         }
       }).then(fn => { unlistenOrphan = fn; });
     });
@@ -258,44 +251,47 @@ function App() {
   }, []);
 
   const hideEverythingToast = useCallback(() => {
-    toast.dismiss("everything");
+    appToast.dismiss("everything");
     setTimeout(() => setEverythingToast(null), 500);
   }, []);
 
   const showEverythingToast = useCallback((status: string) => {
     const isInstalled = status === "installed";
     const isStarted = status === "started";
-    toast.custom(() => (
-      <div className="flex items-center gap-3 w-full px-5 py-3 bg-black/20 backdrop-blur-md border border-white/10 rounded-2xl shadow-2xl">
-        <div className={`w-2 h-2 rounded-full ${isStarted
-          ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]"
-          : isInstalled
-            ? "bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.8)]"
-            : "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]"}`} />
-        <span className="text-xs font-medium text-white/70 flex-1">
-          {isStarted ? t("settings.everything_toast_running")
-            : isInstalled ? t("settings.everything_toast_installed")
-            : t("settings.everything_toast_not_installed")}
-        </span>
-        {isInstalled && (
-          <button
-            onClick={async () => {
-              toast.dismiss("everything");
-              setEverythingToast("launching");
-              try { await launchEverything(); setEverythingToast("started"); showEverythingToast("started"); }
-              catch (e) { console.error(e); setEverythingToast("installed"); showEverythingToast("installed"); }
-            }}
-            className="px-3 py-1 text-[11px] font-bold uppercase tracking-wider whitespace-nowrap bg-indigo-500/20 text-indigo-400 rounded-lg hover:bg-indigo-500/30 transition-colors cursor-pointer"
-          >{t("settings.everything_launch")}</button>
-        )}
-        {status === "not_installed" && (
-          <button onClick={() => setShowInstallModal(true)}
-            className="px-3 py-1 text-[11px] font-bold uppercase tracking-wider whitespace-nowrap bg-indigo-500/20 text-indigo-400 rounded-lg hover:bg-indigo-500/30 transition-colors cursor-pointer"
-          >{t("settings.everything_install")}</button>
-        )}
-        <button onClick={() => toast.dismiss("everything")} className="ml-1 text-white/30 hover:text-white/60 transition-colors cursor-pointer"><CloseIcon size={14} /></button>
-      </div>
-    ), { id: "everything", duration: isStarted ? 3000 : Infinity });
+    const message = isStarted
+      ? t("settings.everything_toast_running")
+      : isInstalled
+        ? t("settings.everything_toast_installed")
+        : t("settings.everything_toast_not_installed");
+    // started → success (Everything заработал, либо сам, либо после клика "Launch")
+    // installed → warning (установлен, но не запущен — нужно действие)
+    // not_installed → error (не выполнить интеграцию вообще)
+    const kind = isStarted ? "success" : isInstalled ? "warning" : "error";
+    appToast[kind](message, {
+      id: "everything",
+      duration: isStarted ? 3000 : Infinity,
+      right: (
+        <>
+          {isInstalled && (
+            <button
+              onClick={async () => {
+                appToast.dismiss("everything");
+                setEverythingToast("launching");
+                try { await launchEverything(); setEverythingToast("started"); showEverythingToast("started"); }
+                catch (e) { console.error(e); setEverythingToast("installed"); showEverythingToast("installed"); }
+              }}
+              className="px-3 py-1 text-[11px] font-bold uppercase tracking-wider whitespace-nowrap bg-indigo-500/20 text-indigo-400 rounded-lg hover:bg-indigo-500/30 transition-colors cursor-pointer"
+            >{t("settings.everything_launch")}</button>
+          )}
+          {status === "not_installed" && (
+            <button onClick={() => setShowInstallModal(true)}
+              className="px-3 py-1 text-[11px] font-bold uppercase tracking-wider whitespace-nowrap bg-indigo-500/20 text-indigo-400 rounded-lg hover:bg-indigo-500/30 transition-colors cursor-pointer"
+            >{t("settings.everything_install")}</button>
+          )}
+          <button onClick={() => appToast.dismiss("everything")} className="ml-1 text-white/30 hover:text-white/60 transition-colors cursor-pointer"><CloseIcon size={14} /></button>
+        </>
+      )
+    });
   }, []);
 
   // Check Everything status on startup
@@ -737,7 +733,7 @@ function App() {
         <OrphanReconcileDialog
           matches={orphanMatches}
           onClose={() => setShowOrphanDialog(false)}
-          onResolved={() => { setOrphanMatches([]); toast.dismiss("orphan"); }}
+          onResolved={() => { setOrphanMatches([]); appToast.dismiss("orphan"); }}
           onMatchResolved={(orphanId) => setOrphanMatches(prev => prev.filter(m => m.orphan_id !== orphanId))}
         />
       )}
