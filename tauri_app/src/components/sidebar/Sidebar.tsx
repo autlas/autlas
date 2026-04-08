@@ -579,12 +579,14 @@ export default function Sidebar({
         </div>
       </div>
 
-      {/* Bottom: settings + refresh */}
-      <div className={`flex w-full mt-auto pl-4 pr-[13px] ${collapsed ? 'flex-col items-center space-y-1.5 pb-5' : 'items-center space-x-3'}`}>
+      {/* Bottom: settings + refresh.
+          In collapsed mode flip the column so refresh is on top and settings
+          sits at the very bottom — settings is the more permanent action. */}
+      <div className={`flex w-full mt-auto pl-4 pr-[13px] ${collapsed ? 'flex-col-reverse items-center space-y-1.5 space-y-reverse pb-5' : 'items-center space-x-3'}`}>
         <Tooltip text={t("sidebar.settings")} side={collapsed ? "right" : undefined}>
           <button
             onClick={() => onTabClick("settings")}
-            className={`${collapsed ? 'w-12' : 'flex-1'} h-12 rounded-xl flex items-center justify-center transition-[background-color,opacity,filter,box-shadow] duration-200 group cursor-pointer ${!collapsed && draggedScript ? "opacity-20 blur-[1px]" : ""
+            className={`${collapsed ? 'w-12' : 'flex-1'} h-12 rounded-xl flex items-center justify-center transition-[background-color,opacity,filter,box-shadow] duration-200 group cursor-pointer ${draggedScript ? "opacity-20 blur-[1px]" : ""
               } ${viewMode === "settings"
                 ? "text-white/80 shadow-lg tag-active bg-white/5"
                 : "text-tertiary hover:text-secondary tag-hover"
@@ -602,7 +604,7 @@ export default function Sidebar({
             onClick={() => { triggerScan(); onRefresh(); }}
             onMouseEnter={() => onHoveringRefresh(true)}
             onMouseLeave={() => onHoveringRefresh(false)}
-            className={`${collapsed ? 'w-12' : 'flex-1'} h-12 rounded-xl flex items-center justify-center transition-all border group cursor-pointer ${!collapsed && draggedScript ? "opacity-20 blur-[1px]" : ""
+            className={`${collapsed ? 'w-12' : 'flex-1'} h-12 rounded-xl flex items-center justify-center transition-all border group cursor-pointer ${draggedScript ? "opacity-20 blur-[1px]" : ""
               } text-tertiary border-transparent hover:text-secondary tag-hover active:scale-95`}
           >
             <div className="transition-transform duration-500 group-hover:-rotate-45">
