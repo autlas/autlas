@@ -10,7 +10,7 @@ import { TreeContext, TreeNodeRenderer, setTreeCallbacks } from "./TreeNodeRende
 import { useTreeStore } from "../../store/useTreeStore";
 import { safeSetItem } from "../../utils/safeStorage";
 
-export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, onRunningCountChange, viewMode, onViewModeChange, onCustomDragStart, isDragging, draggedScriptPath, animationsEnabled, onScriptContextMenu, onFolderContextMenu, searchQuery, setSearchQuery, contextMenu, onShowUI, refreshKey, onScanComplete, isPathsEmpty, onAddPath, onRemovePath, scanPaths, onRefresh, isRefreshing, onOpenSettings, onSelectScript, onExposeActions, isDetailOpen, onCloseDetail, isActive = true }: ScriptTreeProps) {
+export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, onRunningCountChange, viewMode, onViewModeChange, onCustomDragStart, isDragging, draggedScriptPath, animationsEnabled, onScriptContextMenu, onFolderContextMenu, searchQuery, setSearchQuery, contextMenu, onShowUI, refreshKey, onScanComplete, isPathsEmpty, onAddPath, onRemovePath, scanPaths, onRefresh, isRefreshing, onOpenSettings, onSelectScript, onExposeActions, isDetailOpen, onCloseDetail, onDetailPinToggle, isActive = true }: ScriptTreeProps) {
     const searchInputRef = useRef<HTMLInputElement>(null);
     const [gridEverMounted, setGridEverMounted] = useState(viewMode !== "tree");
     const lastGridMode = useRef<"tiles" | "list">(viewMode !== "tree" ? viewMode as "tiles" | "list" : "tiles");
@@ -106,6 +106,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
         onSelectScript,
         isDetailOpen,
         onCloseDetail,
+        onDetailPinToggle,
         editingScript,
         searchInputRef,
         isSearchActiveRef,

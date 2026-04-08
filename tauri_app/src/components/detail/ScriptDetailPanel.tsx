@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Script } from "../../api";
 import { invoke } from "@tauri-apps/api/core";
-import { useHotkeys } from "react-hotkeys-hook";
 import { useTranslation } from "react-i18next";
 import { formatDate } from "../../utils/formatDate";
 import TagPickerPopover from "../tags/TagPickerPopover";
@@ -79,9 +78,8 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
       .then(setScriptMeta).catch(() => { });
   }, [script.is_running]);
 
-  // Esc is handled centrally in ScriptTree with priority:
-  // cheatsheet → tagpicker → search → detail panel → vim mode
-  useHotkeys('p', () => onPinToggle(), { preventDefault: true });
+  // All vim hotkeys (including `p` = pin/unpin) live in useVimHotkeys,
+  // called from ScriptTree. The panel itself stays keyboard-agnostic.
 
   const copyPath = useCallback(() => {
     navigator.clipboard.writeText(script.path);

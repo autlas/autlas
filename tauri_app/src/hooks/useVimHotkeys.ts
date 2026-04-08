@@ -41,6 +41,7 @@ export interface UseVimHotkeysArgs {
     // Panels / detail
     isDetailOpen: boolean | undefined;
     onCloseDetail?: () => void;
+    onDetailPinToggle?: () => void;
     editingScript: string | null;
 
     // Search
@@ -54,20 +55,55 @@ export interface UseVimHotkeysArgs {
 /**
  * Centralized vim keybinds for the script tree.
  *
+ * ──────────────────── HOTKEY REGISTRY (whole app) ────────────────────
+ *
+ * IN THIS HOOK (gated by `hk = isActive && !modalOpen && vimEnabled`):
+ *   Navigation:   h / j / k / l      — move focus (hjkl or jk modes)
+ *                 ArrowLeft/Right/Up/Down — move focus (always 2D)
+ *                 gg                 — scroll to top (double-tap g)
+ *                 G (Shift+G)        — scroll to bottom
+ *   Actions on focused script/folder:
+ *                 Enter              — run / toggle / expand folder
+ *                 Space              — open detail panel / expand folder
+ *                 r                  — restart running script
+ *                 t / е              — open tag picker (ru-layout safe)
+ *                 f                  — show in explorer
+ *                 o                  — open with
+ *                 e                  — edit in editor
+ *                 i                  — show UI of running script (or `gi`)
+ *                 p                  — pin/unpin detail panel (if open)
+ *   Search:       gi                 — focus search input (g-chord)
+ *                 Ctrl+F             — focus search input
+ *   View:         q                  — cycle tree → tiles → list
+ *   Help:         ?                  — toggle CheatSheet (raw keydown,
+ *                                      works on any layout)
+ *   Esc chain (priority, topmost wins, only gated by isActive):
+ *     cheatsheet → sort dropdown → tagpicker → search blur → detail → vim exit
+ *
+ * ELSEWHERE in the codebase (intentionally NOT in this hook):
+ *   App-level    Shift+Alt+J / Shift+Alt+K   — next / prev tab
+ *                  → src/hooks/useNavigation.ts (called once from App.tsx;
+ *                    tab switching doesn't belong to tree context)
+ *   Modals       s / j / k / Enter / Space / Esc inside sort dropdown
+ *                  → src/components/scripts/ScriptTreeToolbar.tsx
+ *                    (local capture-phase keydown tied to dropdown lifecycle;
+ *                    sets store.modalOpen so `hk` here disables the tree)
+ *   Popovers     arrow nav inside tag/icon pickers
+ *                  → src/components/tags/TagPickerPopover.tsx,
+ *                    src/components/tags/TagIconPicker.tsx
+ *                    (self-contained listeners live only while the popover
+ *                    is mounted)
+ *
+ * When adding a new hotkey:
+ *   • Focused-item or global tree action → add here, pass callbacks via args
+ *   • New transient modal/popover     → own lifecycle, set `modalOpen` if it
+ *     should block tree hotkeys
+ *   • App-wide command              → useNavigation or its own app hook
+ *
  * Design goals:
  * - single source of truth for all letter / motion hotkeys inside the tree
- * - single gate (`hk`) combining isActive + store.modalOpen + store.vimEnabled,
- *   applied uniformly so individual sites can't forget it
- * - cross-layout safe: letter bindings include the Cyrillic equivalent
- *   where a user might hit it on the ru layout (`t,е`)
- *
- * Esc chain priority (topmost wins):
- *   cheatsheet (handled globally in App.tsx)
- *     → sort dropdown (handled locally in ScriptTreeToolbar via capture)
- *     → tag picker
- *     → search input blur
- *     → detail panel
- *     → vim mode exit
+ * - single gate applied uniformly so individual sites can't forget it
+ * - cross-layout safe where it matters (`t,е`, raw keydown for `?`)
  */
 export function useVimHotkeys(args: UseVimHotkeysArgs) {
     const {
@@ -87,6 +123,7 @@ export function useVimHotkeys(args: UseVimHotkeysArgs) {
         onSelectScript,
         isDetailOpen,
         onCloseDetail,
+        onDetailPinToggle,
         editingScript,
         searchInputRef,
         isSearchActiveRef,
@@ -217,6 +254,14 @@ export function useVimHotkeys(args: UseVimHotkeysArgs) {
         const item = getFocusedItem();
         if (!item || item.type !== 'script') return;
         invoke("edit_script", { path: item.data.path });
+    }, { preventDefault: true, enabled: hk });
+
+    // Pin/unpin the detail panel. Only meaningful while it's open, so we
+    // guard on isDetailOpen instead of hiding the key when vim is off —
+    // the user may still have the panel open outside navigation.
+    useHotkeys('p', () => {
+        if (!isDetailOpen || !onDetailPinToggle) return;
+        onDetailPinToggle();
     }, { preventDefault: true, enabled: hk });
 
     // ─── gg / G scroll-to-extreme ─────────────────────────────────────

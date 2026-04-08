@@ -622,6 +622,7 @@ function App() {
                     onExposeActions={handleExposeActions}
                     isDetailOpen={!!selectedPath}
                     onCloseDetail={() => setSelectedPath(null)}
+                    onDetailPinToggle={() => setDetailPinned(p => { const v = !p; safeSetItem("ahk_detail_pinned", String(v)); return v; })}
                     onOpenSettings={() => {
                       handleTabClick("settings");
                       setTimeout(() => {
