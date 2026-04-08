@@ -2,7 +2,6 @@ import { useState, ReactNode } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useTranslation } from "react-i18next";
 import { EditIcon, FolderIcon, OpenWithIcon, CopyIcon, PlusIcon, CloseIcon, EyeOffIcon, TagIcon, StarIcon, BlockIcon } from "../ui/Icons";
-import { hasHubTag, isHubTag } from "../../constants";
 
 interface ContextMenuState {
   x: number;
@@ -101,13 +100,12 @@ export default function ContextMenu({ contextMenu, onClose, onStartRenameTag, on
             <ContextMenuItem label={t("context.edit")} icon={<EditIcon />} onClick={() => { invoke("edit_script", { path: contextMenu.data.path }); onClose(); }} />
             <ContextMenuItem label={t("context.open_with")} icon={<OpenWithIcon />} onClick={() => { invoke("open_with", { path: contextMenu.data.path }); onClose(); }} />
             <div className="h-[1px] bg-white/5 my-1" />
-            {hasHubTag(contextMenu.data.tags) ? (
+            {contextMenu.data.is_hub ? (
               <ContextMenuItem
                 label={t("context.remove_from_hub", "Удалить из хаба")}
                 icon={<StarIcon size={16} weight="fill" />}
                 onClick={async () => {
-                  const tagToRemove = contextMenu.data.tags.find((tag: string) => isHubTag(tag));
-                  if (tagToRemove) await invoke("remove_script_tag", { id: contextMenu.data.id, tag: tagToRemove });
+                  await invoke("set_script_hub", { id: contextMenu.data.id, hub: false });
                   onClose();
                 }}
               />
@@ -116,7 +114,7 @@ export default function ContextMenu({ contextMenu, onClose, onStartRenameTag, on
                 label={t("context.add_to_hub", "Добавить в хаб")}
                 icon={<StarIcon size={16} weight="bold" />}
                 onClick={async () => {
-                  await invoke("add_script_tag", { id: contextMenu.data.id, tag: "hub" });
+                  await invoke("set_script_hub", { id: contextMenu.data.id, hub: true });
                   onClose();
                 }}
               />

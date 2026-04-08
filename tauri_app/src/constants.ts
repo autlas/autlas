@@ -3,24 +3,16 @@
  * Сюда выносим magic strings/numbers, которые встречаются в нескольких местах.
  */
 
-/** Системные теги, которые управляют отображением в Hub. Не показываются как обычные теги. */
-export const HUB_TAGS = ["hub", "fav", "favourites"] as const;
-export const HUB_TAGS_SET: ReadonlySet<string> = new Set(HUB_TAGS);
-
-/** Проверка является ли тег hub-тегом (case-insensitive). */
-export function isHubTag(tag: string): boolean {
-  return HUB_TAGS_SET.has(tag.toLowerCase());
-}
-
-/** Удалить hub-теги из массива. */
-export function withoutHubTags(tags: string[]): string[] {
-  return tags.filter(t => !isHubTag(t));
-}
-
-/** Содержит ли массив тегов хотя бы один hub-тег. */
-export function hasHubTag(tags: string[]): boolean {
-  return tags.some(isHubTag);
-}
+/**
+ * Hub status used to live in the tag system as a magic tag string ("hub").
+ * That meant a user couldn't have a real tag literally named "hub" without
+ * it accidentally promoting the script. Now it's a proper boolean flag
+ * (`Script.is_hub`) and these helpers are gone — anywhere you used to
+ * call `hasHubTag(s.tags)` you now read `s.is_hub` directly.
+ *
+ * The DB migration in db.rs sweeps any pre-existing "hub"/"fav"/"favourites"
+ * tag rows into the new column on first launch.
+ */
 
 /** Z-index слои. Раньше были разбросаны magic-числа: 10, 50, 200, 10000, 99998. */
 export const Z_INDEX = {

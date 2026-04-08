@@ -2,7 +2,6 @@ import { useState, useEffect, useRef, useCallback, startTransition } from "react
 import { getScripts, Script } from "../api";
 import { invoke } from "@tauri-apps/api/core";
 import { useTreeStore } from "../store/useTreeStore";
-import { withoutHubTags } from "../constants";
 
 let _cachedScripts: Script[] = [];
 let _scanPromise: Promise<Script[]> | null = null; // dedup concurrent scans
@@ -66,7 +65,8 @@ export function useScriptData({ onTagsLoaded, onRunningCountChange, refreshKey, 
                     if (!p) { anyChanged = true; return d; }
                     const tagsMatch = p.tags.length === d.tags.length && p.tags.every((t, i) => t === d.tags[i]);
                     if (p.id === d.id && p.is_running === d.is_running && p.has_ui === d.has_ui
-                        && p.is_hidden === d.is_hidden && p.size === d.size && tagsMatch) return p;
+                        && p.is_hidden === d.is_hidden && p.size === d.size && tagsMatch
+                        && p.is_hub === d.is_hub) return p;
                     anyChanged = true;
                     return { ...p, ...d };
                 });
@@ -94,16 +94,11 @@ export function useScriptData({ onTagsLoaded, onRunningCountChange, refreshKey, 
     }, [onScanComplete]);
 
     useEffect(() => {
-        const filteredScripts = allScripts.map(s => ({
-            ...s,
-            tags: withoutHubTags(s.tags)
-        }));
-
-        const tagsKey = filteredScripts.flatMap(s => s.tags).sort().join(',');
+        const tagsKey = allScripts.flatMap(s => s.tags).sort().join(',');
         if (tagsKey !== lastTagsKeyRef.current) {
             lastTagsKeyRef.current = tagsKey;
             const tags = new Set<string>();
-            filteredScripts.forEach(s => s.tags.forEach(t => tags.add(t)));
+            allScripts.forEach(s => s.tags.forEach(t => tags.add(t)));
             onTagsLoaded(Array.from(tags).sort());
         }
     }, [allScripts, onTagsLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -138,6 +133,7 @@ export function useScriptData({ onTagsLoaded, onRunningCountChange, refreshKey, 
 
         let unlisten: (() => void) | null = null;
         let unlistenStatus: (() => void) | null = null;
+        let unlistenHub: (() => void) | null = null;
         let mounted = true;
 
         import('@tauri-apps/api/event').then(({ listen }) => {
@@ -195,6 +191,14 @@ export function useScriptData({ onTagsLoaded, onRunningCountChange, refreshKey, 
                 }
             };
 
+            listen<{ id: string; hub: boolean }>('script-hub-changed', (event) => {
+                const { id, hub } = event.payload;
+                _cachedScripts = _cachedScripts.map(s => s.id === id ? { ...s, is_hub: hub } : s);
+                setAllScripts(prev => prev.map(s => s.id === id ? { ...s, is_hub: hub } : s));
+            }).then(fn => {
+                if (mounted) { unlistenHub = fn; } else { fn(); }
+            });
+
             listen<{ path: string; is_running: boolean; has_ui: boolean }>('script-status-changed', (event) => {
                 const { path, is_running, has_ui } = event.payload;
                 const pathLower = path.toLowerCase();
@@ -211,6 +215,7 @@ export function useScriptData({ onTagsLoaded, onRunningCountChange, refreshKey, 
             mounted = false;
             if (unlisten) unlisten();
             if (unlistenStatus) unlistenStatus();
+            if (unlistenHub) unlistenHub();
             burstIntervalsRef.current.forEach(id => clearInterval(id));
             burstIntervalsRef.current.clear();
         };

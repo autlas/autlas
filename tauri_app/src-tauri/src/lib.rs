@@ -730,6 +730,7 @@ struct Script {
     created_at: String,
     modified_at: String,
     last_run: String,
+    is_hub: bool,
 }
 
 
@@ -1045,6 +1046,7 @@ async fn get_scripts(
     let mut script_paths: Vec<String>;
     let tags_map: HashMap<String, Vec<String>>;
     let id_map: HashMap<String, String>;
+    let hub_ids: HashSet<String>;
 
     // Capture our generation. Bump global counter so any in-flight scan
     // started before us knows it has been superseded and will discard
@@ -1125,6 +1127,7 @@ async fn get_scripts(
         tags_map = db::get_all_tags_map(&conn);
         id_map = db::get_all_active_scripts(&conn)
             .into_iter().map(|(id, path)| (path, id)).collect();
+        hub_ids = db::get_hub_flags(&conn);
         drop(conn);
     } else {
         // FAST LOAD: cache only, no reconciliation
@@ -1147,6 +1150,7 @@ async fn get_scripts(
         tags_map = db::get_all_tags_map(&conn);
         id_map = db::get_all_active_scripts(&conn)
             .into_iter().map(|(id, path)| (path, id)).collect();
+        hub_ids = db::get_hub_flags(&conn);
         drop(conn);
     }
 
@@ -1198,6 +1202,7 @@ async fn get_scripts(
         let modified_at = meta.modified().map(format_system_time).unwrap_or_default();
         let last_run_val = db::get_last_run(&conn_for_runs, &path_lower).unwrap_or_default();
 
+        let is_hub = hub_ids.contains(&script_id);
         scripts.push(Script {
             id: script_id,
             path: real_path,
@@ -1211,6 +1216,7 @@ async fn get_scripts(
             created_at,
             modified_at,
             last_run: last_run_val,
+            is_hub,
         });
     }
     drop(conn_for_runs);
@@ -1450,6 +1456,19 @@ async fn remove_script_tag(
     db::remove_tag_from_script(&conn, &id, &tag).map_err(|e| e.to_string())?;
     let tags = db::get_tags_for_script(&conn, &id);
     let _ = app.emit("script-tags-changed", serde_json::json!({ "id": id, "tags": tags }));
+    Ok(())
+}
+
+#[tauri::command]
+async fn set_script_hub(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, db::DbState>,
+    id: String,
+    hub: bool,
+) -> Result<(), String> {
+    let conn = state.0.lock().map_err(|e| e.to_string())?;
+    db::set_script_hub(&conn, &id, hub).map_err(|e| e.to_string())?;
+    let _ = app.emit("script-hub-changed", serde_json::json!({ "id": id, "hub": hub }));
     Ok(())
 }
 
@@ -2096,6 +2115,7 @@ pub fn run() {
             save_script_tags,
             add_script_tag,
             remove_script_tag,
+            set_script_hub,
             rename_tag,
             save_tag_order,
             get_tag_order,

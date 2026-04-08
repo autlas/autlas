@@ -13,6 +13,7 @@ export interface Script {
     created_at: string;
     modified_at: string;
     last_run: string;
+    is_hub: boolean;
 }
 
 export async function getScripts(forceScan: boolean = false): Promise<Script[]> {

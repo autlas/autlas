@@ -9,7 +9,6 @@ import { CloseIcon, PlayIcon, RestartIcon, InterfaceIcon, PlusIcon, EditIcon, Fo
 import Tooltip from "../ui/Tooltip";
 import TruncatedTooltip from "../ui/TruncatedTooltip";
 import { formatSize } from "../../utils/formatSize";
-import { hasHubTag, withoutHubTags } from "../../constants";
 import { useScriptContent } from "../../hooks/useScriptContent";
 import { usePanelResize } from "../../hooks/usePanelResize";
 
@@ -96,8 +95,8 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
   const handleOpenWith = () => invoke("open_with", { path: script.path });
 
   const name = script.filename.replace(/\.ahk$/i, "");
-  const isHub = hasHubTag(script.tags);
-  const displayedTags = withoutHubTags(script.tags);
+  const isHub = script.is_hub;
+  const displayedTags = script.tags;
 
   const panelContent = (
     <>
@@ -120,9 +119,9 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
           </TruncatedTooltip>
           <Tooltip text={isHub ? t("tooltips.remove_from_hub") : t("tooltips.add_to_hub")}>
             <button
-              onClick={() => {
-                if (isHub) onRemoveTag(script, "hub");
-                else onAddTag(script, "hub");
+              onClick={async () => {
+                try { await invoke("set_script_hub", { id: script.id, hub: !isHub }); }
+                catch (err) { console.error("set_script_hub failed:", err); }
               }}
               className={`w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-lg transition-all cursor-pointer ${isHub ? 'text-white/60 hover:text-white/90' : 'text-white/25 hover:text-white/50'}`}
             >

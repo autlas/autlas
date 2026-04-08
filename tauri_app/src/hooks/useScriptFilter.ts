@@ -4,7 +4,6 @@ import Fuse from "fuse.js";
 import { Script } from "../api";
 import { TreeNode } from "../types/script";
 import { useTreeStore } from "../store/useTreeStore";
-import { hasHubTag, withoutHubTags } from "../constants";
 
 /** Precomputed match ranges for highlighting, keyed by script path. */
 export type SearchMatches = Map<string, { filename?: ReadonlyArray<readonly [number, number]>; path?: ReadonlyArray<readonly [number, number]> }>;
@@ -129,7 +128,7 @@ export function useScriptFilter({ allScripts, filterTag, searchQuery, sortBy }: 
         };
 
         if (filterTag === "hub") {
-            return applySearch(allScripts.filter(s => s.is_running || hasHubTag(s.tags)));
+            return applySearch(allScripts.filter(s => s.is_running || s.is_hub));
         }
 
         let list = allScripts.filter(s => {
@@ -276,7 +275,7 @@ export function useScriptFilter({ allScripts, filterTag, searchQuery, sortBy }: 
         const groups: Record<string, Script[]> = {};
         const scriptsWithoutTags: Script[] = [];
         filtered.forEach(s => {
-            const userTags = withoutHubTags(s.tags);
+            const userTags = s.tags;
             if (userTags.length === 0) {
                 scriptsWithoutTags.push(s);
             } else {

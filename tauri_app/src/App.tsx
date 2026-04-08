@@ -359,7 +359,14 @@ function App() {
     setDragOverTag(null);
     if (id && tag) {
       try {
-        await invoke("add_script_tag", { id, tag: tag === "hub" ? "hub" : tag });
+        // The Hub sidebar pseudo-tab carries the literal id "hub" — when a
+        // script gets dropped on it we set the dedicated is_hub flag instead
+        // of writing a magic tag string.
+        if (tag === "hub") {
+          await invoke("set_script_hub", { id, hub: true });
+        } else {
+          await invoke("add_script_tag", { id, tag });
+        }
       } catch (err) {
         console.warn("[App] FAIL: Backend refused custom engine update", err);
       }
@@ -405,13 +412,15 @@ function App() {
 
   const handleDetailAddTag = useCallback(async (s: Script, tag: string) => {
     try {
-      await invoke("add_script_tag", { id: s.id, tag });
+      if (tag === "hub") await invoke("set_script_hub", { id: s.id, hub: true });
+      else await invoke("add_script_tag", { id: s.id, tag });
     } catch (err) { console.error("[App] Add tag failed:", err); }
   }, []);
 
   const handleDetailRemoveTag = useCallback(async (s: Script, tag: string) => {
     try {
-      await invoke("remove_script_tag", { id: s.id, tag });
+      if (tag === "hub") await invoke("set_script_hub", { id: s.id, hub: false });
+      else await invoke("remove_script_tag", { id: s.id, tag });
     } catch (err) { console.error("[App] Remove tag failed:", err); }
   }, []);
 

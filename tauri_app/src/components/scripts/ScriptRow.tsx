@@ -1,4 +1,5 @@
 import React, { useState, memo, useRef } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import { ScriptRowProps } from "../../types/script";
 import TagPickerPopover from "../tags/TagPickerPopover";
 import { HighlightText } from "../common/HighlightText";
@@ -10,7 +11,6 @@ import TruncatedTooltip from "../ui/TruncatedTooltip";
 import ActionButton from "../ui/ActionButton";
 import { formatDate } from "../../utils/formatDate";
 import { formatSize } from "../../utils/formatSize";
-import { hasHubTag, withoutHubTags } from "../../constants";
 import { useTagOverflow } from "../../hooks/useTagOverflow";
 
 const ScriptRow = memo(function ScriptRow({
@@ -35,8 +35,8 @@ const ScriptRow = memo(function ScriptRow({
     const addBtnRef = useRef<HTMLButtonElement>(null);
 
     // Filtered tags for display (hide system tags)
-    const isHub = hasHubTag(s.tags);
-    const displayedTags = withoutHubTags(s.tags);
+    const isHub = s.is_hub;
+    const displayedTags = s.tags;
 
     const { visibleCount } = useTagOverflow(displayedTags, containerRef);
 
@@ -106,10 +106,12 @@ const ScriptRow = memo(function ScriptRow({
                 {!isDragging && (
                     <Tooltip text={isHub ? t("tooltips.remove_from_hub") : t("tooltips.add_to_hub")}>
                     <button
-                        onClick={(e) => {
+                        onClick={async (e) => {
                             e.stopPropagation();
-                            if (isHub) onRemoveTag(s, "hub");
-                            else onAddTag(s, "hub");
+                            // Hub is now a dedicated boolean flag, not a tag.
+                            // Bypass the tag-array round-trip entirely.
+                            try { await invoke("set_script_hub", { id: s.id, hub: !isHub }); }
+                            catch (err) { console.error("set_script_hub failed:", err); }
                         }}
                         onMouseDown={(e) => e.stopPropagation()}
                         onDoubleClick={(e) => e.stopPropagation()}

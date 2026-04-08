@@ -137,7 +137,8 @@ fn create_schema(conn: &Connection) -> rusqlite::Result<()> {
             community_id  TEXT,
             author        TEXT,
             version       TEXT,
-            source_url    TEXT
+            source_url    TEXT,
+            is_hub        INTEGER NOT NULL DEFAULT 0
         );
 
         CREATE TABLE IF NOT EXISTS script_tags (
@@ -203,6 +204,28 @@ fn create_schema(conn: &Connection) -> rusqlite::Result<()> {
     // already-prefixed row. Clean up the leftover bare duplicates.
     conn.execute(
         "DELETE FROM icon_svg_cache WHERE instr(name, ':') = 0",
+        [],
+    )?;
+
+    // Hub flag migration: hub used to be a magic tag string ("hub" / "fav" /
+    // "favourites"). Now it's a real column on `scripts`. For databases that
+    // existed before this column was added, ALTER it in (ignored if already
+    // there) and one-shot migrate any rows that had a hub-like tag, then
+    // delete those tag rows so they no longer pollute the user's tag list.
+    let _ = conn.execute("ALTER TABLE scripts ADD COLUMN is_hub INTEGER NOT NULL DEFAULT 0", []);
+    conn.execute(
+        "UPDATE scripts SET is_hub = 1 WHERE id IN (
+            SELECT script_id FROM script_tags WHERE LOWER(tag) IN ('hub', 'fav', 'favourites')
+        )",
+        [],
+    )?;
+    conn.execute(
+        "DELETE FROM script_tags WHERE LOWER(tag) IN ('hub', 'fav', 'favourites')",
+        [],
+    )?;
+    // tag_meta entries for the old hub tags are dead now too.
+    conn.execute(
+        "DELETE FROM tag_meta WHERE LOWER(tag) IN ('hub', 'fav', 'favourites')",
         [],
     )?;
 
@@ -472,6 +495,23 @@ pub fn add_tag_to_script(conn: &Connection, script_id: &str, tag: &str) -> rusql
         params![script_id, tag],
     )?;
     Ok(())
+}
+
+pub fn set_script_hub(conn: &Connection, script_id: &str, hub: bool) -> rusqlite::Result<()> {
+    conn.execute(
+        "UPDATE scripts SET is_hub = ?1 WHERE id = ?2",
+        params![if hub { 1 } else { 0 }, script_id],
+    )?;
+    Ok(())
+}
+
+pub fn get_hub_flags(conn: &Connection) -> std::collections::HashSet<String> {
+    let mut set = std::collections::HashSet::new();
+    let Ok(mut stmt) = conn.prepare("SELECT id FROM scripts WHERE is_hub = 1 AND is_orphaned = 0") else { return set };
+    if let Ok(rows) = stmt.query_map([], |row| row.get::<_, String>(0)) {
+        for r in rows.flatten() { set.insert(r); }
+    }
+    set
 }
 
 pub fn remove_tag_from_script(conn: &Connection, script_id: &str, tag: &str) -> rusqlite::Result<()> {

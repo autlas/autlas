@@ -1,4 +1,5 @@
 import React, { useState, memo } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import { HubScriptCardProps } from "../../types/script";
 import TagPickerPopover from "../tags/TagPickerPopover";
 import { HighlightText } from "../common/HighlightText";
@@ -9,7 +10,6 @@ import Tooltip from "../ui/Tooltip";
 import TruncatedTooltip from "../ui/TruncatedTooltip";
 import { formatDate } from "../../utils/formatDate";
 import { formatSize } from "../../utils/formatSize";
-import { hasHubTag, withoutHubTags } from "../../constants";
 
 const HubScriptCard = memo(function HubScriptCard({
     s, isDragging, draggedScriptPath, editingScript, pendingScripts, removingTags,
@@ -52,7 +52,7 @@ const HubScriptCard = memo(function HubScriptCard({
     const isEditing = editingScript === s.path;
     const pendingType = pendingScripts[s.path];
     const isPending = !!pendingType;
-    const isHub = hasHubTag(s.tags);
+    const isHub = s.is_hub;
 
     return (
         <div
@@ -88,10 +88,10 @@ const HubScriptCard = memo(function HubScriptCard({
                     </TruncatedTooltip>
                     <Tooltip text={isHub ? t("tooltips.remove_from_hub") : t("tooltips.add_to_hub")}>
                     <button
-                        onClick={(e) => {
+                        onClick={async (e) => {
                             e.stopPropagation();
-                            if (isHub) onRemoveTag(s, "hub");
-                            else onAddTag(s, "hub");
+                            try { await invoke("set_script_hub", { id: s.id, hub: !isHub }); }
+                            catch (err) { console.error("set_script_hub failed:", err); }
                         }}
                         onMouseDown={(e) => e.stopPropagation()}
                         onDoubleClick={(e) => e.stopPropagation()}
@@ -127,7 +127,7 @@ const HubScriptCard = memo(function HubScriptCard({
                     />
                 )}
                 <div className="flex flex-wrap gap-2 pointer-events-none">
-                    {withoutHubTags(s.tags).map(tag => {
+                    {s.tags.map(tag => {
                         const isRemoving = removingTags.has(`${s.path}-${tag}`);
                         return (
                             <div key={tag}
