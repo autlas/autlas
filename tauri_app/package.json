@@ -25,6 +25,7 @@
     "react-dom": "^19.1.0",
     "react-hotkeys-hook": "^5.2.4",
     "react-i18next": "^16.6.6",
+    "scroll-into-view-if-needed": "^3.1.0",
     "shiki": "^4.0.2",
     "sonner": "^2.0.7",
     "tailwind-variants": "^3.2.2",

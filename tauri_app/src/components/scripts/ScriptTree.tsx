@@ -332,45 +332,50 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
 
     const lastScrollTimeRef = useRef(0);
 
-    // Manual scroll: nested overflow:hidden grid (folder collapse animation)
-    // confuses scrollIntoView so it no-ops on script rows. Compute relative
-    // position and scroll the outer container directly.
-    const scrollElIntoContainer = useCallback((el: HTMLElement, behavior: ScrollBehavior) => {
-        const container = containerRef.current;
-        if (!container) return;
-        const cRect = container.getBoundingClientRect();
-        const eRect = el.getBoundingClientRect();
-        const topPad = toolbarH + 16;
-        const bottomPad = 16;
-        let delta = 0;
-        if (eRect.top < cRect.top + topPad) {
-            delta = eRect.top - cRect.top - topPad;
-        } else if (eRect.bottom > cRect.bottom - bottomPad) {
-            delta = eRect.bottom - cRect.bottom + bottomPad;
-        }
-        if (delta !== 0) container.scrollBy({ top: delta, behavior });
-    }, []);
-
     useEffect(() => {
         if (!isActive) return;
         return useTreeStore.subscribe((state, prev) => {
             if (state.focusedPath === prev.focusedPath) return;
             if (!state.focusedPath || !state.isVimMode) return;
+            const container = containerRef.current;
+            if (!container) return;
             const activeView = viewModeRef.current === "tree" ? treeViewRef.current : gridViewRef.current;
-            const safe = state.focusedPath.replace(/"/g, '\\"');
-            const el = folderRefs.current.get(state.focusedPath)
-                || activeView?.querySelector<HTMLElement>(`[id="script-${safe}"]`)
-                || document.getElementById(`script-${state.focusedPath}`);
-            if (el) {
-                const now = performance.now();
-                const diff = now - lastScrollTimeRef.current;
-                lastScrollTimeRef.current = now;
-                const behavior: ScrollBehavior = isInstantScrollRef.current || (diff < 80 && diff > 0) ? 'auto' : 'smooth';
-                isInstantScrollRef.current = false;
-                scrollElIntoContainer(el, behavior);
+            // CSS.escape handles backslashes in Windows paths — without it
+            // \U / \D etc. are interpreted as CSS escape sequences and the
+            // query silently returns null.
+            const selector = `#script-${CSS.escape(state.focusedPath)}`;
+            const fromFolderRefs = folderRefs.current.get(state.focusedPath);
+            // Scope to the current active view first (avoids hidden siblings
+            // inside the same ScriptTree), then to this instance's scroll
+            // container (avoids OTHER ScriptTree instances — one per tag tab
+            // — that keep their DOM mounted with duplicate script ids).
+            const fromQuery = activeView?.querySelector<HTMLElement>(selector)
+                || container.querySelector<HTMLElement>(selector);
+            const el = fromFolderRefs || fromQuery;
+
+            if (!el) return;
+            const eRect = el.getBoundingClientRect();
+            if (eRect.width === 0 && eRect.height === 0) return;
+
+            lastScrollTimeRef.current = performance.now();
+            isInstantScrollRef.current = false;
+
+            // Manual scroll with scrolloff-like padding. compute-scroll-into-view
+            // ignores CSS scroll-margin so we compute the target directly and
+            // scroll this instance's scroll container.
+            const cRect = container.getBoundingClientRect();
+            const SCROLLOFF = 120;
+            const topBound = cRect.top + toolbarH + SCROLLOFF;
+            const bottomBound = cRect.bottom - SCROLLOFF;
+            let delta = 0;
+            if (eRect.top < topBound) {
+                delta = eRect.top - topBound;
+            } else if (eRect.bottom > bottomBound) {
+                delta = eRect.bottom - bottomBound;
             }
+            if (delta !== 0) container.scrollBy({ top: delta, behavior: 'auto' });
         });
-    }, [scrollElIntoContainer, isActive]);
+    }, [isActive]);
 
     useEffect(() => {
         if (viewMode !== "tree") {
