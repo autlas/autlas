@@ -20,6 +20,10 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
     const [gridEverMounted, setGridEverMounted] = useState(viewMode !== "tree");
     const lastGridMode = useRef<"tiles" | "list">(viewMode !== "tree" ? viewMode as "tiles" | "list" : "tiles");
     const isInstantScrollRef = useRef(false);
+    const treeViewRef = useRef<HTMLDivElement>(null);
+    const gridViewRef = useRef<HTMLDivElement>(null);
+    const viewModeRef = useRef(viewMode);
+    viewModeRef.current = viewMode;
     const sortBy = useTreeStore(store => store.sortBy);
     const setSortBy = useTreeStore(store => store.setSortBy);
 
@@ -328,21 +332,45 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
 
     const lastScrollTimeRef = useRef(0);
 
+    // Manual scroll: nested overflow:hidden grid (folder collapse animation)
+    // confuses scrollIntoView so it no-ops on script rows. Compute relative
+    // position and scroll the outer container directly.
+    const scrollElIntoContainer = useCallback((el: HTMLElement, behavior: ScrollBehavior) => {
+        const container = containerRef.current;
+        if (!container) return;
+        const cRect = container.getBoundingClientRect();
+        const eRect = el.getBoundingClientRect();
+        const topPad = toolbarH + 16;
+        const bottomPad = 16;
+        let delta = 0;
+        if (eRect.top < cRect.top + topPad) {
+            delta = eRect.top - cRect.top - topPad;
+        } else if (eRect.bottom > cRect.bottom - bottomPad) {
+            delta = eRect.bottom - cRect.bottom + bottomPad;
+        }
+        if (delta !== 0) container.scrollBy({ top: delta, behavior });
+    }, []);
+
     useEffect(() => {
+        if (!isActive) return;
         return useTreeStore.subscribe((state, prev) => {
             if (state.focusedPath === prev.focusedPath) return;
             if (!state.focusedPath || !state.isVimMode) return;
-            const el = folderRefs.current.get(state.focusedPath) || document.getElementById(`script-${state.focusedPath}`);
+            const activeView = viewModeRef.current === "tree" ? treeViewRef.current : gridViewRef.current;
+            const safe = state.focusedPath.replace(/"/g, '\\"');
+            const el = folderRefs.current.get(state.focusedPath)
+                || activeView?.querySelector<HTMLElement>(`[id="script-${safe}"]`)
+                || document.getElementById(`script-${state.focusedPath}`);
             if (el) {
                 const now = performance.now();
                 const diff = now - lastScrollTimeRef.current;
                 lastScrollTimeRef.current = now;
-                const behavior = isInstantScrollRef.current || (diff < 80 && diff > 0) ? 'auto' : 'smooth';
+                const behavior: ScrollBehavior = isInstantScrollRef.current || (diff < 80 && diff > 0) ? 'auto' : 'smooth';
                 isInstantScrollRef.current = false;
-                el.scrollIntoView({ behavior, block: 'nearest' });
+                scrollElIntoContainer(el, behavior);
             }
         });
-    }, []);
+    }, [scrollElIntoContainer, isActive]);
 
     useEffect(() => {
         if (viewMode !== "tree") {
@@ -459,7 +487,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
                         searchQuery.toLowerCase().startsWith("path:") ? "path" : null,
                     matches: searchMatches,
                 }}>
-                    {gridEverMounted && <div className={viewMode !== "tree" ? "" : "hidden"}>
+                    {gridEverMounted && <div ref={gridViewRef} className={viewMode !== "tree" ? "" : "hidden"}>
                         <ScriptGridView
                             mode={viewMode !== "tree" ? viewMode as "tiles" | "list" : lastGridMode.current}
                             filtered={filtered}
@@ -502,7 +530,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
                             toggleSection={toggleHubSection}
                         />
                     </div>}
-                    <div className={viewMode === "tree" ? "flex flex-col space-y-0.5 select-none min-h-full" : "hidden"}>
+                    <div ref={treeViewRef} className={viewMode === "tree" ? "flex flex-col space-y-0.5 select-none min-h-full" : "hidden"}>
                         <TreeContext.Provider value={treeContextValue}>
                             {!hasContent ? (
                                 <EmptyState
