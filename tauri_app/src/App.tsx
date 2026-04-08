@@ -6,6 +6,7 @@ import TagIconPicker from "./components/tags/TagIconPicker";
 import SettingsPanel from "./components/settings/SettingsPanel";
 import DragGhost from "./components/common/DragGhost";
 import Sidebar from "./components/sidebar/Sidebar";
+import CheatSheet from "./components/common/CheatSheet";
 import OrphanReconcileDialog, { PendingMatch } from "./components/common/OrphanReconcileDialog";
 import { Script, checkEverythingStatus, launchEverything, installEverything } from "./api";
 import { Toaster, toast } from "sonner";
@@ -35,6 +36,24 @@ function App() {
     window.addEventListener('mousemove', onMove, { capture: true, once: true });
     return () => window.removeEventListener('mousemove', onMove, { capture: true } as any);
   }, [isVimMode]);
+
+  const cheatsheetOpen = useTreeStore(s => s.cheatsheetOpen);
+  const setCheatsheetOpen = useTreeStore(s => s.setCheatsheetOpen);
+  useEffect(() => {
+    const onOpen = () => setCheatsheetOpen(true);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && useTreeStore.getState().cheatsheetOpen) {
+        e.stopPropagation();
+        setCheatsheetOpen(false);
+      }
+    };
+    window.addEventListener("ahk-open-cheatsheet", onOpen);
+    window.addEventListener("keydown", onKey, true);
+    return () => {
+      window.removeEventListener("ahk-open-cheatsheet", onOpen);
+      window.removeEventListener("keydown", onKey, true);
+    };
+  }, [setCheatsheetOpen]);
   const [userTags, setUserTags] = useState<string[]>([]);
 
   const draggedScript = useTreeStore(s => s.draggedScript);
@@ -681,6 +700,8 @@ function App() {
           onMatchResolved={(orphanId) => setOrphanMatches(prev => prev.filter(m => m.orphan_id !== orphanId))}
         />
       )}
+
+      <CheatSheet isOpen={cheatsheetOpen} onClose={() => setCheatsheetOpen(false)} />
 
       <Toaster
         position="bottom-center"

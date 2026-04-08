@@ -74,10 +74,9 @@ const CheatSheet = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void 
                             View & Search
                         </h3>
                         <div className="grid grid-cols-2 gap-x-8 gap-y-4">
-                            <ShortcutItem keys={['i']} desc="Focus Search" />
-                            <ShortcutItem keys={['/']} desc="Global Search" />
-                            <ShortcutItem keys={['q', 'w', 'e']} desc="Tree / Tiles / List" />
-                            <ShortcutItem keys={['s']} desc="Cycle Sort Mode" />
+                            <ShortcutItem sets={[['g', 'i'], ['Ctrl', 'F']]} desc="Focus Search" />
+                            <ShortcutItem keys={['q']} desc="Tree / Tiles / List View Mode" />
+                            <ShortcutItem keys={['s']} desc="Change Sort" />
                             <ShortcutItem keys={['?']} desc="Show Help" />
                             <ShortcutItem keys={['r']} desc="Restart Script" />
                             <ShortcutItem keys={['t']} desc="Edit Tags" />

@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import CheatSheet from "../common/CheatSheet";
 import { SearchContext } from "../../context/SearchContext";
 import { ScriptTreeProps } from "../../types/script";
 import { useScriptTree } from "../../hooks/useScriptTree";
 import { useHotkeys } from "react-hotkeys-hook";
 import { invoke } from "@tauri-apps/api/core";
+import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import EmptyState from "../common/EmptyState";
 import ScriptTreeToolbar from "./ScriptTreeToolbar";
 import ScriptGridView from "./ScriptGridView";
@@ -13,6 +14,7 @@ import { useTreeStore } from "../../store/useTreeStore";
 import { safeSetItem } from "../../utils/safeStorage";
 
 export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, onRunningCountChange, viewMode, onViewModeChange, onCustomDragStart, isDragging, draggedScriptPath, animationsEnabled, onScriptContextMenu, onFolderContextMenu, searchQuery, setSearchQuery, contextMenu, onShowUI, refreshKey, onScanComplete, isPathsEmpty, onAddPath, onRemovePath, scanPaths, onRefresh, isRefreshing, onOpenSettings, onSelectScript, onExposeActions, isDetailOpen, onCloseDetail, isActive = true }: ScriptTreeProps) {
+    const { t } = useTranslation();
     const searchInputRef = useRef<HTMLInputElement>(null);
     const lastGTimeRef = useRef(0);
     const [gridEverMounted, setGridEverMounted] = useState(viewMode !== "tree");
@@ -64,21 +66,20 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
     const editingScript = useTreeStore(s => s.editingScript);
     const removingTags = useTreeStore(s => s.removingTags);
     const modalOpen = useTreeStore(s => s.modalOpen);
-    const hk = isActive && !modalOpen;
+    const [vimEnabled, setVimEnabled] = useState<boolean>(() => localStorage.getItem("ahk_vim_enabled") !== "false");
+    useEffect(() => {
+        const onChange = () => setVimEnabled(localStorage.getItem("ahk_vim_enabled") !== "false");
+        window.addEventListener("ahk-vim-enabled-changed", onChange);
+        return () => window.removeEventListener("ahk-vim-enabled-changed", onChange);
+    }, []);
+    const hk = isActive && !modalOpen && vimEnabled;
 
     useEffect(() => {
         onExposeActions?.({ toggle: handleToggle, restart: handleRestart, pendingScripts, allScripts, setTagIcon, removeTagIcon, deleteTagFromAll, renameTag, toggleHiddenByPath });
     }, [handleToggle, handleRestart, pendingScripts, allScripts, setTagIcon, removeTagIcon, deleteTagFromAll, renameTag, toggleHiddenByPath, onExposeActions]);
 
-    const [isCheatSheetOpen, setIsCheatSheetOpenRaw] = useState(false);
-    const setCheatsheetOpenStore = useTreeStore(s => s.setCheatsheetOpen);
-    const setIsCheatSheetOpen = useCallback((v: boolean | ((p: boolean) => boolean)) => {
-        setIsCheatSheetOpenRaw(prev => {
-            const next = typeof v === 'function' ? v(prev) : v;
-            setCheatsheetOpenStore(next);
-            return next;
-        });
-    }, [setCheatsheetOpenStore]);
+    const isCheatSheetOpen = useTreeStore(s => s.cheatsheetOpen);
+    const setIsCheatSheetOpen = useTreeStore(s => s.setCheatsheetOpen);
     const toolbarRef = useRef<HTMLDivElement>(null);
     const toolbarH = 110;
     const isSearchActiveRef = useRef(false);
@@ -151,14 +152,27 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
     useHotkeys('r', () => {
         if (!useTreeStore.getState().focusedPath) return;
         const item = visibleItems.find(i => i.path === useTreeStore.getState().focusedPath);
-        if (item && item.type === 'script' && item.data.is_running) {
-            handleRestart(item.data);
+        if (item && item.type === 'script') {
+            if (item.data.is_running) {
+                handleRestart(item.data);
+            } else {
+                toast(t("toast.script_not_running", "Скрипт не запущен — нажмите Enter, чтобы запустить"));
+            }
         }
     }, { preventDefault: true, enabled: hk });
 
-    useHotkeys('t', () => {
-        if (!useTreeStore.getState().focusedPath) return;
-        const item = visibleItems.find(i => i.path === useTreeStore.getState().focusedPath);
+    useHotkeys('t,е', () => {
+        const focused = useTreeStore.getState().focusedPath;
+        if (!focused) return;
+        // focusedPath in hub views is "tag::path" (the navKey/editingKey).
+        // Set editingScript directly to it so the scoped popover opens on the
+        // exact card the user was hovering. ScriptRow/HubScriptCard read it via
+        // scopedEditingScript === path comparison.
+        if (focused.includes('::')) {
+            useTreeStore.getState().setEditingScript(focused);
+            return;
+        }
+        const item = visibleItems.find(i => i.path === focused);
         if (item && item.type === 'script') {
             startEditing(item.data);
         }
@@ -170,7 +184,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
             const isQuestionMark = e.key === '?' || (e.key === ',' && e.shiftKey && e.code === 'Slash') || (e.key === '7' && e.shiftKey);
             if (isQuestionMark) {
                 if (document.activeElement !== searchInputRef.current) {
-                    setIsCheatSheetOpen(prev => !prev);
+                    setIsCheatSheetOpen(!useTreeStore.getState().cheatsheetOpen);
                 }
             }
         };
@@ -549,7 +563,6 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
                     onSearchBlur={() => setIsSearchActive(false)}
                 />
             </div>
-            <CheatSheet isOpen={isCheatSheetOpen} onClose={() => setIsCheatSheetOpen(false)} />
         </div>
     );
 }

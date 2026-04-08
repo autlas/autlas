@@ -50,6 +50,7 @@ export default function SettingsPanel({
   const { t } = useTranslation();
 
   const [closeToTray, setCloseToTray] = useState(true);
+  const [vimEnabled, setVimEnabled] = useState<boolean>(() => localStorage.getItem("ahk_vim_enabled") !== "false");
   const [blacklistCounts, setBlacklistCounts] = useState<Record<string, number>>({});
   const [hiddenCounts, setHiddenCounts] = useState<Record<string, number>>({});
 
@@ -222,7 +223,43 @@ export default function SettingsPanel({
       <SettingsSection>
         <h3 className="text-sm font-bold tracking-widest text-tertiary uppercase">{t("settings.behavior", "Behavior")}</h3>
 
+        <div className="flex justify-between items-center pt-4 border-t border-white/5">
+          <div className="flex flex-col">
+            <span className="text-base font-bold text-secondary">{t("settings.close_to_tray", "Close to tray")}</span>
+            <span className="text-xs text-tertiary mt-1">{t("settings.close_to_tray_desc", "Hide window instead of quitting when closing")}</span>
+          </div>
+          <button
+            onClick={toggleCloseToTray}
+            className={`relative w-14 h-7 rounded-full transition-all duration-300 cursor-pointer border ${closeToTray ? "bg-indigo-500/30 border-indigo-400/40 shadow-[0_0_12px_rgba(99,102,241,0.3)]" : "bg-white/5 border-white/10"}`}
+          >
+            <div className={`absolute top-[3px] w-5 h-5 rounded-full transition-all duration-300 shadow-lg ${closeToTray ? "left-[30px] bg-indigo-400 shadow-indigo-500/50" : "left-[3px] bg-white/30"}`} />
+          </button>
+        </div>
+      </SettingsSection>
+
+      {/* ─── Vim ─── */}
+      <SettingsSection>
+        <h3 className="text-sm font-bold tracking-widest text-tertiary uppercase">{t("settings.vim", "Vim")}</h3>
+
         <div className="flex justify-between items-center">
+          <div className="flex flex-col">
+            <span className="text-base font-bold text-secondary">{t("settings.vim_enabled", "Vim-режим")}</span>
+            <span className="text-xs text-tertiary mt-1">{t("settings.vim_enabled_desc", "Включает hjkl-навигацию и все vim-хоткеи в дереве")}</span>
+          </div>
+          <button
+            onClick={() => {
+              const next = !vimEnabled;
+              setVimEnabled(next);
+              safeSetItem("ahk_vim_enabled", next ? "true" : "false");
+              window.dispatchEvent(new CustomEvent("ahk-vim-enabled-changed"));
+            }}
+            className={`relative w-14 h-7 rounded-full transition-all duration-300 cursor-pointer border ${vimEnabled ? "bg-indigo-500/30 border-indigo-400/40 shadow-[0_0_12px_rgba(99,102,241,0.3)]" : "bg-white/5 border-white/10"}`}
+          >
+            <div className={`absolute top-[3px] w-5 h-5 rounded-full transition-all duration-300 shadow-lg ${vimEnabled ? "left-[30px] bg-indigo-400 shadow-indigo-500/50" : "left-[3px] bg-white/30"}`} />
+          </button>
+        </div>
+
+        <div className={`flex justify-between items-center pt-4 border-t border-white/5 transition-opacity ${vimEnabled ? '' : 'opacity-40 pointer-events-none'}`}>
           <div className="flex flex-col">
             <span className="text-base font-bold text-secondary">{t("settings.vim_nav")}</span>
             <span className="text-xs text-tertiary mt-1">{t("settings.vim_nav_desc")}</span>
@@ -235,17 +272,16 @@ export default function SettingsPanel({
           />
         </div>
 
-
-        <div className="flex justify-between items-center pt-4 border-t border-white/5">
+        <div className={`flex justify-between items-center pt-4 border-t border-white/5 transition-opacity ${vimEnabled ? '' : 'opacity-40 pointer-events-none'}`}>
           <div className="flex flex-col">
-            <span className="text-base font-bold text-secondary">{t("settings.close_to_tray", "Close to tray")}</span>
-            <span className="text-xs text-tertiary mt-1">{t("settings.close_to_tray_desc", "Hide window instead of quitting when closing")}</span>
+            <span className="text-base font-bold text-secondary">{t("settings.vim_cheatsheet", "Шпаргалка хоткеев")}</span>
+            <span className="text-xs text-tertiary mt-1">{t("settings.vim_cheatsheet_desc", "Все горячие клавиши приложения. Также открывается клавишей ?")}</span>
           </div>
           <button
-            onClick={toggleCloseToTray}
-            className={`relative w-14 h-7 rounded-full transition-all duration-300 cursor-pointer border ${closeToTray ? "bg-indigo-500/30 border-indigo-400/40 shadow-[0_0_12px_rgba(99,102,241,0.3)]" : "bg-white/5 border-white/10"}`}
+            onClick={() => window.dispatchEvent(new CustomEvent("ahk-open-cheatsheet"))}
+            className="px-5 h-[42px] rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 text-sm font-bold border border-indigo-500/20 hover:border-indigo-500/40 transition-all cursor-pointer"
           >
-            <div className={`absolute top-[3px] w-5 h-5 rounded-full transition-all duration-300 shadow-lg ${closeToTray ? "left-[30px] bg-indigo-400 shadow-indigo-500/50" : "left-[3px] bg-white/30"}`} />
+            {t("settings.open_cheatsheet", "Открыть")}
           </button>
         </div>
       </SettingsSection>
