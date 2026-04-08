@@ -76,7 +76,7 @@ export default function Tooltip({ text, children, delay = 0, side: preferredSide
         return () => { if (timerRef.current) clearTimeout(timerRef.current); };
     }, []);
 
-    if (!text || !isValidElement(children)) return <>{children}</>;
+    if (!isValidElement(children)) return <>{children}</>;
 
     const mergedRef = (node: HTMLElement | null) => {
         (triggerRef as React.MutableRefObject<HTMLElement | null>).current = node;
@@ -100,7 +100,7 @@ export default function Tooltip({ text, children, delay = 0, side: preferredSide
     return (
         <>
             {child}
-            {visible && createPortal(
+            {visible && text && createPortal(
                 <div
                     ref={tooltipRef}
                     className={`fixed z-[100010] pointer-events-none ${pos ? 'opacity-100' : 'opacity-0'}`}

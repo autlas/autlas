@@ -251,7 +251,7 @@ export default function Sidebar({
                 key={tab.id}
                 onMouseEnter={() => { if (draggedScript && !draggedScript.tags.includes("hub")) setDragOverTag(tab.id); }}
                 onMouseLeave={() => { if (draggedScript && dragOverTag === tab.id) setDragOverTag(null); }}
-                className={`${collapsed ? 'w-[52px] flex-shrink-0' : ''} h-[52px] rounded-2xl cursor-pointer text-sm font-bold flex items-center whitespace-nowrap relative px-[10px] -ml-[2px]
+                className={`${collapsed ? 'w-[52px] flex-shrink-0' : 'w-full'} h-[52px] rounded-2xl cursor-pointer text-sm font-bold flex items-center whitespace-nowrap relative px-[10px] -ml-[2px] transition-[width] duration-150
                   justify-between
                   ${draggedScript
                     ? (draggedScript.tags.includes("hub")
@@ -280,7 +280,7 @@ export default function Sidebar({
                   // active hub background.
                   if (isHubActive && runningCount === 0) return null;
                   return (
-                    <div className={`absolute flex items-center justify-center rounded-full transition-all duration-300
+                    <div className={`absolute flex items-center justify-center rounded-full transition-all duration-150
                       ${isHubActive ? 'bg-white shadow-[0_0_12px_rgba(255,255,255,0.4)]' : 'bg-green-500 shadow-[0_0_12px_rgba(34,197,94,0.6)]'}
                       ${collapsed
                         ? (runningCount > 0 ? 'top-[-1px] right-[-1px] w-4.5 h-4.5' : 'top-[26px] right-3 w-0 h-0 opacity-0')
@@ -295,7 +295,7 @@ export default function Sidebar({
                 })()}
               </li>
             );
-            return collapsed ? <Tooltip key={tab.id} text={tab.label} side="right">{item}</Tooltip> : item;
+            return <Tooltip key={tab.id} text={collapsed ? tab.label : ""} side="right">{item}</Tooltip>;
           })}
         </ul>
 
@@ -327,7 +327,7 @@ export default function Sidebar({
                 </div>
               </li>
             );
-            return collapsed ? <Tooltip key={tab.id} text={tab.label} side="right">{item}</Tooltip> : item;
+            return <Tooltip key={tab.id} text={collapsed ? tab.label : ""} side="right">{item}</Tooltip>;
           })}
         </ul>
 
