@@ -6,9 +6,11 @@ interface TooltipProps {
     children: ReactElement;
     delay?: number;
     side?: "top" | "bottom" | "right";
+    shortcut?: string | string[];
 }
 
-export default function Tooltip({ text, children, delay = 0, side: preferredSide }: TooltipProps) {
+export default function Tooltip({ text, children, delay = 0, side: preferredSide, shortcut }: TooltipProps) {
+    const shortcutKeys = shortcut == null ? null : (Array.isArray(shortcut) ? shortcut : [shortcut]);
     const [visible, setVisible] = useState(false);
     const [pos, setPos] = useState<{ x: number; y: number; side: "top" | "bottom" | "right"; arrowY?: number; arrowX: number } | null>(null);
     const triggerRef = useRef<HTMLElement>(null);
@@ -107,8 +109,15 @@ export default function Tooltip({ text, children, delay = 0, side: preferredSide
                         top: -9999,
                     }}
                 >
-                    <div className="relative px-3 py-1.5 rounded-lg bg-black/20 backdrop-blur-md border border-white/10 shadow-[0_4px_20px_rgba(0,0,0,0.5)]" style={{ maxWidth: `calc(100vw - 16px)` }}>
+                    <div className="relative px-3 py-1.5 rounded-lg bg-black/20 backdrop-blur-md border border-white/10 shadow-[0_4px_20px_rgba(0,0,0,0.5)] flex items-center gap-2" style={{ maxWidth: `calc(100vw - 16px)` }}>
                         <span className="text-xs font-bold text-secondary">{text}</span>
+                        {shortcutKeys && shortcutKeys.length > 0 && (
+                            <span className="flex items-center gap-1">
+                                {shortcutKeys.map((k, i) => (
+                                    <kbd key={i} className="px-1.5 py-0.5 rounded-md bg-white/10 border border-white/15 text-[14px] font-bold text-white/70 leading-none">{k}</kbd>
+                                ))}
+                            </span>
+                        )}
                     </div>
                 </div>,
                 document.body

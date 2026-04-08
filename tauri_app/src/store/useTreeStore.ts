@@ -39,6 +39,12 @@ interface TreeStore {
   isVimMode: boolean;
   setIsVimMode: (v: boolean) => void;
 
+  // Modal menus that should suppress global vim hotkeys
+  modalOpen: boolean;
+  setModalOpen: (v: boolean) => void;
+  cheatsheetOpen: boolean;
+  setCheatsheetOpen: (v: boolean) => void;
+
   // Pending scripts (run/kill/restart in progress)
   pendingScripts: Record<string, "run" | "kill" | "restart">;
   setPendingScript: (path: string, type: "run" | "kill" | "restart") => void;
@@ -164,6 +170,10 @@ export const useTreeStore = create<TreeStore>((set) => ({
   // Vim
   isVimMode: false,
   setIsVimMode: (v) => set({ isVimMode: v }),
+  modalOpen: false,
+  setModalOpen: (v) => set({ modalOpen: v }),
+  cheatsheetOpen: false,
+  setCheatsheetOpen: (v) => set({ cheatsheetOpen: v }),
 
   // Pending
   pendingScripts: {},

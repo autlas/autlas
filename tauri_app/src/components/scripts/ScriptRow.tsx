@@ -156,7 +156,7 @@ const ScriptRow = memo(function ScriptRow({
                             </span>
                         )}
 
-                        <Tooltip text={t("tooltips.add_tag")}>
+                        <Tooltip text={t("tooltips.add_tag")} shortcut="t">
                         <button
                             ref={addBtnRef}
                             onClick={(e) => {
@@ -205,16 +205,16 @@ const ScriptRow = memo(function ScriptRow({
                     })()}
                     <div className={`${showInfo ? 'absolute right-0' : ''} transition-opacity flex items-center space-x-2 ${isFocused && isVimMode ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
                         {s.is_running && !isPending && s.has_ui && (
-                            <ActionButton color="indigo" onClick={() => onShowUI(s)} title={t("tooltips.interface")} animateIn animationDelay={0}>
+                            <ActionButton color="indigo" onClick={() => onShowUI(s)} title={t("tooltips.interface")} shortcut="i" animateIn animationDelay={0}>
                                 <InterfaceIcon />
                             </ActionButton>
                         )}
                         {s.is_running && !isPending && (
-                            <ActionButton color="yellow" onClick={() => onRestart(s)} title={t("tooltips.restart")} animateIn animationDelay={s.has_ui ? 50 : 0}>
+                            <ActionButton color="yellow" onClick={() => onRestart(s)} title={t("tooltips.restart")} shortcut="r" animateIn animationDelay={s.has_ui ? 50 : 0}>
                                 <RestartIcon />
                             </ActionButton>
                         )}
-                        <Tooltip text={isPending ? (pendingType === 'restart' ? t("tooltips.restarting") : t("tooltips.toggling")) : (s.is_running ? t("tooltips.kill") : t("tooltips.run"))}>
+                        <Tooltip text={isPending ? (pendingType === 'restart' ? t("tooltips.restarting") : t("tooltips.toggling")) : (s.is_running ? t("tooltips.kill") : t("tooltips.run"))} shortcut="Enter">
                             <button
                                 onClick={(e) => { e.stopPropagation(); !isPending && onToggle(s); }}
                                 onMouseDown={(e) => e.stopPropagation()}

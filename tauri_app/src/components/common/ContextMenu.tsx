@@ -21,7 +21,7 @@ interface ContextMenuProps {
   onBlacklistFolder?: (path: string) => void;
 }
 
-function ContextMenuItem({ label, icon, onClick, danger = false, disabled = false }: { label: string; icon: ReactNode; onClick: () => void; danger?: boolean; disabled?: boolean }) {
+function ContextMenuItem({ label, icon, onClick, danger = false, disabled = false, shortcut }: { label: string; icon: ReactNode; onClick: () => void; danger?: boolean; disabled?: boolean; shortcut?: string }) {
   return (
     <button
       disabled={disabled}
@@ -33,7 +33,8 @@ function ContextMenuItem({ label, icon, onClick, danger = false, disabled = fals
       className={`w-full px-4 py-2.5 text-xs font-bold flex items-center space-x-3 transition-all group ${disabled ? "text-white/20 cursor-not-allowed" : danger ? "text-red-400 hover:bg-red-500/10 cursor-pointer" : "text-secondary hover:bg-white/5 hover:text-white cursor-pointer"}`}
     >
       <span className={`w-[18px] h-[18px] flex items-center justify-center ${disabled ? "opacity-30" : "opacity-70 group-hover:opacity-100"}`}>{icon}</span>
-      <span>{label}</span>
+      <span className="flex-1 text-left">{label}</span>
+      {shortcut && <kbd className="px-1.5 py-0.5 rounded-md bg-white/10 border border-white/15 text-[14px] font-bold text-white/60 leading-none">{shortcut}</kbd>}
     </button>
   );
 }
@@ -95,10 +96,10 @@ export default function ContextMenu({ contextMenu, onClose, onStartRenameTag, on
         {contextMenu.type === "script" && contextMenu.data && (
           <>
             <ContextMenuItem label={t("context.copy_path")} icon={<CopyIcon size={18} />} onClick={() => { navigator.clipboard.writeText(contextMenu.data.path); onClose(); }} />
-            <ContextMenuItem label={t("context.show_in_folder")} icon={<FolderIcon />} onClick={() => { invoke("open_in_explorer", { path: contextMenu.data.path }); onClose(); }} />
+            <ContextMenuItem shortcut="f" label={t("context.show_in_folder")} icon={<FolderIcon />} onClick={() => { invoke("open_in_explorer", { path: contextMenu.data.path }); onClose(); }} />
             <div className="h-[1px] bg-white/5 my-1" />
-            <ContextMenuItem label={t("context.edit")} icon={<EditIcon />} onClick={() => { invoke("edit_script", { path: contextMenu.data.path }); onClose(); }} />
-            <ContextMenuItem label={t("context.open_with")} icon={<OpenWithIcon />} onClick={() => { invoke("open_with", { path: contextMenu.data.path }); onClose(); }} />
+            <ContextMenuItem shortcut="e" label={t("context.edit")} icon={<EditIcon />} onClick={() => { invoke("edit_script", { path: contextMenu.data.path }); onClose(); }} />
+            <ContextMenuItem shortcut="o" label={t("context.open_with")} icon={<OpenWithIcon />} onClick={() => { invoke("open_with", { path: contextMenu.data.path }); onClose(); }} />
             <div className="h-[1px] bg-white/5 my-1" />
             {contextMenu.data.is_hub ? (
               <ContextMenuItem

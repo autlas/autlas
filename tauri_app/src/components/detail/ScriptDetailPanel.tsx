@@ -82,7 +82,6 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
   // Esc is handled centrally in ScriptTree with priority:
   // cheatsheet → tagpicker → search → detail panel → vim mode
   useHotkeys('p', () => onPinToggle(), { preventDefault: true });
-  useHotkeys('f', () => handleOpenFolder(), { preventDefault: true });
 
   const copyPath = useCallback(() => {
     navigator.clipboard.writeText(script.path);
@@ -130,7 +129,7 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
           </Tooltip>
         </div>
         <div className="flex items-center gap-1.5 flex-shrink-0">
-          <Tooltip text={pinned ? t("tooltips.unpin") : t("tooltips.pin")}>
+          <Tooltip text={pinned ? t("tooltips.unpin") : t("tooltips.pin")} shortcut="p">
             <button
               onClick={onPinToggle}
               className="w-7 h-7 flex items-center justify-center rounded-lg transition-all cursor-pointer bg-[var(--bg-tertiary)] text-white/25 hover:text-white/50 hover:bg-white/10"
@@ -138,7 +137,7 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
               <PinIcon size={14} fill={pinned ? "#888" : "none"} />
             </button>
           </Tooltip>
-          <Tooltip text={t("tooltips.close")}>
+          <Tooltip text={t("tooltips.close")} shortcut="Esc">
             <button
               onClick={onClose}
               className="w-7 h-7 flex items-center justify-center rounded-lg bg-[var(--bg-tertiary)] text-[#666] hover:bg-white/10 hover:text-white/60 transition-all cursor-pointer"

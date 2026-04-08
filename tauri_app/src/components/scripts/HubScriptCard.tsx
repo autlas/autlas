@@ -150,7 +150,7 @@ const HubScriptCard = memo(function HubScriptCard({
                             </div>
                         );
                     })}
-                    <Tooltip text={t("tooltips.add_tag")}>
+                    <Tooltip text={t("tooltips.add_tag")} shortcut="t">
                     <button
                         onClick={(e) => {
                             e.stopPropagation();
@@ -175,7 +175,7 @@ const HubScriptCard = memo(function HubScriptCard({
                 {s.is_running ? (
                     <div className="flex items-center gap-2">
                         {s.has_ui && (
-                            <Tooltip text={t("tooltips.interface")}>
+                            <Tooltip text={t("tooltips.interface")} shortcut="i">
                             <button
                                 onClick={(e) => { e.stopPropagation(); onShowUI(s); }}
                                 onMouseDown={(e) => e.stopPropagation()}
@@ -185,7 +185,7 @@ const HubScriptCard = memo(function HubScriptCard({
                             </button>
                             </Tooltip>
                         )}
-                        <Tooltip text={pendingType === 'restart' ? t("tooltips.restarting") : t("tooltips.restart_script")}>
+                        <Tooltip text={pendingType === 'restart' ? t("tooltips.restarting") : t("tooltips.restart_script")} shortcut="r">
                         <button
                             onClick={(e) => { e.stopPropagation(); onRestart(s); }}
                             onMouseDown={(e) => e.stopPropagation()}
@@ -204,7 +204,7 @@ const HubScriptCard = memo(function HubScriptCard({
                             }
                         </button>
                         </Tooltip>
-                        <Tooltip text={pendingType === 'kill' ? t("tooltips.stopping") : t("tooltips.kill_script")}>
+                        <Tooltip text={pendingType === 'kill' ? t("tooltips.stopping") : t("tooltips.kill_script")} shortcut="Enter">
                         <button
                             onClick={(e) => { e.stopPropagation(); onToggle(s); }}
                             onMouseDown={(e) => e.stopPropagation()}
@@ -225,7 +225,7 @@ const HubScriptCard = memo(function HubScriptCard({
                         </Tooltip>
                     </div>
                 ) : (
-                    <Tooltip text={isPending ? t("tooltips.starting") : t("tooltips.run")}>
+                    <Tooltip text={isPending ? t("tooltips.starting") : t("tooltips.run")} shortcut="Enter">
                     <button
                         onClick={(e) => { e.stopPropagation(); !isPending && onToggle(s); }}
                         onMouseDown={(e) => e.stopPropagation()}

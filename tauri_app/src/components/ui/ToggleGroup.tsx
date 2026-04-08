@@ -6,6 +6,7 @@ export interface ToggleOption<T extends string> {
     label?: string;
     icon?: (isActive: boolean) => React.ReactNode;
     title?: string;
+    shortcut?: string | string[];
 }
 
 interface ToggleGroupProps<T extends string> {
@@ -105,7 +106,7 @@ export default function ToggleGroup<T extends string>({
                         {opt.icon ? opt.icon(isActive) : opt.label}
                     </button>
                 );
-                return opt.title ? <Tooltip key={opt.id} text={opt.title}>{btn}</Tooltip> : btn;
+                return opt.title ? <Tooltip key={opt.id} text={opt.title} shortcut={opt.shortcut}>{btn}</Tooltip> : btn;
             })}
         </div>
     );

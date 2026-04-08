@@ -20,13 +20,14 @@ interface ActionButtonProps {
     variant?: "compact" | "wide";
     onClick: (e: React.MouseEvent) => void;
     title?: string;
+    shortcut?: string | string[];
     className?: string;
     children: React.ReactNode;
     animateIn?: boolean;
     animationDelay?: number;
 }
 
-export default function ActionButton({ color, variant = "compact", onClick, title, className, children, animateIn, animationDelay = 0 }: ActionButtonProps) {
+export default function ActionButton({ color, variant = "compact", onClick, title, shortcut, className, children, animateIn, animationDelay = 0 }: ActionButtonProps) {
     const sizeClass = variant === "compact"
         ? "w-7 h-7 flex-shrink-0 rounded-lg"
         : "flex-1 h-[42px] rounded-2xl";
@@ -43,6 +44,6 @@ export default function ActionButton({ color, variant = "compact", onClick, titl
         </button>
     );
 
-    if (title) return <Tooltip text={title}>{btn}</Tooltip>;
+    if (title) return <Tooltip text={title} shortcut={shortcut}>{btn}</Tooltip>;
     return btn;
 }
