@@ -271,9 +271,25 @@ export function useVimHotkeys(args: UseVimHotkeysArgs) {
         }
 
         if (candidates.length === 0) {
-            // Wrap to the visual extreme of the document.
             const sorted = visualSorted();
-            const target = (direction === 'down' || direction === 'right') ? sorted[0] : sorted[sorted.length - 1];
+            let target: HTMLElement | undefined;
+            if (direction === 'right' || direction === 'left') {
+                // Group sorted into rows by top (4px tolerance) and jump to
+                // first of next row / last of prev row, wrapping document-wide.
+                const rows: HTMLElement[][] = [];
+                for (const el of sorted) {
+                    const r = el.getBoundingClientRect();
+                    const last = rows[rows.length - 1];
+                    if (last && Math.abs(last[0].getBoundingClientRect().top - r.top) <= 4) last.push(el);
+                    else rows.push([el]);
+                }
+                const row = rows.find(r => r.includes(currentEl));
+                if (row && row.length > 1) {
+                    target = direction === 'right' ? row[0] : row[row.length - 1];
+                }
+            } else {
+                target = (direction === 'down') ? sorted[0] : sorted[sorted.length - 1];
+            }
             if (target && target !== currentEl) {
                 const navKey = target.id.slice('script-'.length);
                 vlog('spatial:', direction, '→ WRAP to', navKey);
