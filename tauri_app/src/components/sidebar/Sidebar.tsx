@@ -283,8 +283,8 @@ export default function Sidebar({
                     <div className={`absolute flex items-center justify-center rounded-full transition-all duration-300
                       ${isHubActive ? 'bg-white shadow-[0_0_12px_rgba(255,255,255,0.4)]' : 'bg-green-500 shadow-[0_0_12px_rgba(34,197,94,0.6)]'}
                       ${collapsed
-                        ? (runningCount > 0 ? 'top-[-1px] right-[-1px] w-4.5 h-4.5' : 'top-[22px] right-2 w-2 h-2 animate-pulse opacity-0')
-                        : (runningCount > 0 ? 'top-[16px] right-3 w-5 h-5' : 'top-[22px] right-4 w-2 h-2 animate-pulse')
+                        ? (runningCount > 0 ? 'top-[-1px] right-[-1px] w-4.5 h-4.5' : 'top-[26px] right-3 w-0 h-0 opacity-0')
+                        : (runningCount > 0 ? 'top-[16px] right-3 w-5 h-5' : 'top-[26px] right-5 w-0 h-0 opacity-0')
                       }`}
                     >
                       {runningCount > 0 && (
