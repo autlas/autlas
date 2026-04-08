@@ -2,10 +2,7 @@ import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { SearchContext } from "../../context/SearchContext";
 import { ScriptTreeProps } from "../../types/script";
 import { useScriptTree } from "../../hooks/useScriptTree";
-import { useHotkeys } from "react-hotkeys-hook";
-import { invoke } from "@tauri-apps/api/core";
-import { toast } from "sonner";
-import { useTranslation } from "react-i18next";
+import { useVimHotkeys } from "../../hooks/useVimHotkeys";
 import EmptyState from "../common/EmptyState";
 import ScriptTreeToolbar from "./ScriptTreeToolbar";
 import ScriptGridView from "./ScriptGridView";
@@ -14,9 +11,7 @@ import { useTreeStore } from "../../store/useTreeStore";
 import { safeSetItem } from "../../utils/safeStorage";
 
 export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, onRunningCountChange, viewMode, onViewModeChange, onCustomDragStart, isDragging, draggedScriptPath, animationsEnabled, onScriptContextMenu, onFolderContextMenu, searchQuery, setSearchQuery, contextMenu, onShowUI, refreshKey, onScanComplete, isPathsEmpty, onAddPath, onRemovePath, scanPaths, onRefresh, isRefreshing, onOpenSettings, onSelectScript, onExposeActions, isDetailOpen, onCloseDetail, isActive = true }: ScriptTreeProps) {
-    const { t } = useTranslation();
     const searchInputRef = useRef<HTMLInputElement>(null);
-    const lastGTimeRef = useRef(0);
     const [gridEverMounted, setGridEverMounted] = useState(viewMode !== "tree");
     const lastGridMode = useRef<"tiles" | "list">(viewMode !== "tree" ? viewMode as "tiles" | "list" : "tiles");
     const isInstantScrollRef = useRef(false);
@@ -69,21 +64,11 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
     const setIsVimMode = useTreeStore(s => s.setIsVimMode);
     const editingScript = useTreeStore(s => s.editingScript);
     const removingTags = useTreeStore(s => s.removingTags);
-    const modalOpen = useTreeStore(s => s.modalOpen);
-    const [vimEnabled, setVimEnabled] = useState<boolean>(() => localStorage.getItem("ahk_vim_enabled") !== "false");
-    useEffect(() => {
-        const onChange = () => setVimEnabled(localStorage.getItem("ahk_vim_enabled") !== "false");
-        window.addEventListener("ahk-vim-enabled-changed", onChange);
-        return () => window.removeEventListener("ahk-vim-enabled-changed", onChange);
-    }, []);
-    const hk = isActive && !modalOpen && vimEnabled;
 
     useEffect(() => {
         onExposeActions?.({ toggle: handleToggle, restart: handleRestart, pendingScripts, allScripts, setTagIcon, removeTagIcon, deleteTagFromAll, renameTag, toggleHiddenByPath });
     }, [handleToggle, handleRestart, pendingScripts, allScripts, setTagIcon, removeTagIcon, deleteTagFromAll, renameTag, toggleHiddenByPath, onExposeActions]);
 
-    const isCheatSheetOpen = useTreeStore(s => s.cheatsheetOpen);
-    const setIsCheatSheetOpen = useTreeStore(s => s.setCheatsheetOpen);
     const toolbarRef = useRef<HTMLDivElement>(null);
     const toolbarH = 110;
     const isSearchActiveRef = useRef(false);
@@ -91,151 +76,12 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
         isSearchActiveRef.current = v;
     };
 
-    // ─── VIM HOTKEYS ───────────────────────────────────────────────
-    useHotkeys('j', () => {
-        const vimNav = localStorage.getItem("ahk_vim_mode_nav") || "hjkl";
-        moveFocus('down', vimNav === 'jk' || viewMode === 'tree' ? 1 : columnsCount);
-    }, { preventDefault: true, enabled: hk });
+    const [columnsCount, setColumnsCount] = useState(1);
+    const containerRef = useRef<HTMLDivElement>(null);
+    const scrollPositions = useRef<Record<string, number>>({});
 
-    useHotkeys('k', () => {
-        const vimNav = localStorage.getItem("ahk_vim_mode_nav") || "hjkl";
-        moveFocus('up', vimNav === 'jk' || viewMode === 'tree' ? 1 : columnsCount);
-    }, { preventDefault: true, enabled: hk });
-
-    useHotkeys('h', () => {
-        const vimNav = localStorage.getItem("ahk_vim_mode_nav") || "hjkl";
-        if (vimNav === 'jk' && viewMode !== 'tree') return;
-        moveFocus('left', 1);
-    }, { preventDefault: true, enabled: hk });
-
-    useHotkeys('l', () => {
-        const vimNav = localStorage.getItem("ahk_vim_mode_nav") || "hjkl";
-        if (vimNav === 'jk' && viewMode !== 'tree') return;
-        moveFocus('right', 1);
-    }, { preventDefault: true, enabled: hk });
-
-    // Arrow keys always work as 2D grid (hjkl mode), ignoring vim nav setting
-    useHotkeys('ArrowDown', () => {
-        moveFocus('down', viewMode === 'tree' ? 1 : columnsCount);
-    }, { preventDefault: true, enabled: hk });
-
-    useHotkeys('ArrowUp', () => {
-        moveFocus('up', viewMode === 'tree' ? 1 : columnsCount);
-    }, { preventDefault: true, enabled: hk });
-
-    useHotkeys('ArrowLeft', () => {
-        moveFocus('left', 1);
-    }, { preventDefault: true, enabled: hk });
-
-    useHotkeys('ArrowRight', () => {
-        moveFocus('right', 1);
-    }, { preventDefault: true, enabled: hk });
-
-    useHotkeys('enter', () => {
-        if (!useTreeStore.getState().focusedPath) return;
-        const item = visibleItems.find(i => i.path === useTreeStore.getState().focusedPath);
-        if (item) {
-            if (item.type === 'script') {
-                handleToggle(item.data);
-            } else {
-                toggleFolder(item.path);
-            }
-        }
-    }, { preventDefault: true, enabled: hk });
-
-    useHotkeys('space', () => {
-        if (!useTreeStore.getState().focusedPath) return;
-        const item = visibleItems.find(i => i.path === useTreeStore.getState().focusedPath);
-        if (item && item.type === 'script') {
-            onSelectScript?.(item.data);
-        } else if (item) {
-            toggleFolder(item.path);
-        }
-    }, { preventDefault: true, enabled: hk });
-
-    useHotkeys('r', () => {
-        if (!useTreeStore.getState().focusedPath) return;
-        const item = visibleItems.find(i => i.path === useTreeStore.getState().focusedPath);
-        if (item && item.type === 'script') {
-            if (item.data.is_running) {
-                handleRestart(item.data);
-            } else {
-                toast(t("toast.script_not_running", "Скрипт не запущен — нажмите Enter, чтобы запустить"));
-            }
-        }
-    }, { preventDefault: true, enabled: hk });
-
-    useHotkeys('t,е', () => {
-        const focused = useTreeStore.getState().focusedPath;
-        if (!focused) return;
-        // focusedPath in hub views is "tag::path" (the navKey/editingKey).
-        // Set editingScript directly to it so the scoped popover opens on the
-        // exact card the user was hovering. ScriptRow/HubScriptCard read it via
-        // scopedEditingScript === path comparison.
-        if (focused.includes('::')) {
-            useTreeStore.getState().setEditingScript(focused);
-            return;
-        }
-        const item = visibleItems.find(i => i.path === focused);
-        if (item && item.type === 'script') {
-            startEditing(item.data);
-        }
-    }, { preventDefault: true, enabled: hk });
-
-    useEffect(() => {
-        if (!isActive) return;
-        const handleKeyDown = (e: KeyboardEvent) => {
-            const isQuestionMark = e.key === '?' || (e.key === ',' && e.shiftKey && e.code === 'Slash') || (e.key === '7' && e.shiftKey);
-            if (isQuestionMark) {
-                if (document.activeElement !== searchInputRef.current) {
-                    setIsCheatSheetOpen(!useTreeStore.getState().cheatsheetOpen);
-                }
-            }
-        };
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [isActive]);
-
-    useEffect(() => {
-        if (visibleItems.length > 0) {
-            isInstantScrollRef.current = true;
-            const target = visibleItems.find(i => i.type === 'script') || visibleItems[0];
-            setFocusedPath(target.path);
-        }
-    }, [sortBy]);
-
-    // CheatSheet toggle handled by keydown listener above (supports multiple keyboard layouts)
-
-    useHotkeys('f', () => {
-        if (!useTreeStore.getState().focusedPath) return;
-        const item = visibleItems.find(i => i.path === useTreeStore.getState().focusedPath);
-        if (!item) return;
-        if (item.type === 'script') {
-            invoke("open_in_explorer", { path: item.data.path });
-        } else {
-            invoke("open_in_explorer", { path: item.path });
-        }
-    }, { preventDefault: true, enabled: hk });
-
-    useHotkeys('o', () => {
-        if (!useTreeStore.getState().focusedPath) return;
-        const item = visibleItems.find(i => i.path === useTreeStore.getState().focusedPath);
-        if (item && item.type === 'script') {
-            invoke("open_with", { path: item.data.path });
-        }
-    }, { preventDefault: true, enabled: hk });
-
-    useHotkeys('e', () => {
-        if (!useTreeStore.getState().focusedPath) return;
-        const item = visibleItems.find(i => i.path === useTreeStore.getState().focusedPath);
-        if (item && item.type === 'script') {
-            invoke("edit_script", { path: item.data.path });
-        }
-    }, { preventDefault: true, enabled: hk });
-
-    // Direct scroll fallback: scrollIntoView via subscriber may skip when
-    // store updates fire in the wrong order (path before vim mode), or when
-    // the element appears "visible" inside the toolbar padding. Force it.
+    // Instant scroll-to-path used by gg / G. Kept here (not in useVimHotkeys)
+    // because it needs folderRefs from useScriptTree.
     const scrollPathIntoView = useCallback((path: string) => {
         requestAnimationFrame(() => {
             const el = folderRefs.current.get(path) || document.getElementById(`script-${path}`);
@@ -243,92 +89,38 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
         });
     }, [folderRefs]);
 
-    useHotkeys('g', () => {
-        const now = performance.now();
-        const diff = now - lastGTimeRef.current;
-        if (diff < 500 && diff > 0) {
-            if (visibleItems.length > 0) {
-                isInstantScrollRef.current = true;
-                const target = visibleItems.find(i => i.type === 'script') || visibleItems[0];
-                setIsVimMode(true);
-                setFocusedPath(target.path);
-                scrollPathIntoView(target.path);
-            }
-            lastGTimeRef.current = 0;
-        } else {
-            lastGTimeRef.current = now;
-        }
-    }, { enabled: hk });
+    useVimHotkeys({
+        isActive,
+        viewMode,
+        onViewModeChange,
+        columnsCount,
+        visibleItems,
+        moveFocus,
+        scrollPathIntoView,
+        handleToggle,
+        handleRestart,
+        toggleFolder,
+        startEditing,
+        stopEditing,
+        onShowUI,
+        onSelectScript,
+        isDetailOpen,
+        onCloseDetail,
+        editingScript,
+        searchInputRef,
+        isSearchActiveRef,
+        isInstantScrollRef,
+    });
 
-    useHotkeys('shift+g', (e) => {
-        e.preventDefault();
+    // Reset focus to the first script when the sort order changes.
+    useEffect(() => {
         if (visibleItems.length > 0) {
             isInstantScrollRef.current = true;
-            setIsVimMode(true);
-            const lastPath = visibleItems[visibleItems.length - 1].path;
-            setFocusedPath(lastPath);
-            scrollPathIntoView(lastPath);
+            const target = visibleItems.find(i => i.type === 'script') || visibleItems[0];
+            setFocusedPath(target.path);
         }
-    }, { enabled: hk });
-
-    useHotkeys('q', () => {
-        const order = ["tree", "tiles", "list"] as const;
-        const idx = order.indexOf(viewMode);
-        onViewModeChange(order[(idx + 1) % order.length]);
-    }, { enabled: hk });
-    const focusSearch = () => {
-        if (searchInputRef.current) {
-            searchInputRef.current.focus();
-        } else {
-            const btn = document.querySelector<HTMLButtonElement>('[data-search-collapsed-btn]');
-            btn?.click();
-        }
-    };
-
-    useHotkeys('i', (e) => {
-        const now = performance.now();
-        const gDiff = now - lastGTimeRef.current;
-        if (gDiff < 1000) {
-            e.preventDefault();
-            lastGTimeRef.current = 0;
-            focusSearch();
-            return;
-        }
-        if (useTreeStore.getState().focusedPath) {
-            const item = visibleItems.find(it => it.path === useTreeStore.getState().focusedPath);
-            if (item && item.type === 'script' && item.data.is_running && item.data.has_ui) {
-                onShowUI(item.data);
-            }
-        }
-    }, { enabled: hk });
-
-    useHotkeys('ctrl+f', (e) => {
-        e.preventDefault();
-        focusSearch();
-    }, { enabled: hk });
-
-    useHotkeys('esc', () => {
-        // Priority: cheatsheet → sort dropdown (handled by toolbar) → tagpicker → search → detail panel → vim mode
-        if (isCheatSheetOpen) {
-            setIsCheatSheetOpen(false);
-            return;
-        }
-        if (modalOpen) return; // sort dropdown handles its own Esc
-        if (editingScript) {
-            stopEditing();
-            return;
-        }
-        if (isSearchActiveRef.current) {
-            searchInputRef.current?.blur();
-            return;
-        }
-        if (isDetailOpen && onCloseDetail) {
-            onCloseDetail();
-            return;
-        }
-        setFocusedPath(null);
-        setIsVimMode(false);
-    }, { enableOnFormTags: true, enabled: isActive }, [isCheatSheetOpen, modalOpen, editingScript, isDetailOpen]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [sortBy]);
 
     const lastScrollTimeRef = useRef(0);
 
@@ -387,10 +179,6 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
     useEffect(() => {
         if (onLoadingChange) onLoadingChange(isFetching);
     }, [isFetching, onLoadingChange]);
-
-    const [columnsCount, setColumnsCount] = useState(1);
-    const containerRef = useRef<HTMLDivElement>(null);
-    const scrollPositions = useRef<Record<string, number>>({});
 
     useEffect(() => {
         const container = containerRef.current;
