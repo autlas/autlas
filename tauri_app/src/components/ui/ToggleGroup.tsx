@@ -40,6 +40,12 @@ export default function ToggleGroup<T extends string>({
     const activeValueRef = useRef(activeValue);
     activeValueRef.current = activeValue;
 
+    // Base width the pill is sized to in CSS. We then apply
+    // transform: translate3d(left, 0, 0) scaleX(width / PILL_BASE_WIDTH).
+    // Both translate and scale are composited on the GPU, so the animation
+    // stays smooth even when the main thread is busy re-rendering the tree.
+    const PILL_BASE_WIDTH = 100;
+
     function movePill(animate: boolean) {
         const container = containerRef.current;
         const pill = pillRef.current;
@@ -53,8 +59,8 @@ export default function ToggleGroup<T extends string>({
         } else {
             pill.style.transition = '';
         }
-        pill.style.left = `${activeBtn.offsetLeft}px`;
-        pill.style.width = `${activeBtn.offsetWidth}px`;
+        const scale = activeBtn.offsetWidth / PILL_BASE_WIDTH;
+        pill.style.transform = `translate3d(${activeBtn.offsetLeft}px, 0, 0) scaleX(${scale})`;
         if (!animate) {
             pill.offsetHeight;
             pill.style.transition = '';
@@ -100,7 +106,13 @@ export default function ToggleGroup<T extends string>({
         >
             <div
                 ref={pillRef}
-                className={`absolute top-1 h-[calc(100%-8px)] rounded-lg bg-white/10 shadow-lg shadow-white/5 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] pointer-events-none ${ready ? '' : 'opacity-0'}`}
+                className={`absolute top-1 left-0 h-[calc(100%-8px)] rounded-lg bg-white/10 shadow-lg shadow-white/5 pointer-events-none ${ready ? '' : 'opacity-0'}`}
+                style={{
+                    width: `${PILL_BASE_WIDTH}px`,
+                    transformOrigin: 'left center',
+                    willChange: 'transform',
+                    transition: 'transform 300ms cubic-bezier(0.4,0,0.2,1)',
+                }}
             />
 
             {options.map((opt) => {
@@ -120,9 +132,9 @@ export default function ToggleGroup<T extends string>({
                             const pill = pillRef.current;
                             const btnEl = e.currentTarget as HTMLElement;
                             if (container && pill && btnEl) {
-                                pill.style.transition = '';
-                                pill.style.left = `${btnEl.offsetLeft}px`;
-                                pill.style.width = `${btnEl.offsetWidth}px`;
+                                pill.style.transition = 'transform 300ms cubic-bezier(0.4,0,0.2,1)';
+                                const scale = btnEl.offsetWidth / PILL_BASE_WIDTH;
+                                pill.style.transform = `translate3d(${btnEl.offsetLeft}px, 0, 0) scaleX(${scale})`;
                                 container.querySelectorAll<HTMLElement>('[data-toggle-id]').forEach(b => {
                                     if (b === btnEl) {
                                         b.classList.add('text-white');
