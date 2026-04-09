@@ -11,7 +11,7 @@ import { formatSize } from "../../utils/formatSize";
 import { useScriptContent } from "../../hooks/useScriptContent";
 import { useTreeStore } from "../../store/useTreeStore";
 
-function MetaRow({ label, value, mono, copiedLabel, copyLabel }: { label: string; value: string; mono?: boolean; copiedLabel?: string; copyLabel?: string }) {
+function MetaRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   const [copied, setCopied] = useState(false);
   return (
     <div
@@ -19,9 +19,11 @@ function MetaRow({ label, value, mono, copiedLabel, copyLabel }: { label: string
       onClick={() => { navigator.clipboard.writeText(value); setCopied(true); setTimeout(() => setCopied(false), 1200); }}
     >
       <span className="text-[11px] font-bold text-white/15 uppercase tracking-wider w-15 flex-shrink-0">{label}</span>
-      <span className={`text-[12px] text-white/30 truncate flex-1 ${mono ? "font-mono" : ""}`}>{value}</span>
-      <span className={`text-[10px] text-white/30 transition-opacity ${copied ? "opacity-100" : "opacity-0 group-hover/meta:opacity-50"}`}>
-        {copied ? (copiedLabel || "copied") : (copyLabel || "copy")}
+      <TruncatedTooltip text={value}>
+        <span className={`text-[12px] text-white/30 truncate flex-1 min-w-0 ${mono ? "font-mono" : ""}`}>{value}</span>
+      </TruncatedTooltip>
+      <span className={`flex-shrink-0 transition-opacity ${copied ? "opacity-100 text-green-400" : "opacity-0 group-hover/meta:opacity-50 text-white/40"}`}>
+        <CopyIcon size={12} />
       </span>
     </div>
   );
@@ -349,12 +351,12 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
         <span className="text-[11px] font-bold uppercase tracking-widest text-white/20">{t("detail.meta")}</span>
       </div>
       <div className="px-5 mb-4 space-y-1">
-        <MetaRow label="ID" value={script.id} mono copiedLabel={t("detail.copied")} copyLabel={t("detail.copy")} />
-        <MetaRow label={t("detail.size")} value={formatSize(script.size)} copiedLabel={t("detail.copied")} copyLabel={t("detail.copy")} />
-        <MetaRow label="Hash" value={scriptMeta?.hash || "..."} mono copiedLabel={t("detail.copied")} copyLabel={t("detail.copy")} />
-        <MetaRow label={t("detail.created")} value={formatDate(scriptMeta?.created || "")} copiedLabel={t("detail.copied")} copyLabel={t("detail.copy")} />
-        <MetaRow label={t("detail.modified")} value={formatDate(scriptMeta?.modified || "")} copiedLabel={t("detail.copied")} copyLabel={t("detail.copy")} />
-        {scriptMeta?.last_run && <MetaRow label={t("detail.last_run")} value={formatDate(scriptMeta.last_run)} copiedLabel={t("detail.copied")} copyLabel={t("detail.copy")} />}
+        <MetaRow label="ID" value={script.id} mono />
+        <MetaRow label={t("detail.size")} value={formatSize(script.size)} />
+        <MetaRow label="Hash" value={scriptMeta?.hash || "..."} mono />
+        <MetaRow label={t("detail.created")} value={formatDate(scriptMeta?.created || "")} />
+        <MetaRow label={t("detail.modified")} value={formatDate(scriptMeta?.modified || "")} />
+        {scriptMeta?.last_run && <MetaRow label={t("detail.last_run")} value={formatDate(scriptMeta.last_run)} />}
       </div>
 
       {/* Divider */}
