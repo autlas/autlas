@@ -923,7 +923,7 @@ function App() {
                   className="w-full py-3 bg-indigo-500/20 hover:bg-indigo-500/30 border border-indigo-500/20 hover:border-indigo-500/40 rounded-2xl transition-all cursor-pointer group"
                 >
                   <div className="text-sm font-bold text-indigo-400 group-hover:text-indigo-300 transition-colors">Install Automatically</div>
-                  <div className="text-[14px] text-white/40 mt-1">Download and install silently via direct link</div>
+                  <div className="text-xs text-white/40 mt-1">Download and install silently via direct link</div>
                 </button>
 
                 <button
@@ -934,7 +934,7 @@ function App() {
                   className="w-full py-3 bg-white/[0.03] hover:bg-white/[0.06] border border-white/10 hover:border-white/20 rounded-2xl transition-all cursor-pointer group"
                 >
                   <div className="text-sm font-bold text-white/70 group-hover:text-white/90 transition-colors">Install Manually</div>
-                  <div className="text-[14px] text-white/40 mt-1">Open voidtools.com downloads page</div>
+                  <div className="text-xs text-white/40 mt-1">Open voidtools.com downloads page</div>
                 </button>
               </div>
             ) : (

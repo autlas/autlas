@@ -283,7 +283,7 @@ export const ToastButton = ({ onClick, children, variant = "primary" }: ToastBut
     return (
         <button
             onClick={onClick}
-            className={`px-3 py-1 text-[11px] font-bold uppercase tracking-wider whitespace-nowrap rounded-lg transition-colors cursor-pointer ${styles}`}
+            className={`px-3 py-1 text-2xs font-bold uppercase tracking-wider whitespace-nowrap rounded-lg transition-colors cursor-pointer ${styles}`}
         >
             {children}
         </button>

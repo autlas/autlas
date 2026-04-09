@@ -204,7 +204,7 @@ const HubScriptCard = memo(function HubScriptCard({
                             style={!isPending ? { animationDelay: `${s.has_ui ? 50 : 0}ms` } : undefined}
                         >
                             {pendingType === 'restart'
-                                ? <span className="text-[14px] font-bold tracking-[0.1em]">{t("hub_card.restarting")}</span>
+                                ? <span className="text-xs font-bold tracking-[0.1em]">{t("hub_card.restarting")}</span>
                                 : <RestartIcon size={22} />
                             }
                         </button>
@@ -223,7 +223,7 @@ const HubScriptCard = memo(function HubScriptCard({
                             style={!isPending ? { animationDelay: `${s.has_ui ? 100 : 50}ms` } : undefined}
                         >
                             {pendingType === 'kill'
-                                ? <span className="text-[14px] font-bold tracking-[0.1em]">{t("hub_card.killing")}</span>
+                                ? <span className="text-xs font-bold tracking-[0.1em]">{t("hub_card.killing")}</span>
                                 : <CloseIcon size={22} />
                             }
                         </button>
@@ -234,7 +234,7 @@ const HubScriptCard = memo(function HubScriptCard({
                     <button
                         onClick={(e) => { e.stopPropagation(); !isPending && onToggle(s); }}
                         onMouseDown={(e) => e.stopPropagation()}
-                        className={`w-full h-[42px] rounded-2xl text-[14px] font-bold tracking-[0.1em] transition-all transform cursor-pointer active:scale-95 pointer-events-auto shadow-xl
+                        className={`w-full h-[42px] rounded-2xl text-xs font-bold tracking-[0.1em] transition-all transform cursor-pointer active:scale-95 pointer-events-auto shadow-xl
                             ${isPending
                                 ? 'bg-green-500/10 text-green-500 border border-green-500/30 animate-pulse'
                                 : "bg-[var(--bg-tertiary)] text-[#71717a] border border-white/5 hover:bg-green-600/15 hover:text-green-500 hover:border-green-500/30"

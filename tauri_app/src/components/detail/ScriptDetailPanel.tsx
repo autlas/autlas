@@ -18,9 +18,9 @@ function MetaRow({ label, value, mono }: { label: string; value: string; mono?: 
       className="flex items-center gap-3 group/meta cursor-pointer rounded-lg px-2 py-1 -mx-2 hover:bg-[var(--bg-tertiary)] transition-colors"
       onClick={() => { navigator.clipboard.writeText(value); setCopied(true); setTimeout(() => setCopied(false), 1200); }}
     >
-      <span className="text-[11px] font-bold text-white/15 uppercase tracking-wider w-15 flex-shrink-0">{label}</span>
+      <span className="text-2xs font-bold text-white/15 uppercase tracking-wider w-15 flex-shrink-0">{label}</span>
       <TruncatedTooltip text={value}>
-        <span className={`text-[12px] text-white/30 truncate flex-1 min-w-0 ${mono ? "font-mono" : ""}`}>{value}</span>
+        <span className={`text-2xs text-white/30 truncate flex-1 min-w-0 ${mono ? "font-mono" : ""}`}>{value}</span>
       </TruncatedTooltip>
       <span className={`flex-shrink-0 transition-opacity ${copied ? "opacity-100 text-green-400" : "opacity-0 group-hover/meta:opacity-50 text-white/40"}`}>
         <CopyIcon size={12} />
@@ -221,14 +221,14 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
           onClick={copyPath}
           className="group/path mx-5 mb-4 px-3 py-1.5 rounded-lg bg-[var(--bg-tertiary)] border border-white/[0.06] text-left cursor-pointer hover:bg-[var(--bg-tertiary-hover)] transition-all relative"
         >
-          <span className={`text-[14px] font-mono text-white/30 leading-relaxed transition-opacity ${copied ? 'opacity-0' : ''}`}>
+          <span className={`text-xs font-mono text-white/30 leading-relaxed transition-opacity ${copied ? 'opacity-0' : ''}`}>
             {script.path.split(/(?<=[\\/])/).map((seg, i) => <span key={i} style={{ display: 'inline-block' }}>{seg}</span>)}
           </span>
           <span className={`absolute right-2 top-1/2 -translate-y-1/2 transition-opacity ${copied ? 'opacity-0' : 'opacity-0 group-hover/path:opacity-50'}`}>
             <CopyIcon className="text-white" />
           </span>
           {copied && (
-            <span className="absolute inset-0 flex items-center justify-center text-[13px] font-bold text-white/50">
+            <span className="absolute inset-0 flex items-center justify-center text-xs font-bold text-white/50">
               {t("detail.copied")}
             </span>
           )}
@@ -271,7 +271,7 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
               }`}
           >
             {pendingType ? (
-              <span className="text-[10px] font-bold">...</span>
+              <span className="text-2xs font-bold">...</span>
             ) : script.is_running ? <CloseIcon size={22} /> : <PlayIcon size={22} />}
           </button>
         </Tooltip>
@@ -306,7 +306,7 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
       <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
       {/* Tags */}
       <div className="px-5 mb-1.5">
-        <span className="text-[11px] font-bold uppercase tracking-widest text-white/20">{t("detail.tags")}</span>
+        <span className="text-2xs font-bold uppercase tracking-widest text-white/20">{t("detail.tags")}</span>
       </div>
       <div className="flex flex-wrap items-center gap-2 px-5 mb-4">
         {displayedTags.map(tag => (
@@ -348,7 +348,7 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
 
       {/* Meta info */}
       <div className="px-5 mb-1.5">
-        <span className="text-[11px] font-bold uppercase tracking-widest text-white/20">{t("detail.meta")}</span>
+        <span className="text-2xs font-bold uppercase tracking-widest text-white/20">{t("detail.meta")}</span>
       </div>
       <div className="px-5 mb-4 space-y-1">
         <MetaRow label="ID" value={script.id} mono />
@@ -369,7 +369,7 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
         ) : content === null ? (
           <div className="flex items-center justify-center h-32 text-red-400/60 text-sm">{t("detail.read_error")}</div>
         ) : (
-          <pre className="text-[12px] leading-[1.6] font-mono text-white/60 select-text">
+          <pre className="text-2xs leading-[1.6] font-mono text-white/60 select-text">
             <table className="border-collapse">
               <tbody>
                 {highlightedLines.map((line, i) => (

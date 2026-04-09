@@ -52,7 +52,7 @@ function ContextMenuItem({ action, focused }: { action: Action; focused: boolean
     >
       <span className={`w-[18px] h-[18px] flex items-center justify-center ${disabled ? "opacity-30" : "opacity-70 group-hover:opacity-100"}`}>{icon}</span>
       <span className="flex-1 text-left">{label}</span>
-      {showShortcut && <kbd className="px-1.5 py-0.5 rounded-md bg-white/10 border border-white/15 text-[14px] font-bold text-white/60 leading-none">{shortcut}</kbd>}
+      {showShortcut && <kbd className="px-1.5 py-0.5 rounded-md bg-white/10 border border-white/15 text-xs font-bold text-white/60 leading-none">{shortcut}</kbd>}
     </button>
   );
 }

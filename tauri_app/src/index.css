@@ -29,7 +29,11 @@
     --color-quaternary: var(--text-quaternary);
 }
 
-/* Standard Semantic Scaled Font Utilities (Minimum 14px floor) */
+/* Standard Semantic Scaled Font Utilities (12px floor) */
+.text-2xs {
+    font-size: calc(12px * var(--font-scale));
+}
+
 .text-xs {
     font-size: calc(14px * var(--font-scale));
 }

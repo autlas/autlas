@@ -301,7 +301,7 @@ export default function Sidebar({
                       }`}
                     >
                       {runningCount > 0 && (
-                        <span className={`font-bold leading-none transition-all duration-300 ${collapsed ? 'text-[14px]' : 'text-[15px]'}`} style={{ color: isHubActive ? "#A44CFF" : "var(--bg-secondary)" }}>{runningCount}</span>
+                        <span className={`font-bold leading-none transition-all duration-300 ${collapsed ? 'text-xs' : 'text-sm'}`} style={{ color: isHubActive ? "#A44CFF" : "var(--bg-secondary)" }}>{runningCount}</span>
                       )}
                     </div>
                   );
@@ -630,7 +630,7 @@ export default function Sidebar({
       </div>
       {!collapsed && (
         <div className={`pr-[14px] flex justify-end h-4 transition-all duration-150 ${isHoveringRefresh ? "opacity-100 translate-y-0" : "opacity-0 translate-y-1"}`}>
-          <span className="text-[12px] uppercase tracking-[0.1em] text-tertiary/50 select-none flex items-center whitespace-nowrap">
+          <span className="text-2xs uppercase tracking-[0.1em] text-tertiary/50 select-none flex items-center whitespace-nowrap">
             {isRefreshing ? (
               <span className="font-bold">{t("sidebar.scanning", "Scanning...")}</span>
             ) : (

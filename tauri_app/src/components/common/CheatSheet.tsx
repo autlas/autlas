@@ -9,10 +9,10 @@ const ShortcutItem = ({ keys, desc, sets }: { keys?: string[], desc: string, set
             {sets ? (
                 sets.map((set, i) => (
                     <React.Fragment key={i}>
-                        {i > 0 && <span className="text-[10px] text-white/30 font-black uppercase tracking-widest">or</span>}
+                        {i > 0 && <span className="text-2xs text-white/30 font-black uppercase tracking-widest">or</span>}
                         <div className="flex gap-1.5">
                             {set.map((k, ki) => (
-                                <kbd key={k + ki} className="px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-[12px] font-bold text-white/50 shadow-sm min-w-[28px] text-center group-hover/item:text-indigo-400 group-hover/item:border-indigo-500/30 transition-all">
+                                <kbd key={k + ki} className="px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-2xs font-bold text-white/50 shadow-sm min-w-[28px] text-center group-hover/item:text-indigo-400 group-hover/item:border-indigo-500/30 transition-all">
                                     {k}
                                 </kbd>
                             ))}
@@ -22,7 +22,7 @@ const ShortcutItem = ({ keys, desc, sets }: { keys?: string[], desc: string, set
             ) : (
                 <div className="flex gap-1.5">
                     {keys?.map((k, ki) => (
-                        <kbd key={k + ki} className="px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-[12px] font-bold text-white/50 shadow-sm min-w-[28px] text-center group-hover/item:text-indigo-400 group-hover/item:border-indigo-500/30 transition-all">
+                        <kbd key={k + ki} className="px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-2xs font-bold text-white/50 shadow-sm min-w-[28px] text-center group-hover/item:text-indigo-400 group-hover/item:border-indigo-500/30 transition-all">
                             {k}
                         </kbd>
                     ))}
@@ -57,7 +57,7 @@ const CheatSheet = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void 
 
                 <div className="grid grid-cols-2 gap-x-12 gap-y-10">
                     <div className="space-y-4">
-                        <h3 className="text-[10px] font-black text-white/20 uppercase tracking-[0.3em] mb-6 flex items-center">
+                        <h3 className="text-2xs font-black text-white/20 uppercase tracking-[0.3em] mb-6 flex items-center">
                             <span className="w-4 h-[2px] bg-indigo-500/30 mr-2" />
                             Navigation
                         </h3>
@@ -69,7 +69,7 @@ const CheatSheet = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void 
                     </div>
 
                     <div className="flex flex-col gap-4">
-                        <h3 className="text-[12px] font-black uppercase tracking-[0.2em] text-indigo-400 flex items-center mb-2">
+                        <h3 className="text-2xs font-black uppercase tracking-[0.2em] text-indigo-400 flex items-center mb-2">
                             <span className="w-4 h-[2px] bg-indigo-500/30 mr-2" />
                             View & Search
                         </h3>
@@ -86,7 +86,7 @@ const CheatSheet = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void 
 
                 <div className="mt-10 grid grid-cols-2 gap-x-12">
                     <div className="space-y-4">
-                        <h3 className="text-[10px] font-black text-white/20 uppercase tracking-[0.3em] mb-6 flex items-center">
+                        <h3 className="text-2xs font-black text-white/20 uppercase tracking-[0.3em] mb-6 flex items-center">
                             <span className="w-4 h-[2px] bg-indigo-500/30 mr-2" />
                             Script Details Panel
                         </h3>

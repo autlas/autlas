@@ -31,7 +31,7 @@ export function OrphanToast({ count, onReview, onDismiss }: { count: number; onR
             </span>
             <button
                 onClick={onReview}
-                className="px-3 py-1 text-[11px] font-bold uppercase tracking-wider bg-indigo-500/20 text-indigo-400 rounded-lg hover:bg-indigo-500/30 transition-colors cursor-pointer"
+                className="px-3 py-1 text-2xs font-bold uppercase tracking-wider bg-indigo-500/20 text-indigo-400 rounded-lg hover:bg-indigo-500/30 transition-colors cursor-pointer"
             >
                 {t("orphan.review")}
             </button>
@@ -163,21 +163,21 @@ export default function OrphanReconcileDialog({ matches, onClose, onResolved, on
                                             <button
                                                 onClick={() => handleLink(m)}
                                                 disabled={isWorking}
-                                                className="px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider bg-green-500/15 text-green-400 rounded-lg hover:bg-green-500/25 transition-colors cursor-pointer disabled:opacity-30"
+                                                className="px-3 py-1.5 text-2xs font-bold uppercase tracking-wider bg-green-500/15 text-green-400 rounded-lg hover:bg-green-500/25 transition-colors cursor-pointer disabled:opacity-30"
                                             >
                                                 {t("orphan.link")}
                                             </button>
                                             <button
                                                 onClick={() => handleDiscard(m)}
                                                 disabled={isWorking}
-                                                className="px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider bg-white/5 text-white/40 rounded-lg hover:bg-white/10 hover:text-white/60 transition-colors cursor-pointer disabled:opacity-30"
+                                                className="px-3 py-1.5 text-2xs font-bold uppercase tracking-wider bg-white/5 text-white/40 rounded-lg hover:bg-white/10 hover:text-white/60 transition-colors cursor-pointer disabled:opacity-30"
                                             >
                                                 {t("orphan.skip")}
                                             </button>
                                         </div>
                                     )}
                                     {isDone && (
-                                        <span className="text-[11px] font-bold text-green-400/60 uppercase tracking-wider">{t("orphan.done")}</span>
+                                        <span className="text-2xs font-bold text-green-400/60 uppercase tracking-wider">{t("orphan.done")}</span>
                                     )}
                                 </div>
                             </div>
@@ -190,7 +190,7 @@ export default function OrphanReconcileDialog({ matches, onClose, onResolved, on
                     <div className="px-6 py-4 border-t border-white/5 flex justify-end gap-3 flex-shrink-0">
                         <button
                             onClick={handleLinkAll}
-                            className="px-4 py-2 text-[11px] font-bold uppercase tracking-wider bg-green-500/15 text-green-400 rounded-xl hover:bg-green-500/25 transition-colors cursor-pointer"
+                            className="px-4 py-2 text-2xs font-bold uppercase tracking-wider bg-green-500/15 text-green-400 rounded-xl hover:bg-green-500/25 transition-colors cursor-pointer"
                         >
                             {t("orphan.link_all")}
                         </button>

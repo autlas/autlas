@@ -49,7 +49,7 @@ function SectionDivider({ label }: { label: string }) {
     return (
         <div className="flex items-center gap-3 my-5">
             <div className="flex-1 h-px bg-white/5" />
-            <span className="text-[11px] font-bold text-white/20 uppercase tracking-widest">{label}</span>
+            <span className="text-2xs font-bold text-white/20 uppercase tracking-widest">{label}</span>
             <div className="flex-1 h-px bg-white/5" />
         </div>
     );

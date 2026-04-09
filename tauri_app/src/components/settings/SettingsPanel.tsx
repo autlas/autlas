@@ -406,8 +406,8 @@ export default function SettingsPanel({
               scanPaths.map((path) => (
                 <div key={path} className="flex items-center space-x-4 p-2.5 px-4 bg-white/[0.03] border border-white/10 rounded-2xl hover:bg-white/[0.05] transition-all group">
                   <div className="w-1.5 h-1.5 rounded-full bg-indigo-500/50 group-hover:bg-indigo-500 shadow-lg shadow-indigo-500/20" />
-                  <TruncatedTooltip text={path}><span className="flex-1 text-[16px] font-bold text-secondary truncate font-mono tracking-tight">{path}</span></TruncatedTooltip>
-                  <span className="text-[14px] font-normal tracking-wide text-tertiary opacity-50 flex-shrink-0">
+                  <TruncatedTooltip text={path}><span className="flex-1 text-sm font-bold text-secondary truncate font-mono tracking-tight">{path}</span></TruncatedTooltip>
+                  <span className="text-xs font-normal tracking-wide text-tertiary opacity-50 flex-shrink-0">
                     {(pathCounts?.[path] ?? 0)} {t("settings.scripts_count", "scripts")}
                   </span>
                   <div className="flex items-center gap-1">
@@ -457,7 +457,7 @@ export default function SettingsPanel({
 
             {blacklist.length === 0 ? (
               <div className="p-6 border border-dashed border-white/5 rounded-2xl flex items-center justify-center text-tertiary">
-                <span className="text-[11px] font-bold opacity-40 uppercase tracking-widest">
+                <span className="text-2xs font-bold opacity-40 uppercase tracking-widest">
                   {t("settings.no_blacklist", "No excluded folders")}
                 </span>
               </div>
@@ -465,8 +465,8 @@ export default function SettingsPanel({
               blacklist.map((path) => (
                 <div key={path} className="flex items-center space-x-4 p-2.5 px-4 bg-white/[0.03] border border-white/10 rounded-2xl hover:bg-white/[0.05] transition-all group">
                   <div className="w-1.5 h-1.5 rounded-full bg-red-500/50 group-hover:bg-red-500 shadow-lg shadow-red-500/20" />
-                  <TruncatedTooltip text={path}><span className="flex-1 text-[16px] font-bold text-secondary truncate font-mono tracking-tight">{path}</span></TruncatedTooltip>
-                  <span className="text-[14px] font-normal tracking-wide text-tertiary opacity-50 flex-shrink-0">
+                  <TruncatedTooltip text={path}><span className="flex-1 text-sm font-bold text-secondary truncate font-mono tracking-tight">{path}</span></TruncatedTooltip>
+                  <span className="text-xs font-normal tracking-wide text-tertiary opacity-50 flex-shrink-0">
                     {(blacklistCounts[path] ?? 0)} {t("settings.scripts_count", "scripts")}
                   </span>
                   <div className="flex items-center gap-1">
@@ -515,7 +515,7 @@ export default function SettingsPanel({
 
             {hiddenFolders.length === 0 ? (
               <div className="p-6 border border-dashed border-white/5 rounded-2xl flex items-center justify-center text-tertiary">
-                <span className="text-[11px] font-bold opacity-40 uppercase tracking-widest">
+                <span className="text-2xs font-bold opacity-40 uppercase tracking-widest">
                   {t("settings.no_hidden_folders", "No hidden folders")}
                 </span>
               </div>
@@ -523,8 +523,8 @@ export default function SettingsPanel({
               hiddenFolders.map((path) => (
                 <div key={path} className="flex items-center space-x-4 p-2.5 px-4 bg-white/[0.03] border border-white/10 rounded-2xl hover:bg-white/[0.05] transition-all group">
                   <div className="w-1.5 h-1.5 rounded-full bg-white/20 group-hover:bg-white/40" />
-                  <TruncatedTooltip text={path}><span className="flex-1 text-[16px] font-bold text-secondary truncate font-mono tracking-tight opacity-60">{path}</span></TruncatedTooltip>
-                  <span className="text-[14px] font-normal tracking-wide text-tertiary opacity-50 flex-shrink-0">
+                  <TruncatedTooltip text={path}><span className="flex-1 text-sm font-bold text-secondary truncate font-mono tracking-tight opacity-60">{path}</span></TruncatedTooltip>
+                  <span className="text-xs font-normal tracking-wide text-tertiary opacity-50 flex-shrink-0">
                     {(hiddenCounts[path] ?? 0)} {t("settings.scripts_count", "scripts")}
                   </span>
                   <div className="flex items-center gap-1">

@@ -76,13 +76,13 @@ export default function EmptyState({ isPathsEmpty, hasContent, searchQuery, filt
                     </EmptyStateIcon>
                     <div className="space-y-3">
                         <h3 className="text-2xl font-black text-white tracking-tight leading-none">{t("hub.no_folders_title", "Library is Empty")}</h3>
-                        <p className="text-[13px] text-tertiary/80 leading-relaxed font-medium px-4">
+                        <p className="text-xs text-tertiary/80 leading-relaxed font-medium px-4">
                             {t("hub.no_folders_desc", "Configure scan directories in settings to see your scripts here. You can add multiple folders to track all your AHK utilities.")}
                         </p>
                     </div>
                     <button
                         onClick={onAddPath}
-                        className="h-14 px-8 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl text-[11px] font-black tracking-[0.2em] uppercase transition-all shadow-xl shadow-indigo-600/20 active:scale-95 border-none cursor-pointer flex items-center justify-center gap-3 mx-auto"
+                        className="h-14 px-8 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl text-2xs font-black tracking-[0.2em] uppercase transition-all shadow-xl shadow-indigo-600/20 active:scale-95 border-none cursor-pointer flex items-center justify-center gap-3 mx-auto"
                     >
                         <PlusIcon size={18} />
                         {t("settings.add_path")}
@@ -100,7 +100,7 @@ export default function EmptyState({ isPathsEmpty, hasContent, searchQuery, filt
                     </EmptyStateIcon>
                     <div className="space-y-3">
                         <h3 className="text-2xl font-black text-white tracking-tight leading-none">{t("hub.no_scripts_title", "No Scripts Detected")}</h3>
-                        <p className="text-[13px] text-tertiary/80 leading-relaxed font-medium px-4">
+                        <p className="text-xs text-tertiary/80 leading-relaxed font-medium px-4">
                             {t("hub.no_scripts_desc", "The selected folders don't contain any .ahk files. Try adding scripts or checking your paths.")}
                         </p>
                     </div>
@@ -110,7 +110,7 @@ export default function EmptyState({ isPathsEmpty, hasContent, searchQuery, filt
                             {scanPaths.map((path) => (
                                 <div key={path} className="flex items-center space-x-3 p-2.5 px-4 bg-white/[0.03] border border-white/10 rounded-2xl hover:bg-white/[0.05] transition-all group">
                                     <div className="w-1.5 h-1.5 rounded-full bg-indigo-500/50 group-hover:bg-indigo-500 shadow-lg shadow-indigo-500/20 flex-shrink-0" />
-                                    <span className="flex-1 text-[13px] font-bold text-secondary truncate font-mono tracking-tight">{path}</span>
+                                    <span className="flex-1 text-xs font-bold text-secondary truncate font-mono tracking-tight">{path}</span>
                                     <div className="flex items-center gap-1 flex-shrink-0">
                                         <Tooltip text={t("context.show_in_folder")}>
                                             <button
@@ -163,21 +163,21 @@ export default function EmptyState({ isPathsEmpty, hasContent, searchQuery, filt
                     </EmptyStateIcon>
                     <div className="space-y-3">
                         <h3 className="text-2xl font-black text-white tracking-tight leading-none">{t("hub.not_found_title", "Nothing Found")}</h3>
-                        <p className="text-[13px] text-tertiary/80 leading-relaxed font-medium px-4">
+                        <p className="text-xs text-tertiary/80 leading-relaxed font-medium px-4">
                             {t("hub.not_found_desc", "No scripts match your search.")}
                         </p>
                     </div>
                     <div className="flex gap-4 justify-center">
                         <button
                             onClick={onRefresh}
-                            className="h-12 px-6 bg-white/5 hover:bg-white/10 text-white/70 hover:text-white rounded-xl text-[10px] font-black tracking-widest uppercase transition-all border border-white/5 active:scale-95 cursor-pointer flex items-center justify-center gap-2"
+                            className="h-12 px-6 bg-white/5 hover:bg-white/10 text-white/70 hover:text-white rounded-xl text-2xs font-black tracking-widest uppercase transition-all border border-white/5 active:scale-95 cursor-pointer flex items-center justify-center gap-2"
                         >
                             <RefreshSyncIcon isRefreshing={isRefreshing} />
                             {t("settings.manual_scan", "Refresh Scan")}
                         </button>
                         <button
                             onClick={onOpenSettings}
-                            className="h-12 px-6 bg-white/5 hover:bg-white/10 text-white/70 hover:text-white rounded-xl text-[10px] font-black tracking-widest uppercase transition-all border border-white/5 active:scale-95 cursor-pointer flex items-center justify-center gap-2"
+                            className="h-12 px-6 bg-white/5 hover:bg-white/10 text-white/70 hover:text-white rounded-xl text-2xs font-black tracking-widest uppercase transition-all border border-white/5 active:scale-95 cursor-pointer flex items-center justify-center gap-2"
                         >
                             <GearIcon size={14} />
                             {t("sidebar.settings")}

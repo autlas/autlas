@@ -9,16 +9,16 @@ import { useTreeStore } from "../../store/useTreeStore";
 const TagSectionHeader = ({ tag, isCollapsed, onToggle, runningCount }: { tag: string; isCollapsed: boolean; onToggle: () => void; runningCount: number }) => {
     const tagIcon = useTreeStore(s => s.tagIcons[tag]);
     return (
-        <div className="flex items-center mb-1 mt-12 first:mt-2 px-2 sticky top-0 z-40 py-4 cursor-pointer select-none group" onClick={onToggle}>
-            <span className="text-white/30 flex-shrink-0">
+        <div className="flex items-center mb-2 mt-12 first:mt-2 px-6 sticky top-[-11px] z-[150] py-3 cursor-pointer select-none group backdrop-blur-md rounded-2xl border border-white/5" onClick={onToggle}>
+            <span className="text-white/30 group-hover:text-white/70 transition-colors duration-200 flex-shrink-0">
                 {tagIcon ? <TagIconSvg name={tagIcon} size={32} /> : <TagDotIcon size={32} />}
             </span>
-            <span className="text-[22px] font-black uppercase tracking-[0.15em] text-white/30 flex items-center leading-none ml-5">
+            <span className="text-[22px] font-black uppercase tracking-[0.15em] text-white/30 group-hover:text-white/70 transition-colors duration-200 flex items-center leading-none ml-5">
                 {tag}
             </span>
             <ChevronDownIcon className={`ml-3 text-white/15 group-hover:text-white/30 transition-all duration-200 ${isCollapsed ? '-rotate-90' : ''}`} />
             <div className={`ml-3 w-5 h-5 rounded-full bg-green-500 shadow-[0_0_12px_rgba(34,197,94,0.6)] flex items-center justify-center transition-all duration-300 ease-[cubic-bezier(0.34,1.3,0.64,1)] origin-center ${isCollapsed && runningCount > 0 ? 'scale-100 opacity-100' : 'scale-0 opacity-0'}`}>
-                <span className="text-[15px] font-bold leading-none" style={{ color: "var(--bg-secondary)" }}>{runningCount}</span>
+                <span className="text-sm font-bold leading-none" style={{ color: "var(--bg-secondary)" }}>{runningCount}</span>
             </div>
         </div>
     );

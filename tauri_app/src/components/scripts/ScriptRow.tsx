@@ -157,7 +157,7 @@ const ScriptRow = memo(function ScriptRow({
                             );
                         })}
                         {displayedTags.length > visibleCount && (
-                            <span className="h-7 px-2 rounded-lg bg-[var(--bg-tertiary)] border border-white/10 text-[10px] font-black text-indigo-400 flex items-center justify-center mr-2 flex-shrink-0 cursor-default shadow-xl">
+                            <span className="h-7 px-2 rounded-lg bg-[var(--bg-tertiary)] border border-white/10 text-2xs font-black text-indigo-400 flex items-center justify-center mr-2 flex-shrink-0 cursor-default shadow-xl">
                                 +{displayedTags.length - visibleCount}
                             </span>
                         )}
@@ -247,7 +247,7 @@ const ScriptRow = memo(function ScriptRow({
                             `}
                             >
                                 {isPending ? (
-                                    <div className="text-[10px] items-center justify-center flex font-bold h-full">...</div>
+                                    <div className="text-2xs items-center justify-center flex font-bold h-full">...</div>
                                 ) : s.is_running ? (
                                     <CloseIcon />
                                 ) : (

@@ -42,7 +42,7 @@ const LanguageSelector = () => {
             {isOpen && (
                 <div className="absolute right-0 mt-3 w-48 bg-black/20 backdrop-blur-md border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] py-2 z-[1000] animate-none overflow-hidden origin-top-right transition-all">
                     <div className="px-3 py-2 border-b border-white/5 mb-1">
-                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-tertiary opacity-40">{t("settings.language", "Language")}</span>
+                        <span className="text-2xs font-black uppercase tracking-[0.2em] text-tertiary opacity-40">{t("settings.language", "Language")}</span>
                     </div>
                     {languages.map((lang) => (
                         <button

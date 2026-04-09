@@ -260,7 +260,7 @@ export default function ScriptTreeToolbar({
                             </div>
 
                             {prefixMatch && (
-                                <div className="ml-2 bg-white/10 text-white/50 px-2 py-0.5 rounded-lg text-[12px] font-bold uppercase tracking-widest border border-white/10 pointer-events-none flex-shrink-0">
+                                <div className="ml-2 bg-white/10 text-white/50 px-2 py-0.5 rounded-lg text-2xs font-bold uppercase tracking-widest border border-white/10 pointer-events-none flex-shrink-0">
                                     {prefixMatch.replace(':', '')}
                                 </div>
                             )}
@@ -290,7 +290,7 @@ export default function ScriptTreeToolbar({
                                     }
                                 }}
                                 placeholder={prefixMatch ? "" : t("search.placeholder")}
-                                className={`flex-1 bg-transparent border-none outline-none h-full pr-10 text-[14px] font-normal text-white placeholder:text-tertiary/50 ${prefixMatch ? 'ml-[10px]' : 'ml-2'}`}
+                                className={`flex-1 bg-transparent border-none outline-none h-full pr-10 text-xs font-normal text-white placeholder:text-tertiary/50 ${prefixMatch ? 'ml-[10px]' : 'ml-2'}`}
                             />
 
                             {searchQuery && (

@@ -150,7 +150,7 @@ export default function ToggleGroup<T extends string>({
                             onChange(opt.id);
                         }}
                         className={`relative z-10 flex-1 h-full rounded-lg transition-colors duration-200 flex items-center justify-center cursor-pointer
-                            ${opt.icon ? "px-4" : "text-[10px] font-black tracking-widest uppercase"}
+                            ${opt.icon ? "px-4" : "text-2xs font-black tracking-widest uppercase"}
                             ${isActive
                                 ? "text-white"
                                 : `${opt.icon ? "" : "text-tertiary"} hover:text-white hover:bg-white/5`}

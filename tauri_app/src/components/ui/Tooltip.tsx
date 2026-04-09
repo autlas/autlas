@@ -117,7 +117,7 @@ export default function Tooltip({ text, children, delay = 0, side: preferredSide
                         {shortcutKeys && shortcutKeys.length > 0 && (
                             <span className="flex items-center gap-1">
                                 {shortcutKeys.map((k, i) => (
-                                    <kbd key={i} className="px-1.5 py-0.5 rounded-md bg-white/10 border border-white/15 text-[14px] font-bold text-white/70 leading-none">{k}</kbd>
+                                    <kbd key={i} className="px-1.5 py-0.5 rounded-md bg-white/10 border border-white/15 text-xs font-bold text-white/70 leading-none">{k}</kbd>
                                 ))}
                             </span>
                         )}
