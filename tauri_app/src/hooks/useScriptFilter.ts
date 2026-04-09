@@ -229,7 +229,7 @@ export function useScriptFilter({ allScripts, filterTag, searchQuery, sortBy }: 
                         const o = oldNode.scripts[i];
                         return s.path === o.path && s.is_running === o.is_running && s.has_ui === o.has_ui &&
                             s.tags.length === o.tags.length && s.tags.every((t, j) => t === o.tags[j]) &&
-                            s.is_hidden === o.is_hidden && s.size === o.size;
+                            s.is_hidden === o.is_hidden && s.size === o.size && s.is_hub === o.is_hub;
                     });
 
                 const newChildKeys = Object.keys(newNode.children);

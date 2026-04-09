@@ -108,10 +108,16 @@ const ScriptRow = memo(function ScriptRow({
                     <button
                         onClick={async (e) => {
                             e.stopPropagation();
-                            // Hub is now a dedicated boolean flag, not a tag.
-                            // Bypass the tag-array round-trip entirely.
-                            try { await invoke("set_script_hub", { id: s.id, hub: !isHub }); }
-                            catch (err) { console.error("set_script_hub failed:", err); }
+                            // Optimistic local update so the star flips immediately;
+                            // backend event will confirm.
+                            const next = !isHub;
+                            window.dispatchEvent(new CustomEvent('ahk-hub-changed-local', { detail: { id: s.id, hub: next } }));
+                            try { await invoke("set_script_hub", { id: s.id, hub: next }); }
+                            catch (err) {
+                                console.error("set_script_hub failed:", err);
+                                // Roll back on failure
+                                window.dispatchEvent(new CustomEvent('ahk-hub-changed-local', { detail: { id: s.id, hub: isHub } }));
+                            }
                         }}
                         onMouseDown={(e) => e.stopPropagation()}
                         onDoubleClick={(e) => e.stopPropagation()}

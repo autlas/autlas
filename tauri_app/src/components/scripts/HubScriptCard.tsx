@@ -90,8 +90,13 @@ const HubScriptCard = memo(function HubScriptCard({
                     <button
                         onClick={async (e) => {
                             e.stopPropagation();
-                            try { await invoke("set_script_hub", { id: s.id, hub: !isHub }); }
-                            catch (err) { console.error("set_script_hub failed:", err); }
+                            const next = !isHub;
+                            window.dispatchEvent(new CustomEvent('ahk-hub-changed-local', { detail: { id: s.id, hub: next } }));
+                            try { await invoke("set_script_hub", { id: s.id, hub: next }); }
+                            catch (err) {
+                                console.error("set_script_hub failed:", err);
+                                window.dispatchEvent(new CustomEvent('ahk-hub-changed-local', { detail: { id: s.id, hub: isHub } }));
+                            }
                         }}
                         onMouseDown={(e) => e.stopPropagation()}
                         onDoubleClick={(e) => e.stopPropagation()}
