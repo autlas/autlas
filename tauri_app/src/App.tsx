@@ -20,6 +20,7 @@ import { usePhysicsMotion } from "./hooks/usePhysicsMotion";
 import { useNavigation } from "./hooks/useNavigation";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
+import { LogicalSize } from "@tauri-apps/api/dpi";
 import { useTranslation } from "react-i18next";
 import { useTreeStore } from "./store/useTreeStore";
 import { safeSetItem } from "./utils/safeStorage";
@@ -107,6 +108,29 @@ function App() {
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
+  // Inverse: when the sidebar expands or the detail panel opens, grow the
+  // window outward so the new layout fits without squeezing the tree.
+  const growWindowToFit = useCallback(async () => {
+    const TREE_MIN = 500;
+    const SIDEBAR_COLLAPSED = 80;
+    const state = useTreeStore.getState();
+    const sidebar = state.sidebarCollapsed ? SIDEBAR_COLLAPSED : state.sidebarWidth;
+    const detail = selectedPathRef.current ? state.detailPanelWidth : 0;
+    const required = sidebar + TREE_MIN + detail;
+    if (window.innerWidth >= required) return;
+    try {
+      const win = getCurrentWebviewWindow();
+      await win.setSize(new LogicalSize(required, window.innerHeight));
+    } catch (e) {
+      console.error("[layout] grow window failed:", e);
+    }
+  }, []);
+
+  const sidebarCollapsedStore = useTreeStore(s => s.sidebarCollapsed);
+  useEffect(() => {
+    if (!sidebarCollapsedStore) growWindowToFit();
+  }, [sidebarCollapsedStore, growWindowToFit]);
+
   const selectedPathRef = useRef<string | null>(null);
   const setSelectedPathRef = useRef<((p: string | null) => void) | null>(null);
   useEffect(() => {
@@ -169,7 +193,11 @@ function App() {
   });
   const [isHoveringRefresh, setIsHoveringRefresh] = useState(false);
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
-  useEffect(() => { selectedPathRef.current = selectedPath; }, [selectedPath]);
+  useEffect(() => {
+    const wasOpen = !!selectedPathRef.current;
+    selectedPathRef.current = selectedPath;
+    if (!wasOpen && selectedPath) growWindowToFit();
+  }, [selectedPath, growWindowToFit]);
   useEffect(() => { setSelectedPathRef.current = setSelectedPath; }, []);
   const [detailPinned, setDetailPinned] = useState(() => localStorage.getItem("ahk_detail_pinned") === "true");
   const scriptActionsRef = useRef<{ toggle: (s: Script) => void; restart: (s: Script) => void; pendingScripts: Record<string, "run" | "kill" | "restart">; allScripts: Script[]; setTagIcon: (tag: string, iconName: string) => void; removeTagIcon: (tag: string) => void; deleteTagFromAll: (tag: string) => void; renameTag: (oldTag: string, newTag: string) => Promise<void>; toggleHiddenByPath: (path: string) => void }>({ toggle: () => { }, restart: () => { }, pendingScripts: {}, allScripts: [], setTagIcon: () => { }, removeTagIcon: () => { }, deleteTagFromAll: () => { }, renameTag: async () => { }, toggleHiddenByPath: () => { } });
