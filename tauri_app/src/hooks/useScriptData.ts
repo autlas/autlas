@@ -134,6 +134,7 @@ export function useScriptData({ onTagsLoaded, onRunningCountChange, refreshKey, 
         let unlisten: (() => void) | null = null;
         let unlistenStatus: (() => void) | null = null;
         let unlistenHub: (() => void) | null = null;
+        let localHubHandler: ((e: Event) => void) | null = null;
         let mounted = true;
 
         import('@tauri-apps/api/event').then(({ listen }) => {
@@ -191,13 +192,23 @@ export function useScriptData({ onTagsLoaded, onRunningCountChange, refreshKey, 
                 }
             };
 
-            listen<{ id: string; hub: boolean }>('script-hub-changed', (event) => {
-                const { id, hub } = event.payload;
+            const applyHubChange = (id: string, hub: boolean) => {
                 _cachedScripts = _cachedScripts.map(s => s.id === id ? { ...s, is_hub: hub } : s);
                 setAllScripts(prev => prev.map(s => s.id === id ? { ...s, is_hub: hub } : s));
+            };
+            listen<{ id: string; hub: boolean }>('script-hub-changed', (event) => {
+                applyHubChange(event.payload.id, event.payload.hub);
             }).then(fn => {
                 if (mounted) { unlistenHub = fn; } else { fn(); }
             });
+            // Optimistic local update — call sites dispatch это сразу после
+            // invoke (или до), чтобы звезда мгновенно меняла weight, не
+            // дожидаясь round-trip к Rust + listener.
+            localHubHandler = (e: Event) => {
+                const d = (e as CustomEvent).detail as { id: string; hub: boolean };
+                applyHubChange(d.id, d.hub);
+            };
+            window.addEventListener('ahk-hub-changed-local', localHubHandler);
 
             listen<{ path: string; is_running: boolean; has_ui: boolean }>('script-status-changed', (event) => {
                 const { path, is_running, has_ui } = event.payload;
@@ -216,6 +227,7 @@ export function useScriptData({ onTagsLoaded, onRunningCountChange, refreshKey, 
             if (unlisten) unlisten();
             if (unlistenStatus) unlistenStatus();
             if (unlistenHub) unlistenHub();
+            if (localHubHandler) window.removeEventListener('ahk-hub-changed-local', localHubHandler);
             burstIntervalsRef.current.forEach(id => clearInterval(id));
             burstIntervalsRef.current.clear();
         };

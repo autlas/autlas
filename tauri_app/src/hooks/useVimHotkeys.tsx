@@ -457,6 +457,7 @@ export function useVimHotkeys(args: UseVimHotkeysArgs) {
         if (!item || item.type !== 'script') { vlog('key: m → IGNORED (not a script)'); return; }
         const next = !item.data.is_hub;
         vlog('key: m → set_script_hub', item.data.filename, '→', next);
+        window.dispatchEvent(new CustomEvent('ahk-hub-changed-local', { detail: { id: item.data.id, hub: next } }));
         await invoke("set_script_hub", { id: item.data.id, hub: next });
         appToast.success(
             next

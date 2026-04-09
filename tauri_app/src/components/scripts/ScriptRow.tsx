@@ -244,6 +244,7 @@ const ScriptRow = memo(function ScriptRow({
     return prev.s.path === next.s.path &&
         prev.s.is_running === next.s.is_running &&
         prev.s.is_hidden === next.s.is_hidden &&
+        prev.s.is_hub === next.s.is_hub &&
         prev.s.has_ui === next.s.has_ui &&
         prev.s.filename === next.s.filename &&
         prev.s.tags.join(',') === next.s.tags.join(',') &&

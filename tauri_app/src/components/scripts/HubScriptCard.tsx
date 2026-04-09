@@ -252,6 +252,7 @@ const HubScriptCard = memo(function HubScriptCard({
 }, (prev, next) => {
     return prev.s.path === next.s.path &&
         prev.s.is_running === next.s.is_running &&
+        prev.s.is_hub === next.s.is_hub &&
         prev.s.filename === next.s.filename &&
         prev.s.tags.join(',') === next.s.tags.join(',') &&
         prev.isDragging === next.isDragging &&

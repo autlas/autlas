@@ -115,8 +115,8 @@ export default function ContextMenu({ contextMenu, onClose, onStartRenameTag, on
         { id: "open_with", shortcut: "o", label: t("context.open_with"), icon: <OpenWithIcon />, onClick: () => { invoke("open_with", { path: d.path }); onClose(); } },
         "separator",
         d.is_hub
-          ? { id: "hub_remove", shortcut: "m", label: t("context.remove_from_hub", "Удалить из хаба"), icon: <StarIcon size={16} weight="fill" />, onClick: async () => { await invoke("set_script_hub", { id: d.id, hub: false }); appToast.success(t("toast.removed_from_hub", "Удалено из хаба")); onClose(); } }
-          : { id: "hub_add", shortcut: "m", label: t("context.add_to_hub", "Добавить в хаб"), icon: <StarIcon size={16} weight="bold" />, onClick: async () => { await invoke("set_script_hub", { id: d.id, hub: true }); appToast.success(t("toast.added_to_hub", "Добавлено в хаб")); onClose(); } },
+          ? { id: "hub_remove", shortcut: "m", label: t("context.remove_from_hub", "Удалить из хаба"), icon: <StarIcon size={16} weight="fill" />, onClick: async () => { window.dispatchEvent(new CustomEvent('ahk-hub-changed-local', { detail: { id: d.id, hub: false } })); await invoke("set_script_hub", { id: d.id, hub: false }); appToast.success(t("toast.removed_from_hub", "Удалено из хаба")); onClose(); } }
+          : { id: "hub_add", shortcut: "m", label: t("context.add_to_hub", "Добавить в хаб"), icon: <StarIcon size={16} weight="bold" />, onClick: async () => { window.dispatchEvent(new CustomEvent('ahk-hub-changed-local', { detail: { id: d.id, hub: true } })); await invoke("set_script_hub", { id: d.id, hub: true }); appToast.success(t("toast.added_to_hub", "Добавлено в хаб")); onClose(); } },
       ];
     }
     if (contextMenu.type === "tag") {
