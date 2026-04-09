@@ -1390,25 +1390,75 @@ async fn open_in_explorer(path: String) -> Result<(), String> {
     Ok(())
 }
 
+#[cfg(windows)]
+fn shell_execute(verb: &str, file: &str) -> Result<(), String> {
+    use std::os::windows::ffi::OsStrExt;
+    use windows_sys::Win32::UI::Shell::ShellExecuteW;
+    use windows_sys::Win32::UI::WindowsAndMessaging::SW_SHOWNORMAL;
+
+    let to_wide = |s: &str| -> Vec<u16> {
+        std::ffi::OsStr::new(s).encode_wide().chain(std::iter::once(0)).collect()
+    };
+    let verb_w = to_wide(verb);
+    let file_w = to_wide(file);
+
+    // ShellExecuteW returns HINSTANCE; values <= 32 indicate failure.
+    let result = unsafe {
+        ShellExecuteW(
+            std::ptr::null_mut(),
+            verb_w.as_ptr(),
+            file_w.as_ptr(),
+            std::ptr::null(),
+            std::ptr::null(),
+            SW_SHOWNORMAL,
+        )
+    };
+    if (result as isize) <= 32 {
+        Err(format!("ShellExecuteW failed (code {})", result as isize))
+    } else {
+        Ok(())
+    }
+}
+
 #[tauri::command]
 async fn edit_script(path: String) -> Result<(), String> {
-    // Open in default editor using the 'Edit' verb
-    cmd("powershell")
-        .arg("-NoProfile")
-        .arg("-Command")
-        .arg(format!("Start-Process -FilePath '{}' -Verb Edit", path))
-        .spawn()
-        .map_err(|e| e.to_string())?;
-    Ok(())
+    // Validate that the path exists and is a file before invoking the shell.
+    let p = std::path::PathBuf::from(&path);
+    if !p.is_file() {
+        return Err("file does not exist".into());
+    }
+    #[cfg(windows)]
+    {
+        // Try the 'edit' verb first; fall back to 'open' if no editor is registered.
+        if shell_execute("edit", &path).is_err() {
+            shell_execute("open", &path)?;
+        }
+        Ok(())
+    }
+    #[cfg(not(windows))]
+    {
+        Err("edit_script is only supported on Windows".into())
+    }
 }
 
 #[tauri::command]
 async fn open_url(url: String) -> Result<(), String> {
-    cmd("cmd")
-        .args(&["/c", "start", "", &url])
-        .spawn()
-        .map_err(|e| e.to_string())?;
-    Ok(())
+    // Whitelist safe schemes only — no arbitrary file:// or shell: URIs.
+    let lower = url.trim().to_ascii_lowercase();
+    let allowed = lower.starts_with("http://")
+        || lower.starts_with("https://")
+        || lower.starts_with("mailto:");
+    if !allowed {
+        return Err("only http(s) and mailto URLs are allowed".into());
+    }
+    #[cfg(windows)]
+    {
+        shell_execute("open", &url)
+    }
+    #[cfg(not(windows))]
+    {
+        Err("open_url is only supported on Windows".into())
+    }
 }
 
 #[tauri::command]
