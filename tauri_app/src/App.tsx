@@ -152,12 +152,30 @@ function App() {
 
   // Listen for scan progress events
   useEffect(() => {
+    let mounted = true;
     let unlisten: (() => void) | null = null;
     let unlistenOrphan: (() => void) | null = null;
+    let unlistenScanPhase: (() => void) | null = null;
+    // Если cleanup сработал раньше чем async listen() резолвится — вызываем
+    // полученный unlisten немедленно, иначе StrictMode-double-mount оставит
+    // дублирующие подписки и тосты будут стрелять ×2.
+    const safe = (assign: (fn: () => void) => void) => (fn: () => void) => {
+      if (!mounted) { fn(); return; }
+      assign(fn);
+    };
     import('@tauri-apps/api/event').then(({ listen }) => {
+      if (!mounted) return;
       listen<number>('scan-progress', (event) => {
         appToast.info(`${t("sidebar.scripts_found")} ${event.payload}`, { id: "scan", duration: Infinity, pulse: true });
-      }).then(fn => { unlisten = fn; });
+      }).then(safe(fn => { unlisten = fn; }));
+      listen<string>('scan-phase', (event) => {
+        const phase = event.payload;
+        const msg = phase === "reconciling" ? t("sidebar.phase_reconciling", "Сверка с базой...")
+          : phase === "loading-meta" ? t("sidebar.phase_loading_meta", "Загрузка тегов...")
+          : phase === "enriching" ? t("sidebar.phase_enriching", "Проверка статусов...")
+          : null;
+        if (msg) appToast.info(msg, { id: "scan", duration: Infinity, pulse: true });
+      }).then(safe(fn => { unlistenScanPhase = fn; }));
       listen<PendingMatch[]>('orphan-matches-found', (event) => {
         if (event.payload.length > 0) {
           setOrphanMatches(event.payload);
@@ -174,9 +192,12 @@ function App() {
             }
           );
         }
-      }).then(fn => { unlistenOrphan = fn; });
+      }).then(safe(fn => { unlistenOrphan = fn; }));
     });
-    return () => { unlisten?.(); unlistenOrphan?.(); };
+    return () => {
+      mounted = false;
+      unlisten?.(); unlistenOrphan?.(); unlistenScanPhase?.();
+    };
   }, []);
 
   const handleLoadingChange = useCallback((loading: boolean) => {

@@ -1118,8 +1118,10 @@ async fn get_scripts(
         }
 
         // Reconciliation + tag/ID loading in single lock (prevents watcher interleaving)
+        let _ = app_handle.emit("scan-phase", "reconciling");
         let conn = state.0.lock().map_err(|e| e.to_string())?;
         let pending = reconcile::reconcile(&conn, &disk_paths)?;
+        let _ = app_handle.emit("scan-phase", "loading-meta");
         if !pending.is_empty() {
             println!("[Rust] {} pending matches need user confirmation", pending.len());
             let _ = app_handle.emit("orphan-matches-found", &pending);
@@ -1158,6 +1160,9 @@ async fn get_scripts(
     let total_tags: usize = tags_map.values().map(|v| v.len()).sum();
 
     // Enrich scripts (file I/O for running scripts only)
+    if force_scan {
+        let _ = app_handle.emit("scan-phase", "enriching");
+    }
     let mut scripts = Vec::new();
     let conn_for_runs = state.0.lock().map_err(|e| e.to_string())?;
     for path_str in &script_paths {
