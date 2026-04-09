@@ -4,6 +4,7 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
+    "postinstall": "patch-package",
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
@@ -45,6 +46,7 @@
     "autoprefixer": "^10.4.27",
     "happy-dom": "^20.8.9",
     "jsdom": "^29.0.1",
+    "patch-package": "^8.0.1",
     "postcss": "^8.5.8",
     "tailwindcss": "^4.2.2",
     "typescript": "~5.8.3",

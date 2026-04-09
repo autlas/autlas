@@ -1,0 +1,110 @@
+diff --git a/node_modules/sonner/dist/index.js b/node_modules/sonner/dist/index.js
+index bd21e89..822b88a 100644
+--- a/node_modules/sonner/dist/index.js
++++ b/node_modules/sonner/dist/index.js
+@@ -945,6 +945,11 @@ const Toaster = /*#__PURE__*/ React__default.default.forwardRef(function Toaster
+     ]);
+     const [heights, setHeights] = React__default.default.useState([]);
+     const [expanded, setExpanded] = React__default.default.useState(false);
++    // ── PATCH: fresh-zone (см. index.mjs)
++    const FRESH_DURATION_MS = 2000;
++    const [freshExpanded, setFreshExpanded] = React__default.default.useState(false);
++    const freshTimerRef = React__default.default.useRef(null);
++    const seenIdsRef = React__default.default.useRef(new Set());
+     const [interacting, setInteracting] = React__default.default.useState(false);
+     const [actualTheme, setActualTheme] = React__default.default.useState(theme !== 'system' ? theme : typeof window !== 'undefined' ? window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light' : 'light');
+     const listRef = React__default.default.useRef(null);
+@@ -1050,6 +1055,27 @@ const Toaster = /*#__PURE__*/ React__default.default.forwardRef(function Toaster
+     }, [
+         toasts
+     ]);
++    // ── PATCH: fresh-zone trigger (см. index.mjs)
++    React__default.default.useEffect(()=>{
++        let hasNew = false;
++        toasts.forEach((t)=>{
++            if (!seenIdsRef.current.has(t.id)) {
++                seenIdsRef.current.add(t.id);
++                hasNew = true;
++            }
++        });
++        const currentIds = new Set(toasts.map((t)=>t.id));
++        seenIdsRef.current.forEach((id)=>{
++            if (!currentIds.has(id)) seenIdsRef.current.delete(id);
++        });
++        if (hasNew) {
++            setFreshExpanded(true);
++            if (freshTimerRef.current) clearTimeout(freshTimerRef.current);
++            freshTimerRef.current = setTimeout(()=>setFreshExpanded(false), FRESH_DURATION_MS);
++        }
++    }, [
++        toasts
++    ]);
+     React__default.default.useEffect(()=>{
+         const handleKeyDown = (event)=>{
+             var _listRef_current;
+@@ -1175,7 +1201,7 @@ const Toaster = /*#__PURE__*/ React__default.default.forwardRef(function Toaster
+                 setHeights: setHeights,
+                 expandByDefault: expand,
+                 gap: gap,
+-                expanded: expanded,
++                expanded: expanded || freshExpanded,
+                 swipeDirections: props.swipeDirections
+             });
+         }));
+diff --git a/node_modules/sonner/dist/index.mjs b/node_modules/sonner/dist/index.mjs
+index d0c7a5a..e7c5cf9 100644
+--- a/node_modules/sonner/dist/index.mjs
++++ b/node_modules/sonner/dist/index.mjs
+@@ -938,6 +938,13 @@ const Toaster = /*#__PURE__*/ React.forwardRef(function Toaster(props, ref) {
+     ]);
+     const [heights, setHeights] = React.useState([]);
+     const [expanded, setExpanded] = React.useState(false);
++    // ── PATCH: fresh-zone — пока есть тосты моложе FRESH_DURATION_MS,
++    // регион принудительно expanded, чтобы новые тосты не сваливались в
++    // collapsed-стопку сразу. Старые после истечения окна возвращаются.
++    const FRESH_DURATION_MS = 2000;
++    const [freshExpanded, setFreshExpanded] = React.useState(false);
++    const freshTimerRef = React.useRef(null);
++    const seenIdsRef = React.useRef(new Set());
+     const [interacting, setInteracting] = React.useState(false);
+     const [actualTheme, setActualTheme] = React.useState(theme !== 'system' ? theme : typeof window !== 'undefined' ? window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light' : 'light');
+     const listRef = React.useRef(null);
+@@ -1043,6 +1050,29 @@ const Toaster = /*#__PURE__*/ React.forwardRef(function Toaster(props, ref) {
+     }, [
+         toasts
+     ]);
++    // ── PATCH: следим за появлением НОВЫХ id; пока есть свежие — region
++    // expanded. Replace того же id (scan-progress → success) свежесть не
++    // продлевает.
++    React.useEffect(()=>{
++        let hasNew = false;
++        toasts.forEach((t)=>{
++            if (!seenIdsRef.current.has(t.id)) {
++                seenIdsRef.current.add(t.id);
++                hasNew = true;
++            }
++        });
++        const currentIds = new Set(toasts.map((t)=>t.id));
++        seenIdsRef.current.forEach((id)=>{
++            if (!currentIds.has(id)) seenIdsRef.current.delete(id);
++        });
++        if (hasNew) {
++            setFreshExpanded(true);
++            if (freshTimerRef.current) clearTimeout(freshTimerRef.current);
++            freshTimerRef.current = setTimeout(()=>setFreshExpanded(false), FRESH_DURATION_MS);
++        }
++    }, [
++        toasts
++    ]);
+     React.useEffect(()=>{
+         const handleKeyDown = (event)=>{
+             var _listRef_current;
+@@ -1168,7 +1198,7 @@ const Toaster = /*#__PURE__*/ React.forwardRef(function Toaster(props, ref) {
+                 setHeights: setHeights,
+                 expandByDefault: expand,
+                 gap: gap,
+-                expanded: expanded,
++                expanded: expanded || freshExpanded,
+                 swipeDirections: props.swipeDirections
+             });
+         }));
