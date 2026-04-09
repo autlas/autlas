@@ -109,8 +109,31 @@ export default function ToggleGroup<T extends string>({
                     <button
                         key={opt.id}
                         data-toggle-id={opt.id}
-                        onClick={() => {
+                        onClick={(e) => {
                             if (disabled) return;
+                            // Imperatively flip the pill + active class on the
+                            // very next paint so the click feels instant even
+                            // when the parent's state update kicks off a heavy
+                            // downstream re-render. React state is updated
+                            // afterwards so the DOM stays consistent.
+                            const container = containerRef.current;
+                            const pill = pillRef.current;
+                            const btnEl = e.currentTarget as HTMLElement;
+                            if (container && pill && btnEl) {
+                                pill.style.transition = '';
+                                pill.style.left = `${btnEl.offsetLeft}px`;
+                                pill.style.width = `${btnEl.offsetWidth}px`;
+                                container.querySelectorAll<HTMLElement>('[data-toggle-id]').forEach(b => {
+                                    if (b === btnEl) {
+                                        b.classList.add('text-white');
+                                        b.classList.remove('text-tertiary');
+                                    } else {
+                                        b.classList.remove('text-white');
+                                    }
+                                    const svg = b.querySelector<HTMLElement>('svg');
+                                    if (svg) svg.style.opacity = b === btnEl ? '1' : '0.25';
+                                });
+                            }
                             setOptimisticValue(opt.id);
                             onChange(opt.id);
                         }}
