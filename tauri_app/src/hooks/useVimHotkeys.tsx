@@ -430,7 +430,7 @@ export function useVimHotkeys(args: UseVimHotkeysArgs) {
             handleRestart(item.data);
         } else {
             vlog('key: r → TOAST (not running)', item.data.filename);
-            appToast.warning(t("toast.script_not_running", "Скрипт не запущен — нажмите Enter, чтобы запустить"), { id: "vim-hint" });
+            appToast.warning(t("toast.script_not_running", "Скрипт не запущен — нажмите Enter, чтобы запустить"));
         }
     }, { preventDefault: true, enabled: hk });
 
@@ -458,7 +458,7 @@ export function useVimHotkeys(args: UseVimHotkeysArgs) {
         const path = item.type === 'script' ? item.data.path : item.path;
         vlog('key: c → copy path', path);
         navigator.clipboard.writeText(path);
-        appToast.success(t("toast.path_copied", "Путь скопирован"), { id: "vim-hint" });
+        appToast.success(t("toast.path_copied", "Путь скопирован"));
     }, { preventDefault: true, enabled: hk });
 
     useHotkeys('f', () => {
@@ -556,12 +556,12 @@ export function useVimHotkeys(args: UseVimHotkeysArgs) {
         }
         if (!item.data.is_running) {
             vlog('key: i → TOAST (not running)');
-            appToast.warning(t("toast.script_not_running", "Скрипт не запущен — нажмите Enter, чтобы запустить"), { id: "vim-hint" });
+            appToast.warning(t("toast.script_not_running", "Скрипт не запущен — нажмите Enter, чтобы запустить"));
             return;
         }
         if (!item.data.has_ui) {
             vlog('key: i → TOAST (no UI)');
-            appToast.warning(t("toast.script_has_no_ui", "У скрипта нет интерфейса"), { id: "vim-hint" });
+            appToast.warning(t("toast.script_has_no_ui", "У скрипта нет интерфейса"));
             return;
         }
         vlog('key: i → onShowUI', item.data.filename);
