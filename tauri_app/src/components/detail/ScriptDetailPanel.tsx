@@ -10,6 +10,8 @@ import TruncatedTooltip from "../ui/TruncatedTooltip";
 import { formatSize } from "../../utils/formatSize";
 import { useScriptContent } from "../../hooks/useScriptContent";
 import { usePanelResize } from "../../hooks/usePanelResize";
+import { useTreeStore } from "../../store/useTreeStore";
+import { safeSetItem } from "../../utils/safeStorage";
 
 function MetaRow({ label, value, mono, copiedLabel, copyLabel }: { label: string; value: string; mono?: boolean; copiedLabel?: string; copyLabel?: string }) {
   const [copied, setCopied] = useState(false);
@@ -48,8 +50,55 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
   const [copied, setCopied] = useState(false);
   const [scriptMeta, setScriptMeta] = useState<{ hash: string; created: string; modified: string; last_run: string } | null>(null);
   const [isEditingTags, setIsEditingTags] = useState(false);
-  const { width: panelWidth, setWidth: setPanelWidth, handleProps: resizeHandleProps, isResizing } = usePanelResize("ahk_detail_panel_width", 420, { min: 280 });
+  const { width: panelWidth, setWidth: setPanelWidth } = usePanelResize("ahk_detail_panel_width", 420, { min: 280 });
+  const [isResizing, setIsResizing] = useState(false);
+  const setSidebarWidth = useTreeStore(s => s.setSidebarWidth);
   const panelRef = useRef<HTMLDivElement>(null);
+
+  // Custom resize: dragging the handle grows the panel; once the tree hits
+  // its 500px minimum, further growth squeezes the sidebar instead (mirror
+  // of Sidebar's resize behavior).
+  const handleResizeMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+    const startX = e.clientX;
+    const startPanel = panelWidth;
+    const collapsed = useTreeStore.getState().sidebarCollapsed;
+    const startSidebar = collapsed ? 80 : useTreeStore.getState().sidebarWidth;
+    const outer = panelRef.current?.parentElement?.parentElement; // Sidebar+Main container
+    const totalWidth = outer?.clientWidth ?? window.innerWidth;
+    const TREE_MIN = 500;
+    const SIDEBAR_MIN = collapsed ? 80 : 200;
+    const PANEL_MIN = 280;
+    const panelHardMax = totalWidth - SIDEBAR_MIN - TREE_MIN;
+    let currentPanel = startPanel;
+    let currentSidebar = startSidebar;
+
+    const onMouseMove = (ev: globalThis.MouseEvent) => {
+      const desired = startPanel + (startX - ev.clientX);
+      currentPanel = Math.max(PANEL_MIN, Math.min(panelHardMax, desired));
+      setPanelWidth(currentPanel);
+      // Sidebar should shrink only when the panel needs more room than the
+      // current (sidebar, tree-min) layout allows. Never auto-grow it back.
+      if (!collapsed) {
+        const requiredSidebar = totalWidth - currentPanel - TREE_MIN;
+        if (requiredSidebar < currentSidebar) {
+          currentSidebar = Math.max(SIDEBAR_MIN, requiredSidebar);
+          setSidebarWidth(currentSidebar);
+        }
+      }
+    };
+    const onMouseUp = () => {
+      setIsResizing(false);
+      document.removeEventListener("mousemove", onMouseMove);
+      document.removeEventListener("mouseup", onMouseUp);
+      safeSetItem("ahk_detail_panel_width", String(currentPanel));
+    };
+    document.addEventListener("mousemove", onMouseMove);
+    document.addEventListener("mouseup", onMouseUp);
+  }, [panelWidth, setPanelWidth, setSidebarWidth]);
+
+  const resizeHandleProps = { onMouseDown: handleResizeMouseDown };
   const addBtnRef = useRef<HTMLButtonElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
 
