@@ -120,7 +120,30 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
     if (!parent) return;
     const clamp = () => {
       const maxWidth = parent.clientWidth - 500;
-      setPanelWidth(prev => Math.min(prev, Math.max(280, maxWidth)));
+      let newPanel = 0;
+      setPanelWidth(prev => {
+        newPanel = Math.min(prev, Math.max(280, maxWidth));
+        return newPanel;
+      });
+      // If the panel bottomed out at 280 and the tree is still squeezed
+      // below 500px, steal the deficit from the sidebar (and collapse it
+      // when even its expanded min isn't enough).
+      if (newPanel === 280 && parent.clientWidth - 280 < 500) {
+        const outer = parent.parentElement;
+        if (!outer) return;
+        const total = outer.clientWidth;
+        const state = useTreeStore.getState();
+        const collapsed = state.sidebarCollapsed;
+        const desiredSidebar = total - 280 - 500;
+        if (!collapsed) {
+          if (desiredSidebar >= 200) {
+            if (state.sidebarWidth > desiredSidebar) state.setSidebarWidth(desiredSidebar);
+          } else {
+            if (state.sidebarWidth > 200) state.setSidebarWidth(200);
+            state.setSidebarCollapsed(true);
+          }
+        }
+      }
     };
     const observer = new ResizeObserver(clamp);
     observer.observe(parent);
