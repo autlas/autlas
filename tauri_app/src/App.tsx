@@ -10,7 +10,7 @@ import CheatSheet from "./components/common/CheatSheet";
 import OrphanReconcileDialog, { PendingMatch } from "./components/common/OrphanReconcileDialog";
 import { Script, checkEverythingStatus, launchEverything, installEverything } from "./api";
 import { Toaster } from "sonner";
-import { appToast } from "./components/ui/AppToast";
+import { appToast, ToastButton } from "./components/ui/AppToast";
 import { CloseIcon } from "./components/ui/Icons";
 import { useTheme } from "./hooks/useTheme";
 import { useScanPaths } from "./hooks/useScanPaths";
@@ -167,10 +167,9 @@ function App() {
             {
               id: "orphan", duration: Infinity,
               right: (
-                <button
-                  onClick={() => { setShowOrphanDialog(true); appToast.dismiss("orphan"); }}
-                  className="px-3 py-1 text-[11px] font-bold uppercase tracking-wider whitespace-nowrap bg-indigo-500/20 text-indigo-400 rounded-lg hover:bg-indigo-500/30 transition-colors cursor-pointer"
-                >{t("orphan.review")}</button>
+                <ToastButton onClick={() => { setShowOrphanDialog(true); appToast.dismiss("orphan"); }}>
+                  {t("orphan.review")}
+                </ToastButton>
               )
             }
           );
@@ -265,31 +264,26 @@ function App() {
     appToast[kind](message, {
       id: "everything",
       duration: isStarted ? 3000 : Infinity,
-      right: (
-        <>
-          {isInstalled && (
-            <button
-              onClick={async () => {
-                appToast.dismiss("everything");
-                setEverythingToast("launching");
-                try { await launchEverything(); setEverythingToast("started"); showEverythingToast("started"); }
-                catch (e) { console.error(e); setEverythingToast("installed"); showEverythingToast("installed"); }
-              }}
-              className="px-3 py-1 text-[11px] font-bold uppercase tracking-wider whitespace-nowrap bg-indigo-500/20 text-indigo-400 rounded-lg hover:bg-indigo-500/30 transition-colors cursor-pointer"
-            >{t("settings.everything_launch")}</button>
-          )}
-          {status === "not_installed" && (
-            <button onClick={() => setShowInstallModal(true)}
-              className="px-3 py-1 text-[11px] font-bold uppercase tracking-wider whitespace-nowrap bg-indigo-500/20 text-indigo-400 rounded-lg hover:bg-indigo-500/30 transition-colors cursor-pointer"
-            >{t("settings.everything_install")}</button>
-          )}
-        </>
-      )
+      right: isInstalled ? (
+        <ToastButton onClick={async () => {
+          appToast.dismiss("everything");
+          setEverythingToast("launching");
+          try { await launchEverything(); setEverythingToast("started"); showEverythingToast("started"); }
+          catch (e) { console.error(e); setEverythingToast("installed"); showEverythingToast("installed"); }
+        }}>{t("settings.everything_launch")}</ToastButton>
+      ) : status === "not_installed" ? (
+        <ToastButton onClick={() => setShowInstallModal(true)}>
+          {t("settings.everything_install")}
+        </ToastButton>
+      ) : undefined
     });
   }, []);
 
-  // Check Everything status on startup
+  // Check Everything status on startup (StrictMode-safe: запускаем ровно раз)
+  const everythingCheckedRef = useRef(false);
   useEffect(() => {
+    if (everythingCheckedRef.current) return;
+    everythingCheckedRef.current = true;
     checkEverythingStatus().then(status => {
       if (status !== "running") {
         setEverythingToast(status);

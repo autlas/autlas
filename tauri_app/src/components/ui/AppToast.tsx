@@ -267,4 +267,27 @@ export const AppToaster = (props: AppToasterProps) => (
 
 AppToaster.displayName = "AppToaster";
 
+// ─── Action button для right-слота тоста ────────────────────────────
+// Единый стиль для всех action-кнопок в тостах. По гайду MD/Atlassian
+// тост может содержать максимум одну action-кнопку.
+interface ToastButtonProps {
+    onClick: () => void;
+    children: ReactNode;
+    variant?: "primary" | "danger";
+}
+
+export const ToastButton = ({ onClick, children, variant = "primary" }: ToastButtonProps) => {
+    const styles = variant === "danger"
+        ? "bg-red-500/20 text-red-400 hover:bg-red-500/30"
+        : "bg-indigo-500/20 text-indigo-400 hover:bg-indigo-500/30";
+    return (
+        <button
+            onClick={onClick}
+            className={`px-3 py-1 text-[11px] font-bold uppercase tracking-wider whitespace-nowrap rounded-lg transition-colors cursor-pointer ${styles}`}
+        >
+            {children}
+        </button>
+    );
+};
+
 export default AppToaster;
