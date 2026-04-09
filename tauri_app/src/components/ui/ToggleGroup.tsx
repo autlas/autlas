@@ -1,4 +1,4 @@
-import React, { useRef, useState, useLayoutEffect } from "react";
+import React, { useRef, useState, useLayoutEffect, useEffect } from "react";
 import Tooltip from "./Tooltip";
 
 export interface ToggleOption<T extends string> {
@@ -26,11 +26,19 @@ export default function ToggleGroup<T extends string>({
     const isFirstRender = useRef(true);
     const wasHidden = useRef(false);
 
+    // Optimistic local value: lets the pill (and active styling) flip on the
+    // very next paint when the parent's `value` is driven by a deferred
+    // (concurrent) state update — otherwise the toggle would lag behind the
+    // expensive view-mode swap downstream.
+    const [optimisticValue, setOptimisticValue] = useState(value);
+    useEffect(() => { setOptimisticValue(value); }, [value]);
+    const activeValue = optimisticValue;
+
     function movePill(animate: boolean) {
         const container = containerRef.current;
         const pill = pillRef.current;
         if (!container || !pill) return;
-        const activeBtn = container.querySelector<HTMLElement>(`[data-toggle-id="${value}"]`);
+        const activeBtn = container.querySelector<HTMLElement>(`[data-toggle-id="${activeValue}"]`);
         if (!activeBtn || activeBtn.offsetWidth === 0) return;
 
         if (!animate) {
@@ -59,7 +67,7 @@ export default function ToggleGroup<T extends string>({
         } else {
             movePill(true);
         }
-    }, [value]);
+    }, [activeValue]);
 
     // Track visibility for display:none cached tabs
     useLayoutEffect(() => {
@@ -90,12 +98,16 @@ export default function ToggleGroup<T extends string>({
             />
 
             {options.map((opt) => {
-                const isActive = value === opt.id;
+                const isActive = activeValue === opt.id;
                 const btn = (
                     <button
                         key={opt.id}
                         data-toggle-id={opt.id}
-                        onClick={() => !disabled && onChange(opt.id)}
+                        onClick={() => {
+                            if (disabled) return;
+                            setOptimisticValue(opt.id);
+                            onChange(opt.id);
+                        }}
                         className={`relative z-10 flex-1 h-full rounded-lg transition-colors duration-200 flex items-center justify-center cursor-pointer
                             ${opt.icon ? "px-4" : "text-[10px] font-black tracking-widest uppercase"}
                             ${isActive
