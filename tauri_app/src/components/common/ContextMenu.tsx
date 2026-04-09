@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { EditIcon, FolderIcon, OpenWithIcon, CopyIcon, PlusIcon, CloseIcon, EyeOffIcon, TagIcon, StarIcon, BlockIcon } from "../ui/Icons";
 import { useVimEnabled } from "../../hooks/useVimEnabled";
 import { useTreeStore } from "../../store/useTreeStore";
+import { appToast } from "../ui/AppToast";
 
 interface ContextMenuState {
   x: number;
@@ -107,15 +108,15 @@ export default function ContextMenu({ contextMenu, onClose, onStartRenameTag, on
     if (contextMenu.type === "script" && contextMenu.data) {
       const d = contextMenu.data;
       return [
-        { id: "copy", label: t("context.copy_path"), icon: <CopyIcon size={18} />, onClick: () => { navigator.clipboard.writeText(d.path); onClose(); } },
+        { id: "copy", shortcut: "c", label: t("context.copy_path"), icon: <CopyIcon size={18} />, onClick: () => { navigator.clipboard.writeText(d.path); appToast.success(t("toast.path_copied", "Путь скопирован")); onClose(); } },
         { id: "show", shortcut: "f", label: t("context.show_in_folder"), icon: <FolderIcon />, onClick: () => { invoke("open_in_explorer", { path: d.path }); onClose(); } },
         "separator",
         { id: "edit", shortcut: "e", label: t("context.edit"), icon: <EditIcon />, onClick: () => { invoke("edit_script", { path: d.path }); onClose(); } },
         { id: "open_with", shortcut: "o", label: t("context.open_with"), icon: <OpenWithIcon />, onClick: () => { invoke("open_with", { path: d.path }); onClose(); } },
         "separator",
         d.is_hub
-          ? { id: "hub_remove", label: t("context.remove_from_hub", "Удалить из хаба"), icon: <StarIcon size={16} weight="fill" />, onClick: async () => { await invoke("set_script_hub", { id: d.id, hub: false }); onClose(); } }
-          : { id: "hub_add", label: t("context.add_to_hub", "Добавить в хаб"), icon: <StarIcon size={16} weight="bold" />, onClick: async () => { await invoke("set_script_hub", { id: d.id, hub: true }); onClose(); } },
+          ? { id: "hub_remove", shortcut: "m", label: t("context.remove_from_hub", "Удалить из хаба"), icon: <StarIcon size={16} weight="fill" />, onClick: async () => { await invoke("set_script_hub", { id: d.id, hub: false }); appToast.success(t("toast.removed_from_hub", "Удалено из хаба")); onClose(); } }
+          : { id: "hub_add", shortcut: "m", label: t("context.add_to_hub", "Добавить в хаб"), icon: <StarIcon size={16} weight="bold" />, onClick: async () => { await invoke("set_script_hub", { id: d.id, hub: true }); appToast.success(t("toast.added_to_hub", "Добавлено в хаб")); onClose(); } },
       ];
     }
     if (contextMenu.type === "tag") {
@@ -128,7 +129,7 @@ export default function ContextMenu({ contextMenu, onClose, onStartRenameTag, on
     if (contextMenu.type === "folder") {
       const d = contextMenu.data;
       return [
-        { id: "copy", label: t("context.copy_path"), icon: <CopyIcon size={18} />, onClick: () => { navigator.clipboard.writeText(d.fullName); onClose(); } },
+        { id: "copy", shortcut: "c", label: t("context.copy_path"), icon: <CopyIcon size={18} />, onClick: () => { navigator.clipboard.writeText(d.fullName); onClose(); } },
         { id: "show", shortcut: "f", label: t("context.show_in_folder"), icon: <FolderIcon />, onClick: () => { invoke("open_in_explorer", { path: d.fullName }); onClose(); } },
         "separator",
         { id: "expand", label: t("context.expand_all"), icon: <PlusIcon size={18} />, disabled: !!d.isAllExpanded || !d.onExpandAll, onClick: () => { d.onExpandAll?.(); onClose(); } },
@@ -170,7 +171,22 @@ export default function ContextMenu({ contextMenu, onClose, onStartRenameTag, on
       const isUp = k === "ArrowUp" || c === "KeyK";
       const isAccept = k === "Enter" || k === " ";
       const isClose = k === "Escape";
-      if (!isDown && !isUp && !isAccept && !isClose) return;
+      // Letter-shortcut: пользователь видит подсказку справа от пункта
+      // (например "f" у "Show in folder") и жмёт её сразу, не наводясь
+      // через j/k. Работает только если ровно одна буква без модификаторов.
+      if (!isDown && !isUp && !isAccept && !isClose) {
+        if (e.ctrlKey || e.altKey || e.metaKey) return;
+        // e.code === "KeyM" → "m" — независимо от ru/en раскладки
+        const codeLetter = c.startsWith("Key") ? c.slice(3).toLowerCase() : null;
+        if (!codeLetter) return;
+        const match = items.find(it => it !== "separator" && (it as Action).shortcut === codeLetter) as Action | undefined;
+        if (!match || match.disabled) return;
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        match.onClick();
+        return;
+      }
       e.preventDefault();
       e.stopPropagation();
       e.stopImmediatePropagation();

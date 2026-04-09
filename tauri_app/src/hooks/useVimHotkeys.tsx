@@ -452,6 +452,19 @@ export function useVimHotkeys(args: UseVimHotkeysArgs) {
         }
     }, { preventDefault: true, enabled: hk });
 
+    useHotkeys('m,ь', async () => {
+        const item = getFocusedItem();
+        if (!item || item.type !== 'script') { vlog('key: m → IGNORED (not a script)'); return; }
+        const next = !item.data.is_hub;
+        vlog('key: m → set_script_hub', item.data.filename, '→', next);
+        await invoke("set_script_hub", { id: item.data.id, hub: next });
+        appToast.success(
+            next
+                ? t("toast.added_to_hub", "Добавлено в хаб")
+                : t("toast.removed_from_hub", "Удалено из хаба")
+        );
+    }, { preventDefault: true, enabled: hk });
+
     useHotkeys('c', () => {
         const item = getFocusedItem();
         if (!item) { vlog('key: c → IGNORED (no focused item)'); return; }
