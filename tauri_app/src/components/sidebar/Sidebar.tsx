@@ -34,6 +34,7 @@ interface SidebarProps {
   tagDragOffsetXRef: React.MutableRefObject<number>;
   pendingTagDragRef: React.MutableRefObject<{ tag: string; x: number; y: number } | null>;
   formatLastScan: (ts: number, now: number) => React.ReactNode;
+  detailOpen: boolean;
 }
 
 type NavItemState = {
@@ -68,6 +69,7 @@ export default function Sidebar({
   onTabClick, setActiveTab,
   setDragGhostSize, setContextMenu, setUserTags, triggerScan, onRenameTag, onRefresh, onHoveringRefresh, onCustomDrop,
   settingsIconRef, refreshIconRef, ghostRef, tagDragOffsetYRef, tagDragOffsetXRef, pendingTagDragRef, formatLastScan,
+  detailOpen,
 }: SidebarProps) {
   const { t } = useTranslation();
   const sidebarCollapsed = useTreeStore(s => s.sidebarCollapsed);
@@ -204,6 +206,16 @@ export default function Sidebar({
     let didCollapse = wasCollapsed;
     if (!wasCollapsed) setIsResizing(true);
 
+    // Outer flex container (Sidebar + Main). Reserve space for tree (450)
+    // and detail panel min (280, only when open) so sidebar growth never
+    // squeezes the tree below its minimum.
+    const outer = (e.currentTarget as HTMLElement).parentElement?.parentElement;
+    const containerWidth = outer?.clientWidth ?? window.innerWidth;
+    const TREE_MIN = 500;
+    const DETAIL_MIN = 280;
+    const dynamicMax = containerWidth - TREE_MIN - (detailOpen ? DETAIL_MIN : 0);
+    const maxSidebar = Math.max(200, Math.min(400, dynamicMax));
+
     const onMouseMove = (ev: MouseEvent) => {
       const raw = startWidth + (ev.clientX - startX);
       if (raw < 100) {
@@ -219,7 +231,7 @@ export default function Sidebar({
           // Let transition animate expand, then switch to resize mode
           setTimeout(() => setIsResizing(true), 300);
         }
-        setSidebarWidth(Math.min(400, Math.max(200, raw)));
+        setSidebarWidth(Math.min(maxSidebar, Math.max(200, raw)));
       }
     };
     const onMouseUp = () => {
@@ -229,7 +241,7 @@ export default function Sidebar({
     };
     document.addEventListener("mousemove", onMouseMove);
     document.addEventListener("mouseup", onMouseUp);
-  }, [sidebarWidth, setSidebarWidth, setSidebarCollapsed]);
+  }, [sidebarWidth, setSidebarWidth, setSidebarCollapsed, detailOpen]);
 
   return (
     <div

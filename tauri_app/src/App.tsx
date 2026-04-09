@@ -573,6 +573,7 @@ function App() {
         tagDragOffsetXRef={tagDragOffsetXRef}
         pendingTagDragRef={pendingTagDragRef}
         formatLastScan={formatLastScan}
+        detailOpen={!!selectedPath && viewMode !== "settings"}
       />
 
       {/* Main Content + Detail Panel */}

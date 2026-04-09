@@ -8,7 +8,7 @@ import { useTranslation } from "react-i18next";
 import { PlusIcon, CloseIcon, RestartIcon, PlayIcon, InterfaceIcon, MinusIcon, StarIcon } from "../ui/Icons";
 import Tooltip from "../ui/Tooltip";
 import TruncatedTooltip from "../ui/TruncatedTooltip";
-import ActionButton from "../ui/ActionButton";
+import IconButton from "../ui/IconButton";
 import { formatDate } from "../../utils/formatDate";
 import { formatSize } from "../../utils/formatSize";
 import { useTagOverflow } from "../../hooks/useTagOverflow";
@@ -205,14 +205,28 @@ const ScriptRow = memo(function ScriptRow({
                     })()}
                     <div className={`${showInfo ? 'absolute right-0' : ''} transition-opacity flex items-center space-x-2 ${isFocused && isVimMode ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
                         {s.is_running && !isPending && s.has_ui && (
-                            <ActionButton color="indigo" onClick={() => onShowUI(s)} title={t("tooltips.interface")} shortcut="i" animateIn animationDelay={0}>
-                                <InterfaceIcon />
-                            </ActionButton>
+                            <Tooltip text={t("tooltips.interface")} shortcut="i">
+                                <IconButton
+                                    variant="actionIndigo"
+                                    icon={<InterfaceIcon />}
+                                    onClick={(e) => { e.stopPropagation(); onShowUI(s); }}
+                                    onMouseDown={(e) => e.stopPropagation()}
+                                    className="animate-action-in"
+                                    style={{ animationDelay: "0ms" }}
+                                />
+                            </Tooltip>
                         )}
                         {s.is_running && !isPending && (
-                            <ActionButton color="yellow" onClick={() => onRestart(s)} title={t("tooltips.restart")} shortcut="r" animateIn animationDelay={s.has_ui ? 50 : 0}>
-                                <RestartIcon />
-                            </ActionButton>
+                            <Tooltip text={t("tooltips.restart")} shortcut="r">
+                                <IconButton
+                                    variant="actionYellow"
+                                    icon={<RestartIcon />}
+                                    onClick={(e) => { e.stopPropagation(); onRestart(s); }}
+                                    onMouseDown={(e) => e.stopPropagation()}
+                                    className="animate-action-in"
+                                    style={{ animationDelay: `${s.has_ui ? 50 : 0}ms` }}
+                                />
+                            </Tooltip>
                         )}
                         <Tooltip text={isPending ? (pendingType === 'restart' ? t("tooltips.restarting") : t("tooltips.toggling")) : (s.is_running ? t("tooltips.kill") : t("tooltips.run"))} shortcut="Enter">
                             <button

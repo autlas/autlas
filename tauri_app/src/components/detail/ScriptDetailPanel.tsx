@@ -58,7 +58,7 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
     const parent = panelRef.current?.parentElement;
     if (!parent) return;
     const clamp = () => {
-      const maxWidth = parent.clientWidth - 450;
+      const maxWidth = parent.clientWidth - 500;
       setPanelWidth(prev => Math.min(prev, Math.max(280, maxWidth)));
     };
     const observer = new ResizeObserver(clamp);
