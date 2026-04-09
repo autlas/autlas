@@ -702,7 +702,7 @@ function App() {
       <div className="flex-1 flex flex-row overflow-hidden relative z-10">
         <div
           className="flex-1 px-4 flex flex-col overflow-hidden transition-all duration-300"
-          style={{ background: viewMode === "settings" ? "var(--bg-primary)" : "linear-gradient(to bottom right, var(--bg-primary), var(--bg-secondary))" }}
+          style={{ background: "var(--bg-primary)" }}
         >
           <div className={`flex-1 flex flex-col min-h-0 ${viewMode === "settings" ? "overflow-y-auto custom-scrollbar -mr-4 pr-4" : ""}`}>
             <div className={viewMode === "settings" ? "block" : "hidden"}>
