@@ -116,8 +116,9 @@ function App() {
 
   const triggerScan = useCallback(() => {
     appToast.dismiss("everything");
+    appToast.info(t("sidebar.scanning", "Сканирование..."), { id: "scan", duration: Infinity, pulse: true });
     setRefreshKey(p => p + 1);
-  }, []);
+  }, [t]);
 
   const { scanPaths, handleAddScanPath, handleRemoveScanPath } = useScanPaths(triggerScan);
   const { blacklist, handleAddBlacklist, handleRemoveBlacklist, addBlacklistPath } = useScanBlacklist(triggerScan);
@@ -166,16 +167,10 @@ function App() {
             {
               id: "orphan", duration: Infinity,
               right: (
-                <>
-                  <button
-                    onClick={() => { setShowOrphanDialog(true); appToast.dismiss("orphan"); }}
-                    className="px-3 py-1 text-[11px] font-bold uppercase tracking-wider whitespace-nowrap bg-indigo-500/20 text-indigo-400 rounded-lg hover:bg-indigo-500/30 transition-colors cursor-pointer"
-                  >{t("orphan.review")}</button>
-                  <button
-                    onClick={() => appToast.dismiss("orphan")}
-                    className="ml-1 text-white/30 hover:text-white/60 transition-colors cursor-pointer"
-                  ><CloseIcon size={14} /></button>
-                </>
+                <button
+                  onClick={() => { setShowOrphanDialog(true); appToast.dismiss("orphan"); }}
+                  className="px-3 py-1 text-[11px] font-bold uppercase tracking-wider whitespace-nowrap bg-indigo-500/20 text-indigo-400 rounded-lg hover:bg-indigo-500/30 transition-colors cursor-pointer"
+                >{t("orphan.review")}</button>
               )
             }
           );
@@ -264,9 +259,9 @@ function App() {
         ? t("settings.everything_toast_installed")
         : t("settings.everything_toast_not_installed");
     // started → success (Everything заработал, либо сам, либо после клика "Launch")
-    // installed → warning (установлен, но не запущен — нужно действие)
-    // not_installed → error (не выполнить интеграцию вообще)
-    const kind = isStarted ? "success" : isInstalled ? "warning" : "error";
+    // installed / not_installed → warning (опциональный ускоритель: app работает
+    // без него через WalkDir-fallback, но юзеру стоит действие предложить)
+    const kind = isStarted ? "success" : "warning";
     appToast[kind](message, {
       id: "everything",
       duration: isStarted ? 3000 : Infinity,
@@ -288,7 +283,6 @@ function App() {
               className="px-3 py-1 text-[11px] font-bold uppercase tracking-wider whitespace-nowrap bg-indigo-500/20 text-indigo-400 rounded-lg hover:bg-indigo-500/30 transition-colors cursor-pointer"
             >{t("settings.everything_install")}</button>
           )}
-          <button onClick={() => appToast.dismiss("everything")} className="ml-1 text-white/30 hover:text-white/60 transition-colors cursor-pointer"><CloseIcon size={14} /></button>
         </>
       )
     });
@@ -741,7 +735,7 @@ function App() {
       <CheatSheet isOpen={cheatsheetOpen} onClose={() => setCheatsheetOpen(false)} />
 
       <Toaster
-        position="bottom-center"
+        position="bottom-right"
         gap={8}
         toastOptions={{ unstyled: true, style: { minWidth: '420px' } }}
       />
