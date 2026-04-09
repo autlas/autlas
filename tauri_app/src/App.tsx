@@ -48,6 +48,67 @@ function App() {
 
   const cheatsheetOpen = useTreeStore(s => s.cheatsheetOpen);
   const setCheatsheetOpen = useTreeStore(s => s.setCheatsheetOpen);
+
+  // ─── Window resize: keep tree at ≥500px by proportionally squeezing
+  // sidebar and detail panel; collapse sidebar / close detail when needed.
+  useEffect(() => {
+    const TREE_MIN = 500;
+    const SIDEBAR_MIN = 200;
+    const SIDEBAR_COLLAPSED = 80;
+    const DETAIL_MIN = 280;
+
+    const onResize = () => {
+      const total = window.innerWidth;
+      const state = useTreeStore.getState();
+      const detailOpen = !!selectedPathRef.current;
+      const collapsed = state.sidebarCollapsed;
+      let sidebar = collapsed ? SIDEBAR_COLLAPSED : state.sidebarWidth;
+      let detail = detailOpen ? state.detailPanelWidth : 0;
+      const tree = total - sidebar - detail;
+      if (tree >= TREE_MIN) return; // tree absorbs the shrink
+
+      let deficit = TREE_MIN - tree;
+      const sidebarFloor = collapsed ? SIDEBAR_COLLAPSED : SIDEBAR_MIN;
+      const sidebarHead = sidebar - sidebarFloor;
+      const detailHead = detailOpen ? detail - DETAIL_MIN : 0;
+      const totalHead = sidebarHead + detailHead;
+
+      if (totalHead >= deficit) {
+        // Distribute deficit proportionally to remaining headroom so both
+        // sides reach their minimums simultaneously.
+        const sCut = totalHead === 0 ? 0 : deficit * (sidebarHead / totalHead);
+        const dCut = deficit - sCut;
+        if (!collapsed && sCut > 0) state.setSidebarWidth(Math.max(sidebarFloor, sidebar - sCut));
+        if (detailOpen && dCut > 0) state.setDetailPanelWidth(Math.max(DETAIL_MIN, detail - dCut));
+        return;
+      }
+
+      // Headroom exhausted: drop both to their minimums first.
+      if (!collapsed) state.setSidebarWidth(SIDEBAR_MIN);
+      if (detailOpen) state.setDetailPanelWidth(DETAIL_MIN);
+      sidebar = collapsed ? SIDEBAR_COLLAPSED : SIDEBAR_MIN;
+      detail = detailOpen ? DETAIL_MIN : 0;
+      deficit = TREE_MIN - (total - sidebar - detail);
+      if (deficit <= 0) return;
+
+      // Collapse sidebar (frees SIDEBAR_MIN - SIDEBAR_COLLAPSED).
+      if (!collapsed) {
+        state.setSidebarCollapsed(true);
+        sidebar = SIDEBAR_COLLAPSED;
+        deficit = TREE_MIN - (total - sidebar - detail);
+        if (deficit <= 0) return;
+      }
+
+      // Last resort: close the detail panel.
+      if (detailOpen) setSelectedPathRef.current?.(null);
+    };
+
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  const selectedPathRef = useRef<string | null>(null);
+  const setSelectedPathRef = useRef<((p: string | null) => void) | null>(null);
   useEffect(() => {
     if (localStorage.getItem('ahk_vim_debug') !== 'false') {
       console.log('[cheatsheet]', cheatsheetOpen ? 'OPEN' : 'CLOSE');
@@ -108,6 +169,8 @@ function App() {
   });
   const [isHoveringRefresh, setIsHoveringRefresh] = useState(false);
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
+  useEffect(() => { selectedPathRef.current = selectedPath; }, [selectedPath]);
+  useEffect(() => { setSelectedPathRef.current = setSelectedPath; }, []);
   const [detailPinned, setDetailPinned] = useState(() => localStorage.getItem("ahk_detail_pinned") === "true");
   const scriptActionsRef = useRef<{ toggle: (s: Script) => void; restart: (s: Script) => void; pendingScripts: Record<string, "run" | "kill" | "restart">; allScripts: Script[]; setTagIcon: (tag: string, iconName: string) => void; removeTagIcon: (tag: string) => void; deleteTagFromAll: (tag: string) => void; renameTag: (oldTag: string, newTag: string) => Promise<void>; toggleHiddenByPath: (path: string) => void }>({ toggle: () => { }, restart: () => { }, pendingScripts: {}, allScripts: [], setTagIcon: () => { }, removeTagIcon: () => { }, deleteTagFromAll: () => { }, renameTag: async () => { }, toggleHiddenByPath: () => { } });
   const [, setDataVersion] = useState(0);

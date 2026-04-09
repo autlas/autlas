@@ -9,9 +9,7 @@ import Tooltip from "../ui/Tooltip";
 import TruncatedTooltip from "../ui/TruncatedTooltip";
 import { formatSize } from "../../utils/formatSize";
 import { useScriptContent } from "../../hooks/useScriptContent";
-import { usePanelResize } from "../../hooks/usePanelResize";
 import { useTreeStore } from "../../store/useTreeStore";
-import { safeSetItem } from "../../utils/safeStorage";
 
 function MetaRow({ label, value, mono, copiedLabel, copyLabel }: { label: string; value: string; mono?: boolean; copiedLabel?: string; copyLabel?: string }) {
   const [copied, setCopied] = useState(false);
@@ -50,7 +48,8 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
   const [copied, setCopied] = useState(false);
   const [scriptMeta, setScriptMeta] = useState<{ hash: string; created: string; modified: string; last_run: string } | null>(null);
   const [isEditingTags, setIsEditingTags] = useState(false);
-  const { width: panelWidth, setWidth: setPanelWidth } = usePanelResize("ahk_detail_panel_width", 420, { min: 280 });
+  const panelWidth = useTreeStore(s => s.detailPanelWidth);
+  const setPanelWidth = useTreeStore(s => s.setDetailPanelWidth);
   const [isResizing, setIsResizing] = useState(false);
   const setSidebarWidth = useTreeStore(s => s.setSidebarWidth);
   const setSidebarCollapsed = useTreeStore(s => s.setSidebarCollapsed);
@@ -104,7 +103,6 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
       setIsResizing(false);
       document.removeEventListener("mousemove", onMouseMove);
       document.removeEventListener("mouseup", onMouseUp);
-      safeSetItem("ahk_detail_panel_width", String(currentPanel));
     };
     document.addEventListener("mousemove", onMouseMove);
     document.addEventListener("mouseup", onMouseUp);
@@ -114,40 +112,32 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
   const addBtnRef = useRef<HTMLButtonElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
 
-  // Clamp panel width when available space changes (window resize or sidebar resize)
+  // On open: clamp panel width if available room shrunk it below the saved value.
+  // (Window-resize coordination lives in App.tsx so it can also touch the sidebar.)
   useEffect(() => {
     const parent = panelRef.current?.parentElement;
     if (!parent) return;
-    const clamp = () => {
-      const maxWidth = parent.clientWidth - 500;
-      let newPanel = 0;
-      setPanelWidth(prev => {
-        newPanel = Math.min(prev, Math.max(280, maxWidth));
-        return newPanel;
-      });
-      // If the panel bottomed out at 280 and the tree is still squeezed
-      // below 500px, steal the deficit from the sidebar (and collapse it
-      // when even its expanded min isn't enough).
-      if (newPanel === 280 && parent.clientWidth - 280 < 500) {
-        const outer = parent.parentElement;
-        if (!outer) return;
-        const total = outer.clientWidth;
-        const state = useTreeStore.getState();
-        const collapsed = state.sidebarCollapsed;
-        const desiredSidebar = total - 280 - 500;
-        if (!collapsed) {
-          if (desiredSidebar >= 200) {
-            if (state.sidebarWidth > desiredSidebar) state.setSidebarWidth(desiredSidebar);
-          } else {
-            if (state.sidebarWidth > 200) state.setSidebarWidth(200);
-            state.setSidebarCollapsed(true);
-          }
+    const maxWidth = parent.clientWidth - 500;
+    const clamped = Math.min(panelWidth, Math.max(280, maxWidth));
+    if (clamped !== panelWidth) setPanelWidth(clamped);
+    // If even the 280px floor doesn't fit, ask the sidebar to step aside.
+    if (clamped === 280 && parent.clientWidth - 280 < 500) {
+      const outer = parent.parentElement;
+      if (!outer) return;
+      const total = outer.clientWidth;
+      const state = useTreeStore.getState();
+      const collapsed = state.sidebarCollapsed;
+      const desiredSidebar = total - 280 - 500;
+      if (!collapsed) {
+        if (desiredSidebar >= 200) {
+          if (state.sidebarWidth > desiredSidebar) state.setSidebarWidth(desiredSidebar);
+        } else {
+          if (state.sidebarWidth > 200) state.setSidebarWidth(200);
+          state.setSidebarCollapsed(true);
         }
       }
-    };
-    const observer = new ResizeObserver(clamp);
-    observer.observe(parent);
-    return () => observer.disconnect();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {

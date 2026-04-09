@@ -105,6 +105,10 @@ interface TreeStore {
   sidebarWidth: number;
   setSidebarWidth: (v: number) => void;
 
+  // Detail panel width
+  detailPanelWidth: number;
+  setDetailPanelWidth: (v: number) => void;
+
   // Tag icons
   tagIcons: Record<string, string>;
   setTagIcons: (icons: Record<string, string>) => void;
@@ -259,6 +263,8 @@ export const useTreeStore = create<TreeStore>((set) => ({
   // Sidebar width
   sidebarWidth: parseInt(localStorage.getItem("ahk_sidebar_width") ?? "288"),
   setSidebarWidth: (v) => { safeSetItem("ahk_sidebar_width", String(v)); set({ sidebarWidth: v }); },
+  detailPanelWidth: parseInt(localStorage.getItem("ahk_detail_panel_width") ?? "420"),
+  setDetailPanelWidth: (v) => { safeSetItem("ahk_detail_panel_width", String(v)); set({ detailPanelWidth: v }); },
 
   // Tag icons
   tagIcons: {},
