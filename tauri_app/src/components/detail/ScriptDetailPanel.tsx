@@ -61,6 +61,7 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
   const handleResizeMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     setIsResizing(true);
+    useTreeStore.getState().setIsLayoutResizing(true);
     const startX = e.clientX;
     const startPanel = panelWidth;
     let collapsed = useTreeStore.getState().sidebarCollapsed;
@@ -101,6 +102,7 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
     };
     const onMouseUp = () => {
       setIsResizing(false);
+      useTreeStore.getState().setIsLayoutResizing(false);
       document.removeEventListener("mousemove", onMouseMove);
       document.removeEventListener("mouseup", onMouseUp);
     };
@@ -114,6 +116,22 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
 
   // On open: window-fit and any sidebar squeezing live in App.tsx so the
   // grow-then-shrink fallback can be ordered correctly.
+
+  // While the detail is mounted, react to changes in the parent's width
+  // (e.g. sidebar resize) by clamping the panel so the tree never falls
+  // below 500px. App.tsx handles window-resize coordination separately.
+  useEffect(() => {
+    const parent = panelRef.current?.parentElement;
+    if (!parent) return;
+    const clamp = () => {
+      const maxWidth = parent.clientWidth - 500;
+      const next = Math.max(280, Math.min(useTreeStore.getState().detailPanelWidth, maxWidth));
+      if (next !== useTreeStore.getState().detailPanelWidth) setPanelWidth(next);
+    };
+    const observer = new ResizeObserver(clamp);
+    observer.observe(parent);
+    return () => observer.disconnect();
+  }, [setPanelWidth]);
 
   useEffect(() => {
     setScriptMeta(null);

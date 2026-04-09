@@ -109,6 +109,11 @@ interface TreeStore {
   detailPanelWidth: number;
   setDetailPanelWidth: (v: number) => void;
 
+  // Layout resize-in-progress flag (suppresses sidebar width transition while
+  // either the sidebar OR the detail panel is being dragged).
+  isLayoutResizing: boolean;
+  setIsLayoutResizing: (v: boolean) => void;
+
   // Tag icons
   tagIcons: Record<string, string>;
   setTagIcons: (icons: Record<string, string>) => void;
@@ -265,6 +270,8 @@ export const useTreeStore = create<TreeStore>((set) => ({
   setSidebarWidth: (v) => { safeSetItem("ahk_sidebar_width", String(v)); set({ sidebarWidth: v }); },
   detailPanelWidth: parseInt(localStorage.getItem("ahk_detail_panel_width") ?? "420"),
   setDetailPanelWidth: (v) => { safeSetItem("ahk_detail_panel_width", String(v)); set({ detailPanelWidth: v }); },
+  isLayoutResizing: false,
+  setIsLayoutResizing: (v) => set({ isLayoutResizing: v }),
 
   // Tag icons
   tagIcons: {},

@@ -194,6 +194,7 @@ export default function Sidebar({
     collapsed ? <Tooltip text={text} side="right">{child}</Tooltip> : child;
   const sidebarWidth = useTreeStore(s => s.sidebarWidth);
   const setSidebarWidth = useTreeStore(s => s.setSidebarWidth);
+  const isLayoutResizing = useTreeStore(s => s.isLayoutResizing);
   const [isResizing, setIsResizing] = useState(false);
   const [tagsCollapsed, setTagsCollapsed] = useState(() => localStorage.getItem("ahk_tags_collapsed") === "true");
 
@@ -245,7 +246,7 @@ export default function Sidebar({
 
   return (
     <div
-      className={`group/sidebar flex flex-col border-r relative z-[100] ${collapsed ? 'w-20 transition-all duration-300' : ''} ${isResizing ? '' : 'transition-all duration-300'}`}
+      className={`group/sidebar flex flex-col border-r relative z-[100] ${collapsed ? 'w-20 transition-all duration-300' : ''} ${(isResizing || isLayoutResizing) ? '' : 'transition-all duration-300'}`}
       style={{ backgroundColor: "var(--bg-secondary)", borderColor: "var(--border-color)", ...(!collapsed ? { width: `${sidebarWidth}px` } : {}) }}
     >
       {/* Resize handle — right edge */}
