@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useDeferredValue } from "react";
 import ScriptTree from "./components/scripts/ScriptTree";
 import ScriptDetailPanel from "./components/detail/ScriptDetailPanel";
 import ContextMenu from "./components/common/ContextMenu";
@@ -249,15 +249,22 @@ function App() {
   const { settingsIconRef, pendingImpulseRef, momentumRef, motionImpulseRef, motionImpulseInitialRef } = usePhysicsMotion();
   const navPhysics = { pendingImpulseRef, momentumRef, motionImpulseRef, motionImpulseInitialRef };
   const { activeTab, setActiveTab, viewMode, displayMode, searchQuery, setSearchQuery, handleTabClick, toggleDisplayMode } = useNavigation(userTags, navPhysics);
+  // Sidebar consumes the urgent activeTab so the highlight flips on the
+  // next paint. The (potentially heavy) ScriptTree mount/swap is driven by
+  // deferred copies of the navigation state so it doesn't block the urgent
+  // commit (especially when switching to hub which also flips displayMode).
+  const renderedTab = useDeferredValue(activeTab);
+  const renderedViewMode = useDeferredValue(viewMode);
+  const renderedDisplayMode = useDeferredValue(displayMode);
 
   const refreshIconRef = useRef<HTMLDivElement>(null);
   const activeAnimRef = useRef<Animation | null>(null);
   const [visitedTabs, setVisitedTabs] = useState<Set<string>>(() => new Set([activeTab]));
   useEffect(() => {
-    if (activeTab !== "settings") {
-      setVisitedTabs(prev => prev.has(activeTab) ? prev : new Set(prev).add(activeTab));
+    if (renderedTab !== "settings") {
+      setVisitedTabs(prev => prev.has(renderedTab) ? prev : new Set(prev).add(renderedTab));
     }
-  }, [activeTab]);
+  }, [renderedTab]);
 
   const ghostRef = useRef<HTMLDivElement>(null);
   const [dragGhostSize, setDragGhostSize] = useState({ w: 0, h: 0 });
@@ -704,8 +711,8 @@ function App() {
           className="flex-1 px-4 flex flex-col overflow-hidden transition-all duration-300"
           style={{ background: "var(--bg-primary)" }}
         >
-          <div className={`flex-1 flex flex-col min-h-0 ${viewMode === "settings" ? "overflow-y-auto custom-scrollbar -mr-4 pr-4" : ""}`}>
-            <div className={viewMode === "settings" ? "block" : "hidden"}>
+          <div className={`flex-1 flex flex-col min-h-0 ${renderedViewMode === "settings" ? "overflow-y-auto custom-scrollbar -mr-4 pr-4" : ""}`}>
+            <div className={renderedViewMode === "settings" ? "block" : "hidden"}>
               <SettingsPanel
                 brightness={brightness}
                 setBrightness={setBrightness}
@@ -751,24 +758,24 @@ function App() {
               />
             </div>
 
-            <div className={viewMode !== "settings" ? "flex-1 flex flex-col min-h-0" : "hidden"}>
+            <div className={renderedViewMode !== "settings" ? "flex-1 flex flex-col min-h-0" : "hidden"}>
               {Array.from(visitedTabs).map(tab => (
-                <div key={`script-tree-${tab}`} className={tab === activeTab ? "flex-1 flex flex-col min-h-0" : "hidden"}>
+                <div key={`script-tree-${tab}`} className={tab === renderedTab ? "flex-1 flex flex-col min-h-0" : "hidden"}>
                   <MemoizedScriptTree
-                    isActive={tab === activeTab}
+                    isActive={tab === renderedTab}
                     filterTag={tab}
                     onTagsLoaded={handleTagsLoaded}
-                    onLoadingChange={tab === activeTab || viewMode === "settings" ? handleLoadingChange : () => { }}
-                    onRunningCountChange={tab === activeTab ? setRunningCount : () => { }}
-                    viewMode={displayMode}
+                    onLoadingChange={tab === renderedTab || renderedViewMode === "settings" ? handleLoadingChange : () => { }}
+                    onRunningCountChange={tab === renderedTab ? setRunningCount : () => { }}
+                    viewMode={renderedDisplayMode}
                     onViewModeChange={toggleDisplayMode}
                     onCustomDragStart={startCustomDrag}
                     isDragging={draggedScript !== null}
                     draggedScriptPath={draggedScript?.path || null}
                     animationsEnabled={animationsEnabled}
-                    searchQuery={tab === activeTab ? searchQuery : ""}
+                    searchQuery={tab === renderedTab ? searchQuery : ""}
                     setSearchQuery={setSearchQuery}
-                    contextMenu={tab === activeTab ? contextMenu : null}
+                    contextMenu={tab === renderedTab ? contextMenu : null}
                     onScriptContextMenu={(e, s) => {
                       e.preventDefault();
                       setContextMenu({ x: e.clientX, y: e.clientY, type: "script", data: s });
