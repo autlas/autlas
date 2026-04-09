@@ -53,6 +53,7 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
   const { width: panelWidth, setWidth: setPanelWidth } = usePanelResize("ahk_detail_panel_width", 420, { min: 280 });
   const [isResizing, setIsResizing] = useState(false);
   const setSidebarWidth = useTreeStore(s => s.setSidebarWidth);
+  const setSidebarCollapsed = useTreeStore(s => s.setSidebarCollapsed);
   const panelRef = useRef<HTMLDivElement>(null);
 
   // Custom resize: dragging the handle grows the panel; once the tree hits
@@ -63,28 +64,39 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
     setIsResizing(true);
     const startX = e.clientX;
     const startPanel = panelWidth;
-    const collapsed = useTreeStore.getState().sidebarCollapsed;
-    const startSidebar = collapsed ? 80 : useTreeStore.getState().sidebarWidth;
+    let collapsed = useTreeStore.getState().sidebarCollapsed;
+    let currentSidebar = collapsed ? 80 : useTreeStore.getState().sidebarWidth;
     const outer = panelRef.current?.parentElement?.parentElement; // Sidebar+Main container
     const totalWidth = outer?.clientWidth ?? window.innerWidth;
     const TREE_MIN = 500;
-    const SIDEBAR_MIN = collapsed ? 80 : 200;
+    const SIDEBAR_MIN_EXPANDED = 200;
+    const SIDEBAR_COLLAPSED_W = 80;
     const PANEL_MIN = 280;
-    const panelHardMax = totalWidth - SIDEBAR_MIN - TREE_MIN;
     let currentPanel = startPanel;
-    let currentSidebar = startSidebar;
 
     const onMouseMove = (ev: globalThis.MouseEvent) => {
       const desired = startPanel + (startX - ev.clientX);
+      const sidebarFloor = collapsed ? SIDEBAR_COLLAPSED_W : SIDEBAR_MIN_EXPANDED;
+      const panelHardMax = totalWidth - sidebarFloor - TREE_MIN;
       currentPanel = Math.max(PANEL_MIN, Math.min(panelHardMax, desired));
       setPanelWidth(currentPanel);
-      // Sidebar should shrink only when the panel needs more room than the
-      // current (sidebar, tree-min) layout allows. Never auto-grow it back.
+
       if (!collapsed) {
+        // Shrink sidebar to free room for the panel; never auto-grow it.
         const requiredSidebar = totalWidth - currentPanel - TREE_MIN;
         if (requiredSidebar < currentSidebar) {
-          currentSidebar = Math.max(SIDEBAR_MIN, requiredSidebar);
+          currentSidebar = Math.max(SIDEBAR_MIN_EXPANDED, requiredSidebar);
           setSidebarWidth(currentSidebar);
+        }
+        // Sidebar already squeezed to its expanded min and the user keeps
+        // pulling — collapse it and re-clamp the panel against the new floor.
+        if (currentSidebar <= SIDEBAR_MIN_EXPANDED && desired > panelHardMax) {
+          collapsed = true;
+          currentSidebar = SIDEBAR_COLLAPSED_W;
+          setSidebarCollapsed(true);
+          const newMax = totalWidth - SIDEBAR_COLLAPSED_W - TREE_MIN;
+          currentPanel = Math.max(PANEL_MIN, Math.min(newMax, desired));
+          setPanelWidth(currentPanel);
         }
       }
     };
@@ -96,7 +108,7 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
     };
     document.addEventListener("mousemove", onMouseMove);
     document.addEventListener("mouseup", onMouseUp);
-  }, [panelWidth, setPanelWidth, setSidebarWidth]);
+  }, [panelWidth, setPanelWidth, setSidebarWidth, setSidebarCollapsed]);
 
   const resizeHandleProps = { onMouseDown: handleResizeMouseDown };
   const addBtnRef = useRef<HTMLButtonElement>(null);
