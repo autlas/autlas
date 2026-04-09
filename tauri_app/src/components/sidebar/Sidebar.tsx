@@ -7,6 +7,12 @@ import { useTreeStore } from "../../store/useTreeStore";
 import Tooltip from "../ui/Tooltip";
 import logoImg from "../../assets/logo.png";
 import { safeSetItem } from "../../utils/safeStorage";
+import {
+  DETAIL_PANEL_MIN_WIDTH,
+  SIDEBAR_MIN_WIDTH,
+  SIDEBAR_COLLAPSED_WIDTH,
+  TREE_MIN_WIDTH,
+} from "../../constants/layout";
 
 interface SidebarProps {
   activeTab: string;
@@ -203,19 +209,17 @@ export default function Sidebar({
     e.preventDefault();
     const startX = e.clientX;
     const wasCollapsed = useTreeStore.getState().sidebarCollapsed;
-    const startWidth = wasCollapsed ? 80 : sidebarWidth;
+    const startWidth = wasCollapsed ? SIDEBAR_COLLAPSED_WIDTH : sidebarWidth;
     let didCollapse = wasCollapsed;
     if (!wasCollapsed) setIsResizing(true);
 
-    // Outer flex container (Sidebar + Main). Reserve space for tree (450)
-    // and detail panel min (280, only when open) so sidebar growth never
-    // squeezes the tree below its minimum.
+    // Outer flex container (Sidebar + Main). Reserve space for tree and
+    // detail panel min (only when open) so sidebar growth never squeezes
+    // the tree below its minimum.
     const outer = (e.currentTarget as HTMLElement).parentElement?.parentElement;
     const containerWidth = outer?.clientWidth ?? window.innerWidth;
-    const TREE_MIN = 500;
-    const DETAIL_MIN = 280;
-    const dynamicMax = containerWidth - TREE_MIN - (detailOpen ? DETAIL_MIN : 0);
-    const maxSidebar = Math.max(200, Math.min(400, dynamicMax));
+    const dynamicMax = containerWidth - TREE_MIN_WIDTH - (detailOpen ? DETAIL_PANEL_MIN_WIDTH : 0);
+    const maxSidebar = Math.max(SIDEBAR_MIN_WIDTH, Math.min(400, dynamicMax));
 
     const onMouseMove = (ev: MouseEvent) => {
       const raw = startWidth + (ev.clientX - startX);
@@ -232,7 +236,7 @@ export default function Sidebar({
           // Let transition animate expand, then switch to resize mode
           setTimeout(() => setIsResizing(true), 300);
         }
-        setSidebarWidth(Math.min(maxSidebar, Math.max(200, raw)));
+        setSidebarWidth(Math.min(maxSidebar, Math.max(SIDEBAR_MIN_WIDTH, raw)));
       }
     };
     const onMouseUp = () => {

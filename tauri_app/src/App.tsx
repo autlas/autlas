@@ -24,6 +24,12 @@ import { LogicalSize } from "@tauri-apps/api/dpi";
 import { useTranslation } from "react-i18next";
 import { useTreeStore } from "./store/useTreeStore";
 import { safeSetItem } from "./utils/safeStorage";
+import {
+  DETAIL_PANEL_MIN_WIDTH,
+  SIDEBAR_MIN_WIDTH,
+  SIDEBAR_COLLAPSED_WIDTH,
+  TREE_MIN_WIDTH,
+} from "./constants/layout";
 import "./App.css";
 
 const MemoizedScriptTree = React.memo(ScriptTree);
@@ -53,10 +59,10 @@ function App() {
   // ─── Window resize: keep tree at ≥500px by proportionally squeezing
   // sidebar and detail panel; collapse sidebar / close detail when needed.
   useEffect(() => {
-    const TREE_MIN = 500;
-    const SIDEBAR_MIN = 200;
-    const SIDEBAR_COLLAPSED = 80;
-    const DETAIL_MIN = 280;
+    const TREE_MIN = TREE_MIN_WIDTH;
+    const SIDEBAR_MIN = SIDEBAR_MIN_WIDTH;
+    const SIDEBAR_COLLAPSED = SIDEBAR_COLLAPSED_WIDTH;
+    const DETAIL_MIN = DETAIL_PANEL_MIN_WIDTH;
 
     const onResize = () => {
       const total = window.innerWidth;
@@ -113,8 +119,8 @@ function App() {
   // Caller can override `assumeSidebarExpanded` so we compute the right
   // required width even before the store reflects an in-flight expand.
   const growWindowToFit = useCallback(async (opts?: { assumeSidebarExpanded?: boolean; assumeDetailOpen?: boolean }) => {
-    const TREE_MIN = 500;
-    const SIDEBAR_COLLAPSED = 80;
+    const TREE_MIN = TREE_MIN_WIDTH;
+    const SIDEBAR_COLLAPSED = SIDEBAR_COLLAPSED_WIDTH;
     const state = useTreeStore.getState();
     const expanded = opts?.assumeSidebarExpanded ?? !state.sidebarCollapsed;
     const sidebar = expanded ? state.sidebarWidth : SIDEBAR_COLLAPSED;
@@ -205,9 +211,9 @@ function App() {
       // the sidebar only if the window couldn't actually grow large enough.
       (async () => {
         await growWindowToFit({ assumeDetailOpen: true });
-        const TREE_MIN = 500;
-        const DETAIL_MIN = 280;
-        const SIDEBAR_COLLAPSED = 80;
+        const TREE_MIN = TREE_MIN_WIDTH;
+        const DETAIL_MIN = DETAIL_PANEL_MIN_WIDTH;
+        const SIDEBAR_COLLAPSED = SIDEBAR_COLLAPSED_WIDTH;
         const state = useTreeStore.getState();
         const total = window.innerWidth;
         const sidebar = state.sidebarCollapsed ? SIDEBAR_COLLAPSED : state.sidebarWidth;
@@ -219,10 +225,10 @@ function App() {
         if (total - (state.sidebarCollapsed ? SIDEBAR_COLLAPSED : state.sidebarWidth) - DETAIL_MIN >= TREE_MIN) return;
         if (!state.sidebarCollapsed) {
           const desiredSidebar = total - DETAIL_MIN - TREE_MIN;
-          if (desiredSidebar >= 200) {
+          if (desiredSidebar >= SIDEBAR_MIN_WIDTH) {
             state.setSidebarWidth(desiredSidebar);
           } else {
-            state.setSidebarWidth(200);
+            state.setSidebarWidth(SIDEBAR_MIN_WIDTH);
             state.setSidebarCollapsed(true);
           }
         }

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, Dispatch, SetStateAction, MouseEvent as ReactMouseEvent } from "react";
 import { safeSetItem } from "../utils/safeStorage";
+import { DETAIL_PANEL_MIN_WIDTH, TREE_MIN_WIDTH } from "../constants/layout";
 
 export interface UsePanelResizeOptions {
   min?: number;
@@ -18,7 +19,7 @@ export function usePanelResize(
   defaultWidth: number,
   options?: UsePanelResizeOptions
 ): UsePanelResizeResult {
-  const min = options?.min ?? 280;
+  const min = options?.min ?? DETAIL_PANEL_MIN_WIDTH;
   const [width, setWidth] = useState<number>(() => {
     const saved = localStorage.getItem(storageKey);
     return saved ? parseInt(saved) : defaultWidth;
@@ -34,7 +35,7 @@ export function usePanelResize(
     let currentWidth = startWidth;
     const target = e.currentTarget as HTMLElement;
     const parentWidth = target.parentElement?.parentElement?.clientWidth ?? 1200;
-    const maxWidth = options?.max ?? (parentWidth - 450);
+    const maxWidth = options?.max ?? (parentWidth - TREE_MIN_WIDTH);
 
     const onMouseMove = (ev: globalThis.MouseEvent) => {
       currentWidth = Math.min(maxWidth, Math.max(min, startWidth + (startX - ev.clientX)));

@@ -10,6 +10,12 @@ import TruncatedTooltip from "../ui/TruncatedTooltip";
 import { formatSize } from "../../utils/formatSize";
 import { useScriptContent } from "../../hooks/useScriptContent";
 import { useTreeStore } from "../../store/useTreeStore";
+import {
+  DETAIL_PANEL_MIN_WIDTH,
+  SIDEBAR_MIN_WIDTH,
+  SIDEBAR_COLLAPSED_WIDTH,
+  TREE_MIN_WIDTH,
+} from "../../constants/layout";
 
 function MetaRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   const [copied, setCopied] = useState(false);
@@ -67,13 +73,13 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
     const startX = e.clientX;
     const startPanel = panelWidth;
     let collapsed = useTreeStore.getState().sidebarCollapsed;
-    let currentSidebar = collapsed ? 80 : useTreeStore.getState().sidebarWidth;
+    let currentSidebar = collapsed ? SIDEBAR_COLLAPSED_WIDTH : useTreeStore.getState().sidebarWidth;
     const outer = panelRef.current?.parentElement?.parentElement; // Sidebar+Main container
     const totalWidth = outer?.clientWidth ?? window.innerWidth;
-    const TREE_MIN = 500;
-    const SIDEBAR_MIN_EXPANDED = 200;
-    const SIDEBAR_COLLAPSED_W = 80;
-    const PANEL_MIN = 280;
+    const TREE_MIN = TREE_MIN_WIDTH;
+    const SIDEBAR_MIN_EXPANDED = SIDEBAR_MIN_WIDTH;
+    const SIDEBAR_COLLAPSED_W = SIDEBAR_COLLAPSED_WIDTH;
+    const PANEL_MIN = DETAIL_PANEL_MIN_WIDTH;
     let currentPanel = startPanel;
 
     const onMouseMove = (ev: globalThis.MouseEvent) => {
@@ -126,8 +132,8 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
     const parent = panelRef.current?.parentElement;
     if (!parent) return;
     const clamp = () => {
-      const maxWidth = parent.clientWidth - 500;
-      const next = Math.max(280, Math.min(useTreeStore.getState().detailPanelWidth, maxWidth));
+      const maxWidth = parent.clientWidth - TREE_MIN_WIDTH;
+      const next = Math.max(DETAIL_PANEL_MIN_WIDTH, Math.min(useTreeStore.getState().detailPanelWidth, maxWidth));
       if (next !== useTreeStore.getState().detailPanelWidth) setPanelWidth(next);
     };
     const observer = new ResizeObserver(clamp);

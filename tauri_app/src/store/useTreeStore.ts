@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { safeSetItem } from "../utils/safeStorage";
+import { DETAIL_PANEL_DEFAULT_WIDTH } from "../constants/layout";
 
 type DraggedScript = { id: string; path: string; filename: string; tags: string[] } | null;
 
@@ -268,7 +269,7 @@ export const useTreeStore = create<TreeStore>((set) => ({
   // Sidebar width
   sidebarWidth: parseInt(localStorage.getItem("ahk_sidebar_width") ?? "288"),
   setSidebarWidth: (v) => { safeSetItem("ahk_sidebar_width", String(v)); set({ sidebarWidth: v }); },
-  detailPanelWidth: parseInt(localStorage.getItem("ahk_detail_panel_width") ?? "420"),
+  detailPanelWidth: parseInt(localStorage.getItem("ahk_detail_panel_width") ?? String(DETAIL_PANEL_DEFAULT_WIDTH)),
   setDetailPanelWidth: (v) => { safeSetItem("ahk_detail_panel_width", String(v)); set({ detailPanelWidth: v }); },
   isLayoutResizing: false,
   setIsLayoutResizing: (v) => set({ isLayoutResizing: v }),
