@@ -33,12 +33,18 @@ export default function ToggleGroup<T extends string>({
     const [optimisticValue, setOptimisticValue] = useState(value);
     useEffect(() => { setOptimisticValue(value); }, [value]);
     const activeValue = optimisticValue;
+    // Mirror activeValue into a ref so callbacks captured in long-lived
+    // effects (e.g. the IntersectionObserver below, which is set up once)
+    // always read the current value instead of a stale closure — that was
+    // the source of the "pill on one button, white text on another" bug.
+    const activeValueRef = useRef(activeValue);
+    activeValueRef.current = activeValue;
 
     function movePill(animate: boolean) {
         const container = containerRef.current;
         const pill = pillRef.current;
         if (!container || !pill) return;
-        const activeBtn = container.querySelector<HTMLElement>(`[data-toggle-id="${activeValue}"]`);
+        const activeBtn = container.querySelector<HTMLElement>(`[data-toggle-id="${activeValueRef.current}"]`);
         if (!activeBtn || activeBtn.offsetWidth === 0) return;
 
         if (!animate) {
