@@ -10,10 +10,10 @@ const TagSectionHeader = ({ tag, isCollapsed, onToggle, runningCount }: { tag: s
     const tagIcon = useTreeStore(s => s.tagIcons[tag]);
     return (
         <div className="flex items-center mb-2 mt-12 first:mt-2 px-6 sticky top-[-11px] z-[150] py-3 cursor-pointer select-none group backdrop-blur-md rounded-2xl border border-white/5" onClick={onToggle}>
-            <span className="text-white/30 group-hover:text-white/70 transition-colors duration-200 flex-shrink-0">
+            <span className="text-white/45 group-hover:text-white/80 transition-colors duration-200 flex-shrink-0">
                 {tagIcon ? <TagIconSvg name={tagIcon} size={32} /> : <TagDotIcon size={32} />}
             </span>
-            <span className="text-[22px] font-black uppercase tracking-[0.15em] text-white/30 group-hover:text-white/70 transition-colors duration-200 flex items-center leading-none ml-5">
+            <span className="text-xl font-bold uppercase tracking-[0.075em] text-white/45 group-hover:text-white/80 transition-colors duration-200 flex items-center leading-none ml-5">
                 {tag}
             </span>
             <ChevronDownIcon className={`ml-3 text-white/15 group-hover:text-white/30 transition-all duration-200 ${isCollapsed ? '-rotate-90' : ''}`} />
