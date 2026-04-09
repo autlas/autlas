@@ -110,12 +110,16 @@ function App() {
 
   // Inverse: when the sidebar expands or the detail panel opens, grow the
   // window outward so the new layout fits without squeezing the tree.
-  const growWindowToFit = useCallback(async () => {
+  // Caller can override `assumeSidebarExpanded` so we compute the right
+  // required width even before the store reflects an in-flight expand.
+  const growWindowToFit = useCallback(async (opts?: { assumeSidebarExpanded?: boolean; assumeDetailOpen?: boolean }) => {
     const TREE_MIN = 500;
     const SIDEBAR_COLLAPSED = 80;
     const state = useTreeStore.getState();
-    const sidebar = state.sidebarCollapsed ? SIDEBAR_COLLAPSED : state.sidebarWidth;
-    const detail = selectedPathRef.current ? state.detailPanelWidth : 0;
+    const expanded = opts?.assumeSidebarExpanded ?? !state.sidebarCollapsed;
+    const sidebar = expanded ? state.sidebarWidth : SIDEBAR_COLLAPSED;
+    const detailOpen = opts?.assumeDetailOpen ?? !!selectedPathRef.current;
+    const detail = detailOpen ? state.detailPanelWidth : 0;
     const required = sidebar + TREE_MIN + detail;
     if (window.innerWidth >= required) return;
     try {
@@ -196,7 +200,34 @@ function App() {
   useEffect(() => {
     const wasOpen = !!selectedPathRef.current;
     selectedPathRef.current = selectedPath;
-    if (!wasOpen && selectedPath) growWindowToFit();
+    if (!wasOpen && selectedPath) {
+      // Grow the window first (if it can fit), then fall back to squeezing
+      // the sidebar only if the window couldn't actually grow large enough.
+      (async () => {
+        await growWindowToFit({ assumeDetailOpen: true });
+        const TREE_MIN = 500;
+        const DETAIL_MIN = 280;
+        const SIDEBAR_COLLAPSED = 80;
+        const state = useTreeStore.getState();
+        const total = window.innerWidth;
+        const sidebar = state.sidebarCollapsed ? SIDEBAR_COLLAPSED : state.sidebarWidth;
+        const detail = state.detailPanelWidth;
+        if (total - sidebar - detail >= TREE_MIN) return;
+        // Window didn't grow enough — squeeze. Drop the panel to its floor
+        // first, then ask the sidebar to step aside.
+        if (detail > DETAIL_MIN) state.setDetailPanelWidth(Math.max(DETAIL_MIN, total - sidebar - TREE_MIN));
+        if (total - (state.sidebarCollapsed ? SIDEBAR_COLLAPSED : state.sidebarWidth) - DETAIL_MIN >= TREE_MIN) return;
+        if (!state.sidebarCollapsed) {
+          const desiredSidebar = total - DETAIL_MIN - TREE_MIN;
+          if (desiredSidebar >= 200) {
+            state.setSidebarWidth(desiredSidebar);
+          } else {
+            state.setSidebarWidth(200);
+            state.setSidebarCollapsed(true);
+          }
+        }
+      })();
+    }
   }, [selectedPath, growWindowToFit]);
   useEffect(() => { setSelectedPathRef.current = setSelectedPath; }, []);
   const [detailPinned, setDetailPinned] = useState(() => localStorage.getItem("ahk_detail_pinned") === "true");

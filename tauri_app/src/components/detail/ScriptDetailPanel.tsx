@@ -112,33 +112,8 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
   const addBtnRef = useRef<HTMLButtonElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
 
-  // On open: clamp panel width if available room shrunk it below the saved value.
-  // (Window-resize coordination lives in App.tsx so it can also touch the sidebar.)
-  useEffect(() => {
-    const parent = panelRef.current?.parentElement;
-    if (!parent) return;
-    const maxWidth = parent.clientWidth - 500;
-    const clamped = Math.min(panelWidth, Math.max(280, maxWidth));
-    if (clamped !== panelWidth) setPanelWidth(clamped);
-    // If even the 280px floor doesn't fit, ask the sidebar to step aside.
-    if (clamped === 280 && parent.clientWidth - 280 < 500) {
-      const outer = parent.parentElement;
-      if (!outer) return;
-      const total = outer.clientWidth;
-      const state = useTreeStore.getState();
-      const collapsed = state.sidebarCollapsed;
-      const desiredSidebar = total - 280 - 500;
-      if (!collapsed) {
-        if (desiredSidebar >= 200) {
-          if (state.sidebarWidth > desiredSidebar) state.setSidebarWidth(desiredSidebar);
-        } else {
-          if (state.sidebarWidth > 200) state.setSidebarWidth(200);
-          state.setSidebarCollapsed(true);
-        }
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // On open: window-fit and any sidebar squeezing live in App.tsx so the
+  // grow-then-shrink fallback can be ordered correctly.
 
   useEffect(() => {
     setScriptMeta(null);

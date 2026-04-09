@@ -13,9 +13,10 @@
     "windows": [
       {
         "title": "AHK Manager",
-        "width": 800,
-        "height": 600,
+        "width": 1200,
+        "height": 800,
         "minWidth": 580,
+        "minHeight": 460,
         "devtools": true,
         "additionalBrowserArgs": "--enable-gpu --ignore-gpu-blocklist --enable-accelerated-2d-canvas"
       }
