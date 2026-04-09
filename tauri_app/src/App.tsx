@@ -162,7 +162,7 @@ function App() {
         if (event.payload.length > 0) {
           setOrphanMatches(event.payload);
           const count = event.payload.length;
-          appToast.info(
+          appToast.warning(
             count === 1 ? t("orphan.toast_one") : t("orphan.toast_many", { count }),
             {
               id: "orphan", duration: Infinity,
