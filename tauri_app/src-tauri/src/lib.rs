@@ -16,7 +16,7 @@ fn cmd<S: AsRef<std::ffi::OsStr>>(program: S) -> Command {
     c.creation_flags(CREATE_NO_WINDOW);
     c
 }
-use sysinfo::System;
+use sysinfo::{System, ProcessesToUpdate, ProcessRefreshKind};
 use tauri::tray::{TrayIconBuilder, TrayIconEvent, MouseButton, MouseButtonState, TrayIcon};
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 use tauri::{Emitter, Manager, Wry};
@@ -25,6 +25,19 @@ use walkdir::WalkDir;
 mod db;
 mod migrate;
 mod reconcile;
+
+/// Lightweight process-only refresh. Returns a ready-to-query System.
+/// Uses ProcessRefreshKind::nothing() — we only need process names and cmd args
+/// which are populated on first observation and retained across refreshes.
+fn refreshed_processes() -> System {
+    let mut sys = System::new();
+    sys.refresh_processes_specifics(
+        ProcessesToUpdate::All,
+        true,
+        ProcessRefreshKind::nothing(),
+    );
+    sys
+}
 
 #[cfg(target_os = "windows")]
 mod native_popup {
@@ -654,18 +667,17 @@ fn collect_running_scripts(paths: &HashSet<String>) -> Vec<native_popup::Running
 
 fn start_process_watcher(app: tauri::AppHandle, shutdown: std::sync::Arc<std::sync::atomic::AtomicBool>) {
     std::thread::spawn(move || {
-        let mut sys = System::new_all();
-        sys.refresh_all();
+        let mut sys = System::new();
+        sys.refresh_processes_specifics(ProcessesToUpdate::All, true, ProcessRefreshKind::nothing());
         let mut prev = get_running_ahk_paths(&sys);
         println!("[Watcher] Started. Initially running: {:?}", prev);
 
         while !shutdown.load(std::sync::atomic::Ordering::Relaxed) {
             std::thread::sleep(std::time::Duration::from_millis(1500));
             if shutdown.load(std::sync::atomic::Ordering::Relaxed) { break; }
-            // Fresh System each cycle — refresh_processes can miss short-lived processes
-            // and refresh_all doesn't remove dead ones. Fresh snapshot is reliable.
-            sys = System::new_all();
-            sys.refresh_all();
+            // Reuse the same System and only refresh processes (not CPU/RAM/disks/network).
+            // remove_dead_processes=true ensures dead PIDs are cleaned up.
+            sys.refresh_processes_specifics(ProcessesToUpdate::All, true, ProcessRefreshKind::nothing());
             let current = get_running_ahk_paths(&sys);
 
             if current != prev {
@@ -1017,8 +1029,7 @@ async fn get_scripts(
     let start = std::time::Instant::now();
 
     // Collect running processes (always needed)
-    let mut sys = System::new_all();
-    sys.refresh_all();
+    let sys = refreshed_processes();
     let mut running_cmds = Vec::new();
     for (_pid, process) in sys.processes() {
         let name = process.name().to_string_lossy().to_lowercase();
@@ -1246,9 +1257,9 @@ async fn run_script(
 
 #[tauri::command]
 async fn kill_script(path: String) -> Result<(), String> {
-    let mut sys = System::new_all();
-    sys.refresh_all();
+    let sys = refreshed_processes();
     let path_lower = path.to_lowercase().replace('/', "\\");
+    let mut killed = false;
     for (pid, process) in sys.processes() {
         let name = process.name().to_string_lossy().to_lowercase();
         if name.contains("autohotkey") {
@@ -1260,11 +1271,20 @@ async fn kill_script(path: String) -> Result<(), String> {
                 s == path_lower
             });
             if matched {
-                let _ = cmd("taskkill")
+                let output = cmd("taskkill")
                     .args(["/F", "/T", "/PID", &pid.as_u32().to_string()])
-                    .output();
+                    .output()
+                    .map_err(|e| format!("failed to run taskkill: {}", e))?;
+                if !output.status.success() {
+                    let stderr = String::from_utf8_lossy(&output.stderr);
+                    return Err(format!("taskkill failed for PID {}: {}", pid.as_u32(), stderr.trim()));
+                }
+                killed = true;
             }
         }
+    }
+    if !killed {
+        // Process already exited — not an error, watcher will catch up.
     }
     Ok(())
 }
@@ -1275,8 +1295,7 @@ async fn restart_script(
     path: String,
 ) -> Result<(), String> {
     // 1. Kill the script
-    let mut sys = System::new_all();
-    sys.refresh_all();
+    let sys = refreshed_processes();
     let path_lower = path.to_lowercase().replace('/', "\\");
     for (pid, process) in sys.processes() {
         let name = process.name().to_string_lossy().to_lowercase();
@@ -1289,16 +1308,21 @@ async fn restart_script(
                 s == path_lower
             });
             if matched {
-                let _ = cmd("taskkill")
+                let output = cmd("taskkill")
                     .args(["/F", "/T", "/PID", &pid.as_u32().to_string()])
-                    .output();
+                    .output()
+                    .map_err(|e| format!("failed to run taskkill: {}", e))?;
+                if !output.status.success() {
+                    let stderr = String::from_utf8_lossy(&output.stderr);
+                    return Err(format!("taskkill failed for PID {}: {}", pid.as_u32(), stderr.trim()));
+                }
             }
         }
     }
 
     // 2. Wait a bit for the process to fully close
     std::thread::sleep(std::time::Duration::from_millis(150));
-    
+
     // 3. Run it again
     cmd("explorer").arg(&path).spawn().map_err(|e| e.to_string())?;
     let conn = state.0.lock().map_err(|e| e.to_string())?;
@@ -1309,8 +1333,7 @@ async fn restart_script(
 #[tauri::command]
 async fn show_script_ui(path: String) -> Result<(), String> {
     println!("[show_script_ui] Request for path: {}", path);
-    let mut sys = System::new_all();
-    sys.refresh_all();
+    let sys = refreshed_processes();
     let path_lower = path.to_lowercase().replace("/", "\\");
     
     for (pid, process) in sys.processes() {
@@ -1816,8 +1839,7 @@ async fn get_script_meta(
 
 #[tauri::command]
 async fn get_script_status(path: String) -> ScriptStatus {
-    let mut sys = System::new_all();
-    sys.refresh_all();
+    let sys = refreshed_processes();
     let path_lower = path.to_lowercase().replace('/', "\\");
     for (_pid, process) in sys.processes() {
         let name = process.name().to_string_lossy().to_lowercase();
@@ -2036,8 +2058,7 @@ pub fn run() {
                         // Spawn to avoid holding popup mutex during blocking operations
                         let handle = app_handle.clone();
                         std::thread::spawn(move || {
-                            let mut sys = System::new_all();
-                            sys.refresh_all();
+                            let sys = refreshed_processes();
                             for (pid, process) in sys.processes() {
                                 let name = process.name().to_string_lossy().to_lowercase();
                                 if name.contains("autohotkey") {
@@ -2063,8 +2084,7 @@ pub fn run() {
                         // Spawn to avoid holding popup mutex during blocking PowerShell call
                         let path_lower = path.to_lowercase().replace('/', "\\");
                         std::thread::spawn(move || {
-                            let mut sys = System::new_all();
-                            sys.refresh_all();
+                            let sys = refreshed_processes();
                             for (pid, process) in sys.processes() {
                                 let name = process.name().to_string_lossy().to_lowercase();
                                 if name.contains("autohotkey") {
@@ -2108,8 +2128,7 @@ pub fn run() {
                                     native_popup::hide();
                                 } else {
                                     // Collect running scripts
-                                    let mut sys = System::new_all();
-                                    sys.refresh_all();
+                                    let sys = refreshed_processes();
                                     let paths = get_running_ahk_paths(&sys);
                                     let running = collect_running_scripts(&paths);
                                     native_popup::update_scripts(running);
