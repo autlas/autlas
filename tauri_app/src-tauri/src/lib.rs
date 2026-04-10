@@ -16,7 +16,7 @@ fn cmd<S: AsRef<std::ffi::OsStr>>(program: S) -> Command {
     c.creation_flags(CREATE_NO_WINDOW);
     c
 }
-use sysinfo::{System, ProcessesToUpdate, ProcessRefreshKind};
+use sysinfo::{System, ProcessesToUpdate, ProcessRefreshKind, UpdateKind};
 use tauri::tray::{TrayIconBuilder, TrayIconEvent, MouseButton, MouseButtonState, TrayIcon};
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 use tauri::{Emitter, Manager, Wry};
@@ -27,14 +27,13 @@ mod migrate;
 mod reconcile;
 
 /// Lightweight process-only refresh. Returns a ready-to-query System.
-/// Uses ProcessRefreshKind::nothing() — we only need process names and cmd args
-/// which are populated on first observation and retained across refreshes.
+/// We need process names (always available) and cmd args for path matching.
 fn refreshed_processes() -> System {
     let mut sys = System::new();
     sys.refresh_processes_specifics(
         ProcessesToUpdate::All,
         true,
-        ProcessRefreshKind::nothing(),
+        ProcessRefreshKind::nothing().with_cmd(UpdateKind::Always),
     );
     sys
 }
@@ -668,7 +667,7 @@ fn collect_running_scripts(paths: &HashSet<String>) -> Vec<native_popup::Running
 fn start_process_watcher(app: tauri::AppHandle, shutdown: std::sync::Arc<std::sync::atomic::AtomicBool>) {
     std::thread::spawn(move || {
         let mut sys = System::new();
-        sys.refresh_processes_specifics(ProcessesToUpdate::All, true, ProcessRefreshKind::nothing());
+        sys.refresh_processes_specifics(ProcessesToUpdate::All, true, ProcessRefreshKind::nothing().with_cmd(UpdateKind::Always));
         let mut prev = get_running_ahk_paths(&sys);
         println!("[Watcher] Started. Initially running: {:?}", prev);
 
@@ -677,7 +676,7 @@ fn start_process_watcher(app: tauri::AppHandle, shutdown: std::sync::Arc<std::sy
             if shutdown.load(std::sync::atomic::Ordering::Relaxed) { break; }
             // Reuse the same System and only refresh processes (not CPU/RAM/disks/network).
             // remove_dead_processes=true ensures dead PIDs are cleaned up.
-            sys.refresh_processes_specifics(ProcessesToUpdate::All, true, ProcessRefreshKind::nothing());
+            sys.refresh_processes_specifics(ProcessesToUpdate::All, true, ProcessRefreshKind::nothing().with_cmd(UpdateKind::Always));
             let current = get_running_ahk_paths(&sys);
 
             if current != prev {
