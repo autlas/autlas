@@ -12,7 +12,10 @@
     "dist": "npm run build && tauri build && node archive-build.js",
     "test": "vitest",
     "test:run": "vitest run",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint src/",
+    "lint:fix": "eslint src/ --fix",
+    "format": "prettier --write src/"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",
@@ -33,6 +36,7 @@
     "zustand": "^5.0.12"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@tailwindcss/postcss": "^4.2.2",
     "@tailwindcss/vite": "^4.2.2",
     "@tauri-apps/cli": "^2",
@@ -44,12 +48,17 @@
     "@vitejs/plugin-react": "^4.6.0",
     "@vitest/coverage-v8": "^4.1.2",
     "autoprefixer": "^10.4.27",
+    "eslint": "^10.2.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react-hooks": "^7.0.1",
     "happy-dom": "^20.8.9",
     "jsdom": "^29.0.1",
     "patch-package": "^8.0.1",
     "postcss": "^8.5.8",
+    "prettier": "^3.8.2",
     "tailwindcss": "^4.2.2",
-    "typescript": "~5.8.3",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.58.1",
     "vite": "^7.0.4",
     "vitest": "^4.1.2"
   }
