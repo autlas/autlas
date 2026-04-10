@@ -2010,9 +2010,7 @@ pub fn run() {
     let initial_tray = load_tray_settings(&conn);
 
     tauri::Builder::default()
-        .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
-        .plugin(tauri_plugin_notification::init())
         .manage(db::DbState(Mutex::new(conn), std::sync::atomic::AtomicUsize::new(0)))
         .manage(TraySettingsState(Mutex::new(initial_tray)))
         .setup(|app| {

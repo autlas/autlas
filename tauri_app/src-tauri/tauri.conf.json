@@ -17,12 +17,11 @@
         "height": 800,
         "minWidth": 580,
         "minHeight": 460,
-        "devtools": true,
         "additionalBrowserArgs": "--enable-gpu --ignore-gpu-blocklist --enable-accelerated-2d-canvas"
       }
     ],
     "security": {
-      "csp": null
+      "csp": "default-src 'self' ipc: http://ipc.localhost; img-src 'self' asset: http://asset.localhost data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self'; font-src 'self' data:; connect-src 'self' ipc: http://ipc.localhost"
     }
   },
   "bundle": {
