@@ -139,6 +139,10 @@ interface TreeStore {
   setFuseMinMatchLen: (v: number) => void;
   setFuseFindAllMatches: (v: boolean) => void;
   setFuseSearchPath: (v: boolean) => void;
+
+  // Virtualization toggle
+  virtualization: boolean;
+  setVirtualization: (v: boolean) => void;
 }
 
 export const useTreeStore = create<TreeStore>((set) => ({
@@ -301,6 +305,10 @@ export const useTreeStore = create<TreeStore>((set) => ({
   setFuseMinMatchLen: (v) => { try { localStorage.setItem("ahk_fuse_min_match", String(v)); } catch {} set({ fuseMinMatchLen: v }); },
   setFuseFindAllMatches: (v) => { try { localStorage.setItem("ahk_fuse_find_all", String(v)); } catch {} set({ fuseFindAllMatches: v }); },
   setFuseSearchPath: (v) => { try { localStorage.setItem("ahk_fuse_search_path", String(v)); } catch {} set({ fuseSearchPath: v }); },
+
+  // Virtualization
+  virtualization: localStorage.getItem("ahk_virtualization") === "true",
+  setVirtualization: (v) => { safeSetItem("ahk_virtualization", String(v)); set({ virtualization: v }); },
 
   // Removing tags
   removingTags: new Set(),

@@ -18,8 +18,6 @@ interface SettingsPanelProps {
   setTextContrast: (v: number) => void;
   fontScale: number;
   setFontScale: (v: number) => void;
-  animationsEnabled: boolean;
-  toggleAnimations: () => void;
   vimModeNav: "hjkl" | "jk";
   setVimModeNav: (v: "hjkl" | "jk") => void;
   scanPaths: string[];
@@ -42,7 +40,6 @@ export default function SettingsPanel({
   brightness, setBrightness,
   textContrast, setTextContrast,
   fontScale, setFontScale,
-  animationsEnabled, toggleAnimations,
   vimModeNav, setVimModeNav,
   scanPaths, pathCounts, onAddPath, onRemovePath, blacklist, onAddBlacklist, onRemoveBlacklist, hiddenFolders, onUnhideFolder, onAddHiddenFolder, onInstallEverything, orphanCount, onReviewOrphans, onRefresh,
 }: SettingsPanelProps) {
@@ -88,6 +85,7 @@ export default function SettingsPanel({
 
   const [everythingStatus, setEverythingStatus] = useState<"running" | "installed" | "not_installed" | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(() => localStorage.getItem("ahk_auto_refresh") === "true");
+  const virtualization = useTreeStore(s => s.virtualization);
   const [everythingLoading, setEverythingLoading] = useState(false);
   const [confirmCleanup, setConfirmCleanup] = useState(false);
   const [cleanupResult, setCleanupResult] = useState<number | null>(null);
@@ -204,16 +202,17 @@ export default function SettingsPanel({
           </div>
         </div>
 
+        {/* Virtualization (controls animations too) */}
         <div className="flex justify-between items-center pt-4 border-t border-white/5">
           <div className="flex flex-col">
-            <span className="text-base font-bold text-secondary">{t("settings.animations_ui")}</span>
-            <span className="text-xs text-tertiary mt-1">{t("settings.animations_ui_sub")}</span>
+            <span className="text-base font-bold text-secondary">{t("settings.virtualization", "Virtual Scroll")}</span>
+            <span className="text-xs text-tertiary mt-1">{t("settings.virtualization_desc", "Disables animations, enables virtual scrolling for large lists (5 000+)")}</span>
           </div>
           <button
-            onClick={toggleAnimations}
-            className={`relative w-14 h-7 rounded-full transition-all duration-300 cursor-pointer border ${animationsEnabled ? "bg-indigo-500/30 border-indigo-400/40 shadow-[0_0_12px_rgba(99,102,241,0.3)]" : "bg-white/5 border-white/10"}`}
+            onClick={() => useTreeStore.getState().setVirtualization(!virtualization)}
+            className={`relative w-14 h-7 rounded-full transition-all duration-300 cursor-pointer border ${virtualization ? "bg-indigo-500/30 border-indigo-400/40 shadow-[0_0_12px_rgba(99,102,241,0.3)]" : "bg-white/5 border-white/10"}`}
           >
-            <div className={`absolute top-[3px] w-5 h-5 rounded-full transition-all duration-300 shadow-lg ${animationsEnabled ? "left-[30px] bg-indigo-400 shadow-indigo-500/50" : "left-[3px] bg-white/30"}`} />
+            <div className={`absolute top-[3px] w-5 h-5 rounded-full transition-all duration-300 shadow-lg ${virtualization ? "left-[30px] bg-indigo-400 shadow-indigo-500/50" : "left-[3px] bg-white/30"}`} />
           </button>
         </div>
       </SettingsSection>
@@ -720,6 +719,34 @@ export default function SettingsPanel({
           {resetDone && (
             <span className="text-xs font-mono text-green-400 font-bold tracking-widest uppercase">{t("settings.reset_done", "Done!")}</span>
           )}
+        </div>
+      </SettingsSection>
+
+      {/* Dev: Mock Data */}
+      <SettingsSection>
+        <h3 className="text-sm font-bold tracking-widest text-tertiary uppercase">Dev Tools</h3>
+        <div className="flex items-center justify-between">
+          <div className="flex flex-col">
+            <span className="text-base font-bold text-secondary">Mock Scripts</span>
+            <span className="text-xs text-tertiary mt-1">Replace library with fake data to test performance. Requires refresh after toggle.</span>
+          </div>
+          <div className="flex items-center gap-2">
+            {["0", "1000", "5000", "10000"].map(n => {
+              const active = (localStorage.getItem("ahk_mock_scripts") || "0") === n;
+              return (
+                <button
+                  key={n}
+                  onClick={() => {
+                    localStorage.setItem("ahk_mock_scripts", n);
+                    onRefresh?.();
+                  }}
+                  className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${active ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30' : 'bg-white/5 text-tertiary border border-transparent hover:bg-white/10'}`}
+                >
+                  {n === "0" ? "Off" : `${(parseInt(n)/1000).toFixed(0)}k`}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </SettingsSection>
     </div>

@@ -26,7 +26,6 @@ export function useTheme() {
   const [brightness, setBrightness] = useState(() => parseInt(localStorage.getItem("app-brightness") || "20"));
   const [textContrast, setTextContrast] = useState(() => parseFloat(localStorage.getItem("text-contrast") || "1.0"));
   const [fontScale, setFontScale] = useState(() => parseFloat(localStorage.getItem("font-scale") || "1.0"));
-  const [animationsEnabled, setAnimationsEnabled] = useState(() => localStorage.getItem("animations-enabled") !== "false");
   const [vimModeNav, setVimModeNav] = useState<"hjkl" | "jk">(() => (localStorage.getItem("ahk_vim_mode_nav") as "hjkl" | "jk") || "hjkl");
 
   useEffect(() => {
@@ -44,19 +43,10 @@ export function useTheme() {
     safeSetItem("font-scale", fontScale.toString());
   }, [fontScale]);
 
-  const toggleAnimations = () => {
-    setAnimationsEnabled(prev => {
-      const next = !prev;
-      safeSetItem("animations-enabled", String(next));
-      return next;
-    });
-  };
-
   return {
     brightness, setBrightness,
     textContrast, setTextContrast,
     fontScale, setFontScale,
-    animationsEnabled, toggleAnimations,
     vimModeNav, setVimModeNav,
   };
 }

@@ -6,7 +6,7 @@ import { useVimHotkeys } from "../../hooks/useVimHotkeys";
 import EmptyState from "../common/EmptyState";
 import ScriptTreeToolbar from "./ScriptTreeToolbar";
 import ScriptGridView from "./ScriptGridView";
-import { TreeContext, TreeNodeRenderer, setTreeCallbacks } from "./TreeNodeRenderer";
+import FlatTreeView from "./FlatTreeView";
 import { useTreeStore } from "../../store/useTreeStore";
 import { safeSetItem } from "../../utils/safeStorage";
 
@@ -81,6 +81,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
     const setIsVimMode = useTreeStore(s => s.setIsVimMode);
     const editingScript = useTreeStore(s => s.editingScript);
     const removingTags = useTreeStore(s => s.removingTags);
+    const virtualization = useTreeStore(s => s.virtualization);
 
     useEffect(() => {
         onExposeActions?.({ toggle: handleToggle, restart: handleRestart, pendingScripts, allScripts, setTagIcon, removeTagIcon, deleteTagFromAll, renameTag, toggleHiddenByPath });
@@ -143,20 +144,20 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
 
     const lastScrollTimeRef = useRef(0);
 
+    // Scroll-to-focus for GRID view only. Tree view scroll is handled inside FlatTreeView.
     useEffect(() => {
         if (!isActive) return;
         const debug = localStorage.getItem('ahk_vim_debug') !== 'false';
         return useTreeStore.subscribe((state, prev) => {
             if (state.focusedPath === prev.focusedPath) return;
             if (!state.focusedPath || !state.isVimMode) return;
+            if (viewModeRef.current === "tree") return; // handled by FlatTreeView
             const container = containerRef.current;
             if (!container) { if (debug) console.log('[scroll] BAIL no container'); return; }
-            const activeView = viewModeRef.current === "tree" ? treeViewRef.current : gridViewRef.current;
+            const activeView = gridViewRef.current;
             const selector = `#script-${CSS.escape(state.focusedPath)}`;
-            const fromFolderRefs = folderRefs.current.get(state.focusedPath);
-            const fromQuery = activeView?.querySelector<HTMLElement>(selector)
+            const el = activeView?.querySelector<HTMLElement>(selector)
                 || container.querySelector<HTMLElement>(selector);
-            const el = fromFolderRefs || fromQuery;
 
             if (!el) {
                 if (debug) console.log('[scroll] BAIL el=null for', state.focusedPath);
@@ -182,7 +183,6 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
                 delta = eRect.bottom - bottomBound;
             }
             if (debug) console.log('[scroll]', {
-                source: fromFolderRefs ? 'folderRefs' : 'query',
                 viewMode: viewModeRef.current,
                 delta: Math.round(delta),
                 containerScrollTop: container.scrollTop,
@@ -239,29 +239,6 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
     const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
         scrollPositions.current[`${filterTag}-${viewMode}`] = e.currentTarget.scrollTop;
     };
-
-    const isTreeView = viewMode === "tree";
-    const treeContextValue = useMemo(() => ({
-        toggleFolder, setFolderExpansionRecursive, folderRefs,
-        animationsEnabled, allUniqueTags,
-        onFolderContextMenu, onScriptContextMenu,
-        popoverRef, handleCustomMouseDown, handleToggle,
-        startEditing, stopEditing, addTag, removeTag,
-        onShowUI,
-        onRestart: handleRestart,
-        onSelectScript,
-        isTreeView: isTreeView && isActive
-    }), [
-        toggleFolder, setFolderExpansionRecursive,
-        animationsEnabled, onFolderContextMenu, onScriptContextMenu,
-        allUniqueTags,
-        handleCustomMouseDown, handleToggle,
-        startEditing, stopEditing, addTag, removeTag,
-        onShowUI, handleRestart, onSelectScript, isTreeView, isActive
-    ]);
-
-    // Set module-level callbacks for TreeNodeRenderer (bypasses useContext → prevents memo bypass)
-    setTreeCallbacks(treeContextValue);
 
     const masonryColumns = useMemo(() => {
         const cols: import("../../api").Script[][] = Array.from({ length: columnsCount }, () => []);
@@ -345,25 +322,46 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
                             toggleSection={toggleHubSection}
                         />
                     </div>}
-                    <div ref={treeViewRef} className={viewMode === "tree" ? "flex flex-col space-y-0.5 select-none min-h-full" : "hidden"}>
-                        <TreeContext.Provider value={treeContextValue}>
-                            {!hasContent ? (
-                                <EmptyState
-                                    isPathsEmpty={!!isPathsEmpty}
-                                    hasContent={hasAnyContent}
-                                    searchQuery={searchQuery}
-                                    filterTag={filterTag}
-                                    scanPaths={scanPaths}
-                                    onAddPath={onAddPath}
-                                    onRemovePath={onRemovePath}
-                                    onRefresh={onRefresh}
-                                    isRefreshing={isRefreshing}
-                                    onOpenSettings={onOpenSettings}
-                                />
-                            ) : (
-                                <TreeNodeRenderer node={tree} depth={0} />
-                            )}
-                        </TreeContext.Provider>
+                    <div ref={treeViewRef} className={viewMode === "tree" ? "select-none min-h-full" : "hidden"}>
+                        {!hasContent ? (
+                            <EmptyState
+                                isPathsEmpty={!!isPathsEmpty}
+                                hasContent={hasAnyContent}
+                                searchQuery={searchQuery}
+                                filterTag={filterTag}
+                                scanPaths={scanPaths}
+                                onAddPath={onAddPath}
+                                onRemovePath={onRemovePath}
+                                onRefresh={onRefresh}
+                                isRefreshing={isRefreshing}
+                                onOpenSettings={onOpenSettings}
+                            />
+                        ) : (
+                            <FlatTreeView
+                                tree={tree}
+                                virtualized={virtualization}
+                                animationsEnabled={animationsEnabled}
+                                scrollContainerRef={containerRef}
+                                scrollMargin={toolbarH}
+                                toggleFolder={toggleFolder}
+                                setFolderExpansionRecursive={setFolderExpansionRecursive}
+                                folderRefs={folderRefs}
+                                allUniqueTags={allUniqueTags}
+                                popoverRef={popoverRef}
+                                onFolderContextMenu={onFolderContextMenu}
+                                onScriptContextMenu={onScriptContextMenu}
+                                handleCustomMouseDown={handleCustomMouseDown}
+                                handleToggle={handleToggle}
+                                startEditing={startEditing}
+                                stopEditing={stopEditing}
+                                addTag={addTag}
+                                removeTag={removeTag}
+                                onShowUI={onShowUI}
+                                onRestart={handleRestart}
+                                onSelectScript={onSelectScript}
+                                isActive={isActive}
+                            />
+                        )}
                     </div>
                 </SearchContext.Provider>
             </div>

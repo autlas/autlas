@@ -239,7 +239,8 @@ function App() {
   const scriptActionsRef = useRef<{ toggle: (s: Script) => void; restart: (s: Script) => void; pendingScripts: Record<string, "run" | "kill" | "restart">; allScripts: Script[]; setTagIcon: (tag: string, iconName: string) => void; removeTagIcon: (tag: string) => void; deleteTagFromAll: (tag: string) => void; renameTag: (oldTag: string, newTag: string) => Promise<void>; toggleHiddenByPath: (path: string) => void }>({ toggle: () => { }, restart: () => { }, pendingScripts: {}, allScripts: [], setTagIcon: () => { }, removeTagIcon: () => { }, deleteTagFromAll: () => { }, renameTag: async () => { }, toggleHiddenByPath: () => { } });
   const [, setDataVersion] = useState(0);
 
-  const { brightness, setBrightness, textContrast, setTextContrast, fontScale, setFontScale, animationsEnabled, toggleAnimations, vimModeNav, setVimModeNav } = useTheme();
+  const { brightness, setBrightness, textContrast, setTextContrast, fontScale, setFontScale, vimModeNav, setVimModeNav } = useTheme();
+  const animationsEnabled = !useTreeStore(s => s.virtualization);
 
   const triggerScan = useCallback(() => {
     appToast.dismiss("everything");
@@ -725,8 +726,6 @@ function App() {
                 setTextContrast={setTextContrast}
                 fontScale={fontScale}
                 setFontScale={setFontScale}
-                animationsEnabled={animationsEnabled}
-                toggleAnimations={toggleAnimations}
                 vimModeNav={vimModeNav}
                 setVimModeNav={setVimModeNav}
                 scanPaths={scanPaths}

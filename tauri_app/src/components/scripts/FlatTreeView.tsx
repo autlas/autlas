@@ -1,0 +1,300 @@
+import { useMemo, useRef, useEffect, useState, useCallback } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
+import { TreeNode } from "../../types/script";
+import { Script } from "../../api";
+import { useTreeStore } from "../../store/useTreeStore";
+import { flattenTree, FlatItem, DEPTH_INDENT } from "../../utils/flattenTree";
+import FolderRow from "./FolderRow";
+import ScriptRow from "./ScriptRow";
+
+interface FlatTreeViewProps {
+  tree: TreeNode;
+  virtualized: boolean;
+  animationsEnabled: boolean;
+  scrollContainerRef: React.RefObject<HTMLDivElement | null>;
+  scrollMargin: number;
+  // Callbacks
+  toggleFolder: (path: string) => void;
+  setFolderExpansionRecursive: (node: TreeNode, expanded: boolean) => void;
+  folderRefs: React.MutableRefObject<Map<string, HTMLDivElement>>;
+  allUniqueTags: string[];
+  popoverRef: React.MutableRefObject<HTMLDivElement | null>;
+  onFolderContextMenu: (e: React.MouseEvent, data: any) => void;
+  onScriptContextMenu: (e: React.MouseEvent, s: Script) => void;
+  handleCustomMouseDown: (e: React.MouseEvent, script: Script) => void;
+  handleToggle: (s: Script, forceStart?: boolean) => void;
+  startEditing: (s: Script) => void;
+  stopEditing: () => void;
+  addTag: (script: Script, tag: string) => void;
+  removeTag: (script: Script, tag: string) => void;
+  onShowUI: (s: Script) => void;
+  onRestart: (s: Script) => void;
+  onSelectScript?: (s: Script) => void;
+  isActive: boolean;
+}
+
+export default function FlatTreeView({
+  tree, virtualized, animationsEnabled, scrollContainerRef, scrollMargin,
+  toggleFolder, setFolderExpansionRecursive, folderRefs, allUniqueTags, popoverRef,
+  onFolderContextMenu, onScriptContextMenu, handleCustomMouseDown, handleToggle,
+  startEditing, stopEditing, addTag, removeTag, onShowUI, onRestart, onSelectScript,
+  isActive,
+}: FlatTreeViewProps) {
+  // --- Store subscriptions (cause targeted re-renders) ---
+  const expandedFolders = useTreeStore(s => s.expandedFolders);
+  const editingScript = useTreeStore(s => s.editingScript);
+  const contextMenu = useTreeStore(s => s.contextMenu);
+  const pendingScripts = useTreeStore(s => s.pendingScripts);
+
+  // --- Flatten tree ---
+  const { items: flatItems, lastDescendantIndex } = useMemo(
+    () => flattenTree(tree, expandedFolders),
+    [tree, expandedFolders],
+  );
+
+  // Key → index map for scroll-to-item
+  const keyToIndex = useMemo(() => {
+    const map = new Map<string, number>();
+    flatItems.forEach((item, i) => map.set(item.key, i));
+    return map;
+  }, [flatItems]);
+
+  // --- Read on-demand (no subscription, same as old TreeNodeRenderer) ---
+  const st = useTreeStore.getState();
+  const isDragging = st.isDragging;
+  const draggedScriptPath = st.draggedScriptPath;
+  const removingTags = st.removingTags;
+  const showHidden = st.showHidden;
+  const isVimMode = st.isVimMode;
+
+  const contextMenuFolderPath = contextMenu?.type === "folder" ? contextMenu?.data?.fullName : null;
+
+  // --- Virtualizer (always created, conditionally used) ---
+  const virtualizer = useVirtualizer({
+    count: flatItems.length,
+    getScrollElement: () => scrollContainerRef.current,
+    estimateSize: () => 40,
+    overscan: 30,
+    scrollMargin,
+  });
+
+  // --- Scroll-to-focused-item ---
+  useEffect(() => {
+    if (!isActive) return;
+    return useTreeStore.subscribe((state, prev) => {
+      if (state.focusedPath === prev.focusedPath) return;
+      if (!state.focusedPath || !state.isVimMode) return;
+
+      if (virtualized) {
+        const idx = keyToIndex.get(state.focusedPath);
+        if (idx !== undefined) virtualizer.scrollToIndex(idx, { align: "auto" });
+      } else {
+        const container = scrollContainerRef.current;
+        if (!container) return;
+        const el = folderRefs.current.get(state.focusedPath)
+          || document.getElementById(`script-${CSS.escape(state.focusedPath)}`);
+        if (!el) return;
+        const eRect = el.getBoundingClientRect();
+        if (eRect.width === 0 && eRect.height === 0) return;
+        const cRect = container.getBoundingClientRect();
+        const SCROLLOFF = 120;
+        const topBound = cRect.top + scrollMargin + SCROLLOFF;
+        const bottomBound = cRect.bottom - SCROLLOFF;
+        let delta = 0;
+        if (eRect.top < topBound) delta = eRect.top - topBound;
+        else if (eRect.bottom > bottomBound) delta = eRect.bottom - bottomBound;
+        if (delta !== 0) container.scrollBy({ top: delta, behavior: "auto" });
+      }
+    });
+  }, [isActive, virtualized, keyToIndex, scrollMargin, folderRefs, scrollContainerRef, virtualizer]);
+
+  // --- Expand animation (non-virtualized) ---
+  const prevKeysRef = useRef<Set<string> | null>(null);
+  const [enteringKeys, setEnteringKeys] = useState<Map<string, number>>(new Map());
+
+  useEffect(() => {
+    // Skip first render
+    if (prevKeysRef.current === null) {
+      prevKeysRef.current = new Set(flatItems.map(i => i.key));
+      return;
+    }
+    if (virtualized || !animationsEnabled) {
+      prevKeysRef.current = new Set(flatItems.map(i => i.key));
+      return;
+    }
+
+    const prev = prevKeysRef.current;
+    const entering = new Map<string, number>();
+    let staggerIdx = 0;
+    for (const item of flatItems) {
+      if (!prev.has(item.key)) {
+        entering.set(item.key, staggerIdx++);
+      }
+    }
+    prevKeysRef.current = new Set(flatItems.map(i => i.key));
+
+    if (entering.size > 0 && entering.size < 300) {
+      setEnteringKeys(entering);
+      const timer = setTimeout(() => setEnteringKeys(new Map()), 250);
+      return () => clearTimeout(timer);
+    }
+  }, [flatItems, virtualized, animationsEnabled]);
+
+  // --- Shared render helpers ---
+  const getSetFocusedPath = useCallback(() => useTreeStore.getState().setFocusedPath, []);
+  const setFocusedPath = getSetFocusedPath();
+
+  /** Render vertical connector line segments for ancestor folders.
+   *  Lines are positioned absolutely from the LEFT edge of a full-width wrapper.
+   *  Extended by 2px top/bottom to bridge gaps between rows. */
+  const renderConnectorLines = (item: FlatItem, index: number) =>
+    item.ancestors.map((ancestorPath, i) => {
+      if (index > lastDescendantIndex[ancestorPath]) return null;
+      const left = i * DEPTH_INDENT + 13;
+      return (
+        <div
+          key={ancestorPath}
+          data-line-for={ancestorPath}
+          className={`connector-line absolute w-5 -ml-2.5 z-20 ${!draggedScriptPath ? "cursor-pointer" : ""}`}
+          style={{ left, top: -1, bottom: -1 }}
+          onClick={(e) => { e.stopPropagation(); if (!isDragging) toggleFolder(ancestorPath); }}
+          onMouseEnter={(e) => {
+            const p = (e.currentTarget as HTMLElement).dataset.lineFor!;
+            document.querySelectorAll<HTMLElement>(".connector-line").forEach(el => {
+              if (el.dataset.lineFor === p) el.classList.add("line-hover");
+            });
+            document.querySelectorAll<HTMLElement>("[data-folder-arrow]").forEach(el => {
+              if (el.dataset.folderArrow === p) el.style.opacity = "1";
+            });
+          }}
+          onMouseLeave={(e) => {
+            const p = (e.currentTarget as HTMLElement).dataset.lineFor!;
+            document.querySelectorAll<HTMLElement>(".connector-line").forEach(el => {
+              if (el.dataset.lineFor === p) el.classList.remove("line-hover");
+            });
+            document.querySelectorAll<HTMLElement>("[data-folder-arrow]").forEach(el => {
+              if (el.dataset.folderArrow === p) el.style.opacity = "";
+            });
+          }}
+        >
+          <div className={`absolute left-[9px] top-0 bottom-0 w-[1px] transition-colors duration-150 ${isDragging ? "bg-white/5" : "bg-white/10"}`} />
+        </div>
+      );
+    });
+
+  const renderScriptRow = (item: FlatItem & { type: "script" }, index: number, animStyle?: React.CSSProperties) => {
+    const s = item.script;
+    const removingTagKeys = Array.from(removingTags as Set<string>).filter(k => k.startsWith(s.path + "-"));
+    return (
+      <div className="relative" style={animStyle}>
+        {renderConnectorLines(item, index)}
+        <div style={{ marginLeft: item.depth * DEPTH_INDENT }}>
+        <ScriptRow
+          s={s}
+          isDragging={isDragging}
+          draggedScriptPath={draggedScriptPath}
+          isEditing={isActive && editingScript === s.path}
+          isPending={!!pendingScripts[s.path]}
+          pendingType={pendingScripts[s.path]}
+          removingTagKeys={removingTagKeys}
+          allUniqueTags={allUniqueTags}
+          popoverRef={popoverRef}
+          visibilityMode={showHidden}
+          isContextMenuOpen={contextMenu?.type === "script" && contextMenu?.data?.path === s.path}
+          onMouseDown={handleCustomMouseDown}
+          onDoubleClick={handleToggle}
+          onToggle={handleToggle}
+          onStartEditing={startEditing}
+          onAddTag={addTag}
+          onRemoveTag={removeTag}
+          onCloseEditing={stopEditing}
+          onScriptContextMenu={onScriptContextMenu}
+          onShowUI={onShowUI}
+          onRestart={onRestart}
+          onSelectScript={onSelectScript}
+          setFocusedPath={setFocusedPath}
+        />
+        </div>
+      </div>
+    );
+  };
+
+  const renderFolderRow = (item: FlatItem & { type: "folder" }, index: number, animStyle?: React.CSSProperties) => (
+    <FolderRow
+      node={item.node}
+      depth={item.depth}
+      isExpanded={item.isExpanded}
+      ancestors={item.ancestors}
+      lastDescendantIndex={lastDescendantIndex}
+      itemIndex={index}
+      isDragging={isDragging}
+      draggedScriptPath={draggedScriptPath}
+      isContextMenuOpen={contextMenuFolderPath === item.key}
+      contextMenuFolderPath={contextMenuFolderPath}
+      isVimMode={isVimMode}
+      toggleFolder={toggleFolder}
+      onContextMenu={onFolderContextMenu}
+      setFolderExpansionRecursive={setFolderExpansionRecursive}
+      folderRefs={folderRefs}
+      animStyle={animStyle}
+    />
+  );
+
+  // ===================== VIRTUALIZED RENDERING =====================
+  if (virtualized) {
+    return (
+      <div
+        style={{
+          height: virtualizer.getTotalSize(),
+          width: "100%",
+          position: "relative",
+        }}
+      >
+        {virtualizer.getVirtualItems().map(vRow => {
+          const item = flatItems[vRow.index];
+          return (
+            <div
+              key={item.key}
+              data-index={vRow.index}
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: "100%",
+                transform: `translateY(${vRow.start - virtualizer.options.scrollMargin}px)`,
+                height: `${vRow.size}px`,
+              }}
+            >
+              {item.type === "folder"
+                ? renderFolderRow(item, vRow.index)
+                : renderScriptRow(item as FlatItem & { type: "script" }, vRow.index)
+              }
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
+  // ===================== NON-VIRTUALIZED RENDERING =====================
+  return (
+    <div className="flex flex-col">
+      {flatItems.map((item, index) => {
+        const stagger = enteringKeys.get(item.key);
+        const animStyle: React.CSSProperties | undefined =
+          stagger !== undefined
+            ? { animation: `flat-enter 0.15s cubic-bezier(0.22, 1, 0.36, 1) ${Math.min(stagger * 8, 150)}ms both` }
+            : undefined;
+
+        if (item.type === "folder") {
+          return <div key={item.key}>{renderFolderRow(item, index, animStyle)}</div>;
+        }
+        return (
+          <div key={item.key}>
+            {renderScriptRow(item as FlatItem & { type: "script" }, index, animStyle)}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
