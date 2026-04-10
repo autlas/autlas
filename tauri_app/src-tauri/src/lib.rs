@@ -134,6 +134,13 @@ mod native_popup {
         (lparam as u32 & 0xFFFF) as i16 as i32
     }
 
+    /// Check GDI+ status and that the output pointer is non-null; early-return on failure.
+    macro_rules! gp_ok_ptr {
+        ($call:expr, $ptr:expr) => {
+            if $call != 0 || $ptr.is_null() { return; }
+        };
+    }
+
     unsafe fn init_gdiplus() {
         let mut token: usize = 0;
         let input = GdiplusStartupInput {
@@ -149,9 +156,10 @@ mod native_popup {
 
     unsafe fn gp_fill_rounded_rect(g: *mut GpGraphics, color: u32, x: f32, y: f32, w: f32, h: f32, r: f32) {
         let mut brush: *mut GpSolidFill = std::ptr::null_mut();
-        GdipCreateSolidFill(color, &mut brush);
+        gp_ok_ptr!(GdipCreateSolidFill(color, &mut brush), brush);
         let mut path: *mut GpPath = std::ptr::null_mut();
-        GdipCreatePath(0, &mut path); // FillModeAlternate
+        let path_status = GdipCreatePath(0, &mut path); // FillModeAlternate
+        if path_status != 0 || path.is_null() { GdipDeleteBrush(brush as _); return; }
         let d = r * 2.0;
         GdipAddPathArc(path, x, y, d, d, 180.0, 90.0);
         GdipAddPathArc(path, x + w - d, y, d, d, 270.0, 90.0);
@@ -165,7 +173,7 @@ mod native_popup {
 
     unsafe fn gp_fill_circle(g: *mut GpGraphics, color: u32, cx: f32, cy: f32, r: f32) {
         let mut brush: *mut GpSolidFill = std::ptr::null_mut();
-        GdipCreateSolidFill(color, &mut brush);
+        gp_ok_ptr!(GdipCreateSolidFill(color, &mut brush), brush);
         GdipFillEllipse(g, brush as _, cx - r, cy - r, r * 2.0, r * 2.0);
         GdipDeleteBrush(brush as _);
     }
@@ -173,15 +181,21 @@ mod native_popup {
     unsafe fn gp_draw_text(g: *mut GpGraphics, text: &str, family_name: &str, size: f32, style: i32, color: u32, rect: RectF, h_align: i32, v_align: i32) {
         let name_w = wide(family_name);
         let mut family: *mut GpFontFamily = std::ptr::null_mut();
-        GdipCreateFontFamilyFromName(name_w.as_ptr(), std::ptr::null_mut(), &mut family);
+        gp_ok_ptr!(GdipCreateFontFamilyFromName(name_w.as_ptr(), std::ptr::null_mut(), &mut family), family);
         let mut font: *mut GpFont = std::ptr::null_mut();
-        GdipCreateFont(family, size, style, 2 /* UnitPixel */, &mut font);
+        if GdipCreateFont(family, size, style, 2, &mut font) != 0 || font.is_null() {
+            GdipDeleteFontFamily(family); return;
+        }
         let mut fmt: *mut GpStringFormat = std::ptr::null_mut();
-        GdipCreateStringFormat(0, 0, &mut fmt);
+        if GdipCreateStringFormat(0, 0, &mut fmt) != 0 || fmt.is_null() {
+            GdipDeleteFont(font); GdipDeleteFontFamily(family); return;
+        }
         GdipSetStringFormatAlign(fmt, h_align);
         GdipSetStringFormatLineAlign(fmt, v_align);
         let mut brush: *mut GpSolidFill = std::ptr::null_mut();
-        GdipCreateSolidFill(color, &mut brush);
+        if GdipCreateSolidFill(color, &mut brush) != 0 || brush.is_null() {
+            GdipDeleteStringFormat(fmt); GdipDeleteFont(font); GdipDeleteFontFamily(family); return;
+        }
         let text_w = wide(text);
         GdipDrawString(g, text_w.as_ptr(), -1, font as _, &rect, fmt as _, brush as _);
         GdipDeleteBrush(brush as _);
@@ -195,11 +209,15 @@ mod native_popup {
         // to avoid GDI+ StringTrimming which messes up letter spacing.
         let name_w = wide(family_name);
         let mut family: *mut GpFontFamily = std::ptr::null_mut();
-        GdipCreateFontFamilyFromName(name_w.as_ptr(), std::ptr::null_mut(), &mut family);
+        gp_ok_ptr!(GdipCreateFontFamilyFromName(name_w.as_ptr(), std::ptr::null_mut(), &mut family), family);
         let mut font: *mut GpFont = std::ptr::null_mut();
-        GdipCreateFont(family, size, style, 2 /* UnitPixel */, &mut font);
+        if GdipCreateFont(family, size, style, 2, &mut font) != 0 || font.is_null() {
+            GdipDeleteFontFamily(family); return;
+        }
         let mut fmt: *mut GpStringFormat = std::ptr::null_mut();
-        GdipCreateStringFormat(0, 0, &mut fmt);
+        if GdipCreateStringFormat(0, 0, &mut fmt) != 0 || fmt.is_null() {
+            GdipDeleteFont(font); GdipDeleteFontFamily(family); return;
+        }
         GdipSetStringFormatAlign(fmt, h_align);
         GdipSetStringFormatLineAlign(fmt, v_align);
         GdipSetStringFormatFlags(fmt, 0x00001000); // NoWrap
@@ -237,7 +255,9 @@ mod native_popup {
         };
 
         let mut brush: *mut GpSolidFill = std::ptr::null_mut();
-        GdipCreateSolidFill(color, &mut brush);
+        if GdipCreateSolidFill(color, &mut brush) != 0 || brush.is_null() {
+            GdipDeleteStringFormat(fmt); GdipDeleteFont(font); GdipDeleteFontFamily(family); return;
+        }
         let dw = wide(&display_text);
         GdipDrawString(g, dw.as_ptr(), -1, font as _, &rect, fmt as _, brush as _);
         GdipDeleteBrush(brush as _);
@@ -248,7 +268,7 @@ mod native_popup {
 
     unsafe fn gp_fill_rect(g: *mut GpGraphics, color: u32, x: f32, y: f32, w: f32, h: f32) {
         let mut brush: *mut GpSolidFill = std::ptr::null_mut();
-        GdipCreateSolidFill(color, &mut brush);
+        gp_ok_ptr!(GdipCreateSolidFill(color, &mut brush), brush);
         GdipFillRectangle(g, brush as _, x, y, w, h);
         GdipDeleteBrush(brush as _);
     }
@@ -1027,16 +1047,19 @@ async fn get_scripts(
     use tauri::Emitter;
     let start = std::time::Instant::now();
 
-    // Collect running processes (always needed)
-    let sys = refreshed_processes();
-    let mut running_cmds = Vec::new();
-    for (_pid, process) in sys.processes() {
-        let name = process.name().to_string_lossy().to_lowercase();
-        if name.contains("autohotkey") {
-            let proc_cmd: Vec<String> = process.cmd().iter().map(|s| s.to_string_lossy().into_owned()).collect();
-            running_cmds.push(proc_cmd.join(" ").to_lowercase());
+    // Collect running processes on a blocking thread (avoids stalling the tokio runtime)
+    let running_cmds: Vec<String> = tokio::task::spawn_blocking(|| {
+        let sys = refreshed_processes();
+        let mut cmds = Vec::new();
+        for (_pid, process) in sys.processes() {
+            let name = process.name().to_string_lossy().to_lowercase();
+            if name.contains("autohotkey") {
+                let proc_cmd: Vec<String> = process.cmd().iter().map(|s| s.to_string_lossy().into_owned()).collect();
+                cmds.push(proc_cmd.join(" ").to_lowercase());
+            }
         }
-    }
+        cmds
+    }).await.map_err(|e| e.to_string())?;
 
     // Read config from DB (short lock)
     let (scan_paths_list, hidden_folders, blacklist) = {
@@ -1074,27 +1097,32 @@ async fn get_scripts(
             if pb.exists() && pb.is_dir() { scan_dirs.push(pb); }
         }
 
-        let everything_result = scan_with_everything(&scan_dirs);
-        if let Some(paths) = everything_result {
-            script_paths = paths;
-            println!("[Rust] Everything scan completed: {} scripts in {:.1?}", script_paths.len(), scan_start.elapsed());
-        } else {
-            script_paths = Vec::new();
-            let mut last_emitted = 0usize;
-            for dir in scan_dirs {
-                for entry in WalkDir::new(&dir).into_iter().filter_map(|e| e.ok()) {
-                    if entry.path().extension().map_or(false, |ext| ext == "ahk") {
-                        script_paths.push(entry.path().to_string_lossy().to_string());
-                        let count = script_paths.len();
-                        if count >= last_emitted + 25 {
-                            last_emitted = count;
-                            let _ = app_handle.emit("scan-progress", count);
+        let app_for_scan = app_handle.clone();
+        let scan_start_clone = scan_start;
+        script_paths = tokio::task::spawn_blocking(move || {
+            let everything_result = scan_with_everything(&scan_dirs);
+            if let Some(paths) = everything_result {
+                println!("[Rust] Everything scan completed: {} scripts in {:.1?}", paths.len(), scan_start_clone.elapsed());
+                paths
+            } else {
+                let mut paths = Vec::new();
+                let mut last_emitted = 0usize;
+                for dir in scan_dirs {
+                    for entry in WalkDir::new(&dir).into_iter().filter_map(|e| e.ok()) {
+                        if entry.path().extension().map_or(false, |ext| ext == "ahk") {
+                            paths.push(entry.path().to_string_lossy().to_string());
+                            let count = paths.len();
+                            if count >= last_emitted + 25 {
+                                last_emitted = count;
+                                let _ = app_for_scan.emit("scan-progress", count);
+                            }
                         }
                     }
                 }
+                println!("[Rust] WalkDir scan completed: {} scripts in {:.1?}", paths.len(), scan_start_clone.elapsed());
+                paths
             }
-            println!("[Rust] WalkDir scan completed: {} scripts in {:.1?}", script_paths.len(), scan_start.elapsed());
-        }
+        }).await.map_err(|e| e.to_string())?;
         // Cache is implicitly saved by reconciliation (upsert_script writes paths to DB)
 
         // Resolve symlinks/junctions and deduplicate
@@ -1319,8 +1347,8 @@ async fn restart_script(
         }
     }
 
-    // 2. Wait a bit for the process to fully close
-    std::thread::sleep(std::time::Duration::from_millis(150));
+    // 2. Wait a bit for the process to fully close (async — doesn't block tokio runtime)
+    tokio::time::sleep(std::time::Duration::from_millis(150)).await;
 
     // 3. Run it again
     cmd("explorer").arg(&path).spawn().map_err(|e| e.to_string())?;
