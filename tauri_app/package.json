@@ -32,6 +32,7 @@
     "scroll-into-view-if-needed": "^3.1.0",
     "shiki": "^4.0.2",
     "sonner": "^2.0.7",
+    "stats.js": "^0.17.0",
     "tailwind-merge": "^3.5.0",
     "tailwind-variants": "^3.2.2",
     "zustand": "^5.0.12"
@@ -47,6 +48,7 @@
     "@testing-library/user-event": "^14.6.1",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
+    "@types/stats.js": "^0.17.4",
     "@vitejs/plugin-react": "^4.6.0",
     "@vitest/coverage-v8": "^4.1.2",
     "autoprefixer": "^10.4.27",

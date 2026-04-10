@@ -13,6 +13,7 @@ import { Toaster } from "sonner";
 import { appToast, ToastButton } from "./components/ui/AppToast";
 import { CloseIcon } from "./components/ui/Icons";
 import { useTheme } from "./hooks/useTheme";
+import Stats from "stats.js";
 import { useScanPaths } from "./hooks/useScanPaths";
 import { useScanBlacklist } from "./hooks/useScanBlacklist";
 import { useHiddenFolders } from "./hooks/useHiddenFolders";
@@ -241,6 +242,21 @@ function App() {
 
   const { brightness, setBrightness, textContrast, setTextContrast, fontScale, setFontScale, vimModeNav, setVimModeNav } = useTheme();
   const animationsEnabled = !useTreeStore(s => s.virtualization);
+
+  // FPS monitor (stats.js) — visible when mock scripts are enabled
+  useEffect(() => {
+    const mockCount = parseInt(localStorage.getItem("ahk_mock_scripts") || "0");
+    if (mockCount <= 0) return;
+    const stats = new Stats();
+    stats.showPanel(0); // 0: fps, 1: ms, 2: mb
+    stats.dom.style.cssText = "position:fixed;top:0;left:0;z-index:99999;opacity:0.85;";
+    document.body.appendChild(stats.dom);
+    let raf: number;
+    const loop = () => { stats.end(); stats.begin(); raf = requestAnimationFrame(loop); };
+    stats.begin();
+    raf = requestAnimationFrame(loop);
+    return () => { cancelAnimationFrame(raf); stats.dom.remove(); };
+  }, []);
 
   const triggerScan = useCallback(() => {
     appToast.dismiss("everything");
