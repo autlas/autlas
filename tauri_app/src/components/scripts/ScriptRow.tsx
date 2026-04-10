@@ -176,7 +176,7 @@ const ScriptRow = memo(function ScriptRow({
                             }}
                             onMouseDown={(e) => e.stopPropagation()}
                             onDoubleClick={(e) => e.stopPropagation()}
-                            className={`w-[28px] h-[28px] flex-shrink-0 flex items-center justify-center border border-dashed border-white/10 rounded-lg transition-all cursor-pointer pointer-events-auto text-[#666] hover:text-[#aaa] hover:border-white/20 ${isEditing || (isFocused && isVimMode) ? 'opacity-100 bg-[var(--bg-tertiary)]' : 'opacity-0 group-hover:opacity-100'}`}
+                            className={`w-[28px] h-[28px] flex-shrink-0 flex items-center justify-center border border-dashed border-white/10 rounded-lg transition-all cursor-pointer pointer-events-auto text-quaternary hover:text-secondary hover:border-white/20 ${isEditing || (isFocused && isVimMode) ? 'opacity-100 bg-[var(--bg-tertiary)]' : 'opacity-0 group-hover:opacity-100'}`}
                         >
                             <PlusIcon />
                         </button>
@@ -244,7 +244,7 @@ const ScriptRow = memo(function ScriptRow({
                                         pendingType === 'restart' ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20 animate-pulse' :
                                             pendingType === 'kill' ? 'bg-red-500/10 text-red-500 border-red-500/20 animate-pulse' :
                                                 'bg-green-500/10 text-green-500 border-green-500/20 animate-pulse'
-                                    ) : s.is_running ? 'bg-[var(--bg-tertiary)] text-[#71717a] border-white/5 hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/20' : 'bg-[var(--bg-tertiary)] text-[#71717a] border-white/5 hover:bg-green-500/10 hover:text-green-500 hover:border-green-500/20'}
+                                    ) : s.is_running ? 'bg-[var(--bg-tertiary)] text-tertiary border-white/5 hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/20' : 'bg-[var(--bg-tertiary)] text-tertiary border-white/5 hover:bg-green-500/10 hover:text-green-500 hover:border-green-500/20'}
                             `}
                             >
                                 {isPending ? (

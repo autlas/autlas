@@ -212,7 +212,7 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
           <Tooltip text={t("tooltips.close")} shortcut="Esc">
             <button
               onClick={onClose}
-              className="w-7 h-7 flex items-center justify-center rounded-lg bg-[var(--bg-tertiary)] text-[#666] hover:bg-white/10 hover:text-white/60 transition-all cursor-pointer"
+              className="w-7 h-7 flex items-center justify-center rounded-lg bg-[var(--bg-tertiary)] text-quaternary hover:bg-white/10 hover:text-white/60 transition-all cursor-pointer"
             >
               <CloseIcon className="pointer-events-none" />
             </button>
@@ -246,7 +246,7 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
           <Tooltip text={t("tooltips.interface")}>
             <button
               onClick={() => onShowUI(script)}
-              className="w-[80px] h-[42px] flex items-center justify-center rounded-2xl bg-[var(--bg-tertiary)] text-[#71717a] border border-white/5 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-500/30 transition-all cursor-pointer"
+              className="w-[80px] h-[42px] flex items-center justify-center rounded-2xl bg-[var(--bg-tertiary)] text-tertiary border border-white/5 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-500/30 transition-all cursor-pointer"
             >
               <InterfaceIcon size={22} />
             </button>
@@ -256,7 +256,7 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
           <Tooltip text={t("tooltips.restart")}>
             <button
               onClick={() => onRestart(script)}
-              className="w-[80px] h-[42px] flex items-center justify-center rounded-2xl bg-[var(--bg-tertiary)] text-[#71717a] border border-white/5 hover:bg-yellow-500/10 hover:text-yellow-500 hover:border-yellow-500/30 transition-all cursor-pointer"
+              className="w-[80px] h-[42px] flex items-center justify-center rounded-2xl bg-[var(--bg-tertiary)] text-tertiary border border-white/5 hover:bg-yellow-500/10 hover:text-yellow-500 hover:border-yellow-500/30 transition-all cursor-pointer"
             >
               <RestartIcon size={22} />
             </button>
@@ -271,8 +271,8 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
                   : pendingType === "restart" ? "bg-yellow-500/10 text-yellow-500 border-yellow-500/20 animate-pulse"
                     : "bg-green-500/10 text-green-500 border-green-500/20 animate-pulse"
                 : script.is_running
-                  ? 'bg-[var(--bg-tertiary)] text-[#71717a] border-white/5 hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/20'
-                  : 'bg-[var(--bg-tertiary)] text-[#71717a] border-white/5 hover:bg-green-500/10 hover:text-green-500 hover:border-green-500/20'
+                  ? 'bg-[var(--bg-tertiary)] text-tertiary border-white/5 hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/20'
+                  : 'bg-[var(--bg-tertiary)] text-tertiary border-white/5 hover:bg-green-500/10 hover:text-green-500 hover:border-green-500/20'
               }`}
           >
             {pendingType ? (
@@ -284,7 +284,7 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
         <Tooltip text={t("tooltips.show_in_folder")}>
           <button
             onClick={handleOpenFolder}
-            className="w-[80px] h-[42px] flex items-center justify-center rounded-2xl bg-[var(--bg-tertiary)] text-[#71717a] border border-white/5 hover:bg-white/10 hover:text-white/60 transition-all cursor-pointer"
+            className="w-[80px] h-[42px] flex items-center justify-center rounded-2xl bg-[var(--bg-tertiary)] text-tertiary border border-white/5 hover:bg-white/10 hover:text-white/60 transition-all cursor-pointer"
           >
             <FolderIcon size={22} />
           </button>
@@ -292,7 +292,7 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
         <Tooltip text={t("tooltips.edit")}>
           <button
             onClick={handleEdit}
-            className="w-[80px] h-[42px] flex items-center justify-center rounded-2xl bg-[var(--bg-tertiary)] text-[#71717a] border border-white/5 hover:bg-white/10 hover:text-white/60 transition-all cursor-pointer"
+            className="w-[80px] h-[42px] flex items-center justify-center rounded-2xl bg-[var(--bg-tertiary)] text-tertiary border border-white/5 hover:bg-white/10 hover:text-white/60 transition-all cursor-pointer"
           >
             <EditIcon size={22} />
           </button>
@@ -300,7 +300,7 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
         <Tooltip text={t("tooltips.open_with")}>
           <button
             onClick={handleOpenWith}
-            className="w-[80px] h-[42px] flex items-center justify-center rounded-2xl bg-[var(--bg-tertiary)] text-[#71717a] border border-white/5 hover:bg-white/10 hover:text-white/60 transition-all cursor-pointer"
+            className="w-[80px] h-[42px] flex items-center justify-center rounded-2xl bg-[var(--bg-tertiary)] text-tertiary border border-white/5 hover:bg-white/10 hover:text-white/60 transition-all cursor-pointer"
           >
             <OpenWithIcon size={22} />
           </button>
@@ -333,7 +333,7 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
           <button
             ref={addBtnRef}
             onClick={() => setIsEditingTags(!isEditingTags)}
-            className="w-[42px] h-[42px] flex-shrink-0 flex items-center justify-center border border-dashed border-white/10 rounded-2xl transition-all cursor-pointer text-[#666] hover:text-[#aaa] hover:border-white/20 bg-[var(--bg-tertiary)]"
+            className="w-[42px] h-[42px] flex-shrink-0 flex items-center justify-center border border-dashed border-white/10 rounded-2xl transition-all cursor-pointer text-quaternary hover:text-secondary hover:border-white/20 bg-[var(--bg-tertiary)]"
           >
             <PlusIcon />
           </button>
