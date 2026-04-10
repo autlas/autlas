@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, useDeferredValue } from "react";
+import React, { useState, useEffect, useRef, useCallback, useDeferredValue, useMemo } from "react";
 import ScriptTree from "./components/scripts/ScriptTree";
 import ScriptDetailPanel from "./components/detail/ScriptDetailPanel";
 import ContextMenu from "./components/common/ContextMenu";
@@ -238,7 +238,7 @@ function App() {
   useEffect(() => { setSelectedPathRef.current = setSelectedPath; }, []);
   const [detailPinned, setDetailPinned] = useState(() => localStorage.getItem("ahk_detail_pinned") === "true");
   const scriptActionsRef = useRef<{ toggle: (s: Script) => void; restart: (s: Script) => void; pendingScripts: Record<string, "run" | "kill" | "restart">; allScripts: Script[]; setTagIcon: (tag: string, iconName: string) => void; removeTagIcon: (tag: string) => void; deleteTagFromAll: (tag: string) => void; renameTag: (oldTag: string, newTag: string) => Promise<void>; toggleHiddenByPath: (path: string) => void }>({ toggle: () => { }, restart: () => { }, pendingScripts: {}, allScripts: [], setTagIcon: () => { }, removeTagIcon: () => { }, deleteTagFromAll: () => { }, renameTag: async () => { }, toggleHiddenByPath: () => { } });
-  const [, setDataVersion] = useState(0);
+  const [dataVersion, setDataVersion] = useState(0);
 
   const { brightness, setBrightness, textContrast, setTextContrast, fontScale, setFontScale, vimModeNav, setVimModeNav } = useTheme();
   const animationsEnabled = !useTreeStore(s => s.virtualization);
@@ -267,6 +267,23 @@ function App() {
   const { scanPaths, handleAddScanPath, handleRemoveScanPath } = useScanPaths(triggerScan);
   const { blacklist, handleAddBlacklist, handleRemoveBlacklist, addBlacklistPath } = useScanBlacklist(triggerScan);
   const { hiddenFolders, unhideFolder, refreshHiddenFolders, handleAddHiddenFolder } = useHiddenFolders(triggerScan);
+
+  // Memoize pathCounts — avoid O(scripts×paths) on every render
+  const pathCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    const norm = (p: string) => p.replace(/\\/g, "/").toLowerCase().replace(/\/+$/, "");
+    const normPaths = scanPaths.map(p => ({ orig: p, n: norm(p) }));
+    for (const s of scriptActionsRef.current.allScripts) {
+      const sp = norm(s.path);
+      for (const { orig, n } of normPaths) {
+        if (sp === n || sp.startsWith(n + "/")) {
+          counts[orig] = (counts[orig] || 0) + 1;
+        }
+      }
+    }
+    return counts;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scanPaths, dataVersion]);
 
   const { settingsIconRef, pendingImpulseRef, momentumRef, motionImpulseRef, motionImpulseInitialRef } = usePhysicsMotion();
   const navPhysics = { pendingImpulseRef, momentumRef, motionImpulseRef, motionImpulseInitialRef };
@@ -745,24 +762,7 @@ function App() {
                 vimModeNav={vimModeNav}
                 setVimModeNav={setVimModeNav}
                 scanPaths={scanPaths}
-                pathCounts={(() => {
-                    const counts: Record<string, number> = {};
-                    const norm = (p: string) => p.replace(/\\/g, '/').toLowerCase().replace(/\/+$/, '');
-                    const normPaths = scanPaths.map(p => ({ orig: p, n: norm(p) }));
-                    // Count under EVERY matching scan path, not just the first.
-                    // Nested scan paths (e.g. C:\ and C:\Users\Heavym\Desktop)
-                    // both legitimately "contain" a deep script — both should
-                    // show a count even though the actual scan dedupes them.
-                    for (const s of scriptActionsRef.current.allScripts) {
-                        const sp = norm(s.path);
-                        for (const { orig, n } of normPaths) {
-                            if (sp === n || sp.startsWith(n + '/')) {
-                                counts[orig] = (counts[orig] || 0) + 1;
-                            }
-                        }
-                    }
-                    return counts;
-                })()}
+                pathCounts={pathCounts}
                 onAddPath={handleAddScanPath}
                 onRemovePath={handleRemoveScanPath}
                 blacklist={blacklist}

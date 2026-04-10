@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useCallback } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { checkEverythingStatus, launchEverything, cleanupOrphans, resetDatabase, setTraySettings, getTraySettings, openInExplorer, countAhkFiles } from "../../api";
 import { useTranslation } from "react-i18next";
 import LanguageSelector from "./LanguageSelector";
@@ -36,7 +36,7 @@ interface SettingsPanelProps {
   onRefresh?: () => void;
 }
 
-export default function SettingsPanel({
+export default React.memo(function SettingsPanel({
   brightness, setBrightness,
   textContrast, setTextContrast,
   fontScale, setFontScale,
@@ -751,4 +751,4 @@ export default function SettingsPanel({
       </SettingsSection>
     </div>
   );
-}
+});
