@@ -19,7 +19,10 @@
         "time_s": "с",
         "time_m": "м",
         "time_h": "ч",
-        "time_d": "д"
+        "time_d": "д",
+        "phase_reconciling": "Сверка с базой...",
+        "phase_loading_meta": "Загрузка тегов...",
+        "phase_enriching": "Проверка статусов..."
     },
     "settings": {
         "title": "Настройки",
@@ -62,6 +65,12 @@
         "close_to_tray_desc": "Скрывать окно вместо закрытия приложения",
         "click_to_toggle": "Клик для показа окна",
         "click_to_toggle_desc": "Левый клик по иконке в трее показывает/скрывает окно",
+        "vim": "Vim",
+        "vim_enabled": "Vim-режим",
+        "vim_enabled_desc": "Включает hjkl-навигацию и все vim-хоткеи в дереве",
+        "vim_cheatsheet": "Шпаргалка хоткеев",
+        "vim_cheatsheet_desc": "Все горячие клавиши приложения. Также открывается клавишей ?",
+        "open_cheatsheet": "Открыть",
         "vim_nav": "Стиль навигации Vim",
         "vim_nav_desc": "hjkl (2D сетка) vs jk (1D список)",
         "system_tray": "Системный трей",
@@ -235,6 +244,11 @@
         "created": "Создан",
         "modified": "Изменён",
         "last_run": "Запуск"
+    },
+    "toast": {
+        "path_copied": "Путь скопирован",
+        "added_to_hub": "Добавлено в хаб",
+        "removed_from_hub": "Удалено из хаба"
     },
     "hub_card": {
         "restarting": "ПЕРЕЗАПУСК...",
