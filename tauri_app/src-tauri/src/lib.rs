@@ -23,7 +23,6 @@ use tauri::{Emitter, Manager, Wry};
 use walkdir::WalkDir;
 
 mod db;
-mod migrate;
 mod reconcile;
 
 /// Lightweight process-only refresh. Returns a ready-to-query System.
@@ -2055,7 +2054,6 @@ async fn reset_database_cmd(state: tauri::State<'_, db::DbState>) -> Result<(), 
 pub fn run() {
     // Open SQLite database and run migration if needed
     let conn = db::open_db().expect("Failed to open database");
-    migrate::migrate_if_needed(&conn);
     let initial_tray = load_tray_settings(&conn);
 
     tauri::Builder::default()
