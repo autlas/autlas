@@ -1,5 +1,5 @@
 import React, { useState, memo, useRef } from "react";
-import { invoke } from "@tauri-apps/api/core";
+import { setScriptHub } from "../../api";
 import { ScriptRowProps } from "../../types/script";
 import TagPickerPopover from "../tags/TagPickerPopover";
 import { HighlightText } from "../common/HighlightText";
@@ -113,7 +113,7 @@ const ScriptRow = memo(function ScriptRow({
                             // backend event will confirm.
                             const next = !isHub;
                             window.dispatchEvent(new CustomEvent('ahk-hub-changed-local', { detail: { id: s.id, hub: next } }));
-                            try { await invoke("set_script_hub", { id: s.id, hub: next }); }
+                            try { await setScriptHub(s.id, next); }
                             catch (err) {
                                 console.error("set_script_hub failed:", err);
                                 // Roll back on failure

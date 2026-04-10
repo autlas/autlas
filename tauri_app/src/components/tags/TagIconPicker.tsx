@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
-import { invoke } from "@tauri-apps/api/core";
+import { saveIconToCache, searchIcons, fetchIconPaths } from "../../api";
 import { TAG_ICONS } from "../../data/tagIcons";
 import { SearchIcon, CloseIcon } from "../ui/Icons";
 import { useTreeStore } from "../../store/useTreeStore";
@@ -112,11 +112,11 @@ export default function TagIconPicker({ tag, currentIcon, onSelect, onClose }: T
         // Search both in parallel
         const phPromise = (async () => {
             try {
-                const baseNames = await invoke<string[]>("search_icons", { query: q, prefix: "ph" });
+                const baseNames = await searchIcons(q, "ph");
                 const newNames = baseNames.filter(n => !TAG_ICONS[n]);
                 setPhResults(newNames);
                 if (newNames.length > 0) {
-                    const paths = await invoke<Record<string, [string, string]>>("fetch_icon_paths", { names: newNames, prefix: "ph" });
+                    const paths = await fetchIconPaths(newNames, "ph");
                     setPhPaths(paths);
                     const store = useTreeStore.getState();
                     for (const [name, p] of Object.entries(paths)) {
@@ -135,10 +135,10 @@ export default function TagIconPicker({ tag, currentIcon, onSelect, onClose }: T
 
         const siPromise = (async () => {
             try {
-                const names = await invoke<string[]>("search_icons", { query: q, prefix: "simple-icons" });
+                const names = await searchIcons(q, "simple-icons");
                 setSiResults(names);
                 if (names.length > 0) {
-                    const paths = await invoke<Record<string, [string, string]>>("fetch_icon_paths", { names, prefix: "simple-icons" });
+                    const paths = await fetchIconPaths(names, "simple-icons");
                     setSiPaths(paths);
                     const store = useTreeStore.getState();
                     for (const [name, p] of Object.entries(paths)) {
@@ -173,7 +173,7 @@ export default function TagIconPicker({ tag, currentIcon, onSelect, onClose }: T
     // `ref` must already be a fully-qualified library:name (e.g. "phosphor:acorn",
     // "si:github"). Caller is responsible for adding the prefix.
     const handleSelectApiIcon = (ref: string, paths: [string, string]) => {
-        invoke("save_icon_to_cache", { name: ref, bold: paths[0], fill: paths[1] }).catch(() => {});
+        saveIconToCache(ref, paths[0], paths[1]).catch(() => {});
         onSelect(tag, ref);
         onClose();
     };

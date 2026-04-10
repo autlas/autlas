@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, ReactNode } from "react";
-import { invoke } from "@tauri-apps/api/core";
 import { useTranslation } from "react-i18next";
+import { openInExplorer, editScript, openWith, setScriptHub, toggleHideFolder, deleteTag } from "../../api";
 import { EditIcon, FolderIcon, OpenWithIcon, CopyIcon, PlusIcon, CloseIcon, EyeOffIcon, TagIcon, StarIcon, BlockIcon } from "../ui/Icons";
 import { useVimEnabled } from "../../hooks/useVimEnabled";
 import { useTreeStore } from "../../store/useTreeStore";
@@ -109,14 +109,14 @@ export default function ContextMenu({ contextMenu, onClose, onStartRenameTag, on
       const d = contextMenu.data;
       return [
         { id: "copy", shortcut: "c", label: t("context.copy_path"), icon: <CopyIcon size={18} />, onClick: () => { navigator.clipboard.writeText(d.path); appToast.success(t("toast.path_copied", "Путь скопирован")); onClose(); } },
-        { id: "show", shortcut: "f", label: t("context.show_in_folder"), icon: <FolderIcon />, onClick: () => { invoke("open_in_explorer", { path: d.path }); onClose(); } },
+        { id: "show", shortcut: "f", label: t("context.show_in_folder"), icon: <FolderIcon />, onClick: () => { openInExplorer(d.path); onClose(); } },
         "separator",
-        { id: "edit", shortcut: "e", label: t("context.edit"), icon: <EditIcon />, onClick: () => { invoke("edit_script", { path: d.path }); onClose(); } },
-        { id: "open_with", shortcut: "o", label: t("context.open_with"), icon: <OpenWithIcon />, onClick: () => { invoke("open_with", { path: d.path }); onClose(); } },
+        { id: "edit", shortcut: "e", label: t("context.edit"), icon: <EditIcon />, onClick: () => { editScript(d.path); onClose(); } },
+        { id: "open_with", shortcut: "o", label: t("context.open_with"), icon: <OpenWithIcon />, onClick: () => { openWith(d.path); onClose(); } },
         "separator",
         d.is_hub
-          ? { id: "hub_remove", shortcut: "m", label: t("context.remove_from_hub", "Удалить из хаба"), icon: <StarIcon size={16} weight="fill" />, onClick: async () => { window.dispatchEvent(new CustomEvent('ahk-hub-changed-local', { detail: { id: d.id, hub: false } })); await invoke("set_script_hub", { id: d.id, hub: false }); appToast.success(t("toast.removed_from_hub", "Удалено из хаба")); onClose(); } }
-          : { id: "hub_add", shortcut: "m", label: t("context.add_to_hub", "Добавить в хаб"), icon: <StarIcon size={16} weight="bold" />, onClick: async () => { window.dispatchEvent(new CustomEvent('ahk-hub-changed-local', { detail: { id: d.id, hub: true } })); await invoke("set_script_hub", { id: d.id, hub: true }); appToast.success(t("toast.added_to_hub", "Добавлено в хаб")); onClose(); } },
+          ? { id: "hub_remove", shortcut: "m", label: t("context.remove_from_hub", "Удалить из хаба"), icon: <StarIcon size={16} weight="fill" />, onClick: async () => { window.dispatchEvent(new CustomEvent('ahk-hub-changed-local', { detail: { id: d.id, hub: false } })); await setScriptHub(d.id, false); appToast.success(t("toast.removed_from_hub", "Удалено из хаба")); onClose(); } }
+          : { id: "hub_add", shortcut: "m", label: t("context.add_to_hub", "Добавить в хаб"), icon: <StarIcon size={16} weight="bold" />, onClick: async () => { window.dispatchEvent(new CustomEvent('ahk-hub-changed-local', { detail: { id: d.id, hub: true } })); await setScriptHub(d.id, true); appToast.success(t("toast.added_to_hub", "Добавлено в хаб")); onClose(); } },
       ];
     }
     if (contextMenu.type === "tag") {
@@ -130,11 +130,11 @@ export default function ContextMenu({ contextMenu, onClose, onStartRenameTag, on
       const d = contextMenu.data;
       return [
         { id: "copy", shortcut: "c", label: t("context.copy_path"), icon: <CopyIcon size={18} />, onClick: () => { navigator.clipboard.writeText(d.fullName); onClose(); } },
-        { id: "show", shortcut: "f", label: t("context.show_in_folder"), icon: <FolderIcon />, onClick: () => { invoke("open_in_explorer", { path: d.fullName }); onClose(); } },
+        { id: "show", shortcut: "f", label: t("context.show_in_folder"), icon: <FolderIcon />, onClick: () => { openInExplorer(d.fullName); onClose(); } },
         "separator",
         { id: "expand", label: t("context.expand_all"), icon: <PlusIcon size={18} />, disabled: !!d.isAllExpanded || !d.onExpandAll, onClick: () => { d.onExpandAll?.(); onClose(); } },
         { id: "hide", label: d.is_hidden ? t("context.show_hidden") : t("context.hide_folder"), icon: <EyeOffIcon />, onClick: async () => {
-          await invoke("toggle_hide_folder", { path: d.fullName });
+          await toggleHideFolder(d.fullName);
           onClose();
           if (onToggleHideFolder) onToggleHideFolder(d.fullName);
           else onRefresh();
@@ -228,7 +228,7 @@ export default function ContextMenu({ contextMenu, onClose, onStartRenameTag, on
         <ConfirmDialog
           tag={confirmTag}
           onConfirm={async () => {
-            await invoke("delete_tag", { tag: confirmTag });
+            await deleteTag(confirmTag);
             setConfirmTag(null);
             onClose();
             if (onDeleteTag) onDeleteTag(confirmTag);

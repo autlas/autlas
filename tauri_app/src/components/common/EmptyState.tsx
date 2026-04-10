@@ -2,7 +2,7 @@ import { useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { PlusIcon, CloseIcon, FolderIcon, GearIcon, SyncIcon } from "../ui/Icons";
 import EmptyStateIcon from "../ui/EmptyStateIcon";
-import { invoke } from "@tauri-apps/api/core";
+import { openInExplorer } from "../../api";
 import Tooltip from "../ui/Tooltip";
 
 interface EmptyStateProps {
@@ -114,7 +114,7 @@ export default function EmptyState({ isPathsEmpty, hasContent, searchQuery, filt
                                     <div className="flex items-center gap-1 flex-shrink-0">
                                         <Tooltip text={t("context.show_in_folder")}>
                                             <button
-                                                onClick={() => invoke("open_in_explorer", { path })}
+                                                onClick={() => openInExplorer(path)}
                                                 className="p-1.5 text-tertiary hover:text-white hover:bg-white/10 rounded-lg transition-all border-none bg-transparent cursor-pointer"
                                             >
                                                 <FolderIcon />

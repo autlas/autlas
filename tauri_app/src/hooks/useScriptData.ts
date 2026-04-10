@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef, useCallback, startTransition } from "react";
-import { getScripts, Script } from "../api";
-import { invoke } from "@tauri-apps/api/core";
+import { getScripts, Script, getTagIcons, loadIconCache } from "../api";
 import { useTreeStore } from "../store/useTreeStore";
 import { isSystemTag } from "../utils/systemTags";
 
@@ -117,8 +116,8 @@ export function useScriptData({ onTagsLoaded, onRunningCountChange, refreshKey, 
     }, [allScripts]);
 
     useEffect(() => {
-        invoke<Record<string, string>>("get_tag_icons").then(storeSetTagIcons).catch(() => {});
-        invoke<Record<string, [string, string]>>("load_icon_cache").then(cache => {
+        getTagIcons().then(storeSetTagIcons).catch(() => {});
+        loadIconCache().then(cache => {
             useTreeStore.getState().setIconCache(cache);
         }).catch(() => {});
     }, [storeSetTagIcons]);

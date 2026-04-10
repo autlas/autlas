@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { invoke } from "@tauri-apps/api/core";
+import { getHiddenFolders, toggleHideFolder } from "../api";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { useTranslation } from "react-i18next";
 
@@ -8,7 +8,7 @@ export function useHiddenFolders(onChanged: () => void) {
   const [hiddenFolders, setHiddenFolders] = useState<string[]>([]);
 
   const refresh = useCallback(async () => {
-    const list = await invoke<string[]>("get_hidden_folders");
+    const list = await getHiddenFolders();
     setHiddenFolders(list);
   }, []);
 
@@ -17,7 +17,7 @@ export function useHiddenFolders(onChanged: () => void) {
   const unhideFolder = async (path: string) => {
     // toggle_hide_folder is an idempotent toggle — calling it on a path that
     // is currently hidden will unhide it.
-    await invoke("toggle_hide_folder", { path });
+    await toggleHideFolder(path);
     await refresh();
     onChanged();
   };
@@ -33,7 +33,7 @@ export function useHiddenFolders(onChanged: () => void) {
         // toggle_hide_folder is idempotent: only call when not already hidden,
         // otherwise it would unhide the freshly-added entry.
         if (!hiddenFolders.includes(selected)) {
-          await invoke("toggle_hide_folder", { path: selected });
+          await toggleHideFolder(selected);
           await refresh();
           onChanged();
         }

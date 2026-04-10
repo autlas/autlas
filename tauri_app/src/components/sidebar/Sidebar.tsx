@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
-import { invoke } from "@tauri-apps/api/core";
+import { saveTagOrder } from "../../api";
 import { useTranslation } from "react-i18next";
 import { GearIcon, TagIcon, TagDotIcon, TagIconSvg, LayersIcon, TagOffIcon, SyncIcon, ChevronDownIcon } from "../ui/Icons";
 import { useTreeStore } from "../../store/useTreeStore";
@@ -438,7 +438,7 @@ export default function Sidebar({
                             await onRenameTag(tag, newName);
                             const newOrder = userTags.map(t => t === tag ? newName : t);
                             setUserTags(newOrder);
-                            await invoke("save_tag_order", { order: newOrder });
+                            await saveTagOrder(newOrder);
                             if (activeTab === tag) setActiveTab(newName);
                           }
                           setIsRenamingTag(null);
@@ -574,7 +574,7 @@ export default function Sidebar({
                         await onRenameTag(oldTag, newName);
                         const newOrder = userTags.map(t => t === oldTag ? newName : t);
                         setUserTags(newOrder);
-                        await invoke("save_tag_order", { order: newOrder });
+                        await saveTagOrder(newOrder);
                         if (activeTab === oldTag) setActiveTab(newName);
                       }
                       setIsRenamingTag(null);

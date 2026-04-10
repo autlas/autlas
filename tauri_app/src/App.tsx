@@ -8,7 +8,7 @@ import DragGhost from "./components/common/DragGhost";
 import Sidebar from "./components/sidebar/Sidebar";
 import CheatSheet from "./components/common/CheatSheet";
 import OrphanReconcileDialog, { PendingMatch } from "./components/common/OrphanReconcileDialog";
-import { Script, checkEverythingStatus, launchEverything, installEverything } from "./api";
+import { Script, checkEverythingStatus, launchEverything, installEverything, setScriptHub, addScriptTag, removeScriptTag, showScriptUI, saveTagOrder, getTagOrder, openUrl } from "./api";
 import { Toaster } from "sonner";
 import { appToast, ToastButton } from "./components/ui/AppToast";
 import { CloseIcon } from "./components/ui/Icons";
@@ -18,7 +18,6 @@ import { useScanBlacklist } from "./hooks/useScanBlacklist";
 import { useHiddenFolders } from "./hooks/useHiddenFolders";
 import { usePhysicsMotion } from "./hooks/usePhysicsMotion";
 import { useNavigation } from "./hooks/useNavigation";
-import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { LogicalSize } from "@tauri-apps/api/dpi";
 import { useTranslation } from "react-i18next";
@@ -570,9 +569,9 @@ function App() {
         // script gets dropped on it we set the dedicated is_hub flag instead
         // of writing a magic tag string.
         if (tag === "hub") {
-          await invoke("set_script_hub", { id, hub: true });
+          await setScriptHub(id, true);
         } else {
-          await invoke("add_script_tag", { id, tag });
+          await addScriptTag(id, tag);
         }
       } catch (err) {
         console.warn("[App] FAIL: Backend refused custom engine update", err);
@@ -589,7 +588,7 @@ function App() {
   }, []);
 
   const handleTagsLoaded = useCallback((tags: string[]) => {
-    invoke<string[]>("get_tag_order").then(order => {
+    getTagOrder().then(order => {
       const merged = [...order];
       tags.forEach(t => { if (!merged.includes(t)) merged.push(t); });
       setUserTags(merged.filter(t => tags.includes(t)));
@@ -619,21 +618,21 @@ function App() {
 
   const handleDetailAddTag = useCallback(async (s: Script, tag: string) => {
     try {
-      if (tag === "hub") await invoke("set_script_hub", { id: s.id, hub: true });
-      else await invoke("add_script_tag", { id: s.id, tag });
+      if (tag === "hub") await setScriptHub(s.id, true);
+      else await addScriptTag(s.id, tag);
     } catch (err) { console.error("[App] Add tag failed:", err); }
   }, []);
 
   const handleDetailRemoveTag = useCallback(async (s: Script, tag: string) => {
     try {
-      if (tag === "hub") await invoke("set_script_hub", { id: s.id, hub: false });
-      else await invoke("remove_script_tag", { id: s.id, tag });
+      if (tag === "hub") await setScriptHub(s.id, false);
+      else await removeScriptTag(s.id, tag);
     } catch (err) { console.error("[App] Remove tag failed:", err); }
   }, []);
 
   const handleShowUI = useCallback(async (s: any) => {
     try {
-      await invoke("show_script_ui", { path: s.path });
+      await showScriptUI(s.path);
     } catch (err) {
       console.error("[frontend] Failed to show UI:", err);
     }
@@ -654,7 +653,7 @@ function App() {
 
     if (draggedTag) {
       setDraggedTag(null);
-      invoke("save_tag_order", { order: userTags });
+      saveTagOrder(userTags);
       if (ghostRef.current) ghostRef.current.setAttribute("data-dragging", "false");
     }
 
@@ -934,7 +933,7 @@ function App() {
 
                 <button
                   onClick={() => {
-                    invoke("open_url", { url: "https://www.voidtools.com/downloads/" });
+                    openUrl("https://www.voidtools.com/downloads/");
                     setShowInstallModal(false);
                   }}
                   className="w-full py-3 bg-white/[0.03] hover:bg-white/[0.06] border border-white/10 hover:border-white/20 rounded-2xl transition-all cursor-pointer group"

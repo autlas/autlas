@@ -1,6 +1,5 @@
 import { useCallback } from "react";
-import { Script, runScript, killScript } from "../api";
-import { invoke } from "@tauri-apps/api/core";
+import { Script, runScript, killScript, restartScript, saveScriptTags, renameTag as apiRenameTag, saveTagIcon, getScriptStatus } from "../api";
 import { useTreeStore } from "../store/useTreeStore";
 import { getCachedScripts, setCachedScripts } from "./useScriptData";
 
@@ -26,7 +25,7 @@ export function useScriptActions({ setAllScripts, burstIntervalsRef }: UseScript
         const id = window.setInterval(async () => {
             attempts++;
             try {
-                const status = await invoke<{ is_running: boolean; has_ui: boolean }>("get_script_status", { path });
+                const status = await getScriptStatus(path);
                 if (!found && status.is_running === expectedRunning) {
                     found = true;
                     verifyCount = 0;
@@ -94,7 +93,7 @@ export function useScriptActions({ setAllScripts, burstIntervalsRef }: UseScript
         if (pendingScripts[script.path]) return;
         useTreeStore.getState().setPendingScript(script.path, "restart");
         try {
-            await invoke("restart_script", { path: script.path });
+            await restartScript(script.path);
             startBurst(script.path, true);
         } catch (e) {
             console.error(e);
@@ -117,7 +116,7 @@ export function useScriptActions({ setAllScripts, burstIntervalsRef }: UseScript
         setAllScripts(prev => prev.map(s => s.id === script.id ? { ...s, tags: updatedTags } : s));
         useTreeStore.getState().setEditingScript(null);
         try {
-            await invoke("save_script_tags", { id: script.id, tags: updatedTags });
+            await saveScriptTags(script.id, updatedTags);
         } catch (e) {
             console.error(e);
             setCachedScripts(getCachedScripts().map(s => s.id === script.id ? { ...s, tags: script.tags } : s));
@@ -135,7 +134,7 @@ export function useScriptActions({ setAllScripts, burstIntervalsRef }: UseScript
         setAllScripts(prev => prev.map(s => s.id === script.id ? { ...s, tags: newTags } : s));
         useTreeStore.getState().clearRemovingTag(tagId);
         try {
-            await invoke("save_script_tags", { id: script.id, tags: newTags });
+            await saveScriptTags(script.id, newTags);
         } catch (e) {
             console.error(e);
             setCachedScripts(getCachedScripts().map(s => s.id === script.id ? { ...s, tags: script.tags } : s));
@@ -171,7 +170,7 @@ export function useScriptActions({ setAllScripts, burstIntervalsRef }: UseScript
             store.setTagIcon(newTag, existingIcon);
         }
         try {
-            await invoke("rename_tag", { oldTag, newTag });
+            await apiRenameTag(oldTag, newTag);
         } catch (e) {
             console.error(e);
         }
@@ -180,7 +179,7 @@ export function useScriptActions({ setAllScripts, burstIntervalsRef }: UseScript
     const setTagIcon = useCallback(async (tag: string, iconName: string) => {
         useTreeStore.getState().setTagIcon(tag, iconName);
         try {
-            await invoke("save_tag_icon", { tag, icon: iconName });
+            await saveTagIcon(tag, iconName);
         } catch (e) {
             console.error(e);
         }
@@ -189,7 +188,7 @@ export function useScriptActions({ setAllScripts, burstIntervalsRef }: UseScript
     const removeTagIcon = useCallback(async (tag: string) => {
         useTreeStore.getState().removeTagIcon(tag);
         try {
-            await invoke("save_tag_icon", { tag, icon: "" });
+            await saveTagIcon(tag, "");
         } catch (e) {
             console.error(e);
         }

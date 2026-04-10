@@ -1,10 +1,9 @@
 import { useEffect, useRef, useCallback } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
-import { invoke } from "@tauri-apps/api/core";
 import { useTranslation } from "react-i18next";
 import { useTreeStore } from "../store/useTreeStore";
 import { useVimEnabled } from "./useVimEnabled";
-import { Script } from "../api";
+import { Script, setScriptHub, openInExplorer, openWith, editScript } from "../api";
 import { appToast } from "../components/ui/AppToast";
 
 // ─── DEBUG LOGGING ────────────────────────────────────────────────────
@@ -458,7 +457,7 @@ export function useVimHotkeys(args: UseVimHotkeysArgs) {
         const next = !item.data.is_hub;
         vlog('key: m → set_script_hub', item.data.filename, '→', next);
         window.dispatchEvent(new CustomEvent('ahk-hub-changed-local', { detail: { id: item.data.id, hub: next } }));
-        await invoke("set_script_hub", { id: item.data.id, hub: next });
+        await setScriptHub(item.data.id, next);
         appToast.success(
             next
                 ? t("toast.added_to_hub", "Добавлено в хаб")
@@ -480,21 +479,21 @@ export function useVimHotkeys(args: UseVimHotkeysArgs) {
         if (!item) { vlog('key: f → IGNORED (no focused item)'); return; }
         const path = item.type === 'script' ? item.data.path : item.path;
         vlog('key: f → open_in_explorer', path);
-        invoke("open_in_explorer", { path });
+        openInExplorer(path);
     }, { preventDefault: true, enabled: hk });
 
     useHotkeys('o', () => {
         const item = getFocusedItem();
         if (!item || item.type !== 'script') { vlog('key: o → IGNORED (not a script)'); return; }
         vlog('key: o → open_with', item.data.path);
-        invoke("open_with", { path: item.data.path });
+        openWith(item.data.path);
     }, { preventDefault: true, enabled: hk });
 
     useHotkeys('e', () => {
         const item = getFocusedItem();
         if (!item || item.type !== 'script') { vlog('key: e → IGNORED (not a script)'); return; }
         vlog('key: e → edit_script', item.data.path);
-        invoke("edit_script", { path: item.data.path });
+        editScript(item.data.path);
     }, { preventDefault: true, enabled: hk });
 
     // Pin/unpin the detail panel. Only meaningful while it's open, so we

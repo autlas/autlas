@@ -1,6 +1,5 @@
-import { invoke } from "@tauri-apps/api/core";
 import { useEffect, useMemo, useState, useCallback } from "react";
-import { checkEverythingStatus, launchEverything, cleanupOrphans, resetDatabase } from "../../api";
+import { checkEverythingStatus, launchEverything, cleanupOrphans, resetDatabase, setTraySettings, getTraySettings, openInExplorer, countAhkFiles } from "../../api";
 import { useTranslation } from "react-i18next";
 import LanguageSelector from "./LanguageSelector";
 import ToggleGroup from "../ui/ToggleGroup";
@@ -59,7 +58,7 @@ export default function SettingsPanel({
   // because blacklisted/hidden entries are filtered out before reaching here.
   useEffect(() => {
     if (blacklist.length === 0) { setBlacklistCounts({}); return; }
-    invoke<number[]>("count_ahk_files", { paths: blacklist }).then(arr => {
+    countAhkFiles(blacklist).then(arr => {
       const map: Record<string, number> = {};
       blacklist.forEach((p, i) => { map[p] = arr[i] ?? 0; });
       setBlacklistCounts(map);
@@ -68,7 +67,7 @@ export default function SettingsPanel({
 
   useEffect(() => {
     if (hiddenFolders.length === 0) { setHiddenCounts({}); return; }
-    invoke<number[]>("count_ahk_files", { paths: hiddenFolders }).then(arr => {
+    countAhkFiles(hiddenFolders).then(arr => {
       const map: Record<string, number> = {};
       hiddenFolders.forEach((p, i) => { map[p] = arr[i] ?? 0; });
       setHiddenCounts(map);
@@ -76,7 +75,7 @@ export default function SettingsPanel({
   }, [hiddenFolders]);
 
   useEffect(() => {
-    invoke<{ close_to_tray: boolean }>("get_tray_settings").then((s) => {
+    getTraySettings().then((s) => {
       setCloseToTray(s.close_to_tray);
     });
   }, []);
@@ -84,7 +83,7 @@ export default function SettingsPanel({
   const toggleCloseToTray = () => {
     const next = !closeToTray;
     setCloseToTray(next);
-    invoke("set_tray_settings", { settings: { close_to_tray: next } });
+    setTraySettings({ close_to_tray: next });
   };
 
   const [everythingStatus, setEverythingStatus] = useState<"running" | "installed" | "not_installed" | null>(null);
@@ -413,7 +412,7 @@ export default function SettingsPanel({
                   <div className="flex items-center gap-1">
                     <Tooltip text={t("context.show_in_folder")}>
                       <button
-                        onClick={() => invoke("open_in_explorer", { path })}
+                        onClick={() => openInExplorer(path)}
                         className="p-2 text-tertiary hover:text-white hover:bg-white/10 rounded-xl transition-all border-none bg-transparent cursor-pointer"
                       >
                         <FolderIcon />
@@ -472,7 +471,7 @@ export default function SettingsPanel({
                   <div className="flex items-center gap-1">
                     <Tooltip text={t("context.show_in_folder")}>
                       <button
-                        onClick={() => invoke("open_in_explorer", { path })}
+                        onClick={() => openInExplorer(path)}
                         className="p-2 text-tertiary hover:text-white hover:bg-white/10 rounded-xl transition-all border-none bg-transparent cursor-pointer"
                       >
                         <FolderIcon />
@@ -530,7 +529,7 @@ export default function SettingsPanel({
                   <div className="flex items-center gap-1">
                     <Tooltip text={t("context.show_in_folder")}>
                       <button
-                        onClick={() => invoke("open_in_explorer", { path })}
+                        onClick={() => openInExplorer(path)}
                         className="p-2 text-tertiary hover:text-white hover:bg-white/10 rounded-xl transition-all border-none bg-transparent cursor-pointer"
                       >
                         <FolderIcon />

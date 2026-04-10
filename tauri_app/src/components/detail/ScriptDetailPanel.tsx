@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Script } from "../../api";
-import { invoke } from "@tauri-apps/api/core";
+import { Script, ScriptMeta, editScript, openInExplorer, openWith, setScriptHub, getScriptMeta } from "../../api";
 import { useTranslation } from "react-i18next";
 import { formatDate } from "../../utils/formatDate";
 import TagPickerPopover from "../tags/TagPickerPopover";
@@ -54,7 +53,7 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
   const { html: highlightedLinesFromHook, source: content, isLoading: loading } = useScriptContent(script.path);
   const highlightedLines: string[] = (highlightedLinesFromHook as any) || [];
   const [copied, setCopied] = useState(false);
-  const [scriptMeta, setScriptMeta] = useState<{ hash: string; created: string; modified: string; last_run: string } | null>(null);
+  const [scriptMeta, setScriptMeta] = useState<ScriptMeta | null>(null);
   const [isEditingTags, setIsEditingTags] = useState(false);
   const panelWidth = useTreeStore(s => s.detailPanelWidth);
   const setPanelWidth = useTreeStore(s => s.setDetailPanelWidth);
@@ -143,13 +142,13 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
 
   useEffect(() => {
     setScriptMeta(null);
-    invoke<{ hash: string; created: string; modified: string; last_run: string }>("get_script_meta", { path: script.path })
+    getScriptMeta(script.path)
       .then(setScriptMeta).catch(() => { });
   }, [script.path]);
 
   // Refresh meta when running status changes (last_run updated in DB)
   useEffect(() => {
-    invoke<{ hash: string; created: string; modified: string; last_run: string }>("get_script_meta", { path: script.path })
+    getScriptMeta(script.path)
       .then(setScriptMeta).catch(() => { });
   }, [script.is_running]);
 
@@ -162,9 +161,9 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
     setTimeout(() => setCopied(false), 1500);
   }, [script.path]);
 
-  const handleEdit = () => invoke("edit_script", { path: script.path });
-  const handleOpenFolder = () => invoke("open_in_explorer", { path: script.path });
-  const handleOpenWith = () => invoke("open_with", { path: script.path });
+  const handleEdit = () => editScript(script.path);
+  const handleOpenFolder = () => openInExplorer(script.path);
+  const handleOpenWith = () => openWith(script.path);
 
   const name = script.filename.replace(/\.ahk$/i, "");
   const isHub = script.is_hub;
@@ -192,7 +191,7 @@ export default function ScriptDetailPanel({ script, allUniqueTags, pinned, pendi
           <Tooltip text={isHub ? t("tooltips.remove_from_hub") : t("tooltips.add_to_hub")}>
             <button
               onClick={async () => {
-                try { await invoke("set_script_hub", { id: script.id, hub: !isHub }); }
+                try { await setScriptHub(script.id, !isHub); }
                 catch (err) { console.error("set_script_hub failed:", err); }
               }}
               className={`w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-lg transition-all cursor-pointer ${isHub ? 'text-white/60 hover:text-white/90' : 'text-white/25 hover:text-white/50'}`}

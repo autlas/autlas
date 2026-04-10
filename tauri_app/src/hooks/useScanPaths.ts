@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { invoke } from "@tauri-apps/api/core";
+import { getScanPaths, setScanPaths as apiSetScanPaths } from "../api";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { useTranslation } from "react-i18next";
 
@@ -8,7 +8,7 @@ export function useScanPaths(onPathsChanged: () => void) {
   const [scanPaths, setScanPaths] = useState<string[]>([]);
 
   useEffect(() => {
-    invoke<string[]>("get_scan_paths").then(setScanPaths);
+    getScanPaths().then(setScanPaths);
   }, []);
 
   const handleAddScanPath = async () => {
@@ -22,7 +22,7 @@ export function useScanPaths(onPathsChanged: () => void) {
         if (!scanPaths.includes(selected)) {
           const next = [...scanPaths, selected];
           setScanPaths(next);
-          await invoke("set_scan_paths", { paths: next });
+          await apiSetScanPaths(next);
           onPathsChanged();
         }
       }
@@ -34,7 +34,7 @@ export function useScanPaths(onPathsChanged: () => void) {
   const handleRemoveScanPath = async (path: string) => {
     const next = scanPaths.filter(p => p !== path);
     setScanPaths(next);
-    await invoke("set_scan_paths", { paths: next });
+    await apiSetScanPaths(next);
     onPathsChanged();
   };
 

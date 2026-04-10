@@ -1,16 +1,9 @@
 import { useState } from "react";
-import { invoke } from "@tauri-apps/api/core";
 import { useTranslation } from "react-i18next";
 import { CloseIcon } from "../ui/Icons";
 import { isSystemTag } from "../../utils/systemTags";
-
-export interface PendingMatch {
-    orphan_id: string;
-    old_path: string;
-    new_path: string;
-    match_type: string;
-    tags: string[];
-}
+import { resolveOrphan, type PendingMatch } from "../../api";
+export type { PendingMatch };
 
 function extractFilename(path: string): string {
     return path.split(/[/\\]/).pop() || path;
@@ -59,7 +52,7 @@ export default function OrphanReconcileDialog({ matches, onClose, onResolved, on
     const handleLink = async (match_: PendingMatch) => {
         setResolving(prev => new Set(prev).add(match_.orphan_id));
         try {
-            await invoke("resolve_orphan", { orphanId: match_.orphan_id, action: "link", newPath: match_.new_path });
+            await resolveOrphan(match_.orphan_id, "link", match_.new_path);
             setResolved(prev => new Set(prev).add(match_.orphan_id));
             onMatchResolved?.(match_.orphan_id);
         } catch (e) {
@@ -72,7 +65,7 @@ export default function OrphanReconcileDialog({ matches, onClose, onResolved, on
     const handleDiscard = async (match_: PendingMatch) => {
         setResolving(prev => new Set(prev).add(match_.orphan_id));
         try {
-            await invoke("resolve_orphan", { orphanId: match_.orphan_id, action: "discard" });
+            await resolveOrphan(match_.orphan_id, "discard");
             setResolved(prev => new Set(prev).add(match_.orphan_id));
             onMatchResolved?.(match_.orphan_id);
         } catch (e) {
