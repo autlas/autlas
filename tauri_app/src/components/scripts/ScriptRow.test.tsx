@@ -97,13 +97,13 @@ describe("Rendering", () => {
   });
 
   it("renders file size when showFileSize=true in store", () => {
-    useTreeStore.setState({ showFileSize: true });
+    useTreeStore.setState({ sortBy: "size" });
     renderRow({ s: makeScript({ size: 2048 }) });
     expect(screen.getByText("2.0 KB")).toBeInTheDocument();
   });
 
   it("does not render file size when showFileSize=false", () => {
-    useTreeStore.setState({ showFileSize: false });
+    useTreeStore.setState({ sortBy: "name" });
     renderRow({ s: makeScript({ size: 2048 }) });
     expect(screen.queryByText("2.0 KB")).not.toBeInTheDocument();
   });
@@ -505,31 +505,31 @@ describe("Edge cases", () => {
   });
 
   it("formatSize: bytes < 1024 renders 'N B'", () => {
-    useTreeStore.setState({ showFileSize: true });
+    useTreeStore.setState({ sortBy: "size" });
     renderRow({ s: makeScript({ size: 500 }) });
     expect(screen.getByText("500 B")).toBeInTheDocument();
   });
 
   it("formatSize: bytes < 1MB renders 'N.N KB'", () => {
-    useTreeStore.setState({ showFileSize: true });
+    useTreeStore.setState({ sortBy: "size" });
     renderRow({ s: makeScript({ size: 5120 }) });
     expect(screen.getByText("5.0 KB")).toBeInTheDocument();
   });
 
   it("formatSize: bytes >= 1MB renders 'N.N MB'", () => {
-    useTreeStore.setState({ showFileSize: true });
+    useTreeStore.setState({ sortBy: "size" });
     renderRow({ s: makeScript({ size: 2 * 1024 * 1024 }) });
     expect(screen.getByText("2.0 MB")).toBeInTheDocument();
   });
 
   it("formatSize: exactly 1024 bytes renders '1.0 KB'", () => {
-    useTreeStore.setState({ showFileSize: true });
+    useTreeStore.setState({ sortBy: "size" });
     renderRow({ s: makeScript({ size: 1024 }) });
     expect(screen.getByText("1.0 KB")).toBeInTheDocument();
   });
 
   it("formatSize: 0 bytes renders '0 B'", () => {
-    useTreeStore.setState({ showFileSize: true });
+    useTreeStore.setState({ sortBy: "size" });
     renderRow({ s: makeScript({ size: 0 }) });
     expect(screen.getByText("0 B")).toBeInTheDocument();
   });

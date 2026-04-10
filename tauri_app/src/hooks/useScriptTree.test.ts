@@ -265,7 +265,7 @@ describe("hub grouping (groupedHub useMemo)", () => {
   it('scripts without user tags go to "other" group', async () => {
     const scripts = [
       makeScript({ id: "r1", path: "c:/scripts/r1.ahk", filename: "r1.ahk", is_running: true, tags: [] }),
-      makeScript({ id: "r2", path: "c:/scripts/r2.ahk", filename: "r2.ahk", tags: ["hub"] }),
+      makeScript({ id: "r2", path: "c:/scripts/r2.ahk", filename: "r2.ahk", tags: ["hub"], is_hub: true }),
     ];
     const { result } = await renderLoaded(scripts, { filterTag: "hub" });
     const grouped = result.current.groupedHub!;
@@ -864,8 +864,8 @@ describe("moveFocus (vim navigation)", () => {
 
   it("moveFocus skips tag- prefixed items (hub headers)", async () => {
     const scripts = [
-      makeScript({ id: "h1", path: "c:/scripts/h1.ahk", filename: "h1.ahk", tags: ["hub", "groupA"] }),
-      makeScript({ id: "h2", path: "c:/scripts/h2.ahk", filename: "h2.ahk", tags: ["hub", "groupB"] }),
+      makeScript({ id: "h1", path: "c:/scripts/h1.ahk", filename: "h1.ahk", tags: ["hub", "groupA"], is_hub: true }),
+      makeScript({ id: "h2", path: "c:/scripts/h2.ahk", filename: "h2.ahk", tags: ["hub", "groupB"], is_hub: true }),
     ];
     const { result } = await renderLoaded(scripts, { filterTag: "hub", viewMode: "tiles" });
 

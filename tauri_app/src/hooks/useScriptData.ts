@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback, startTransition } from "react
 import { getScripts, Script } from "../api";
 import { invoke } from "@tauri-apps/api/core";
 import { useTreeStore } from "../store/useTreeStore";
+import { isSystemTag } from "../utils/systemTags";
 
 let _cachedScripts: Script[] = [];
 let _scanPromise: Promise<Script[]> | null = null; // dedup concurrent scans
@@ -98,7 +99,7 @@ export function useScriptData({ onTagsLoaded, onRunningCountChange, refreshKey, 
         if (tagsKey !== lastTagsKeyRef.current) {
             lastTagsKeyRef.current = tagsKey;
             const tags = new Set<string>();
-            allScripts.forEach(s => s.tags.forEach(t => tags.add(t)));
+            allScripts.forEach(s => s.tags.forEach(t => { if (!isSystemTag(t)) tags.add(t); }));
             onTagsLoaded(Array.from(tags).sort());
         }
     }, [allScripts, onTagsLoaded]); // eslint-disable-line react-hooks/exhaustive-deps

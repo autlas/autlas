@@ -2,6 +2,7 @@ import { useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useTranslation } from "react-i18next";
 import { CloseIcon } from "../ui/Icons";
+import { isSystemTag } from "../../utils/systemTags";
 
 export interface PendingMatch {
     orphan_id: string;
@@ -148,9 +149,9 @@ export default function OrphanReconcileDialog({ matches, onClose, onResolved, on
                                             <span className="text-white/70 font-medium">{extractFilename(m.new_path)}</span>
                                             <span className="ml-2">{extractParent(m.new_path)}</span>
                                         </div>
-                                        {m.tags.length > 0 && (
+                                        {m.tags.filter(t => !isSystemTag(t)).length > 0 && (
                                             <div className="flex gap-1.5 mt-2 flex-wrap">
-                                                {m.tags.map(tag => (
+                                                {m.tags.filter(t => !isSystemTag(t)).map(tag => (
                                                     <span key={tag} className="text-xs font-bold px-3 py-1 rounded-lg bg-white/5 text-white/40 border border-white/5">{tag}</span>
                                                 ))}
                                             </div>

@@ -39,12 +39,14 @@ const scriptData = {
   id: "id-1",
   path: "c:/scripts/test.ahk",
   tags: ["utility"],
+  is_hub: false,
 };
 
 const hubScriptData = {
   id: "id-2",
   path: "c:/scripts/fav.ahk",
   tags: ["hub", "gaming"],
+  is_hub: true,
 };
 
 const folderData = {
@@ -75,41 +77,41 @@ describe("ContextMenu", () => {
 
   // ─── script type ──────────────────────────────────────────────
 
-  it("script type → renders pin, edit, show in folder, open with, copy path", () => {
+  it("script type → renders hub toggle, edit, show in folder, open with, copy path", () => {
     render(<ContextMenu {...baseProps} contextMenu={scriptMenu()} />);
-    expect(screen.getByText("context.pin")).toBeInTheDocument();
+    expect(screen.getByText("Добавить в хаб")).toBeInTheDocument();
     expect(screen.getByText("context.edit")).toBeInTheDocument();
     expect(screen.getByText("context.show_in_folder")).toBeInTheDocument();
     expect(screen.getByText("context.open_with")).toBeInTheDocument();
     expect(screen.getByText("context.copy_path")).toBeInTheDocument();
   });
 
-  it("script with hub tag → renders 'unpin' instead of 'pin'", () => {
+  it("script with is_hub → renders 'remove from hub' instead of 'add to hub'", () => {
     render(<ContextMenu {...baseProps} contextMenu={scriptMenu(hubScriptData)} />);
-    expect(screen.getByText("context.unpin")).toBeInTheDocument();
-    expect(screen.queryByText("context.pin")).not.toBeInTheDocument();
+    expect(screen.getByText("Удалить из хаба")).toBeInTheDocument();
+    expect(screen.queryByText("Добавить в хаб")).not.toBeInTheDocument();
   });
 
-  it("script without hub tag → renders 'pin'", () => {
+  it("script without is_hub → renders 'add to hub'", () => {
     render(<ContextMenu {...baseProps} contextMenu={scriptMenu(scriptData)} />);
-    expect(screen.getByText("context.pin")).toBeInTheDocument();
-    expect(screen.queryByText("context.unpin")).not.toBeInTheDocument();
+    expect(screen.getByText("Добавить в хаб")).toBeInTheDocument();
+    expect(screen.queryByText("Удалить из хаба")).not.toBeInTheDocument();
   });
 
-  it("pin click → invokes add_script_tag with hub tag", async () => {
+  it("add to hub click → invokes set_script_hub", async () => {
     render(<ContextMenu {...baseProps} contextMenu={scriptMenu(scriptData)} />);
-    fireEvent.click(screen.getByText("context.pin"));
+    fireEvent.click(screen.getByText("Добавить в хаб"));
     await waitFor(() => {
-      expect(invoke).toHaveBeenCalledWith("add_script_tag", { id: "id-1", tag: "hub" });
+      expect(invoke).toHaveBeenCalledWith("set_script_hub", { id: "id-1", hub: true });
     });
     expect(onClose).toHaveBeenCalled();
   });
 
-  it("unpin click → invokes remove_script_tag", async () => {
+  it("remove from hub click → invokes set_script_hub", async () => {
     render(<ContextMenu {...baseProps} contextMenu={scriptMenu(hubScriptData)} />);
-    fireEvent.click(screen.getByText("context.unpin"));
+    fireEvent.click(screen.getByText("Удалить из хаба"));
     await waitFor(() => {
-      expect(invoke).toHaveBeenCalledWith("remove_script_tag", { id: "id-2", tag: "hub" });
+      expect(invoke).toHaveBeenCalledWith("set_script_hub", { id: "id-2", hub: false });
     });
     expect(onClose).toHaveBeenCalled();
   });

@@ -4,6 +4,7 @@ import Fuse from "fuse.js";
 import { Script } from "../api";
 import { TreeNode } from "../types/script";
 import { useTreeStore } from "../store/useTreeStore";
+import { isSystemTag } from "../utils/systemTags";
 
 /** Precomputed match ranges for highlighting, keyed by script path. */
 export type SearchMatches = Map<string, { filename?: ReadonlyArray<readonly [number, number]>; path?: ReadonlyArray<readonly [number, number]> }>;
@@ -25,7 +26,7 @@ export function useScriptFilter({ allScripts, filterTag, searchQuery, sortBy }: 
 
     const allUniqueTags = useMemo(() => {
         const tags = new Set<string>();
-        allScripts.forEach(s => s.tags.forEach(t => tags.add(t)));
+        allScripts.forEach(s => s.tags.forEach(t => { if (!isSystemTag(t)) tags.add(t); }));
         return Array.from(tags).sort();
     }, [allScripts]);
 
@@ -275,7 +276,7 @@ export function useScriptFilter({ allScripts, filterTag, searchQuery, sortBy }: 
         const groups: Record<string, Script[]> = {};
         const scriptsWithoutTags: Script[] = [];
         filtered.forEach(s => {
-            const userTags = s.tags;
+            const userTags = s.tags.filter(t => !isSystemTag(t));
             if (userTags.length === 0) {
                 scriptsWithoutTags.push(s);
             } else {

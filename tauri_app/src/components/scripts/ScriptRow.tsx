@@ -12,6 +12,7 @@ import IconButton from "../ui/IconButton";
 import { formatDate } from "../../utils/formatDate";
 import { formatSize } from "../../utils/formatSize";
 import { useTagOverflow } from "../../hooks/useTagOverflow";
+import { isSystemTag } from "../../utils/systemTags";
 
 const ScriptRow = memo(function ScriptRow({
     s, isDragging, draggedScriptPath, isEditing, isPending, pendingType, isContextMenuOpen, removingTagKeys,
@@ -36,7 +37,7 @@ const ScriptRow = memo(function ScriptRow({
 
     // Filtered tags for display (hide system tags)
     const isHub = s.is_hub;
-    const displayedTags = s.tags;
+    const displayedTags = s.tags.filter(t => !isSystemTag(t));
 
     const { visibleCount } = useTagOverflow(displayedTags, containerRef);
 
