@@ -39,40 +39,49 @@ export default function ScriptTreeToolbar({
 }: ScriptTreeToolbarProps) {
     const { t } = useTranslation();
 
-    const viewOptions = useMemo(() => [
-        {
-            id: "tree" as const,
-            icon: (isActive: boolean) => (
-                <svg width="22" height="22" viewBox="0 0 256 256" className={`transition-opacity duration-200 ${isActive ? 'opacity-100' : 'opacity-25'}`}>
-                    {isActive ? (
-                        <path fill="currentColor" d="M160 136v-8H88v64a8 8 0 0 0 8 8h64v-8a16 16 0 0 1 16-16h32a16 16 0 0 1 16 16v32a16 16 0 0 1-16 16h-32a16 16 0 0 1-16-16v-8H96a24 24 0 0 1-24-24V80h-8a16 16 0 0 1-16-16V32a16 16 0 0 1 16-16h32a16 16 0 0 1 16 16v32a16 16 0 0 1-16 16h-8v32h72v-8a16 16 0 0 1 16-16h32a16 16 0 0 1 16 16v32a16 16 0 0 1-16 16h-32a16 16 0 0 1-16-16" />
-                    ) : (
-                        <path fill="currentColor" d="M176 156h32a20 20 0 0 0 20-20v-32a20 20 0 0 0-20-20h-32a20 20 0 0 0-20 20v4H92V84h4a20 20 0 0 0 20-20V32a20 20 0 0 0-20-20H64a20 20 0 0 0-20 20v32a20 20 0 0 0 20 20h4v108a28 28 0 0 0 28 28h60v4a20 20 0 0 0 20 20h32a20 20 0 0 0 20-20v-32a20 20 0 0 0-20-20h-32a20 20 0 0 0-20 20v4H96a4 4 0 0 1-4-4v-60h64v4a20 20 0 0 0 20 20M68 36h24v24H68Zm112 160h24v24h-24Zm0-88h24v24h-24Z" />
-                    )}
-                </svg>
-            ),
-            title: t("search.mode_tree"),
-            shortcut: "q",
-        },
-        {
-            id: "tiles" as const,
-            icon: (isActive: boolean) => (
-                <SquaresFour size={22} weight={isActive ? "fill" : "bold"} className={`transition-opacity duration-200 ${isActive ? 'opacity-100' : 'opacity-25'}`} />
-            ),
-            title: t("search.mode_tiles"),
-            shortcut: "q",
-        },
-        {
-            id: "list" as const,
-            icon: (isActive: boolean) => (
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={`transition-opacity duration-200 ${isActive ? 'opacity-100' : 'opacity-25'}`}>
-                    <path d="M3 6h7M3 12h7M3 18h7M14 6h7M14 12h7M14 18h7" />
-                </svg>
-            ),
-            title: t("search.mode_list"),
-            shortcut: "q",
-        },
-    ], [t]);
+    const viewOptions = useMemo(() => {
+        const order: ("tree" | "tiles" | "list")[] = ["tree", "tiles", "list"];
+        const currentIdx = order.indexOf(viewMode);
+        const nextId = order[(currentIdx + 1) % order.length];
+        const prevId = order[(currentIdx - 1 + order.length) % order.length];
+        // Active view: no shortcut. Next in q-cycle: "q". Previous (Shift+Q): "Q".
+        const shortcutFor = (id: "tree" | "tiles" | "list") =>
+            id === viewMode ? undefined : id === nextId ? "q" : id === prevId ? "Q" : undefined;
+        return [
+            {
+                id: "tree" as const,
+                icon: (isActive: boolean) => (
+                    <svg width="22" height="22" viewBox="0 0 256 256" className={`transition-opacity duration-200 ${isActive ? 'opacity-100' : 'opacity-25'}`}>
+                        {isActive ? (
+                            <path fill="currentColor" d="M160 136v-8H88v64a8 8 0 0 0 8 8h64v-8a16 16 0 0 1 16-16h32a16 16 0 0 1 16 16v32a16 16 0 0 1-16 16h-32a16 16 0 0 1-16-16v-8H96a24 24 0 0 1-24-24V80h-8a16 16 0 0 1-16-16V32a16 16 0 0 1 16-16h32a16 16 0 0 1 16 16v32a16 16 0 0 1-16 16h-8v32h72v-8a16 16 0 0 1 16-16h32a16 16 0 0 1 16 16v32a16 16 0 0 1-16 16h-32a16 16 0 0 1-16-16" />
+                        ) : (
+                            <path fill="currentColor" d="M176 156h32a20 20 0 0 0 20-20v-32a20 20 0 0 0-20-20h-32a20 20 0 0 0-20 20v4H92V84h4a20 20 0 0 0 20-20V32a20 20 0 0 0-20-20H64a20 20 0 0 0-20 20v32a20 20 0 0 0 20 20h4v108a28 28 0 0 0 28 28h60v4a20 20 0 0 0 20 20h32a20 20 0 0 0 20-20v-32a20 20 0 0 0-20-20h-32a20 20 0 0 0-20 20v4H96a4 4 0 0 1-4-4v-60h64v4a20 20 0 0 0 20 20M68 36h24v24H68Zm112 160h24v24h-24Zm0-88h24v24h-24Z" />
+                        )}
+                    </svg>
+                ),
+                title: t("search.mode_tree"),
+                shortcut: shortcutFor("tree"),
+            },
+            {
+                id: "tiles" as const,
+                icon: (isActive: boolean) => (
+                    <SquaresFour size={22} weight={isActive ? "fill" : "bold"} className={`transition-opacity duration-200 ${isActive ? 'opacity-100' : 'opacity-25'}`} />
+                ),
+                title: t("search.mode_tiles"),
+                shortcut: shortcutFor("tiles"),
+            },
+            {
+                id: "list" as const,
+                icon: (isActive: boolean) => (
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={`transition-opacity duration-200 ${isActive ? 'opacity-100' : 'opacity-25'}`}>
+                        <path d="M3 6h7M3 12h7M3 18h7M14 6h7M14 12h7M14 18h7" />
+                    </svg>
+                ),
+                title: t("search.mode_list"),
+                shortcut: shortcutFor("list"),
+            },
+        ];
+    }, [t, viewMode]);
 
     const [sortOpen, setSortOpen] = useState(false);
     const [sortFocusIdx, setSortFocusIdx] = useState(0);

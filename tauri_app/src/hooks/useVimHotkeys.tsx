@@ -561,6 +561,14 @@ export function useVimHotkeys(args: UseVimHotkeysArgs) {
         onViewModeChange(next);
     }, { enabled: hk });
 
+    useHotkeys('shift+q', () => {
+        const order = ["tree", "tiles", "list"] as const;
+        const idx = order.indexOf(viewMode);
+        const next = order[(idx - 1 + order.length) % order.length];
+        vlog('key: shift+q → cycle view backward', viewMode, '→', next);
+        onViewModeChange(next);
+    }, { enabled: hk });
+
     useHotkeys('i', (e) => {
         const now = performance.now();
         const gDiff = now - lastGTimeRef.current;
