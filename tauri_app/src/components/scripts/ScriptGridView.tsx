@@ -137,6 +137,30 @@ export default React.memo(function ScriptGridView({
         });
     }, [isActive, filterTag, pathToIndex, columnsCount, virtualizer]);
 
+    // When this view becomes active OR the mode changes (tiles ↔ list),
+    // scroll the focused item back into view. Without the `mode` dep
+    // switching tiles → list wouldn't trigger scroll because isActive
+    // stays true the whole time.
+    React.useEffect(() => {
+        if (!isActive) return;
+        if (filterTag === "hub") return;
+        const focused = useTreeStore.getState().focusedPath;
+        if (!focused) return;
+        const idx = pathToIndex.get(focused);
+        if (idx === undefined) return;
+        const row = Math.floor(idx / columnsCount);
+        // Two rAFs: first lets virtualizer.measure() settle after mode swap,
+        // second scrolls after the new layout has been committed.
+        const raf1 = requestAnimationFrame(() => {
+            const raf2 = requestAnimationFrame(() => virtualizer.scrollToIndex(row, { align: "auto" }));
+            (raf1 as any)._inner = raf2;
+        });
+        return () => {
+            cancelAnimationFrame(raf1);
+            if ((raf1 as any)._inner) cancelAnimationFrame((raf1 as any)._inner);
+        };
+    }, [isActive, mode, filterTag, pathToIndex, columnsCount, virtualizer]);
+
     const renderCard = (s: Script, groupTag?: string) => {
         // В Hub-режиме один и тот же скрипт может появиться в нескольких группах
         // (по одной карточке на тег). Чтобы открытый tag-picker привязывался

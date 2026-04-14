@@ -92,6 +92,20 @@ export default function FlatTreeView({
     });
   }, [isActive, keyToIndex, virtualizer]);
 
+  // When this view becomes active (user switched to tree), scroll the
+  // currently-focused item into view — otherwise it stays off-screen
+  // until the user presses hjkl.
+  useEffect(() => {
+    if (!isActive) return;
+    const focused = useTreeStore.getState().focusedPath;
+    if (!focused) return;
+    const idx = keyToIndex.get(focused);
+    if (idx === undefined) return;
+    // rAF ensures layout is ready after the view swap.
+    const raf = requestAnimationFrame(() => virtualizer.scrollToIndex(idx, { align: "auto" }));
+    return () => cancelAnimationFrame(raf);
+  }, [isActive, keyToIndex, virtualizer]);
+
   // --- Render helpers ---
   const getSetFocusedPath = useCallback(() => useTreeStore.getState().setFocusedPath, []);
   const setFocusedPath = getSetFocusedPath();
