@@ -20,7 +20,6 @@ interface FolderRowProps {
   onContextMenu: (e: React.MouseEvent, data: any) => void;
   setFolderExpansionRecursive: (node: TreeNode, expanded: boolean) => void;
   folderRefs: React.MutableRefObject<Map<string, HTMLDivElement>>;
-  animStyle?: React.CSSProperties;
 }
 
 function isSubtreeFullyExpanded(node: TreeNode): boolean {
@@ -39,7 +38,7 @@ const FolderRow = memo(function FolderRow({
   node, depth, isExpanded, ancestors, lastDescendantIndex, itemIndex,
   isDragging, draggedScriptPath, isContextMenuOpen, contextMenuFolderPath,
   isVimMode, toggleFolder, onContextMenu, setFolderExpansionRecursive,
-  folderRefs, animStyle,
+  folderRefs,
 }: FolderRowProps) {
   const rowRef = useRef<HTMLDivElement>(null);
 
@@ -75,7 +74,7 @@ const FolderRow = memo(function FolderRow({
   const contentLeft = depth * DEPTH_INDENT;
 
   return (
-    <div className="relative" style={animStyle}>
+    <div className="relative">
       {/* Connector lines for ancestor folders */}
       {ancestors.map((ancestorPath, i) => {
         if (itemIndex > lastDescendantIndex[ancestorPath]) return null;
@@ -190,7 +189,6 @@ const FolderRow = memo(function FolderRow({
     && prev.isContextMenuOpen === next.isContextMenuOpen
     && prev.contextMenuFolderPath === next.contextMenuFolderPath
     && prev.isVimMode === next.isVimMode
-    && prev.animStyle === next.animStyle
     && prev.lastDescendantIndex === next.lastDescendantIndex;
 });
 

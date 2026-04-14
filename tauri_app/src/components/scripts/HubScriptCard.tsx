@@ -10,6 +10,9 @@ import Tooltip from "../ui/Tooltip";
 import TruncatedTooltip from "../ui/TruncatedTooltip";
 import { formatDate } from "../../utils/formatDate";
 import { formatSize } from "../../utils/formatSize";
+import { useTagOverflow } from "../../hooks/useTagOverflow";
+
+const HUB_TAG_CLASS = "h-[42px] text-xs px-5 mr-2 bg-[var(--bg-tertiary)] border border-white/5 text-secondary font-bold rounded-xl shadow-lg leading-none flex items-center whitespace-nowrap";
 
 const HubScriptCard = memo(function HubScriptCard({
     s, isDragging, draggedScriptPath, editingScript, pendingScripts, removingTags,
@@ -54,6 +57,12 @@ const HubScriptCard = memo(function HubScriptCard({
     const isPending = !!pendingType;
     const isHub = s.is_hub;
 
+    const tagsContainerRef = React.useRef<HTMLDivElement>(null);
+    const { visibleCount } = useTagOverflow(s.tags, tagsContainerRef, {
+        tagClass: HUB_TAG_CLASS,
+        counterWidth: 56,
+    });
+
     return (
         <div
             ref={cardRef}
@@ -66,7 +75,7 @@ const HubScriptCard = memo(function HubScriptCard({
             }}
             onDoubleClick={() => !isDragging && onToggle(s)}
             id={`script-${navKey}`}
-            className={`pt-[21px] pb-6 px-6 rounded-[24px] border border-transparent flex flex-col select-none relative long-press-shrink ${isEditing ? 'z-[200]' : 'z-10'}
+            className={`h-[200px] pt-[21px] pb-6 px-6 rounded-[24px] border border-transparent flex flex-col select-none relative long-press-shrink ${isEditing ? 'z-[200]' : 'z-10'}
                 ${isFocused && isVimMode ? 'vim-focus-instant !bg-indigo-500/20 shadow-[0_0_40px_rgba(99,102,241,0.2)] ring-2 ring-indigo-500/30' : 'transition-all duration-150'}
                 ${!draggedScriptPath
                     ? `${isVimMode ? '' : 'group hover:z-[100] hover:bg-white/[0.04]'} ${isEditing || isContextMenuOpen ? 'shadow-2xl bg-white/[0.04]' : (isVimMode ? 'bg-white/[0.015]' : 'bg-white/[0.015] hover:shadow-2xl cursor-pointer')}`
@@ -131,16 +140,16 @@ const HubScriptCard = memo(function HubScriptCard({
                         anchorRef={cardRef}
                     />
                 )}
-                <div className="flex flex-wrap gap-2 pointer-events-none">
-                    {s.tags.map(tag => {
+                <div ref={tagsContainerRef} className="flex items-center pointer-events-none w-full">
+                    {s.tags.slice(0, visibleCount).map(tag => {
                         const isRemoving = removingTags.has(`${s.path}-${tag}`);
                         return (
                             <div key={tag}
-                                className="relative group/tag inline-flex items-center pointer-events-auto"
+                                className="relative group/tag inline-flex items-center mr-2 flex-shrink-0 pointer-events-auto"
                                 onDoubleClick={(e) => e.stopPropagation()}
                             >
                                 <div className={isRemoving ? 'animate-tag-out' : 'animate-tag-in'}>
-                                    <span className={`h-[42px] text-xs px-5 bg-[var(--bg-tertiary)] border border-white/5 text-secondary font-bold rounded-xl shadow-lg leading-none flex items-center transition-opacity ${isDragging ? 'opacity-20' : ''}`}>{tag}</span>
+                                    <span className={`h-[42px] text-xs px-5 bg-[var(--bg-tertiary)] border border-white/5 text-secondary font-bold rounded-xl shadow-lg leading-none flex items-center whitespace-nowrap transition-opacity ${isDragging ? 'opacity-20' : ''}`}>{tag}</span>
                                 </div>
                                 <Tooltip text={t("context.delete_tag_simple", { tag: tag })}>
                                 <button
@@ -155,6 +164,11 @@ const HubScriptCard = memo(function HubScriptCard({
                             </div>
                         );
                     })}
+                    {s.tags.length > visibleCount && (
+                        <span className="h-[42px] px-3 mr-2 rounded-xl bg-[var(--bg-tertiary)] border border-white/10 text-2xs font-black text-indigo-400 flex items-center justify-center flex-shrink-0 cursor-default shadow-xl">
+                            +{s.tags.length - visibleCount}
+                        </span>
+                    )}
                     <Tooltip text={t("tooltips.add_tag")} shortcut="t">
                     <button
                         onClick={(e) => {
@@ -167,7 +181,7 @@ const HubScriptCard = memo(function HubScriptCard({
                         }}
                         onMouseDown={(e) => e.stopPropagation()}
                         onDoubleClick={(e) => e.stopPropagation()}
-                        className={`w-[42px] h-[42px] flex items-center justify-center border border-dashed border-white/10 rounded-xl transition-all cursor-pointer pointer-events-auto text-quaternary hover:text-secondary hover:border-white/20
+                        className={`w-[42px] h-[42px] flex-shrink-0 flex items-center justify-center border border-dashed border-white/10 rounded-xl transition-all cursor-pointer pointer-events-auto text-quaternary hover:text-secondary hover:border-white/20
                                 ${isDragging ? 'opacity-0 pointer-events-none' : (isEditing || (isFocused && isVimMode) ? 'opacity-100 bg-[var(--bg-tertiary)]' : 'opacity-0 group-hover:opacity-100')}`}
                     >
                         <PlusIcon />

@@ -241,7 +241,6 @@ function App() {
   const [dataVersion, setDataVersion] = useState(0);
 
   const { brightness, setBrightness, textContrast, setTextContrast, fontScale, setFontScale, vimModeNav, setVimModeNav } = useTheme();
-  const animationsEnabled = !useTreeStore(s => s.virtualization);
 
   // FPS monitor (stats.js) — visible when mock scripts are enabled
   useEffect(() => {
@@ -792,7 +791,6 @@ function App() {
                     onCustomDragStart={startCustomDrag}
                     isDragging={draggedScript !== null}
                     draggedScriptPath={draggedScript?.path || null}
-                    animationsEnabled={animationsEnabled}
                     searchQuery={tab === renderedTab ? searchQuery : ""}
                     setSearchQuery={setSearchQuery}
                     contextMenu={tab === renderedTab ? contextMenu : null}

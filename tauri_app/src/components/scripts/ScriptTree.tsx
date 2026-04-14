@@ -10,7 +10,7 @@ import FlatTreeView from "./FlatTreeView";
 import { useTreeStore } from "../../store/useTreeStore";
 import { safeSetItem } from "../../utils/safeStorage";
 
-export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, onRunningCountChange, viewMode, onViewModeChange, onCustomDragStart, isDragging, draggedScriptPath, animationsEnabled, onScriptContextMenu, onFolderContextMenu, searchQuery, setSearchQuery, contextMenu, onShowUI, refreshKey, onScanComplete, isPathsEmpty, onAddPath, onRemovePath, scanPaths, onRefresh, isRefreshing, onOpenSettings, onSelectScript, onExposeActions, isDetailOpen, onCloseDetail, onDetailPinToggle, isActive = true }: ScriptTreeProps) {
+export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, onRunningCountChange, viewMode, onViewModeChange, onCustomDragStart, isDragging, draggedScriptPath, onScriptContextMenu, onFolderContextMenu, searchQuery, setSearchQuery, contextMenu, onShowUI, refreshKey, onScanComplete, isPathsEmpty, onAddPath, onRemovePath, scanPaths, onRefresh, isRefreshing, onOpenSettings, onSelectScript, onExposeActions, isDetailOpen, onCloseDetail, onDetailPinToggle, isActive = true }: ScriptTreeProps) {
     // Debug: log mount per instance so we can see how many ScriptTree instances
     // live at once (one per visited tag tab) and which is active.
     useEffect(() => {
@@ -81,7 +81,6 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
     const setIsVimMode = useTreeStore(s => s.setIsVimMode);
     const editingScript = useTreeStore(s => s.editingScript);
     const removingTags = useTreeStore(s => s.removingTags);
-    const virtualization = useTreeStore(s => s.virtualization);
 
     useEffect(() => {
         onExposeActions?.({ toggle: handleToggle, restart: handleRestart, pendingScripts, allScripts, setTagIcon, removeTagIcon, deleteTagFromAll, renameTag, toggleHiddenByPath });
@@ -339,8 +338,6 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
                         ) : (
                             <FlatTreeView
                                 tree={tree}
-                                virtualized={virtualization}
-                                animationsEnabled={animationsEnabled}
                                 scrollContainerRef={containerRef}
                                 scrollMargin={toolbarH}
                                 toggleFolder={toggleFolder}

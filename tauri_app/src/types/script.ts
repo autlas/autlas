@@ -17,7 +17,6 @@ export interface ScriptTreeProps {
     onCustomDragStart: (script: { id: string, path: string, filename: string, tags: string[], x: number, y: number }) => void;
     isDragging: boolean;
     draggedScriptPath: string | null;
-    animationsEnabled: boolean;
     onScriptContextMenu: (e: React.MouseEvent, script: Script) => void;
     onFolderContextMenu: (e: React.MouseEvent, folderData: { name: string, fullName: string, is_hidden: boolean, onExpandAll: () => void }) => void;
     searchQuery: string;

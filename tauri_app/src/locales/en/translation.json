@@ -116,8 +116,6 @@
         "show_file_size_desc": "Display script file size next to name",
         "auto_refresh": "Auto-refresh on startup",
         "auto_refresh_desc": "Scan disk for changes when app opens",
-        "virtualization": "Virtual Scroll",
-        "virtualization_desc": "Disables animations, enables virtual scrolling for large lists (5 000+)",
         "data_management": "Data Management",
         "cleanup_orphans": "Clean Up Orphans",
         "cleanup_orphans_desc": "Remove all orphaned script records that were not reconciled",

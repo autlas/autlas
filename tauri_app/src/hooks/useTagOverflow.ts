@@ -1,8 +1,8 @@
 import { useLayoutEffect, useRef, useState, useCallback } from "react";
 import { useResizeObserver } from "./useResizeObserver";
 
-const COUNTER_WIDTH = 42;
-const TAG_CLASS = "text-xs font-bold px-3 h-7 rounded-lg mr-2 leading-none flex items-center bg-[var(--bg-tertiary)] border border-white/5";
+const DEFAULT_COUNTER_WIDTH = 42;
+const DEFAULT_TAG_CLASS = "text-xs font-bold px-3 h-7 rounded-lg mr-2 leading-none flex items-center bg-[var(--bg-tertiary)] border border-white/5";
 
 /**
  * Measures how many tags fit inside the given container and how many overflow.
@@ -11,8 +11,11 @@ const TAG_CLASS = "text-xs font-bold px-3 h-7 rounded-lg mr-2 leading-none flex 
  */
 export function useTagOverflow(
     tags: string[],
-    containerRef: React.RefObject<HTMLElement | null>
+    containerRef: React.RefObject<HTMLElement | null>,
+    options?: { tagClass?: string; counterWidth?: number },
 ): { visibleCount: number; hiddenCount: number; isMeasured: boolean } {
+    const TAG_CLASS = options?.tagClass ?? DEFAULT_TAG_CLASS;
+    const COUNTER_WIDTH = options?.counterWidth ?? DEFAULT_COUNTER_WIDTH;
     const [visibleCount, setVisibleCount] = useState(tags.length);
     const [isMeasured, setIsMeasured] = useState(false);
     const tagWidthsRef = useRef<number[]>([]);
