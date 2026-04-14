@@ -123,28 +123,20 @@ export default function ToggleGroup<T extends string>({
                         data-toggle-id={opt.id}
                         onClick={(e) => {
                             if (disabled) return;
-                            // Imperatively flip the pill + active class on the
-                            // very next paint so the click feels instant even
-                            // when the parent's state update kicks off a heavy
-                            // downstream re-render. React state is updated
-                            // afterwards so the DOM stays consistent.
-                            const container = containerRef.current;
+                            // Imperatively flip the pill on the next paint so
+                            // the click feels instant even when the parent's
+                            // state update kicks off a heavy downstream
+                            // re-render. Button/icon classes are driven by
+                            // React's own render — setting them imperatively
+                            // would leave inline styles that win over className
+                            // on subsequent clicks (pre-existing bug: icon
+                            // opacity stayed stuck after mouse-switching).
                             const pill = pillRef.current;
                             const btnEl = e.currentTarget as HTMLElement;
-                            if (container && pill && btnEl) {
+                            if (pill && btnEl) {
                                 pill.style.transition = 'transform 300ms cubic-bezier(0.4,0,0.2,1)';
                                 const scale = btnEl.offsetWidth / PILL_BASE_WIDTH;
                                 pill.style.transform = `translate3d(${btnEl.offsetLeft}px, 0, 0) scaleX(${scale})`;
-                                container.querySelectorAll<HTMLElement>('[data-toggle-id]').forEach(b => {
-                                    if (b === btnEl) {
-                                        b.classList.add('text-white');
-                                        b.classList.remove('text-tertiary');
-                                    } else {
-                                        b.classList.remove('text-white');
-                                    }
-                                    const svg = b.querySelector<HTMLElement>('svg');
-                                    if (svg) svg.style.opacity = b === btnEl ? '1' : '0.25';
-                                });
                             }
                             setOptimisticValue(opt.id);
                             onChange(opt.id);
