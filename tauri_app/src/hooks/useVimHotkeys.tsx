@@ -33,6 +33,9 @@ export interface UseVimHotkeysArgs {
     onViewModeChange: (m: ViewMode) => void;
     columnsCount: number;
     visibleItems: VisibleItem[];
+    /** Active filter tab — "hub" uses spatial nav (grouped sections),
+     *  everything else uses linear nav (row-major flat grid). */
+    filterTag: string;
 
     // Navigation
     moveFocus: (direction: "up" | "down" | "left" | "right", cols?: number) => void;
@@ -142,6 +145,7 @@ export function useVimHotkeys(args: UseVimHotkeysArgs) {
         isSearchActiveRef,
         containerRef,
         isInstantScrollRef,
+        filterTag,
     } = args;
 
     const { t } = useTranslation();
@@ -344,16 +348,23 @@ export function useVimHotkeys(args: UseVimHotkeysArgs) {
         });
     };
 
-    // Picks the right navigation algorithm. Tree view stays on the legacy
-    // linear `moveFocus` (correct for a single-column hierarchical list).
-    // Tile/list (and hub) use spatial nav so groups + visual columns work.
+    // Picks the right navigation algorithm:
+    //  - tree:       linear moveFocus with step=1 (single-column hierarchy).
+    //  - hub mode:   spatial nav (grouped sections with variable-length rows).
+    //  - tiles/list: linear moveFocus with step=columnsCount (row-major flat
+    //                grid). Spatial nav would bail to "first visible" when
+    //                the focused element scrolled out of the virtualizer's
+    //                overscan window, causing held-j to jump erratically.
     const navigate = useCallback((dir: 'up' | 'down' | 'left' | 'right') => {
         if (viewMode === 'tree') {
             moveFocus(dir, 1);
-        } else {
+        } else if (filterTag === 'hub') {
             moveFocusSpatial(dir);
+        } else {
+            // Tiles/list flat grid: cols=columnsCount for j/k, step=1 handled inside for h/l.
+            moveFocus(dir, columnsCount);
         }
-    }, [viewMode, moveFocus, moveFocusSpatial]);
+    }, [viewMode, moveFocus, moveFocusSpatial, filterTag, columnsCount]);
 
     useHotkeys('j', () => {
         vlog('key: j viewMode=' + viewMode);

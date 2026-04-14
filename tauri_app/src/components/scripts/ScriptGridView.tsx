@@ -103,6 +103,21 @@ export default React.memo(function ScriptGridView({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [mode, columnsCount]);
 
+    // Scroll-to-focused-item for non-hub tiles/list (hub has its own path).
+    // Uses the virtualizer (not DOM queries) so vim-j keeps working when
+    // the focused item is outside the overscan window.
+    React.useEffect(() => {
+        if (filterTag === "hub") return;
+        return useTreeStore.subscribe((state, prev) => {
+            if (state.focusedPath === prev.focusedPath) return;
+            if (!state.focusedPath || !state.isVimMode) return;
+            const idx = filtered.findIndex(s => s.path === state.focusedPath);
+            if (idx < 0) return;
+            const row = Math.floor(idx / columnsCount);
+            virtualizer.scrollToIndex(row, { align: "auto" });
+        });
+    }, [filterTag, filtered, columnsCount, virtualizer]);
+
     const renderCard = (s: Script, groupTag?: string) => {
         // В Hub-режиме один и тот же скрипт может появиться в нескольких группах
         // (по одной карточке на тег). Чтобы открытый tag-picker привязывался

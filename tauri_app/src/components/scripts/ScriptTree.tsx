@@ -129,6 +129,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
         isSearchActiveRef,
         containerRef,
         isInstantScrollRef,
+        filterTag,
     });
 
     // Reset focus to the first script when the sort order changes.
@@ -143,7 +144,8 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
 
     const lastScrollTimeRef = useRef(0);
 
-    // Scroll-to-focus for GRID view only. Tree view scroll is handled inside FlatTreeView.
+    // Scroll-to-focus for HUB grid mode only (not virtualized).
+    // Tree + non-hub tiles/list use their respective virtualizers to scroll.
     useEffect(() => {
         if (!isActive) return;
         const debug = localStorage.getItem('ahk_vim_debug') !== 'false';
@@ -151,6 +153,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
             if (state.focusedPath === prev.focusedPath) return;
             if (!state.focusedPath || !state.isVimMode) return;
             if (viewModeRef.current === "tree") return; // handled by FlatTreeView
+            if (filterTag !== "hub") return; // handled by ScriptGridView virtualizer
             const container = containerRef.current;
             if (!container) { if (debug) console.log('[scroll] BAIL no container'); return; }
             const activeView = gridViewRef.current;
@@ -188,7 +191,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
             });
             if (delta !== 0) container.scrollBy({ top: delta, behavior: 'auto' });
         });
-    }, [isActive]);
+    }, [isActive, filterTag]);
 
     useEffect(() => {
         if (viewMode !== "tree") {
