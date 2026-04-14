@@ -45,6 +45,7 @@ export default function ToggleGroup<T extends string>({
     // Both translate and scale are composited on the GPU, so the animation
     // stays smooth even when the main thread is busy re-rendering the tree.
     const PILL_BASE_WIDTH = 100;
+    const PILL_TRANSITION = "transform 300ms cubic-bezier(0.4,0,0.2,1)";
 
     function movePill(animate: boolean) {
         const container = containerRef.current;
@@ -54,16 +55,16 @@ export default function ToggleGroup<T extends string>({
         if (!activeBtn || activeBtn.offsetWidth === 0) return;
 
         if (!animate) {
-            pill.style.transition = 'none';
+            pill.style.transition = "none";
             pill.offsetHeight;
         } else {
-            pill.style.transition = '';
+            pill.style.transition = PILL_TRANSITION;
         }
         const scale = activeBtn.offsetWidth / PILL_BASE_WIDTH;
         pill.style.transform = `translate3d(${activeBtn.offsetLeft}px, 0, 0) scaleX(${scale})`;
         if (!animate) {
             pill.offsetHeight;
-            pill.style.transition = '';
+            pill.style.transition = PILL_TRANSITION;
         }
         setReady(true);
     }
@@ -141,7 +142,7 @@ export default function ToggleGroup<T extends string>({
                             setOptimisticValue(opt.id);
                             onChange(opt.id);
                         }}
-                        className={`relative z-10 flex-1 h-full rounded-lg transition-colors duration-200 flex items-center justify-center cursor-pointer
+                        className={`relative z-10 flex-1 h-full rounded-lg transition-colors duration-200 flex items-center justify-center cursor-pointer focus:outline-none focus-visible:outline-none
                             ${opt.icon ? "px-4" : "text-2xs font-black tracking-widest uppercase"}
                             ${isActive
                                 ? "text-white"

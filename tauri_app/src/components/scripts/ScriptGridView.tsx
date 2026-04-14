@@ -151,13 +151,13 @@ export default React.memo(function ScriptGridView({
         const row = Math.floor(idx / columnsCount);
         // Two rAFs: first lets virtualizer.measure() settle after mode swap,
         // second scrolls after the new layout has been committed.
+        let raf2 = 0;
         const raf1 = requestAnimationFrame(() => {
-            const raf2 = requestAnimationFrame(() => virtualizer.scrollToIndex(row, { align: "auto" }));
-            (raf1 as any)._inner = raf2;
+            raf2 = requestAnimationFrame(() => virtualizer.scrollToIndex(row, { align: "auto" }));
         });
         return () => {
             cancelAnimationFrame(raf1);
-            if ((raf1 as any)._inner) cancelAnimationFrame((raf1 as any)._inner);
+            if (raf2) cancelAnimationFrame(raf2);
         };
     }, [isActive, mode, filterTag, pathToIndex, columnsCount, virtualizer]);
 
