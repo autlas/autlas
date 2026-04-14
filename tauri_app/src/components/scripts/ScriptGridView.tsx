@@ -1,4 +1,5 @@
 import React from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import HubScriptCard from "./HubScriptCard";
 import ScriptRow from "./ScriptRow";
 import EmptyState from "../common/EmptyState";
@@ -30,7 +31,6 @@ interface ScriptGridViewProps {
     groupedHub: { tag: string; scripts: Script[] }[] | null;
     filterTag: string;
     columnsCount: number;
-    masonryColumns: Script[][];
     // empty state
     isPathsEmpty: boolean;
     hasContent: boolean;
@@ -66,20 +66,42 @@ interface ScriptGridViewProps {
     onSelectScript?: (s: Script) => void;
     collapsedSections: Set<string>;
     toggleSection: (tag: string) => void;
+    scrollContainerRef: React.RefObject<HTMLDivElement | null>;
+    scrollMargin: number;
 }
 
 export default React.memo(function ScriptGridView({
-    mode, filtered, groupedHub, filterTag, columnsCount, masonryColumns,
+    mode, filtered, groupedHub, filterTag, columnsCount,
     isPathsEmpty, hasContent, searchQuery, onAddPath, onRemovePath, scanPaths, onRefresh, isRefreshing, onOpenSettings,
     isDragging, draggedScriptPath, editingScript, pendingScripts, removingTags, allUniqueTags,
     popoverRef, showHidden, contextMenu, handleCustomMouseDown, handleToggle,
     startEditing, addTag, removeTag, stopEditing, onScriptContextMenu,
     onShowUI, onRestart, setFocusedPath, onSelectScript,
     collapsedSections, toggleSection,
+    scrollContainerRef, scrollMargin,
 }: ScriptGridViewProps) {
     const isTiles = mode === "tiles";
     const gridGap = isTiles ? "gap-6" : "gap-x-8 gap-y-1";
     const colClass = isTiles ? "flex flex-col gap-6" : "flex flex-col gap-y-1";
+    // Row heights: tile=200 + gap-6 (24) = 224 ; row=38 + mb-0.5 (2) + gap-y-1 (4) = 44
+    const rowHeight = isTiles ? 224 : 44;
+    const virtualRows = Math.ceil(filtered.length / columnsCount);
+
+    const virtualizer = useVirtualizer({
+        count: virtualRows,
+        getScrollElement: () => scrollContainerRef.current,
+        estimateSize: () => rowHeight,
+        overscan: isTiles ? 5 : 15,
+        scrollMargin,
+    });
+
+    // Reset cached measurements when layout parameters change.
+    // estimateSize captures `rowHeight` at creation, but the virtualizer
+    // keeps per-row measurements that become stale on mode/columns change.
+    React.useEffect(() => {
+        virtualizer.measure();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [mode, columnsCount]);
 
     const renderCard = (s: Script, groupTag?: string) => {
         // В Hub-режиме один и тот же скрипт может появиться в нескольких группах
@@ -201,15 +223,28 @@ export default React.memo(function ScriptGridView({
                     );
                 })
             ) : (
-                <div
-                    className={`grid ${gridGap} items-start pb-10`}
-                    style={{ gridTemplateColumns: `repeat(${columnsCount}, minmax(0, 1fr))` }}
-                >
-                    {masonryColumns.map((col, colIdx) => (
-                        <div key={colIdx} className={colClass}>
-                            {col.map(s => renderCard(s))}
-                        </div>
-                    ))}
+                <div style={{ height: virtualizer.getTotalSize(), width: "100%", position: "relative" }}>
+                    {virtualizer.getVirtualItems().map(vRow => {
+                        const startIdx = vRow.index * columnsCount;
+                        const endIdx = Math.min(startIdx + columnsCount, filtered.length);
+                        const rowScripts = filtered.slice(startIdx, endIdx);
+                        return (
+                            <div
+                                key={vRow.key}
+                                className={`grid ${gridGap}`}
+                                style={{
+                                    position: "absolute",
+                                    top: 0,
+                                    left: 0,
+                                    width: "100%",
+                                    transform: `translateY(${vRow.start - virtualizer.options.scrollMargin}px)`,
+                                    gridTemplateColumns: `repeat(${columnsCount}, minmax(0, 1fr))`,
+                                }}
+                            >
+                                {rowScripts.map(s => renderCard(s))}
+                            </div>
+                        );
+                    })}
                 </div>
             )}
         </div>

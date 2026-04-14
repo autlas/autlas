@@ -239,12 +239,6 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
         scrollPositions.current[`${filterTag}-${viewMode}`] = e.currentTarget.scrollTop;
     };
 
-    const masonryColumns = useMemo(() => {
-        const cols: import("../../api").Script[][] = Array.from({ length: columnsCount }, () => []);
-        filtered.forEach((s, i) => cols[i % columnsCount].push(s));
-        return cols;
-    }, [filtered, columnsCount]);
-
     const hasAnyContent = useMemo(() => {
         return allScripts.some(s => {
             if (filterTag === "hub") return s.is_running || s.is_hub;
@@ -285,7 +279,6 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
                             groupedHub={groupedHub}
                             filterTag={filterTag}
                             columnsCount={columnsCount}
-                            masonryColumns={masonryColumns}
                             isPathsEmpty={!!isPathsEmpty}
                             hasContent={hasAnyContent}
                             searchQuery={searchQuery}
@@ -319,6 +312,8 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
                             onSelectScript={onSelectScript}
                             collapsedSections={hubCollapsed}
                             toggleSection={toggleHubSection}
+                            scrollContainerRef={containerRef}
+                            scrollMargin={toolbarH}
                         />
                     </div>}
                     <div ref={treeViewRef} className={viewMode === "tree" ? "select-none min-h-full" : "hidden"}>
