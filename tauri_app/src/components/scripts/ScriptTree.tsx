@@ -317,6 +317,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
                             toggleSection={toggleHubSection}
                             scrollContainerRef={containerRef}
                             scrollMargin={toolbarH}
+                            isActive={isActive && viewMode !== "tree"}
                         />
                     </div>}
                     <div ref={treeViewRef} className={viewMode === "tree" ? "select-none min-h-full" : "hidden"}>
@@ -354,7 +355,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
                                 onShowUI={onShowUI}
                                 onRestart={handleRestart}
                                 onSelectScript={onSelectScript}
-                                isActive={isActive}
+                                isActive={isActive && viewMode === "tree"}
                             />
                         )}
                     </div>

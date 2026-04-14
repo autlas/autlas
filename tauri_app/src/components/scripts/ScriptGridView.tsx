@@ -68,6 +68,10 @@ interface ScriptGridViewProps {
     toggleSection: (tag: string) => void;
     scrollContainerRef: React.RefObject<HTMLDivElement | null>;
     scrollMargin: number;
+    /** This view is the one currently shown on screen. Grid and tree views
+     *  share a scroll container; only the active view should auto-scroll
+     *  to keep focus in view (otherwise both fight for scrollTop). */
+    isActive: boolean;
 }
 
 export default React.memo(function ScriptGridView({
@@ -79,6 +83,7 @@ export default React.memo(function ScriptGridView({
     onShowUI, onRestart, setFocusedPath, onSelectScript,
     collapsedSections, toggleSection,
     scrollContainerRef, scrollMargin,
+    isActive,
 }: ScriptGridViewProps) {
     const isTiles = mode === "tiles";
     const gridGap = isTiles ? "gap-6" : "gap-x-8 gap-y-1";
@@ -116,8 +121,11 @@ export default React.memo(function ScriptGridView({
     }, [filtered]);
 
     // Scroll-to-focused-item for non-hub tiles/list (hub has its own path).
-    // scrollPaddingStart/End on the virtualizer handle the 300/200 padding.
+    // Gated by isActive: when grid view is hidden (user is on tree), the
+    // tree view owns the shared scroll container — this subscription must
+    // stay quiet so the two virtualizers don't fight for scrollTop.
     React.useEffect(() => {
+        if (!isActive) return;
         if (filterTag === "hub") return;
         return useTreeStore.subscribe((state, prev) => {
             if (state.focusedPath === prev.focusedPath) return;
@@ -127,7 +135,7 @@ export default React.memo(function ScriptGridView({
             const row = Math.floor(idx / columnsCount);
             virtualizer.scrollToIndex(row, { align: "auto" });
         });
-    }, [filterTag, pathToIndex, columnsCount, virtualizer]);
+    }, [isActive, filterTag, pathToIndex, columnsCount, virtualizer]);
 
     const renderCard = (s: Script, groupTag?: string) => {
         // В Hub-режиме один и тот же скрипт может появиться в нескольких группах
