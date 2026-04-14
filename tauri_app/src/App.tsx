@@ -8,27 +8,35 @@ import DragGhost from "./components/common/DragGhost";
 import Sidebar from "./components/sidebar/Sidebar";
 import CheatSheet from "./components/common/CheatSheet";
 import OrphanReconcileDialog, { PendingMatch } from "./components/common/OrphanReconcileDialog";
-import { Script, checkEverythingStatus, launchEverything, installEverything, setScriptHub, addScriptTag, removeScriptTag, showScriptUI, saveTagOrder, getTagOrder, openUrl } from "./api";
+import EverythingManager, { EverythingManagerHandle } from "./components/common/EverythingManager";
+import { Script, setScriptHub, addScriptTag, removeScriptTag, showScriptUI, saveTagOrder, getTagOrder } from "./api";
 import { Toaster } from "sonner";
-import { appToast, ToastButton } from "./components/ui/AppToast";
-import { CloseIcon } from "./components/ui/Icons";
+import { appToast } from "./components/ui/AppToast";
 import { useTheme } from "./hooks/useTheme";
-import Stats from "stats.js";
 import { useScanPaths } from "./hooks/useScanPaths";
 import { useScanBlacklist } from "./hooks/useScanBlacklist";
 import { useHiddenFolders } from "./hooks/useHiddenFolders";
 import { usePhysicsMotion } from "./hooks/usePhysicsMotion";
 import { useNavigation } from "./hooks/useNavigation";
-import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
-import { LogicalSize } from "@tauri-apps/api/dpi";
+import { useWindowLayoutManager } from "./hooks/useWindowLayoutManager";
+import { useScanProgressListener } from "./hooks/useScanProgressListener";
+import { useRefreshAnimation } from "./hooks/useRefreshAnimation";
+import { useDragGhostPosition } from "./hooks/useDragGhostPosition";
+import { useFpsMonitor } from "./hooks/useFpsMonitor";
+import {
+  useVimMouseExit,
+  useCheatsheetKeybind,
+  useDevtoolsShortcut,
+  useContextMenuCloseOnOutside,
+} from "./hooks/useAppGlobalEvents";
 import { useTranslation } from "react-i18next";
 import { useTreeStore } from "./store/useTreeStore";
 import { safeSetItem } from "./utils/safeStorage";
 import {
+  TREE_MIN_WIDTH,
   DETAIL_PANEL_MIN_WIDTH,
   SIDEBAR_MIN_WIDTH,
   SIDEBAR_COLLAPSED_WIDTH,
-  TREE_MIN_WIDTH,
 } from "./constants/layout";
 import "./App.css";
 
@@ -36,138 +44,22 @@ const MemoizedScriptTree = React.memo(ScriptTree);
 
 function App() {
   const { t } = useTranslation();
-  const isVimMode = useTreeStore(s => s.isVimMode);
-  useEffect(() => {
-    if (localStorage.getItem('ahk_vim_debug') !== 'false') {
-      console.log('[vim-mode]', isVimMode ? 'ENTER (cursor hidden)' : 'EXIT');
-    }
-    document.body.classList.toggle('vim-cursor-hidden', isVimMode);
-    if (!isVimMode) return;
-    const onMove = () => {
-      if (localStorage.getItem('ahk_vim_debug') !== 'false') {
-        console.log('[vim-mode] mousemove → exit');
-      }
-      useTreeStore.getState().setIsVimMode(false);
-    };
-    window.addEventListener('mousemove', onMove, { capture: true, once: true });
-    return () => window.removeEventListener('mousemove', onMove, { capture: true } as any);
-  }, [isVimMode]);
+
+  // ─── Global app lifecycle hooks (vim, cheatsheet, devtools, FPS) ─────
+  useVimMouseExit();
+  useCheatsheetKeybind();
+  useDevtoolsShortcut();
+  useFpsMonitor();
 
   const cheatsheetOpen = useTreeStore(s => s.cheatsheetOpen);
   const setCheatsheetOpen = useTreeStore(s => s.setCheatsheetOpen);
 
-  // ─── Window resize: keep tree at ≥500px by proportionally squeezing
-  // sidebar and detail panel; collapse sidebar / close detail when needed.
-  useEffect(() => {
-    const TREE_MIN = TREE_MIN_WIDTH;
-    const SIDEBAR_MIN = SIDEBAR_MIN_WIDTH;
-    const SIDEBAR_COLLAPSED = SIDEBAR_COLLAPSED_WIDTH;
-    const DETAIL_MIN = DETAIL_PANEL_MIN_WIDTH;
-
-    const onResize = () => {
-      const total = window.innerWidth;
-      const state = useTreeStore.getState();
-      const detailOpen = !!selectedPathRef.current;
-      const collapsed = state.sidebarCollapsed;
-      let sidebar = collapsed ? SIDEBAR_COLLAPSED : state.sidebarWidth;
-      let detail = detailOpen ? state.detailPanelWidth : 0;
-      const tree = total - sidebar - detail;
-      if (tree >= TREE_MIN) return; // tree absorbs the shrink
-
-      let deficit = TREE_MIN - tree;
-      const sidebarFloor = collapsed ? SIDEBAR_COLLAPSED : SIDEBAR_MIN;
-      const sidebarHead = sidebar - sidebarFloor;
-      const detailHead = detailOpen ? detail - DETAIL_MIN : 0;
-      const totalHead = sidebarHead + detailHead;
-
-      if (totalHead >= deficit) {
-        // Distribute deficit proportionally to remaining headroom so both
-        // sides reach their minimums simultaneously.
-        const sCut = totalHead === 0 ? 0 : deficit * (sidebarHead / totalHead);
-        const dCut = deficit - sCut;
-        if (!collapsed && sCut > 0) state.setSidebarWidth(Math.max(sidebarFloor, sidebar - sCut));
-        if (detailOpen && dCut > 0) state.setDetailPanelWidth(Math.max(DETAIL_MIN, detail - dCut));
-        return;
-      }
-
-      // Headroom exhausted: drop both to their minimums first.
-      if (!collapsed) state.setSidebarWidth(SIDEBAR_MIN);
-      if (detailOpen) state.setDetailPanelWidth(DETAIL_MIN);
-      sidebar = collapsed ? SIDEBAR_COLLAPSED : SIDEBAR_MIN;
-      detail = detailOpen ? DETAIL_MIN : 0;
-      deficit = TREE_MIN - (total - sidebar - detail);
-      if (deficit <= 0) return;
-
-      // Collapse sidebar (frees SIDEBAR_MIN - SIDEBAR_COLLAPSED).
-      if (!collapsed) {
-        state.setSidebarCollapsed(true);
-        sidebar = SIDEBAR_COLLAPSED;
-        deficit = TREE_MIN - (total - sidebar - detail);
-        if (deficit <= 0) return;
-      }
-
-      // Last resort: close the detail panel.
-      if (detailOpen) setSelectedPathRef.current?.(null);
-    };
-
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, []);
-
-  // Inverse: when the sidebar expands or the detail panel opens, grow the
-  // window outward so the new layout fits without squeezing the tree.
-  // Caller can override `assumeSidebarExpanded` so we compute the right
-  // required width even before the store reflects an in-flight expand.
-  const growWindowToFit = useCallback(async (opts?: { assumeSidebarExpanded?: boolean; assumeDetailOpen?: boolean }) => {
-    const TREE_MIN = TREE_MIN_WIDTH;
-    const SIDEBAR_COLLAPSED = SIDEBAR_COLLAPSED_WIDTH;
-    const state = useTreeStore.getState();
-    const expanded = opts?.assumeSidebarExpanded ?? !state.sidebarCollapsed;
-    const sidebar = expanded ? state.sidebarWidth : SIDEBAR_COLLAPSED;
-    const detailOpen = opts?.assumeDetailOpen ?? !!selectedPathRef.current;
-    const detail = detailOpen ? state.detailPanelWidth : 0;
-    const required = sidebar + TREE_MIN + detail;
-    if (window.innerWidth >= required) return;
-    try {
-      const win = getCurrentWebviewWindow();
-      await win.setSize(new LogicalSize(required, window.innerHeight));
-    } catch (e) {
-      console.error("[layout] grow window failed:", e);
-    }
-  }, []);
-
-  const sidebarCollapsedStore = useTreeStore(s => s.sidebarCollapsed);
-  useEffect(() => {
-    if (!sidebarCollapsedStore) growWindowToFit();
-  }, [sidebarCollapsedStore, growWindowToFit]);
-
   const selectedPathRef = useRef<string | null>(null);
   const setSelectedPathRef = useRef<((p: string | null) => void) | null>(null);
-  useEffect(() => {
-    if (localStorage.getItem('ahk_vim_debug') !== 'false') {
-      console.log('[cheatsheet]', cheatsheetOpen ? 'OPEN' : 'CLOSE');
-    }
-  }, [cheatsheetOpen]);
-  useEffect(() => {
-    const debug = localStorage.getItem('ahk_vim_debug') !== 'false';
-    const onOpen = () => {
-      if (debug) console.log('[cheatsheet] open (via ahk-open-cheatsheet event — probably Settings button)');
-      setCheatsheetOpen(true);
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && useTreeStore.getState().cheatsheetOpen) {
-        if (debug) console.log('[cheatsheet] global Esc → close');
-        e.stopPropagation();
-        setCheatsheetOpen(false);
-      }
-    };
-    window.addEventListener("ahk-open-cheatsheet", onOpen);
-    window.addEventListener("keydown", onKey, true);
-    return () => {
-      window.removeEventListener("ahk-open-cheatsheet", onOpen);
-      window.removeEventListener("keydown", onKey, true);
-    };
-  }, [setCheatsheetOpen]);
+
+  // ─── Window layout (resize, grow, squeeze) ─────────────────────────
+  const { growWindowToFit } = useWindowLayoutManager(selectedPathRef, setSelectedPathRef);
+
   const [userTags, setUserTags] = useState<string[]>([]);
 
   const draggedScript = useTreeStore(s => s.draggedScript);
@@ -183,9 +75,7 @@ function App() {
   const setActiveTabPressedStore = useTreeStore(s => s.setActiveTabPressed);
   const [refreshKey, setRefreshKey] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [everythingToast, setEverythingToast] = useState<"installed" | "not_installed" | "launching" | "installing" | "started" | null>(null);
-  const [installProgress, setInstallProgress] = useState<{ phase: string; progress: number } | null>(null);
-  const [showInstallModal, setShowInstallModal] = useState(false);
+  const everythingRef = useRef<EverythingManagerHandle>(null);
   const [orphanMatches, setOrphanMatches] = useState<PendingMatch[]>([]);
   const [showOrphanDialog, setShowOrphanDialog] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; type: "script" | "tag" | "folder" | "general"; data: any; fromKeyboard?: boolean } | null>(null);
@@ -242,21 +132,6 @@ function App() {
 
   const { brightness, setBrightness, textContrast, setTextContrast, fontScale, setFontScale, vimModeNav, setVimModeNav } = useTheme();
 
-  // FPS monitor (stats.js) — visible when mock scripts are enabled
-  useEffect(() => {
-    const mockCount = parseInt(localStorage.getItem("ahk_mock_scripts") || "0");
-    if (mockCount <= 0) return;
-    const stats = new Stats();
-    stats.showPanel(0); // 0: fps, 1: ms, 2: mb
-    stats.dom.style.cssText = "position:fixed;top:0;left:0;z-index:99999;opacity:0.85;";
-    document.body.appendChild(stats.dom);
-    let raf: number;
-    const loop = () => { stats.end(); stats.begin(); raf = requestAnimationFrame(loop); };
-    stats.begin();
-    raf = requestAnimationFrame(loop);
-    return () => { cancelAnimationFrame(raf); stats.dom.remove(); };
-  }, []);
-
   const triggerScan = useCallback(() => {
     appToast.dismiss("everything");
     appToast.info(t("sidebar.scanning", "Сканирование..."), { id: "scan", duration: Infinity, pulse: true });
@@ -296,7 +171,6 @@ function App() {
   const renderedDisplayMode = useDeferredValue(displayMode);
 
   const refreshIconRef = useRef<HTMLDivElement>(null);
-  const activeAnimRef = useRef<Animation | null>(null);
   const [visitedTabs, setVisitedTabs] = useState<Set<string>>(() => new Set([activeTab]));
   useEffect(() => {
     if (renderedTab !== "settings") {
@@ -317,55 +191,10 @@ function App() {
     appToast.success(message, { id: "scan", duration: 3500 });
   }, [t]);
 
-  // Listen for scan progress events
-  useEffect(() => {
-    let mounted = true;
-    let unlisten: (() => void) | null = null;
-    let unlistenOrphan: (() => void) | null = null;
-    let unlistenScanPhase: (() => void) | null = null;
-    // Если cleanup сработал раньше чем async listen() резолвится — вызываем
-    // полученный unlisten немедленно, иначе StrictMode-double-mount оставит
-    // дублирующие подписки и тосты будут стрелять ×2.
-    const safe = (assign: (fn: () => void) => void) => (fn: () => void) => {
-      if (!mounted) { fn(); return; }
-      assign(fn);
-    };
-    import('@tauri-apps/api/event').then(({ listen }) => {
-      if (!mounted) return;
-      listen<number>('scan-progress', (event) => {
-        appToast.info(`${t("sidebar.scripts_found")} ${event.payload}`, { id: "scan", duration: Infinity, pulse: true });
-      }).then(safe(fn => { unlisten = fn; }));
-      listen<string>('scan-phase', (event) => {
-        const phase = event.payload;
-        const msg = phase === "reconciling" ? t("sidebar.phase_reconciling", "Сверка с базой...")
-          : phase === "loading-meta" ? t("sidebar.phase_loading_meta", "Загрузка тегов...")
-          : phase === "enriching" ? t("sidebar.phase_enriching", "Проверка статусов...")
-          : null;
-        if (msg) appToast.info(msg, { id: "scan", duration: Infinity, pulse: true });
-      }).then(safe(fn => { unlistenScanPhase = fn; }));
-      listen<PendingMatch[]>('orphan-matches-found', (event) => {
-        if (event.payload.length > 0) {
-          setOrphanMatches(event.payload);
-          const count = event.payload.length;
-          appToast.warning(
-            count === 1 ? t("orphan.toast_one") : t("orphan.toast_many", { count }),
-            {
-              id: "orphan", duration: Infinity,
-              right: (
-                <ToastButton onClick={() => { setShowOrphanDialog(true); appToast.dismiss("orphan"); }}>
-                  {t("orphan.review")}
-                </ToastButton>
-              )
-            }
-          );
-        }
-      }).then(safe(fn => { unlistenOrphan = fn; }));
-    });
-    return () => {
-      mounted = false;
-      unlisten?.(); unlistenOrphan?.(); unlistenScanPhase?.();
-    };
-  }, []);
+  useScanProgressListener({
+    onOrphanMatches: setOrphanMatches,
+    onReviewOrphans: () => setShowOrphanDialog(true),
+  });
 
   const handleLoadingChange = useCallback((loading: boolean) => {
     setIsRefreshing(loading);
@@ -397,115 +226,11 @@ function App() {
     );
   };
 
-  // Drag ghost mouse tracking
-  useEffect(() => {
-    let animationFrameId: number;
-    let latestX = 0;
-    let latestY = 0;
-    let isDragging = false;
+  // Refresh spinner animation (Web Animations API) + global close handlers.
+  useRefreshAnimation(refreshIconRef, isRefreshing);
+  useContextMenuCloseOnOutside(() => setContextMenu(null));
 
-    const updatePosition = () => {
-      if (ghostRef.current && isDragging) {
-        const type = ghostRef.current.getAttribute("data-drag-type");
-        if (type === "tag") {
-          ghostRef.current.style.transform = `translate3d(${tagDragOffsetXRef.current}px, ${latestY - tagDragOffsetYRef.current - 1}px, 0) translate(-50%, 0) scale(1)`;
-        } else {
-          ghostRef.current.style.transform = `translate3d(${latestX}px, ${latestY}px, 0) translate(-50%, -50%) scale(1.05)`;
-        }
-      }
-      animationFrameId = 0;
-    };
-
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!ghostRef.current) return;
-      if (ghostRef.current.getAttribute("data-dragging") !== "true") { isDragging = false; return; }
-      isDragging = true;
-      latestX = e.clientX;
-      latestY = e.clientY;
-      if (!animationFrameId) animationFrameId = requestAnimationFrame(updatePosition);
-    };
-
-    window.addEventListener("mousemove", handleMouseMove, { passive: true });
-    return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-      if (animationFrameId) cancelAnimationFrame(animationFrameId);
-    };
-  }, []);
-
-  const hideEverythingToast = useCallback(() => {
-    appToast.dismiss("everything");
-    setTimeout(() => setEverythingToast(null), 500);
-  }, []);
-
-  const showEverythingToast = useCallback((status: string) => {
-    const isInstalled = status === "installed";
-    const isStarted = status === "started";
-    const message = isStarted
-      ? t("settings.everything_toast_running")
-      : isInstalled
-        ? t("settings.everything_toast_installed")
-        : t("settings.everything_toast_not_installed");
-    // started → success (Everything заработал, либо сам, либо после клика "Launch")
-    // installed / not_installed → warning (опциональный ускоритель: app работает
-    // без него через WalkDir-fallback, но юзеру стоит действие предложить)
-    const kind = isStarted ? "success" : "warning";
-    appToast[kind](message, {
-      id: "everything",
-      duration: isStarted ? 3000 : Infinity,
-      right: isInstalled ? (
-        <ToastButton onClick={async () => {
-          appToast.dismiss("everything");
-          setEverythingToast("launching");
-          try { await launchEverything(); setEverythingToast("started"); showEverythingToast("started"); }
-          catch (e) { console.error(e); setEverythingToast("installed"); showEverythingToast("installed"); }
-        }}>{t("settings.everything_launch")}</ToastButton>
-      ) : status === "not_installed" ? (
-        <ToastButton onClick={() => setShowInstallModal(true)}>
-          {t("settings.everything_install")}
-        </ToastButton>
-      ) : undefined
-    });
-  }, []);
-
-  // Check Everything status on startup (StrictMode-safe: запускаем ровно раз)
-  const everythingCheckedRef = useRef(false);
-  useEffect(() => {
-    if (everythingCheckedRef.current) return;
-    everythingCheckedRef.current = true;
-    checkEverythingStatus().then(status => {
-      if (status !== "running") {
-        setEverythingToast(status);
-        showEverythingToast(status);
-      }
-    });
-  }, [showEverythingToast]);
-
-  // Auto-hide toast when Everything starts running
-  useEffect(() => {
-    if (everythingToast !== "installed") return;
-    const interval = setInterval(async () => {
-      const status = await checkEverythingStatus();
-      if (status === "running") {
-        setEverythingToast("started");
-        showEverythingToast("started");
-        setTimeout(hideEverythingToast, 3000);
-      }
-    }, 3000);
-    return () => clearInterval(interval);
-  }, [everythingToast, hideEverythingToast, showEverythingToast]);
-
-  // Listen for Everything install progress events
-  useEffect(() => {
-    let unlisten: (() => void) | null = null;
-    import('@tauri-apps/api/event').then(({ listen }) => {
-      listen<{ phase: string; progress: number }>('everything-install-progress', (event) => {
-        setInstallProgress(event.payload);
-      }).then(fn => { unlisten = fn; });
-    });
-    return () => { if (unlisten) unlisten(); };
-  }, []);
-
-  // Sync contextMenu to store for TreeNodeRenderer
+  // Sync contextMenu to store (ContextMenu-aware components read from there).
   useEffect(() => { useTreeStore.getState().setContextMenu(contextMenu); }, [contextMenu]);
 
   // vim Ctrl-tap → open context menu on focused script/folder
@@ -516,7 +241,7 @@ function App() {
         setContextMenu({ x: d.x, y: d.y, type: "script", data: d.data, fromKeyboard: true });
       } else {
         // Folder data from visibleItems lacks the expand-all callbacks that
-        // TreeNodeRenderer plumbs in via right-click. The menu disables the
+        // the tree view plumbs in via right-click. The menu disables the
         // expand-all entry when those callbacks are missing.
         setContextMenu({
           x: d.x, y: d.y, type: "folder", fromKeyboard: true, data: {
@@ -530,69 +255,11 @@ function App() {
     return () => window.removeEventListener("ahk-open-context-menu", onOpen);
   }, []);
 
-  // Global listeners: click-out context menu, devtools shortcut
-  useEffect(() => {
-    const handleGlobalClick = () => setContextMenu(null);
-    const handleGlobalScroll = () => setContextMenu(null);
-    const handleGlobalContextMenu = (e: MouseEvent) => {
-      e.preventDefault();
-      if (!(e as any)._reactProcessed && !e.defaultPrevented) setContextMenu(null);
-    };
-    const handleKeyDown = async (e: KeyboardEvent) => {
-      if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "i") {
-        const win = getCurrentWebviewWindow();
-        if ("openDevtools" in win) (win as any).openDevtools();
-        else if ("toggleDevtools" in win) (win as any).toggleDevtools();
-      }
-    };
-
-    window.addEventListener("click", handleGlobalClick);
-    window.addEventListener("scroll", handleGlobalScroll, true);
-    window.addEventListener("contextmenu", handleGlobalContextMenu);
-    window.addEventListener("keydown", handleKeyDown);
-    return () => {
-      window.removeEventListener("click", handleGlobalClick);
-      window.removeEventListener("scroll", handleGlobalScroll, true);
-      window.removeEventListener("contextmenu", handleGlobalContextMenu);
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, []);
-
-
-  // Refresh icon animation (Web Animations API)
-  useEffect(() => {
-    const icon = refreshIconRef.current;
-    if (!icon) return;
-
-    if (isRefreshing) {
-      if (activeAnimRef.current) activeAnimRef.current.cancel();
-      activeAnimRef.current = icon.animate(
-        [{ transform: "rotate(0deg)" }, { transform: "rotate(360deg)" }],
-        { duration: 800, iterations: Infinity, easing: "linear" }
-      );
-    } else {
-      if (activeAnimRef.current && activeAnimRef.current.playState !== "idle") {
-        const style = window.getComputedStyle(icon);
-        const matrix = new DOMMatrix(style.transform);
-        const currentAngle = Math.round(Math.atan2(matrix.b, matrix.a) * (180 / Math.PI));
-        activeAnimRef.current.cancel();
-        activeAnimRef.current = null;
-
-        const startDeg = currentAngle < 0 ? currentAngle + 360 : currentAngle;
-        let targetDeg = startDeg + 360;
-        targetDeg = Math.ceil(targetDeg / 180) * 180;
-
-        icon.animate(
-          [{ transform: `rotate(${startDeg}deg)` }, { transform: `rotate(${targetDeg}deg)` }],
-          { duration: 800, easing: "cubic-bezier(0.34, 1.56, 0.64, 1)", fill: "forwards" }
-        ).onfinish = () => { icon.style.transform = `rotate(${targetDeg % 360}deg)`; };
-      }
-    }
-  }, [isRefreshing]);
-
   const pendingTagDragRef = useRef<{ tag: string; x: number; y: number } | null>(null);
   const tagDragOffsetYRef = useRef<number>(0);
   const tagDragOffsetXRef = useRef<number>(0);
+
+  useDragGhostPosition(ghostRef, tagDragOffsetXRef, tagDragOffsetYRef);
 
   const handleCustomDrop = async (id: string, tag: string) => {
     setDragOverTag(null);
@@ -770,7 +437,7 @@ function App() {
                 hiddenFolders={hiddenFolders}
                 onUnhideFolder={unhideFolder}
                 onAddHiddenFolder={handleAddHiddenFolder}
-                onInstallEverything={() => setShowInstallModal(true)}
+                onInstallEverything={() => everythingRef.current?.openInstallModal()}
                 orphanCount={orphanMatches.length}
                 onReviewOrphans={() => setShowOrphanDialog(true)}
                 onRefresh={triggerScan}
@@ -903,79 +570,7 @@ function App() {
         toastOptions={{ unstyled: true, style: { minWidth: '420px' } }}
       />
 
-      {/* Everything Install Modal */}
-      {showInstallModal && (
-        <div className="fixed inset-0 z-[10000] flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => !installProgress && setShowInstallModal(false)} />
-          <div className="relative bg-black/30 backdrop-blur-lg border border-white/15 rounded-3xl shadow-2xl w-[400px] p-6 space-y-5">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold tracking-widest text-white/60 uppercase">Install Everything</h3>
-              {!installProgress && (
-                <button onClick={() => setShowInstallModal(false)} className="text-white/30 hover:text-white/60 transition-colors cursor-pointer"><CloseIcon size={14} /></button>
-              )}
-            </div>
-
-            <p className="text-xs text-white/50 leading-relaxed">
-              Everything enables instant file scanning — 30–100x faster than regular disk scan. Choose how to install:
-            </p>
-
-            {!installProgress ? (
-              <div className="space-y-3">
-                <button
-                  onClick={async () => {
-                    setInstallProgress({ phase: "downloading", progress: 0 });
-                    setEverythingToast("installing");
-                    try {
-                      await installEverything();
-                      setInstallProgress(null);
-                      setShowInstallModal(false);
-                      setEverythingToast("started");
-                      showEverythingToast("started");
-                      setTimeout(hideEverythingToast, 3000);
-                    } catch (e) {
-                      console.error(e);
-                      setInstallProgress(null);
-                      setEverythingToast("not_installed");
-                    }
-                  }}
-                  className="w-full py-3 bg-indigo-500/20 hover:bg-indigo-500/30 border border-indigo-500/20 hover:border-indigo-500/40 rounded-2xl transition-all cursor-pointer group"
-                >
-                  <div className="text-sm font-bold text-indigo-400 group-hover:text-indigo-300 transition-colors">Install Automatically</div>
-                  <div className="text-xs text-white/40 mt-1">Download and install silently via direct link</div>
-                </button>
-
-                <button
-                  onClick={() => {
-                    openUrl("https://www.voidtools.com/downloads/");
-                    setShowInstallModal(false);
-                  }}
-                  className="w-full py-3 bg-white/[0.03] hover:bg-white/[0.06] border border-white/10 hover:border-white/20 rounded-2xl transition-all cursor-pointer group"
-                >
-                  <div className="text-sm font-bold text-white/70 group-hover:text-white/90 transition-colors">Install Manually</div>
-                  <div className="text-xs text-white/40 mt-1">Open voidtools.com downloads page</div>
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-4 py-2">
-                <div className="flex items-center gap-3">
-                  <div className="w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.8)] animate-pulse" />
-                  <span className="text-xs font-medium text-white/70 flex-1">
-                    {installProgress.phase === "installing"
-                      ? "Installing Everything…"
-                      : `Downloading… ${installProgress.progress}%`}
-                  </span>
-                </div>
-                <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-indigo-500 rounded-full transition-all duration-300"
-                    style={{ width: `${installProgress.phase === "installing" ? 100 : installProgress.progress}%` }}
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      <EverythingManager ref={everythingRef} />
     </div>
   );
 }
