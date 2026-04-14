@@ -74,16 +74,21 @@ export default function FlatTreeView({
     estimateSize: () => 40,
     overscan: 30,
     scrollMargin,
+    // Built-in padding: focused item >= 300px from top / 200px from bottom.
+    scrollPaddingStart: 300,
+    scrollPaddingEnd: 200,
   });
 
   // --- Scroll-to-focused-item (vim navigation) ---
+  // scrollPaddingStart/End on the virtualizer handles the 300/200 padding.
   useEffect(() => {
     if (!isActive) return;
     return useTreeStore.subscribe((state, prev) => {
       if (state.focusedPath === prev.focusedPath) return;
       if (!state.focusedPath || !state.isVimMode) return;
       const idx = keyToIndex.get(state.focusedPath);
-      if (idx !== undefined) virtualizer.scrollToIndex(idx, { align: "auto" });
+      if (idx === undefined) return;
+      virtualizer.scrollToIndex(idx, { align: "auto" });
     });
   }, [isActive, keyToIndex, virtualizer]);
 

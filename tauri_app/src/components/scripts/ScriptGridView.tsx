@@ -93,6 +93,10 @@ export default React.memo(function ScriptGridView({
         estimateSize: () => rowHeight,
         overscan: isTiles ? 5 : 15,
         scrollMargin,
+        // Built-in padding: item >= 300px from top / 200px from bottom when
+        // scrolled via scrollToIndex (vim j/k).
+        scrollPaddingStart: 300,
+        scrollPaddingEnd: 200,
     });
 
     // Reset cached measurements when layout parameters change.
@@ -103,20 +107,27 @@ export default React.memo(function ScriptGridView({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [mode, columnsCount]);
 
+    // Build a path → filtered index map. Avoids O(N) findIndex on every
+    // j-press when the list has thousands of items.
+    const pathToIndex = React.useMemo(() => {
+        const map = new Map<string, number>();
+        filtered.forEach((s, i) => map.set(s.path, i));
+        return map;
+    }, [filtered]);
+
     // Scroll-to-focused-item for non-hub tiles/list (hub has its own path).
-    // Uses the virtualizer (not DOM queries) so vim-j keeps working when
-    // the focused item is outside the overscan window.
+    // scrollPaddingStart/End on the virtualizer handle the 300/200 padding.
     React.useEffect(() => {
         if (filterTag === "hub") return;
         return useTreeStore.subscribe((state, prev) => {
             if (state.focusedPath === prev.focusedPath) return;
             if (!state.focusedPath || !state.isVimMode) return;
-            const idx = filtered.findIndex(s => s.path === state.focusedPath);
-            if (idx < 0) return;
+            const idx = pathToIndex.get(state.focusedPath);
+            if (idx === undefined) return;
             const row = Math.floor(idx / columnsCount);
             virtualizer.scrollToIndex(row, { align: "auto" });
         });
-    }, [filterTag, filtered, columnsCount, virtualizer]);
+    }, [filterTag, pathToIndex, columnsCount, virtualizer]);
 
     const renderCard = (s: Script, groupTag?: string) => {
         // В Hub-режиме один и тот же скрипт может появиться в нескольких группах
