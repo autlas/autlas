@@ -1,16 +1,46 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import HubScriptCard from "./HubScriptCard";
 import ScriptRow from "./ScriptRow";
 import EmptyState from "../common/EmptyState";
 import { Script } from "../../api";
-import { ChevronDownIcon, TagIconSvg, TagDotIcon } from "../ui/Icons";
+import { ChevronDownIcon, TagIconSvg, TagDotIcon, PlayIcon, RestartIcon, CloseIcon } from "../ui/Icons";
+import Tooltip from "../ui/Tooltip";
 import { useTreeStore } from "../../store/useTreeStore";
 
-const TagSectionHeader = ({ tag, isCollapsed, onToggle, runningCount }: { tag: string; isCollapsed: boolean; onToggle: () => void; runningCount: number }) => {
+interface TagSectionHeaderProps {
+    tag: string;
+    isCollapsed: boolean;
+    onToggle: () => void;
+    scripts: Script[];
+    onRunAll: () => void;
+    onRestartAll: () => void;
+    onKillAll: () => void;
+}
+
+const TagSectionHeader = ({ tag, isCollapsed, onToggle, scripts, onRunAll, onRestartAll, onKillAll }: TagSectionHeaderProps) => {
+    const { t } = useTranslation();
     const tagIcon = useTreeStore(s => s.tagIcons[tag]);
+    const runningCount = scripts.filter(s => s.is_running).length;
+    const hasRunning = runningCount > 0;
+    const hasStopped = scripts.some(s => !s.is_running);
+
+    const stop = (fn: () => void) => (e: React.MouseEvent) => {
+        e.stopPropagation();
+        fn();
+    };
+
+    const actionBtnClass = (accent: "green" | "yellow" | "red") =>
+        `w-[34px] h-[34px] rounded-lg flex items-center justify-center transition-all cursor-pointer border opacity-0 group-hover:opacity-100 ` +
+        (accent === "green"
+            ? "bg-[var(--bg-tertiary)] text-tertiary border-white/5 hover:bg-green-500/15 hover:text-green-500 hover:border-green-500/30"
+            : accent === "yellow"
+                ? "bg-[var(--bg-tertiary)] text-tertiary border-white/5 hover:bg-yellow-500/15 hover:text-yellow-500 hover:border-yellow-500/30"
+                : "bg-[var(--bg-tertiary)] text-tertiary border-white/5 hover:bg-red-500/15 hover:text-red-500 hover:border-red-500/30");
+
     return (
-        <div className="flex items-center mb-2 mt-12 first:mt-2 px-6 sticky top-[-11px] z-[150] py-3 cursor-pointer select-none group backdrop-blur-md rounded-2xl border border-white/5" onClick={onToggle}>
+        <div className="flex items-center mb-2 mt-12 first:mt-2 pl-6 pr-3 sticky top-[-11px] z-[150] py-3 cursor-pointer select-none group backdrop-blur-md rounded-2xl border border-white/5" onClick={onToggle}>
             <span className="text-white/45 group-hover:text-white/80 transition-colors duration-200 flex-shrink-0">
                 {tagIcon ? <TagIconSvg name={tagIcon} size={32} /> : <TagDotIcon size={32} />}
             </span>
@@ -20,6 +50,31 @@ const TagSectionHeader = ({ tag, isCollapsed, onToggle, runningCount }: { tag: s
             <ChevronDownIcon className={`ml-3 text-white/15 group-hover:text-white/30 transition-all duration-200 ${isCollapsed ? '-rotate-90' : ''}`} />
             <div className={`ml-3 w-5 h-5 rounded-full bg-green-500 shadow-[0_0_12px_rgba(34,197,94,0.6)] flex items-center justify-center transition-all duration-300 ease-[cubic-bezier(0.34,1.3,0.64,1)] origin-center ${isCollapsed && runningCount > 0 ? 'scale-100 opacity-100' : 'scale-0 opacity-0'}`}>
                 <span className="text-sm font-bold leading-none" style={{ color: "var(--bg-secondary)" }}>{runningCount}</span>
+            </div>
+
+            {/* Group actions — appear on hover of the header */}
+            <div className="ml-auto flex items-center gap-2">
+                {hasStopped && (
+                    <Tooltip text={t("tooltips.run_all", "Run all")}>
+                        <button onClick={stop(onRunAll)} onMouseDown={(e) => e.stopPropagation()} className={actionBtnClass("green")}>
+                            <PlayIcon size={20} />
+                        </button>
+                    </Tooltip>
+                )}
+                {hasRunning && (
+                    <Tooltip text={t("tooltips.restart_all", "Restart all running")}>
+                        <button onClick={stop(onRestartAll)} onMouseDown={(e) => e.stopPropagation()} className={actionBtnClass("yellow")}>
+                            <RestartIcon size={20} />
+                        </button>
+                    </Tooltip>
+                )}
+                {hasRunning && (
+                    <Tooltip text={t("tooltips.kill_all", "Kill all running")}>
+                        <button onClick={stop(onKillAll)} onMouseDown={(e) => e.stopPropagation()} className={actionBtnClass("red")}>
+                            <CloseIcon size={20} />
+                        </button>
+                    </Tooltip>
+                )}
             </div>
         </div>
     );
@@ -262,7 +317,15 @@ export default React.memo(function ScriptGridView({
                     scripts.forEach((s, i) => sectionMasonry[i % columnsCount].push(s));
                     return (
                         <div key={tag} className="flex flex-col last:pb-10">
-                            <TagSectionHeader tag={tag} isCollapsed={isCollapsed} onToggle={() => toggleSection(tag)} runningCount={scripts.filter(s => s.is_running).length} />
+                            <TagSectionHeader
+                                tag={tag}
+                                isCollapsed={isCollapsed}
+                                onToggle={() => toggleSection(tag)}
+                                scripts={scripts}
+                                onRunAll={() => scripts.filter(s => !s.is_running).forEach(s => handleToggle(s))}
+                                onRestartAll={() => scripts.filter(s => s.is_running).forEach(s => onRestart(s))}
+                                onKillAll={() => scripts.filter(s => s.is_running).forEach(s => handleToggle(s))}
+                            />
                             <div className={`grid transition-[grid-template-rows,opacity] duration-300 ease-in-out overflow-hidden -m-3 ${isCollapsed ? 'grid-rows-[0fr] opacity-0' : 'grid-rows-[1fr] opacity-100'}`}>
                                 <div className="min-h-0 p-3">
                                     <div
