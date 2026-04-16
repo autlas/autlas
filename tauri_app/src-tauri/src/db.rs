@@ -22,12 +22,12 @@ pub fn normalize_path(path: &str) -> String {
 
 pub fn get_db_path() -> PathBuf {
     use directories::ProjectDirs;
-    if let Some(proj_dirs) = ProjectDirs::from("com", "heavym", "ahkmanager") {
+    if let Some(proj_dirs) = ProjectDirs::from("com", "heavym", "autlas") {
         let config_dir = proj_dirs.config_dir();
         let _ = std::fs::create_dir_all(config_dir);
-        config_dir.join("ahkmanager.db")
+        config_dir.join("autlas.db")
     } else {
-        PathBuf::from("ahkmanager.db")
+        PathBuf::from("autlas.db")
     }
 }
 

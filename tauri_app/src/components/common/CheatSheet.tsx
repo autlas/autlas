@@ -52,7 +52,7 @@ const CheatSheet = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void 
                     <div className="w-10 h-10 rounded-2xl bg-indigo-600 flex items-center justify-center mr-4 text-white shadow-[0_0_20px_rgba(79,70,229,0.4)]">
                         <HelpIcon />
                     </div>
-                    AHK Manager Shortcuts
+                    autlas Shortcuts
                 </h2>
 
                 <div className="grid grid-cols-2 gap-x-12 gap-y-10">

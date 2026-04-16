@@ -448,7 +448,7 @@ pub fn create_popup() {
     unsafe {
         init_gdiplus();
         let hinstance = GetModuleHandleW(std::ptr::null());
-        let class_name = wide("AHKManagerPopup");
+        let class_name = wide("autlasPopup");
 
         let wc = WNDCLASSW {
             style: CS_DROPSHADOW,

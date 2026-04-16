@@ -1332,7 +1332,7 @@ pub fn run() {
                 .icon(app.default_window_icon().cloned().expect("no default icon"))
                 .menu(&menu)
                 .show_menu_on_left_click(false)
-                .tooltip("AHK Manager")
+                .tooltip("autlas")
                 .on_tray_icon_event(|_tray: &TrayIcon<Wry>, event: TrayIconEvent| {
                     match event {
                         TrayIconEvent::Click {
