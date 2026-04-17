@@ -2,7 +2,10 @@
 builds/
 tauri_app/src-tauri/target/
 tauri_app/dist/
-tauri_app/node_modules/
+node_modules/
+
+# Workspace metadata
+.agents/
 
 # OS files
 .DS_Store
