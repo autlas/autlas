@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback, startTransition } from "react
 import { getScripts, Script, getTagIcons, loadIconCache } from "../api";
 import { useTreeStore } from "../store/useTreeStore";
 import { isSystemTag } from "../utils/systemTags";
+import { generateMockScripts } from "../utils/mockScripts";
 
 let _cachedScripts: Script[] = [];
 let _scanPromise: Promise<Script[]> | null = null; // dedup concurrent scans
@@ -38,7 +39,15 @@ export function useScriptData({ onTagsLoaded, onRunningCountChange, refreshKey, 
         try {
             let data: Script[];
             let scanDurationMs = 0;
-            if (forceScan && _scanPromise) {
+
+            // Mock data mode: generate fake scripts instead of fetching
+            const mockCount = parseInt(localStorage.getItem("ahk_mock_scripts") || "0");
+            if (mockCount > 0) {
+                const t0 = performance.now();
+                data = generateMockScripts(mockCount);
+                scanDurationMs = performance.now() - t0;
+                console.log(`[Mock] Generated ${data.length} scripts in ${scanDurationMs.toFixed(0)}ms`);
+            } else if (forceScan && _scanPromise) {
                 data = await _scanPromise;
             } else {
                 const t0 = performance.now();
