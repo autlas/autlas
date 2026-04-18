@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import type { MutableRefObject } from "react";
-import { safeSetItem } from "../utils/safeStorage";
 import { useVimEnabled } from "./useVimEnabled";
 
 type PhysicsRefs = {
@@ -12,28 +11,18 @@ type PhysicsRefs = {
 };
 
 export function useNavigation(userTags: string[], physics: PhysicsRefs) {
-  const [activeTab, setActiveTab] = useState(() => localStorage.getItem("ahk_active_tab") || "hub");
-  const [viewMode, setViewMode] = useState<"tree" | "hub" | "settings">(() => {
-    const tab = localStorage.getItem("ahk_active_tab") || "hub";
-    if (tab === "settings") return "settings";
-    if (tab === "hub") return "hub";
-    return "tree";
-  });
-  const [displayMode, setDisplayMode] = useState<"tree" | "tiles" | "list">(() => {
-    const isHub = (localStorage.getItem("ahk_active_tab") || "hub") === "hub";
-    const key = isHub ? "ahk_hub_display_mode" : "ahk_tree_display_mode";
-    return (localStorage.getItem(key) as "tree" | "tiles" | "list") || (isHub ? "tiles" : "tree");
-  });
+  // Landing demo: never remember the tab/view between reloads —
+  // always boot into Hub + list view; other tabs default to tree.
+  const [activeTab, setActiveTab] = useState("hub");
+  const [viewMode, setViewMode] = useState<"tree" | "hub" | "settings">("hub");
+  const [displayMode, setDisplayMode] = useState<"tree" | "tiles" | "list">("list");
   const [searchQuery, setSearchQuery] = useState("");
 
   const handleTabClick = (tab: string) => {
-    safeSetItem("ahk_active_tab", tab);
-
-    // All state updates batched into one render (React 18 auto-batching)
     setActiveTab(tab);
     if (tab === "hub") {
       setViewMode("hub");
-      setDisplayMode((localStorage.getItem("ahk_hub_display_mode") as any) || "tiles");
+      setDisplayMode("list");
     } else if (tab === "settings") {
       setViewMode("settings");
       const kick = (physics.momentumRef.current + physics.pendingImpulseRef.current) <= 0.05
@@ -42,14 +31,12 @@ export function useNavigation(userTags: string[], physics: PhysicsRefs) {
       physics.pendingImpulseRef.current += kick;
     } else {
       setViewMode("tree");
-      setDisplayMode((localStorage.getItem("ahk_tree_display_mode") as any) || "tree");
+      setDisplayMode("tree");
     }
   };
 
   const toggleDisplayMode = (mode: "tree" | "tiles" | "list") => {
     setDisplayMode(mode);
-    const key = activeTab === "hub" ? "ahk_hub_display_mode" : "ahk_tree_display_mode";
-    safeSetItem(key, mode);
   };
 
   const TABS = ["hub", "all", "no_tags", "tags", ...userTags, "settings"];
