@@ -47,8 +47,7 @@ body {
 
 /* ── Glassmorphism: frost every non-accent surface so the shader
       bleeds through with soft blur behind text/cards/buttons. ── */
-.landing-root .nav-wrap,
-.landing-root .nav-wrap-portaled,
+.landing-root .nav,
 .landing-root .btn-ghost,
 .landing-root .btn-outline,
 .landing-root .winget,
@@ -69,13 +68,16 @@ body {
   backdrop-filter: blur(9px) saturate(1.1);
   -webkit-backdrop-filter: blur(9px) saturate(1.1);
   background-color: rgba(255, 255, 255, 0.04);
-  /* Raycast-style "lit glass" edge: diagonal tint + 1px inset highlight. */
+  /* Raycast-style "lit glass" edge: diagonal tint + soft inset top
+     highlight (blur 1px instead of spread 0 so the 1px line reads as
+     the same weight as the side border, not sharper). */
   background-image: linear-gradient(
     137deg,
     rgba(255, 255, 255, 0.05) 5%,
     rgba(255, 255, 255, 0) 75%
   );
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: inset 0 1px 1px 0 rgba(255, 255, 255, 0.15);
 }
 
 /* Card-ish larger surfaces get slightly more saturation + tint lift. */
@@ -113,6 +115,26 @@ body {
 .landing-root .ps-card.problem {
   background-color: rgba(70, 15, 20, 0.4) !important;
   border-color: rgba(239, 68, 68, 0.18) !important;
+}
+
+/* Ghost / outline button hover — only lighten the tint, don't rewrite
+   background (that nukes the glass gradient) and don't pop the border. */
+.landing-root .btn-ghost,
+.landing-root .btn-outline {
+  transition: background-color 150ms ease !important;
+}
+.landing-root .btn-ghost:hover,
+.landing-root .btn-outline:hover {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  /* Keep the diagonal lit-glass gradient (the base rule uses the
+     `background:` shorthand on :hover, which would clear it). */
+  background-image: linear-gradient(
+    137deg,
+    rgba(255, 255, 255, 0.05) 5%,
+    rgba(255, 255, 255, 0) 75%
+  ) !important;
+  border-color: var(--border-light) !important;
+  color: var(--text-primary) !important;
 }
 
 /* Primary (download / install) button — keep the accent fill but give it
