@@ -45,6 +45,67 @@ body {
   padding: 16px 32px;
 }
 
+/* ── Glassmorphism: frost every non-accent surface so the shader
+      bleeds through with soft blur behind text/cards/buttons. ── */
+.landing-root .btn-ghost,
+.landing-root .btn-outline,
+.landing-root .winget,
+.landing-root .winget .copy,
+.landing-root .snippet,
+.landing-root .snippet .copy,
+.landing-root .ps-card,
+.landing-root .bind-panel,
+.landing-root .code,
+.landing-root .install-card,
+.landing-root .faq details,
+.landing-root .final,
+.landing-root .card,
+.landing-root .win,
+.landing-root .tray-pop .win,
+.landing-root .kbd,
+.landing-root .kbd-inline {
+  backdrop-filter: blur(9px) saturate(1.1);
+  -webkit-backdrop-filter: blur(9px) saturate(1.1);
+  background-color: rgba(255, 255, 255, 0.04);
+}
+
+/* Card-ish larger surfaces get slightly more saturation + tint lift. */
+.landing-root .ps-card,
+.landing-root .install-card,
+.landing-root .faq details,
+.landing-root .final,
+.landing-root .code,
+.landing-root .bind-panel {
+  background-color: rgba(14, 14, 16, 0.25);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+/* FAQ items were bottom-border-only — give each a proper card shape so
+   the glass frosting actually looks like individual tiles. */
+.landing-root .faq details {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 22px 28px;
+  margin-bottom: 12px;
+}
+.landing-root .faq details:last-child {
+  margin-bottom: 0;
+}
+
+/* Strip the box around the FAQ +/× caret — the tile itself is the card now. */
+.landing-root .faq summary .caret {
+  border: none !important;
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Problem card keeps its red tint but with a glassy base. */
+.landing-root .ps-card.problem {
+  background-color: rgba(70, 15, 20, 0.4) !important;
+  border-color: rgba(239, 68, 68, 0.18) !important;
+}
+
 .landing-root {
   --bg-primary: #000000 !important;
   --bg-secondary: #0a0a0a !important;

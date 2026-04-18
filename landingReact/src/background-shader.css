@@ -56,6 +56,26 @@
   text-transform: uppercase;
   color: rgba(255, 255, 255, 0.55);
   margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.shader-tuner .copy-params-btn {
+  appearance: none;
+  font: 500 10px/1 ui-monospace, monospace;
+  text-transform: none;
+  letter-spacing: 0;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  padding: 4px 8px;
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+.shader-tuner .copy-params-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
 }
 
 .shader-tuner .tuner-presets {
@@ -152,4 +172,8 @@
   padding: 6px 10px;
   font: 500 12px/1 -apple-system, "Inter", sans-serif;
   cursor: pointer;
+}
+.shader-tuner .tuner-row select option {
+  background: #1a1a1c;
+  color: rgba(255, 255, 255, 0.9);
 }

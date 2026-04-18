@@ -26,25 +26,56 @@ const DEFAULT_PARAMS: Params = {
   colorCount: 3,
   colors: ["#7c3aed", "#1fb8e6", "#4ade80", "#fbbf24", "#f472b6", "#9ca3af", "#ffffff"],
   colorBack: "#000000",
-  softness: 1,
-  intensity: 0.6,
-  noise: 0.25,
-  shape: "blob",
-  speed: 0.4,
+  softness: 0.82,
+  intensity: 0.5,
+  noise: 0.1,
+  shape: "corners",
+  speed: 0.69,
   scale: 1,
   rotation: 0,
   offsetX: 0,
   offsetY: 0,
 };
 
+// Extra in-house preset — everything except the active colors will be
+// applied by applyPreset("autlas") so you can keep a palette override.
+const LOCAL_PRESETS: Record<string, Partial<Params>> = {
+  autlas: {
+    softness: 0.82,
+    intensity: 0.5,
+    noise: 0.1,
+    shape: "corners",
+    speed: 0.69,
+    scale: 1,
+    rotation: 0,
+    offsetX: 0,
+    offsetY: 0,
+  },
+};
+
 export default function BackgroundShader() {
   const [p, setP] = useState<Params>(DEFAULT_PARAMS);
   const [open, setOpen] = useState(true);
+  const [copied, setCopied] = useState(false);
 
   const update = (patch: Partial<Params>) => setP((cur) => ({ ...cur, ...patch }));
   const setColor = (i: number, v: string) => setP((cur) => {
     const colors = [...cur.colors]; colors[i] = v; return { ...cur, colors };
   });
+
+  const copyParams = async () => {
+    // Only copy the active color slots — trimming the trailing padding
+    // makes the output easy to paste straight into DEFAULT_PARAMS.
+    const payload: Params = { ...p, colors: p.colors.slice(0, p.colorCount) };
+    const json = JSON.stringify(payload, null, 2);
+    try {
+      await navigator.clipboard.writeText(json);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1200);
+    } catch {
+      /* clipboard blocked — silently ignore */
+    }
+  };
 
   const reverseColors = () => setP((cur) => ({
     ...cur,
@@ -56,7 +87,10 @@ export default function BackgroundShader() {
   }));
 
   const applyPreset = (name: string) => {
-    const preset = grainGradientPresets.find((x) => x.name.toLowerCase() === name.toLowerCase());
+    const key = name.toLowerCase();
+    const local = LOCAL_PRESETS[key];
+    if (local) { setP((cur) => ({ ...cur, ...local })); return; }
+    const preset = grainGradientPresets.find((x) => x.name.toLowerCase() === key);
     if (!preset) return;
     // Keep our brand colors + current colorBack — only pull shape/motion/etc
     // from the preset so every preset always renders with the autlas palette.
@@ -91,9 +125,14 @@ export default function BackgroundShader() {
 
       {open && (
         <div className="shader-tuner" onClick={(e) => e.stopPropagation()}>
-          <div className="tuner-head">Presets</div>
+          <div className="tuner-head">
+            Presets
+            <button className="copy-params-btn" onClick={copyParams}>
+              {copied ? "copied ✓" : "copy JSON"}
+            </button>
+          </div>
           <div className="tuner-presets">
-            {["Default", "Wave", "Dots", "Truchet", "Ripple", "Blob"].map((name) => (
+            {["Default", "Wave", "Dots", "Truchet", "Ripple", "Blob", "Autlas"].map((name) => (
               <button key={name} onClick={() => applyPreset(name)}>{name}</button>
             ))}
           </div>
