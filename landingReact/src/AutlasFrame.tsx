@@ -126,11 +126,14 @@ export default function AutlasFrame() {
     const host = portalRef.current;
     if (!anchor || !host) return;
 
+    // Absolute positioning in document coordinates — the browser scrolls
+    // the portal together with the page, so no scroll listener is
+    // needed and there's no compositor-vs-JS lag.
     const sync = () => {
       const r = anchor.getBoundingClientRect();
-      host.style.position = "fixed";
-      host.style.top = `${r.top}px`;
-      host.style.left = `${r.left}px`;
+      host.style.position = "absolute";
+      host.style.top = `${r.top + window.scrollY}px`;
+      host.style.left = `${r.left + window.scrollX}px`;
       host.style.width = `${r.width}px`;
       host.style.height = `${r.height}px`;
       host.style.zIndex = "5";
@@ -140,11 +143,9 @@ export default function AutlasFrame() {
     const ro = new ResizeObserver(sync);
     ro.observe(anchor);
     ro.observe(document.documentElement);
-    window.addEventListener("scroll", sync, true);
     window.addEventListener("resize", sync);
     return () => {
       ro.disconnect();
-      window.removeEventListener("scroll", sync, true);
       window.removeEventListener("resize", sync);
     };
   }, [mounted]);

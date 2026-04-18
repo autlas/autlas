@@ -64,7 +64,7 @@ export default function Landing() {
       <div className="hero-grid">
         <div className="hero-copy">
           <div className="eyebrow"><span className="bar"></span>OPEN-SOURCE · WINDOWS · MIT</div>
-          <h1 className="h1">One hub for all your <span className="brand-grad">AutoHotkey</span> scripts.</h1>
+          <h1 className="h1">One hub<br />for all your<br /><span className="brand-grad">AutoHotkey</span><br />scripts.</h1>
           <p className="lead">Discover, tag, run, and monitor hundreds of .ahk scripts — without ever opening Explorer or Task Manager.</p>
           <div className="hero-cta">
             <a href="#install" className="btn btn-primary btn-lg">
