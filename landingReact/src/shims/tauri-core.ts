@@ -21,8 +21,12 @@ function cloneScripts(): Script[] {
   return scripts.map((s) => ({ ...s, tags: [...s.tags] }));
 }
 
-function touch(path: string) {
-  __mockEmit("script-status-changed", { path });
+function emitStatus(s: Script) {
+  __mockEmit("script-status-changed", {
+    path: s.path,
+    is_running: s.is_running,
+    has_ui: !!s.has_ui,
+  });
 }
 
 // Simulated async toggle: pending → applied after `delay` ms.
@@ -31,14 +35,21 @@ function simulate(path: string, mut: (s: Script) => void, delay = 700) {
   if (!s) return;
   window.setTimeout(() => {
     mut(s);
-    touch(path);
+    emitStatus(s);
   }, delay);
 }
 
 // ── Command dispatcher ─────────────────────────────────────────────
 const commands: Record<string, (args: any) => unknown | Promise<unknown>> = {
   // Scripts -------------------------------------------------------
-  async get_scripts(_args: { forceScan?: boolean }) {
+  async get_scripts({ forceScan }: { forceScan?: boolean }) {
+    // Fake a scan delay on forced refresh so the sidebar spinner has a
+    // real state transition to observe (otherwise isFetching flips
+    // true→false in the same render tick and the useEffect misses the
+    // change, leaving the icon spinning).
+    if (forceScan) {
+      await new Promise((r) => window.setTimeout(r, 650));
+    }
     return cloneScripts();
   },
   async run_script({ path }: { path: string }) {
