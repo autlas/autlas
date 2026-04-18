@@ -24,9 +24,9 @@ interface Params {
 
 const DEFAULT_PARAMS: Params = {
   colorCount: 3,
-  colors: ["#7c3aed", "#1fb8e6", "#4ade80", "#fbbf24", "#f472b6", "#9ca3af", "#ffffff"],
+  colors: ["#7c3aed", "#1fb8e6", "#42ff87", "#fbbf24", "#f472b6", "#9ca3af", "#ffffff"],
   colorBack: "#000000",
-  softness: 1,
+  softness: 0.6,
   intensity: 0.5,
   noise: 0.1,
   shape: "corners",
@@ -41,7 +41,7 @@ const DEFAULT_PARAMS: Params = {
 // applied by applyPreset("autlas") so you can keep a palette override.
 const LOCAL_PRESETS: Record<string, Partial<Params>> = {
   autlas: {
-    softness: 1,
+    softness: 0.6,
     intensity: 0.5,
     noise: 0.1,
     shape: "corners",
@@ -56,14 +56,19 @@ const LOCAL_PRESETS: Record<string, Partial<Params>> = {
 // Flip to `true` to bring the live tuner panel back (gear button +
 // sliders, color pickers, presets, copy-JSON). Kept around so future
 // palette/motion tuning doesn't have to redo the wiring.
-const SHOW_TUNER = false;
+const SHOW_TUNER = true;
 
 export default function BackgroundShader() {
   const [p, setP] = useState<Params>(DEFAULT_PARAMS);
   const [open, setOpen] = useState(true);
   const [copied, setCopied] = useState(false);
   const [scrollScale, setScrollScale] = useState(1);
+  const [introScale, setIntroScale] = useState(3);
+  const [introRot, setIntroRot] = useState(-30);
   const [scrollRot, setScrollRot] = useState(0);
+  // Scroll-driven softness delta (0 at rest, +0.3 at full scroll); added
+  // on top of p.softness so the tuner slider keeps composing cleanly.
+  const [scrollSoftDelta, setScrollSoftDelta] = useState(0);
   const [mouseOffX, setMouseOffX] = useState(0);
   const [mouseOffY, setMouseOffY] = useState(0);
 
@@ -71,25 +76,31 @@ export default function BackgroundShader() {
   // of viewport height (same curve as the dim overlay). rAF-throttled +
   // delta-gated so we don't re-render per scroll tick.
   useEffect(() => {
-    const SCALE_START = 0.2;
-    const SCALE_END = 1.0;
+    const SCROLL_START = 0.2;
+    const SCROLL_END = 1.0;
     const SCALE_FROM = 1;
     const SCALE_TO = 1.4;
+    // Softness delta: 0 at rest, +0.3 at full scroll (so 0.6 → 0.9 at
+     // default base). Added on top of p.softness so the tuner composes.
+    const SOFT_DELTA_MAX = 0.3;
     // Rotation accumulates DEG_PER_SCREEN° for every viewport-height of
     // scroll, starting from 0 — no upper clamp, so the mesh keeps turning.
     const DEG_PER_SCREEN = 15;
     let raf = 0;
     let lastScale = SCALE_FROM;
     let lastRot = 0;
+    let lastSoftDelta = 0;
     const tick = () => {
       raf = 0;
       const H = window.innerHeight;
       const y = window.scrollY;
-      const tScale = Math.max(0, Math.min(1, (y - SCALE_START * H) / ((SCALE_END - SCALE_START) * H)));
-      const nextScale = SCALE_FROM + tScale * (SCALE_TO - SCALE_FROM);
+      const t = Math.max(0, Math.min(1, (y - SCROLL_START * H) / ((SCROLL_END - SCROLL_START) * H)));
+      const nextScale = SCALE_FROM + t * (SCALE_TO - SCALE_FROM);
       const nextRot = (y / H) * DEG_PER_SCREEN;
+      const nextSoftDelta = t * SOFT_DELTA_MAX;
       if (Math.abs(nextScale - lastScale) >= 0.002) { lastScale = nextScale; setScrollScale(nextScale); }
       if (Math.abs(nextRot - lastRot) >= 0.05) { lastRot = nextRot; setScrollRot(nextRot); }
+      if (Math.abs(nextSoftDelta - lastSoftDelta) >= 0.002) { lastSoftDelta = nextSoftDelta; setScrollSoftDelta(nextSoftDelta); }
     };
     const onScroll = () => { if (!raf) raf = requestAnimationFrame(tick); };
     tick();
@@ -100,6 +111,28 @@ export default function BackgroundShader() {
       window.removeEventListener("resize", onScroll);
       if (raf) cancelAnimationFrame(raf);
     };
+  }, []);
+
+  // Intro sweep on mount — ease-in-out. Scale 3→1 over 1s (mult),
+  // rotation -30°→0° over 3s (added). Both compose with scroll-driven
+  // values. One rAF loop, separate progress for each track.
+  useEffect(() => {
+    const SCALE_FROM = 3, SCALE_TO = 1, SCALE_DUR = 3000;
+    const ROT_FROM = -30, ROT_TO = 0, ROT_DUR = 3000;
+    const easeInOut = (x: number) =>
+      x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2;
+    let raf = 0;
+    const start = performance.now();
+    const tick = (now: number) => {
+      const dt = now - start;
+      const ts = Math.min(1, dt / SCALE_DUR);
+      const tr = Math.min(1, dt / ROT_DUR);
+      setIntroScale(SCALE_FROM + (SCALE_TO - SCALE_FROM) * easeInOut(ts));
+      setIntroRot(ROT_FROM + (ROT_TO - ROT_FROM) * easeInOut(tr));
+      if (ts < 1 || tr < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
   }, []);
 
   // Cursor parallax — linear in pixels: every PIX_PER_UNIT of cursor
@@ -186,13 +219,13 @@ export default function BackgroundShader() {
           height="100%"
           colorBack={p.colorBack}
           colors={p.colors.slice(0, p.colorCount)}
-          softness={p.softness}
+          softness={Math.min(1, p.softness + scrollSoftDelta)}
           intensity={p.intensity}
           noise={p.noise}
           shape={p.shape}
           speed={p.speed}
-          scale={p.scale * scrollScale}
-          rotation={p.rotation + scrollRot}
+          scale={p.scale * scrollScale * introScale}
+          rotation={p.rotation + scrollRot + introRot}
           offsetX={p.offsetX + mouseOffX}
           offsetY={p.offsetY + mouseOffY}
         />
