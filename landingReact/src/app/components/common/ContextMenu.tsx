@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { openInExplorer, editScript, openWith, setScriptHub, toggleHideFolder, deleteTag } from "../../api";
 import { EditIcon, FolderIcon, OpenWithIcon, CopyIcon, PlusIcon, CloseIcon, EyeOffIcon, TagIcon, StarIcon, BlockIcon } from "../ui/Icons";
@@ -207,7 +208,12 @@ export default function ContextMenu({ contextMenu, onClose, onStartRenameTag, on
 
   if (!contextMenu) return null;
 
-  return (
+  // Portal to <body>: autlas is rendered inside a transformed host
+  // (.autlas-portal uses perspective + rotateX/Y for the tilt), and
+  // `transform` on an ancestor makes `position: fixed` resolve against
+  // that ancestor instead of the viewport. Rendering the menu outside
+  // that subtree restores viewport coordinates.
+  return createPortal(
     <>
       <div className="fixed inset-0 z-[99999]" onMouseDown={onClose} />
       <div
@@ -237,6 +243,7 @@ export default function ContextMenu({ contextMenu, onClose, onStartRenameTag, on
           onCancel={() => setConfirmTag(null)}
         />
       )}
-    </>
+    </>,
+    document.body,
   );
 }
