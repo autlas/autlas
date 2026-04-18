@@ -261,6 +261,9 @@ export default function BackgroundShader() {
           noise={p.noise}
           shape={p.shape}
           speed={p.speed}
+          /* Start the shader's time at 0.5s worth of animation so the
+             pattern never mounts in its blank "frame 0" state. */
+          frame={p.speed * 0.5}
           scale={p.scale * scrollScale * introScale}
           rotation={p.rotation + scrollRot + introRot}
           offsetX={p.offsetX + mouseOffX}
