@@ -5,10 +5,11 @@
   --border-color:rgba(255,255,255,0.05);
   --border-light:rgba(255,255,255,0.10);
 
-  --text-primary:rgba(255,255,255,1);
-  --text-secondary:rgba(255,255,255,0.7);
-  --text-tertiary:rgba(255,255,255,0.45);
-  --text-quaternary:rgba(255,255,255,0.15);
+  /* --text-primary/secondary/tertiary/quaternary are inherited from
+     app/index.css — they're calc()-based on --contrast-factor so the
+     embedded autlas can react to the Text Contrast slider. Landing's
+     own copy of them lives in landing-tokens-freeze.css scoped to
+     .landing-root with fixed values (landing doesn't animate contrast). */
 
   --accent:#4f46e5;        /* indigo */
   --accent-hover:#818cf8;

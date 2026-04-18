@@ -23,8 +23,8 @@ function updatePalette(val: number) {
 }
 
 export function useTheme() {
-  const [brightness, setBrightness] = useState(() => parseInt(localStorage.getItem("app-brightness") || "20"));
-  const [textContrast, setTextContrast] = useState(() => parseFloat(localStorage.getItem("text-contrast") || "1.0"));
+  const [brightness, setBrightness] = useState(() => parseInt(localStorage.getItem("app-brightness") || "10"));
+  const [textContrast, setTextContrast] = useState(() => parseFloat(localStorage.getItem("text-contrast") || "1.3"));
   const [fontScale, setFontScale] = useState(() => parseFloat(localStorage.getItem("font-scale") || "1.0"));
   const [vimModeNav, setVimModeNav] = useState<"hjkl" | "jk">(() => (localStorage.getItem("ahk_vim_mode_nav") as "hjkl" | "jk") || "hjkl");
 
