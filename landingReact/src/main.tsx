@@ -1,3 +1,4 @@
+import "./shims/ephemeral-storage";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "./app/i18n";

@@ -439,3 +439,57 @@ export function findScriptByPath(path: string): Script | undefined {
 export function findScriptById(id: string): Script | undefined {
   return scripts.find((x) => x.id === id);
 }
+
+// ── Dirty-state tracking + in-place reset ─────────────────────────
+// Dirty flips to true the first time a mutation hits the mock-db
+// (run/kill a script, add/remove a tag, flip is_hub, etc.). The landing
+// badge subscribes and swaps into a "reset mock data" button.
+//
+// Reset is in-place (NOT a page reload): arrays are restored from a
+// structuredClone snapshot taken at module init, then an
+// `ahk-mock-reset` window event triggers a full re-fetch in the hooks.
+
+const initial = {
+  scripts: structuredClone(scripts),
+  tagOrder: [...tagOrder],
+  tagIcons: { ...tagIcons },
+  hiddenFolders: [...hiddenFolders],
+  scanPaths: [...scanPaths],
+  scanBlacklist: [...scanBlacklist],
+};
+
+let dirty = false;
+const listeners = new Set<() => void>();
+
+export function isMockDirty(): boolean {
+  return dirty;
+}
+export function subscribeMockDirty(fn: () => void): () => void {
+  listeners.add(fn);
+  return () => { listeners.delete(fn); };
+}
+export function markMockDirty(): void {
+  if (dirty) return;
+  dirty = true;
+  listeners.forEach((fn) => fn());
+}
+
+export function resetMocks(): void {
+  // Restore arrays in place so consumers holding references see the
+  // new contents. Objects inside `scripts` are deep-cloned so callers
+  // can't mutate the snapshot by editing a restored script.
+  scripts.splice(0, scripts.length, ...structuredClone(initial.scripts));
+  tagOrder.splice(0, tagOrder.length, ...initial.tagOrder);
+  Object.keys(tagIcons).forEach((k) => { delete tagIcons[k]; });
+  Object.assign(tagIcons, initial.tagIcons);
+  hiddenFolders.splice(0, hiddenFolders.length, ...initial.hiddenFolders);
+  scanPaths.splice(0, scanPaths.length, ...initial.scanPaths);
+  scanBlacklist.splice(0, scanBlacklist.length, ...initial.scanBlacklist);
+
+  dirty = false;
+  listeners.forEach((fn) => fn());
+
+  // Nudge the app to re-fetch scripts + tag icons from the (restored)
+  // mock-db. useScriptData listens for this event.
+  window.dispatchEvent(new CustomEvent("ahk-mock-reset"));
+}

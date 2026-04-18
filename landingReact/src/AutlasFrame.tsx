@@ -1,6 +1,7 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import AutlasApp from "./app/App";
+import { isMockDirty, resetMocks, subscribeMockDirty } from "./shims/mock-db";
 import "./autlas-frame.css";
 
 /**
@@ -31,7 +32,11 @@ export default function AutlasFrame() {
   const wrapRef = useRef<HTMLDivElement>(null);
   const anchorRef = useRef<HTMLDivElement>(null);
   const portalRef = useRef<HTMLDivElement | null>(null);
+  const liveDemoRef = useRef<HTMLSpanElement>(null);
+  const prevLiveDemoLeftRef = useRef<number | null>(null);
   const [mounted, setMounted] = useState(false);
+  // Mock-db dirty → swap the badge into a "reset mock data" button.
+  const dirty = useSyncExternalStore(subscribeMockDirty, isMockDirty);
 
   // Create the portal host once, under <body>.
   useEffect(() => {
@@ -150,12 +155,50 @@ export default function AutlasFrame() {
     };
   }, [mounted]);
 
+  // FLIP-style slide on the "live demo" pill: when the sibling pill
+  // changes text ("mock data" ↔ "reset mock data") it grows/shrinks,
+  // and since the row is right-anchored, live-demo's screen position
+  // shifts. Play a translateX transition from old rect to new so the
+  // motion reads as smooth, not a snap.
+  // Declared AFTER the portal-sync effect so the first measurement
+  // happens with the portal host already positioned (otherwise the
+  // pill is momentarily at the viewport origin and the first animation
+  // flies in from the wrong spot).
+  useLayoutEffect(() => {
+    if (!mounted) return;
+    const el = liveDemoRef.current;
+    if (!el) return;
+    const newLeft = el.getBoundingClientRect().left;
+    const prev = prevLiveDemoLeftRef.current;
+    if (prev !== null) {
+      const dx = prev - newLeft;
+      if (Math.abs(dx) > 1) {
+        el.animate(
+          [{ transform: `translateX(${dx}px)` }, { transform: "translateX(0)" }],
+          { duration: 300, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)" },
+        );
+      }
+    }
+    prevLiveDemoLeftRef.current = newLeft;
+  }, [dirty, mounted]);
+
   return (
     <div ref={wrapRef} className="autlas-wrap">
       <div ref={anchorRef} className="autlas-frame" aria-hidden="true" />
       {mounted && portalRef.current && createPortal(
         <>
-          <span className="autlas-badge">live demo · mock data</span>
+          <div className="autlas-badges">
+            <span ref={liveDemoRef} className="autlas-badge">live demo</span>
+            <button
+              type="button"
+              className={`autlas-badge${dirty ? " autlas-badge--reset" : ""}`}
+              onClick={dirty ? () => resetMocks() : undefined}
+              disabled={!dirty}
+              aria-label={dirty ? "Reset mock data" : undefined}
+            >
+              {dirty ? "reset mock data" : "mock data"}
+            </button>
+          </div>
           <div className="autlas-portal-frame">
             <div className="autlas-viewport">
               <AutlasApp />

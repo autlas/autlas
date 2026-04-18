@@ -267,7 +267,7 @@ export const useTreeStore = create<TreeStore>((set) => ({
   }),
 
   // Sidebar width
-  sidebarWidth: parseInt(localStorage.getItem("ahk_sidebar_width") ?? "288"),
+  sidebarWidth: parseInt(localStorage.getItem("ahk_sidebar_width") ?? "210"),
   setSidebarWidth: (v) => { safeSetItem("ahk_sidebar_width", String(v)); set({ sidebarWidth: v }); },
   detailPanelWidth: parseInt(localStorage.getItem("ahk_detail_panel_width") ?? String(DETAIL_PANEL_DEFAULT_WIDTH)),
   setDetailPanelWidth: (v) => { safeSetItem("ahk_detail_panel_width", String(v)); set({ detailPanelWidth: v }); },

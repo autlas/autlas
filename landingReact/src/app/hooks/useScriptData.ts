@@ -144,7 +144,17 @@ export function useScriptData({ onTagsLoaded, onRunningCountChange, refreshKey, 
         let unlistenStatus: (() => void) | null = null;
         let unlistenHub: (() => void) | null = null;
         let localHubHandler: ((e: Event) => void) | null = null;
+        let mockResetHandler: ((e: Event) => void) | null = null;
         let mounted = true;
+
+        // Landing-only: mock-db reset event → clear cached scripts and
+        // reload scripts + tag icons from the freshly-restored snapshot.
+        mockResetHandler = () => {
+            _cachedScripts = [];
+            fetchData(true);
+            getTagIcons().then(storeSetTagIcons).catch(() => {});
+        };
+        window.addEventListener("ahk-mock-reset", mockResetHandler);
 
         import('@tauri-apps/api/event').then(({ listen }) => {
             if (!mounted) return;
@@ -235,6 +245,7 @@ export function useScriptData({ onTagsLoaded, onRunningCountChange, refreshKey, 
             if (unlistenStatus) unlistenStatus();
             if (unlistenHub) unlistenHub();
             if (localHubHandler) window.removeEventListener('ahk-hub-changed-local', localHubHandler);
+            if (mockResetHandler) window.removeEventListener('ahk-mock-reset', mockResetHandler);
             burstIntervalsRef.current.forEach(id => clearInterval(id));
             burstIntervalsRef.current.clear();
         };

@@ -58,7 +58,7 @@ body {
   animation-delay: 640ms;
 }
 .autlas-portal .autlas-portal-frame,
-.autlas-portal .autlas-badge {
+.autlas-portal .autlas-badges {
   animation: hero-rise 2500ms cubic-bezier(0.15, 0.34, 0, 1) both;
   animation-delay: 640ms;
 }

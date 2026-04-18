@@ -6,6 +6,7 @@ import {
   findScriptByPath,
   hiddenFolders,
   iconCache,
+  markMockDirty,
   scanBlacklist,
   scanPaths,
   scripts,
@@ -53,17 +54,20 @@ const commands: Record<string, (args: any) => unknown | Promise<unknown>> = {
     return cloneScripts();
   },
   async run_script({ path }: { path: string }) {
+    markMockDirty();
     simulate(path, (s) => {
       s.is_running = true;
       s.last_run = new Date().toISOString();
     }, 800);
   },
   async kill_script({ path }: { path: string }) {
+    markMockDirty();
     simulate(path, (s) => {
       s.is_running = false;
     }, 500);
   },
   async restart_script({ path }: { path: string }) {
+    markMockDirty();
     simulate(path, (s) => {
       s.is_running = true;
       s.last_run = new Date().toISOString();
@@ -101,23 +105,28 @@ const commands: Record<string, (args: any) => unknown | Promise<unknown>> = {
 
   // Tags ---------------------------------------------------------
   async save_script_tags({ id, tags }: { id: string; tags: string[] }) {
+    markMockDirty();
     const s = findScriptById(id);
     if (s) s.tags = [...tags];
   },
   async add_script_tag({ id, tag }: { id: string; tag: string }) {
+    markMockDirty();
     const s = findScriptById(id);
     if (s && !s.tags.includes(tag)) s.tags.push(tag);
     if (!tagOrder.includes(tag)) tagOrder.push(tag);
   },
   async remove_script_tag({ id, tag }: { id: string; tag: string }) {
+    markMockDirty();
     const s = findScriptById(id);
     if (s) s.tags = s.tags.filter((t) => t !== tag);
   },
   async set_script_hub({ id, hub }: { id: string; hub: boolean }) {
+    markMockDirty();
     const s = findScriptById(id);
     if (s) s.is_hub = hub;
   },
   async rename_tag({ oldTag, newTag }: { oldTag: string; newTag: string }) {
+    markMockDirty();
     scripts.forEach((s) => {
       s.tags = s.tags.map((t) => (t === oldTag ? newTag : t));
     });
@@ -129,6 +138,7 @@ const commands: Record<string, (args: any) => unknown | Promise<unknown>> = {
     }
   },
   async delete_tag({ tag }: { tag: string }) {
+    markMockDirty();
     scripts.forEach((s) => {
       s.tags = s.tags.filter((t) => t !== tag);
     });

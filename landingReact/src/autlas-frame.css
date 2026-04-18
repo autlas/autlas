@@ -36,11 +36,21 @@
     0 0 0 1px rgba(255, 255, 255, 0.02);
 }
 
-/* Badge sits above the frame, inside the same portal → same tilt plane. */
-.autlas-badge {
+/* Badge row sits above the frame, inside the same portal → same tilt
+   plane. Two pills ("live demo" + "mock data"/"reset mock data") laid
+   out side-by-side, right-aligned. */
+.autlas-badges {
   position: absolute;
   bottom: calc(100% + 10px);
   right: 0;
+  display: flex;
+  gap: 6px;
+}
+
+/* Each badge is a pill. The dynamic one is rendered as a <button> so
+   we can flip between idle/reset states without re-mounting (which
+   would replay the hero-rise animation). */
+.autlas-badge {
   padding: 4px 10px;
   border-radius: 999px;
   font: 500 12px/1 var(--mono, ui-monospace, monospace);
@@ -51,6 +61,31 @@
   backdrop-filter: blur(6px);
   pointer-events: none;
   white-space: nowrap;
+  appearance: none;
+  cursor: default;
+  transition: color 140ms ease, background 140ms ease, border-color 140ms ease;
+}
+.autlas-badge:disabled {
+  opacity: 1; /* Prevent the default UA fade on disabled buttons. */
+}
+
+/* Dirty-state variant — the badge becomes an actual button you can
+   click to reset the mocks (via a page reload). Brighter text + border
+   so it reads as interactive, with a subtle hover lift. */
+.autlas-badge--reset {
+  pointer-events: auto;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.95);
+  background: rgba(0, 0, 0, 0.6);
+  border-color: rgba(255, 255, 255, 0.22);
+  transition: background 140ms ease, border-color 140ms ease, color 140ms ease;
+  appearance: none;
+  font-family: var(--mono, ui-monospace, monospace);
+}
+.autlas-badge--reset:hover {
+  color: #ffffff;
+  background: rgba(0, 0, 0, 0.75);
+  border-color: rgba(255, 255, 255, 0.35);
 }
 
 .autlas-viewport {
