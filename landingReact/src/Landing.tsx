@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import "./landing.css";
+import "./landing-tokens-freeze.css";
 import AutlasFrame from "./AutlasFrame";
 
 export default function Landing() {

@@ -1,0 +1,34 @@
+/*
+ * Freeze landing tokens so autlas' useTheme() (which writes CSS vars to
+ * document.documentElement) can't wash out the landing. Values mirror
+ * autlas' palette at brightness=0.
+ *
+ * Autlas itself is rendered through a React portal (see AutlasFrame.tsx)
+ * into document.body, OUTSIDE .landing-root, so it still inherits the
+ * live theme from documentElement.
+ */
+/* html/body are outside .landing-root, so they still see the live
+   --bg-primary from documentElement. Hardwire them to the brightness-0
+   baseline. */
+html,
+body {
+  background: #000000 !important;
+  color: rgba(255, 255, 255, 1) !important;
+}
+
+.landing-root {
+  --bg-primary: #000000 !important;
+  --bg-secondary: #0a0a0a !important;
+  --bg-tertiary: rgba(255, 255, 255, 0.03) !important;
+  --bg-tertiary-hover: rgba(255, 255, 255, 0.06) !important;
+  --border-color: rgba(255, 255, 255, 0.06) !important;
+  --border-light: rgba(255, 255, 255, 0.10) !important;
+
+  --text-primary: rgba(255, 255, 255, 1) !important;
+  --text-secondary: rgba(255, 255, 255, 0.7) !important;
+  --text-tertiary: rgba(255, 255, 255, 0.45) !important;
+  --text-quaternary: rgba(255, 255, 255, 0.15) !important;
+
+  --contrast-factor: 1 !important;
+  --font-scale: 1 !important;
+}

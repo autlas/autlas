@@ -15,12 +15,17 @@
   isolation: isolate;
 }
 
-/* Autlas fills the frame at 1:1 — no transform. */
+/* Portal host for the real autlas app (position:fixed, synced to .autlas-frame anchor). */
+.autlas-portal {
+  overflow: hidden;
+  border-radius: 20px;
+  background: var(--bg-primary, #080808);
+  box-shadow: 0 40px 80px -20px rgba(0, 0, 0, 0.6);
+}
+
 .autlas-viewport {
   width: 100%;
   height: 100%;
-  /* Stop inherited typography props (text-align:center, letter-spacing,
-     line-height) from leaking in from .hero-grid / .landing-root. */
   text-align: left;
   letter-spacing: normal;
   line-height: 1.5;
