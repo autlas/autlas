@@ -67,7 +67,7 @@ body {
 .landing-root .kbd-inline {
   backdrop-filter: blur(9px) saturate(1.1);
   -webkit-backdrop-filter: blur(9px) saturate(1.1);
-  background-color: rgba(255, 255, 255, 0.04);
+  background-color: rgba(255, 255, 255, 0.02);
   /* Raycast-style "lit glass" edge: diagonal tint + soft inset top
      highlight (blur 1px instead of spread 0 so the 1px line reads as
      the same weight as the side border, not sharper). */
@@ -87,7 +87,7 @@ body {
 .landing-root .final,
 .landing-root .code,
 .landing-root .bind-panel {
-  background-color: rgba(14, 14, 16, 0.25);
+  background-color: rgba(14, 14, 16, 0.18);
   border-color: rgba(255, 255, 255, 0.08);
 }
 
