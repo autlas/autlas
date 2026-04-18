@@ -1,0 +1,55 @@
+/* Scaled preview of the real autlas app embedded inside the landing hero. */
+
+.autlas-frame {
+  position: relative;
+  width: 100%;
+  height: min(820px, 80vh);
+  border-radius: 20px;
+  overflow: hidden;
+  background: var(--bg-primary, #080808);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.04) inset,
+    0 40px 80px -20px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(255, 255, 255, 0.02);
+  isolation: isolate;
+}
+
+/* Autlas fills the frame at 1:1 — no transform. */
+.autlas-viewport {
+  width: 100%;
+  height: 100%;
+}
+
+/* autlas' root uses h-screen (=100vh); swap it out for the framed height. */
+.autlas-viewport > div.flex.h-screen,
+.autlas-viewport .h-screen {
+  height: 100% !important;
+}
+
+/* Dampen autlas keyboard focus noise bubbling up into the landing. */
+.autlas-frame:not(:hover) .autlas-viewport {
+  pointer-events: none;
+}
+
+/* Wrap with room above the frame for the demo badge. */
+.autlas-wrap {
+  position: relative;
+}
+
+/* Pill sitting just above the top-right corner of the frame. */
+.autlas-badge {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  right: 0;
+  z-index: 10;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font: 500 12px/1 var(--mono, ui-monospace, monospace);
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.55);
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(6px);
+  pointer-events: none;
+}

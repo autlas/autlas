@@ -1,0 +1,365 @@
+@import "tailwindcss";
+
+:root {
+    --bg-primary: #080808;
+    --bg-secondary: #0a0a0a;
+    --bg-tertiary: rgba(255, 255, 255, 0.03);
+    --border-color: rgba(255, 255, 255, 0.05);
+    --accent-indigo: #4f46e5;
+    --accent-purple: #9333ea;
+
+    /* Text Contrast System */
+    --text-opacity-primary: 1.0;
+    --text-opacity-secondary: 0.7;
+    --text-opacity-tertiary: 0.45;
+    --text-opacity-quaternary: 0.15;
+    --contrast-factor: 1.0;
+    --font-scale: 1.0;
+
+    --text-primary: rgba(255, 255, 255, calc(1 - (1 - var(--text-opacity-primary)) / var(--contrast-factor)));
+    --text-secondary: rgba(255, 255, 255, calc(1 - (1 - var(--text-opacity-secondary)) / var(--contrast-factor)));
+    --text-tertiary: rgba(255, 255, 255, calc(1 - (1 - var(--text-opacity-tertiary)) / var(--contrast-factor)));
+    --text-quaternary: rgba(255, 255, 255, calc(1 - (1 - var(--text-opacity-quaternary)) / var(--contrast-factor)));
+}
+
+@theme {
+    --color-primary: var(--text-primary);
+    --color-secondary: var(--text-secondary);
+    --color-tertiary: var(--text-tertiary);
+    --color-quaternary: var(--text-quaternary);
+}
+
+/* Standard Semantic Scaled Font Utilities (12px floor) */
+.text-2xs {
+    font-size: calc(12px * var(--font-scale));
+}
+
+.text-xs {
+    font-size: calc(14px * var(--font-scale));
+}
+
+.text-sm {
+    font-size: calc(16px * var(--font-scale));
+}
+
+.text-base {
+    font-size: calc(17px * var(--font-scale));
+}
+
+.text-lg {
+    font-size: calc(18px * var(--font-scale));
+}
+
+.text-xl {
+    font-size: calc(20px * var(--font-scale));
+}
+
+.text-2xl {
+    font-size: calc(26px * var(--font-scale));
+}
+
+body {
+    margin: 0;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+.stabilize-text {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    -webkit-font-smoothing: antialiased;
+}
+
+.long-press-shrink {
+    transition: transform 0.1s ease-out, background-color 0.3s, border-color 0.3s, box-shadow 0.3s;
+}
+
+.long-press-shrink.active-left {
+    transform: scale(0.982) translateZ(0);
+    transition: transform 0.3s ease-in !important;
+}
+
+.vim-focus-instant {
+    transition-duration: 0s !important;
+    transition-property: background-color, border-color, box-shadow, color !important;
+}
+
+.vim-focus-folder {
+    transition-duration: 0s !important;
+    background-color: rgba(99, 102, 241, 0.2) !important;
+    box-shadow: 0 0 15px rgba(99, 102, 241, 0.15) !important;
+}
+
+.vim-focus-folder .vim-focus-indicator {
+    display: block !important;
+}
+
+.scrollbar-overlay {
+    overflow-y: overlay !important;
+    scrollbar-gutter: auto !important;
+}
+
+.custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-color) transparent;
+    scrollbar-gutter: stable;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+@keyframes shimmer {
+    0% {
+        transform: translateX(-100%);
+    }
+
+    100% {
+        transform: translateX(100%);
+    }
+}
+
+@keyframes tag-in {
+    from {
+        opacity: 0;
+        transform: scale(0.75);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes tag-out {
+    from {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    to {
+        opacity: 0;
+        transform: scale(0.75);
+    }
+}
+
+.animate-tag-in {
+    animation: tag-in 0.12s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+@keyframes shake {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    25% {
+        transform: rotate(0.6deg);
+    }
+
+    50% {
+        transform: rotate(0deg);
+    }
+
+    75% {
+        transform: rotate(-0.6deg);
+    }
+
+    100% {
+        transform: rotate(0deg);
+    }
+}
+
+.animate-shake {
+    animation: shake 0.3s infinite ease-in-out;
+}
+
+.animate-tag-out {
+    animation: tag-out 0.1s cubic-bezier(0.34, 1.56, 1, 1) forwards;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+@keyframes scale-in {
+    from {
+        opacity: 0;
+        transform: scale(0.98) translateY(-3px);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.animate-scale-in {
+    animation: scale-in 0.08s cubic-bezier(0, 0, 0.2, 1) forwards;
+}
+
+
+@keyframes action-in {
+    0% { opacity: 0; transform: scale(0.3); }
+    100% { opacity: 1; transform: scale(1); }
+}
+
+.animate-action-in {
+    animation: action-in 0.25s cubic-bezier(0.34, 1.2, 0.64, 1) both;
+}
+
+@keyframes smooth-pulse {
+
+    0%,
+    100% {
+        background-color: rgba(79, 70, 229, 0.18);
+        border-color: rgba(79, 70, 229, 0.45);
+    }
+
+    50% {
+        background-color: rgba(90, 80, 255, 0.28);
+        border-color: rgba(129, 140, 248, 0.9);
+    }
+}
+
+.tag-pulse-target {
+    position: relative;
+    overflow: hidden;
+    animation: smooth-pulse 1.8s cubic-bezier(0.445, 0.05, 0.55, 0.95) infinite !important;
+    will-change: background-color, border-color;
+}
+
+.tag-drop-hover {
+    background-color: #4f46e5 !important;
+    border-color: #818cf8 !important;
+    /* Indigo 400 */
+    color: #ffffff !important;
+    box-shadow: 0 0 25px rgba(79, 70, 229, 0.6) !important;
+    transform: scale(1.02) !important;
+    z-index: 100 !important;
+    /* Do NOT use animation: none, otherwise it restarts from 0% when hover ends */
+}
+
+@keyframes toast-in {
+    0% { transform: translateY(12px) scale(0.98); }
+    100% { transform: translateY(0) scale(1); }
+}
+
+/* Force sonner toasts to be fully opaque immediately so backdrop-blur is visible */
+[data-sonner-toast] {
+    opacity: 1 !important;
+}
+
+.animate-toast-in {
+    animation: toast-in 0.4s cubic-bezier(0.34, 1.3, 0.64, 1) both;
+}
+
+
+/* Ensure drag ghost stays above reordering animations */
+::view-transition-group(drag-ghost) {
+    z-index: 999999;
+    animation: none !important;
+    transition: none !important;
+}
+
+.drag-ghost-container {
+    transition: none !important;
+    animation: none !important;
+    pointer-events: none !important;
+}
+
+.tag-hover:hover {
+    background-color: var(--bg-tag-hover) !important;
+}
+
+.tag-active:hover {
+    background-color: var(--bg-tag-active-hover) !important;
+}
+
+@keyframes status-glow-pulse {
+
+    0%,
+    100% {
+        box-shadow: 0 0 10px rgba(34, 197, 94, 0.6);
+        transform: scale(1);
+    }
+
+    50% {
+        box-shadow: 0 0 20px rgba(34, 197, 94, 1.0);
+        transform: scale(1.1);
+    }
+}
+
+.animate-status-glow {
+    animation: status-glow-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* ── Tree folder expand animation ──────────────────────────── */
+@keyframes tree-expand {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.tree-expand {
+    animation: tree-expand 0.15s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes tree-collapse {
+    from {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    to {
+        opacity: 0;
+        transform: translateY(-6px);
+    }
+}
+
+.tree-collapse {
+    animation: tree-collapse 0.15s cubic-bezier(0.4, 0, 1, 1) forwards;
+    pointer-events: none;
+}
+
+/* ── Connector line hover (highlights full line across all rows) ── */
+.connector-line.line-hover > div {
+    background-color: rgba(255, 255, 255, 0.7) !important;
+}
+
+/* Vim mode: hide cursor everywhere inside the scroll container */
+.vim-active,
+.vim-active * {
+    cursor: none !important;
+}
+
+@keyframes highlight-pulse-once {
+    0%   { box-shadow: none; }
+    30%  { box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.7), 0 0 32px rgba(99, 102, 241, 0.45); }
+    100% { box-shadow: none; }
+}
+
+.highlight-pulse-once {
+    animation: highlight-pulse-once 2s cubic-bezier(0.25, 0, 0.4, 1) forwards;
+}

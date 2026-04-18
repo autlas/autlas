@@ -1,8 +1,8 @@
 import { useEffect } from "react";
-import "./styles.css";
-import LiveHub from "./hub/LiveHub";
+import "./landing.css";
+import AutlasFrame from "./AutlasFrame";
 
-export default function App() {
+export default function Landing() {
   useEffect(() => {
     document.body.dataset.variant = "experimental";
     const copyBtns = document.querySelectorAll<HTMLElement>(".copy, .winget .copy");
@@ -26,6 +26,7 @@ export default function App() {
 
   return (
     <>
+<div className="landing-root" data-variant="experimental">
 <div className="page">
   <div className="shell">
 
@@ -87,7 +88,7 @@ export default function App() {
         {/* ============ HERO ART: HUB + TRAY ============ */}
         <div className="hero-art">
           <div className="hub-frame">
-            <LiveHub />
+            <AutlasFrame />
             {/* --- mock preserved below; TODO: delete once LiveHub is stable --- */}
             {false && (<>
             <div className="win" role="img" aria-label="autlas hub view screenshot">
@@ -486,6 +487,7 @@ export default function App() {
     </footer>
 
   </div>
+</div>
 </div>
     </>
   );

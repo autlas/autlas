@@ -14,13 +14,17 @@
     "jsx": "react-jsx",
 
     "strict": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true,
 
     "baseUrl": ".",
     "paths": {
-      "@ahk/*": ["../tauri_app/src/*"]
+      "@tauri-apps/api/core": ["./src/shims/tauri-core.ts"],
+      "@tauri-apps/api/event": ["./src/shims/tauri-event.ts"],
+      "@tauri-apps/api/webviewWindow": ["./src/shims/tauri-webview.ts"],
+      "@tauri-apps/api/dpi": ["./src/shims/tauri-dpi.ts"],
+      "@tauri-apps/plugin-dialog": ["./src/shims/tauri-dialog.ts"]
     }
   },
   "include": ["src"]
