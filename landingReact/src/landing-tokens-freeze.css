@@ -47,6 +47,8 @@ body {
 
 /* ── Glassmorphism: frost every non-accent surface so the shader
       bleeds through with soft blur behind text/cards/buttons. ── */
+.landing-root .nav-wrap,
+.landing-root .nav-wrap-portaled,
 .landing-root .btn-ghost,
 .landing-root .btn-outline,
 .landing-root .winget,
@@ -67,6 +69,13 @@ body {
   backdrop-filter: blur(9px) saturate(1.1);
   -webkit-backdrop-filter: blur(9px) saturate(1.1);
   background-color: rgba(255, 255, 255, 0.04);
+  /* Raycast-style "lit glass" edge: diagonal tint + 1px inset highlight. */
+  background-image: linear-gradient(
+    137deg,
+    rgba(255, 255, 255, 0.05) 5%,
+    rgba(255, 255, 255, 0) 75%
+  );
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 
 /* Card-ish larger surfaces get slightly more saturation + tint lift. */
@@ -104,6 +113,19 @@ body {
 .landing-root .ps-card.problem {
   background-color: rgba(70, 15, 20, 0.4) !important;
   border-color: rgba(239, 68, 68, 0.18) !important;
+}
+
+/* Primary (download / install) button — keep the accent fill but give it
+   the same lit-edge treatment so it feels like a sibling of the glass. */
+.landing-root .btn-primary {
+  background-image: linear-gradient(
+    137deg,
+    rgba(255, 255, 255, 0.22) 5%,
+    rgba(255, 255, 255, 0) 60%
+  ) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    0 10px 30px -10px var(--accent-glow);
 }
 
 .landing-root {
