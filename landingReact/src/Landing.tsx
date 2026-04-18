@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { createPortal } from "react-dom";
 import "./landing.css";
 import "./landing-tokens-freeze.css";
 import AutlasFrame from "./AutlasFrame";
@@ -32,7 +33,9 @@ export default function Landing() {
   <div className="shell">
 
     {/* ================= NAV ================= */}
-    <div className="nav-wrap">
+    {createPortal(
+    <div className="landing-root nav-portal-root" data-variant="experimental">
+    <div className="nav-wrap nav-wrap-portaled">
       <nav className="nav" aria-label="Primary">
         <a href="#" className="nav-logo">
           <img src="/assets/logo.png" alt="" className="brand" />
@@ -58,6 +61,9 @@ export default function Landing() {
         </div>
       </nav>
     </div>
+    </div>,
+    document.body,
+    )}
 
     {/* ================= HERO ================= */}
     <section className="hero" id="hero">

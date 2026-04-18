@@ -136,7 +136,7 @@ export default function AutlasFrame() {
       host.style.left = `${r.left + window.scrollX}px`;
       host.style.width = `${r.width}px`;
       host.style.height = `${r.height}px`;
-      host.style.zIndex = "5";
+      host.style.zIndex = "1";
     };
     sync();
 

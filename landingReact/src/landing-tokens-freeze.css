@@ -16,6 +16,24 @@ body {
   color: rgba(255, 255, 255, 1) !important;
 }
 
+/* Nav is portaled into <body> to stack above the absolute autlas tile. */
+.nav-portal-root {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 200;
+  pointer-events: none;  /* let clicks pass where nav-wrap is transparent */
+}
+.nav-portal-root > .nav-wrap-portaled {
+  pointer-events: auto;
+  position: relative;
+  top: auto;
+  max-width: var(--page-max, 1200px);
+  margin: 0 auto;
+  padding: 16px 32px;
+}
+
 .landing-root {
   --bg-primary: #000000 !important;
   --bg-secondary: #0a0a0a !important;
