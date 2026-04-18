@@ -127,7 +127,7 @@ export default function Landing() {
     <div className="nav-wrap nav-wrap-portaled">
       <nav className="nav" aria-label="Primary">
         <a href="#" className="nav-logo">
-          <img src="/assets/logo.png" alt="" className="brand" />
+          <img src={`${import.meta.env.BASE_URL}assets/logo.png`} alt="" className="brand" />
           autlas
         </a>
         <ul>
@@ -575,7 +575,7 @@ export default function Landing() {
     <footer>
       <div className="foot">
         <div className="foot-left">
-          <img src="/assets/logo.png" alt="" className="brand" />
+          <img src={`${import.meta.env.BASE_URL}assets/logo.png`} alt="" className="brand" />
           autlas v0.1.0 · MIT · © 2026
         </div>
         <div className="foot-links">

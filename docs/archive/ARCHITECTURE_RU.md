@@ -13,7 +13,7 @@
   → React-компонент ловит клик
     → invoke("команда", { id, ... })        ← IPC вызов в Rust
       → Rust Tauri-команда обрабатывает
-        → SQLite (ahkmanager.db)            ← единая база данных
+        → SQLite (autlas.db)            ← единая база данных
           → Результат обратно в React
 ```
 
@@ -24,7 +24,7 @@
 Все данные приложения хранятся в **одном файле** SQLite:
 
 ```
-%AppData%\heavym\ahkmanager\config\ahkmanager.db
+%AppData%\heavym\autlas\config\autlas.db
 ```
 
 Раньше данные были разбросаны по нескольким файлам (INI, JSON, TXT). Теперь всё в одном месте — проще бекапить, переносить, и невозможно потерять часть данных.

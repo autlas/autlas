@@ -132,7 +132,7 @@ pub async fn marketplace_install_script(
     let url = format!("{}/scripts/{}/{}", RAW_BASE, script_id, entry_file);
     let client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(30))
-        .user_agent("AHKManager/0.1")
+        .user_agent("autlas/0.1")
         .build()
         .map_err(|e| e.to_string())?;
 

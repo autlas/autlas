@@ -133,7 +133,7 @@ pub struct Catalog {
 pub async fn marketplace_get_catalog() -> Result<Catalog, String> {
     let client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(15))
-        .user_agent("AHKManager/0.1")
+        .user_agent("autlas/0.1")
         .build()
         .map_err(|e| e.to_string())?;
 

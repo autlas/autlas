@@ -1,5 +1,0 @@
-PID: 11320, Handle: 4784846, Class: AutoHotkey, Title: C:\Users\Heavym\Desktop\chest\code\AutoHotkeys\AHKmanager\VolumeControlV2\VolumeControlV2.ahk - AutoHotkey v2.0.19
-PID: 11320, Handle: 67642, Class: AutoHotkey, Title: C:\Program Files (x86)\EitherMouse\EitherMouse.exe
-PID: 16372, HWND: 1246506, Title: C:\Users\Heavym\Desktop\chest\code\AutoHotkeys\AHKmanager\test_handles.ahk - AutoHotkey v2.0.19
-PID: 25592, HWND: 4784846, Title: C:\Users\Heavym\Desktop\chest\code\AutoHotkeys\AHKmanager\VolumeControlV2\VolumeControlV2.ahk - AutoHotkey v2.0.19
-PID: 21416, HWND: 67642, Title: C:\Program Files (x86)\EitherMouse\EitherMouse.exe

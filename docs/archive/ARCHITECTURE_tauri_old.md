@@ -9,7 +9,7 @@ User clicks button
   → React component
     → invoke("command", { id, ... })
       → Rust Tauri command
-        → SQLite (ahkmanager.db)
+        → SQLite (autlas.db)
           → Result back to frontend
 ```
 
@@ -17,7 +17,7 @@ User clicks button
 
 ## Data Storage
 
-Single SQLite database: `%AppData%\heavym\ahkmanager\config\ahkmanager.db`
+Single SQLite database: `%AppData%\heavym\autlas\config\autlas.db`
 
 WAL mode, foreign keys ON, busy_timeout 5000ms.
 

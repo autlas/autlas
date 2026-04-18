@@ -6,7 +6,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, '..');
 const tauriBuildDir = path.join(__dirname, 'src-tauri', 'target', 'release', 'bundle');
 
-// User requested paths relative to project root (c:\Users\Heavym\Desktop\chest\code\AutoHotkeys\AHKmanager)
+// User requested paths relative to project root (c:\Users\Heavym\Desktop\chest\code\AutoHotkeys\autlas)
 const buildsRoot = path.join(root, 'builds');
 const exeDest = path.join(buildsRoot, 'exe');
 const msiDest = path.join(buildsRoot, 'msi');
