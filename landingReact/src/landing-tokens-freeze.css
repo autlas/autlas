@@ -27,6 +27,20 @@ body {
   display: none !important;
 }
 
+/* Scroll-triggered dim overlay — sits above the shader but below
+   .page content (which creates its own stacking context via
+   isolation: isolate, so it paints on top in tree order even at
+   z-index: 0). Opacity is driven from JS. */
+.landing-root .scroll-dim {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background: #000000;
+  opacity: 0;
+  pointer-events: none;
+  will-change: opacity;
+}
+
 /* Hero rhythm — JS computes --hero-p (symmetric visible padding around
    hero-copy) and --nav-h (fixed nav portal's visual height). Nav is
    position:fixed and takes no document flow space, so the top padding

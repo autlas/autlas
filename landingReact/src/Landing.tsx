@@ -83,10 +83,40 @@ export default function Landing() {
     return () => { ro.disconnect(); window.removeEventListener("resize", update); };
   }, []);
 
+  // Scroll-triggered dim overlay. Fade from 0 → SCROLL_DIM_MAX between
+  // SCROLL_DIM_START and SCROLL_DIM_END (fractions of viewport height).
+  useEffect(() => {
+    const dim = document.querySelector<HTMLElement>(".scroll-dim");
+    if (!dim) return;
+    const SCROLL_DIM_START = 0.2;
+    const SCROLL_DIM_END = 1.0;
+    const SCROLL_DIM_MAX = 0.3;
+    let raf = 0;
+    const update = () => {
+      raf = 0;
+      const H = window.innerHeight;
+      const y = window.scrollY;
+      const start = SCROLL_DIM_START * H;
+      const end = SCROLL_DIM_END * H;
+      const t = Math.max(0, Math.min(1, (y - start) / (end - start)));
+      dim.style.opacity = String(t * SCROLL_DIM_MAX);
+    };
+    const onScroll = () => { if (!raf) raf = requestAnimationFrame(update); };
+    update();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, []);
+
   return (
     <>
 <div className="landing-root" data-variant="experimental">
 <BackgroundShader />
+<div className="scroll-dim" aria-hidden="true" />
 <div className="page">
   <div className="shell">
 

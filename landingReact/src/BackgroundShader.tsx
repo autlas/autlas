@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   GrainGradient,
   grainGradientPresets,
@@ -62,6 +62,80 @@ export default function BackgroundShader() {
   const [p, setP] = useState<Params>(DEFAULT_PARAMS);
   const [open, setOpen] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [scrollScale, setScrollScale] = useState(1);
+  const [scrollRot, setScrollRot] = useState(0);
+  const [mouseOffX, setMouseOffX] = useState(0);
+  const [mouseOffY, setMouseOffY] = useState(0);
+
+  // Scroll-driven scale + rotation — lerp between START..END fractions
+  // of viewport height (same curve as the dim overlay). rAF-throttled +
+  // delta-gated so we don't re-render per scroll tick.
+  useEffect(() => {
+    const SCALE_START = 0.2;
+    const SCALE_END = 1.0;
+    const SCALE_FROM = 1;
+    const SCALE_TO = 1.4;
+    // Rotation accumulates DEG_PER_SCREEN° for every viewport-height of
+    // scroll, starting from 0 — no upper clamp, so the mesh keeps turning.
+    const DEG_PER_SCREEN = 15;
+    let raf = 0;
+    let lastScale = SCALE_FROM;
+    let lastRot = 0;
+    const tick = () => {
+      raf = 0;
+      const H = window.innerHeight;
+      const y = window.scrollY;
+      const tScale = Math.max(0, Math.min(1, (y - SCALE_START * H) / ((SCALE_END - SCALE_START) * H)));
+      const nextScale = SCALE_FROM + tScale * (SCALE_TO - SCALE_FROM);
+      const nextRot = (y / H) * DEG_PER_SCREEN;
+      if (Math.abs(nextScale - lastScale) >= 0.002) { lastScale = nextScale; setScrollScale(nextScale); }
+      if (Math.abs(nextRot - lastRot) >= 0.05) { lastRot = nextRot; setScrollRot(nextRot); }
+    };
+    const onScroll = () => { if (!raf) raf = requestAnimationFrame(tick); };
+    tick();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, []);
+
+  // Cursor parallax — linear in pixels: every PIX_PER_UNIT of cursor
+  // travel from viewport center = 1 full unit of shader offset.
+  // Inverted so mouse-up → offset-down (standard parallax feel).
+  // rAF-throttled; eased toward target.
+  useEffect(() => {
+    const PIX_PER_UNIT = 36000;
+    const EASE = 0.12;
+    let raf = 0;
+    let targetX = 0, targetY = 0;
+    let curX = 0, curY = 0;
+    const tick = () => {
+      curX += (targetX - curX) * EASE;
+      curY += (targetY - curY) * EASE;
+      setMouseOffX(curX);
+      setMouseOffY(curY);
+      if (Math.abs(targetX - curX) > 0.0005 || Math.abs(targetY - curY) > 0.0005) {
+        raf = requestAnimationFrame(tick);
+      } else {
+        raf = 0;
+      }
+    };
+    const onMove = (e: MouseEvent) => {
+      const W = window.innerWidth;
+      const H = window.innerHeight;
+      targetX = -(e.clientX - W / 2) / PIX_PER_UNIT;
+      targetY = -(e.clientY - H / 2) / PIX_PER_UNIT;
+      if (!raf) raf = requestAnimationFrame(tick);
+    };
+    window.addEventListener("mousemove", onMove, { passive: true });
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, []);
 
   const update = (patch: Partial<Params>) => setP((cur) => ({ ...cur, ...patch }));
   const setColor = (i: number, v: string) => setP((cur) => {
@@ -117,10 +191,10 @@ export default function BackgroundShader() {
           noise={p.noise}
           shape={p.shape}
           speed={p.speed}
-          scale={p.scale}
-          rotation={p.rotation}
-          offsetX={p.offsetX}
-          offsetY={p.offsetY}
+          scale={p.scale * scrollScale}
+          rotation={p.rotation + scrollRot}
+          offsetX={p.offsetX + mouseOffX}
+          offsetY={p.offsetY + mouseOffY}
         />
       </div>
 
