@@ -286,7 +286,7 @@ export default function Sidebar({
                 onClick={() => !draggedScript && onTabClick(tab.id)}
               >
                 <div className="flex items-center pointer-events-none flex-shrink-0 overflow-hidden">
-                  <img src={logoImg} alt="Hub" className={`w-8 h-8 flex-shrink-0 transition-all duration-300 ${activeTab === "hub" && viewMode !== "settings" ? "brightness-0 invert" : ""}`} />
+                  <img src={logoImg} alt="Hub" className={`w-8 h-8 flex-shrink-0 transition-all duration-500 ${activeTab === "hub" && viewMode !== "settings" ? "brightness-0 invert" : ""}`} />
                   <span className={`text-lg tracking-tight transition-[width,margin,opacity] duration-150 ${collapsed ? 'w-0 ml-0 opacity-0' : 'w-auto ml-3 opacity-100'}`}>{tab.label}</span>
                 </div>
                 {(() => {
@@ -297,7 +297,7 @@ export default function Sidebar({
                   // active hub background.
                   if (isHubActive && runningCount === 0) return null;
                   return (
-                    <div className={`absolute flex items-center justify-center rounded-full transition-all duration-150
+                    <div className={`absolute flex items-center justify-center rounded-full transition-[top,right,width,height,opacity] duration-150
                       ${isHubActive ? 'bg-white shadow-[0_0_12px_rgba(255,255,255,0.4)]' : 'bg-green-500 shadow-[0_0_12px_rgba(34,197,94,0.6)]'}
                       ${collapsed
                         ? (runningCount > 0 ? 'top-[-1px] right-[-1px] w-4.5 h-4.5' : 'top-[26px] right-3 w-0 h-0 opacity-0')
@@ -305,7 +305,7 @@ export default function Sidebar({
                       }`}
                     >
                       {runningCount > 0 && (
-                        <span className={`font-bold leading-none transition-all duration-300 ${collapsed ? 'text-xs' : 'text-sm'}`} style={{ color: isHubActive ? "#A44CFF" : "var(--bg-secondary)" }}>{runningCount}</span>
+                        <span className={`font-bold leading-none transition-[font-size] duration-300 ${collapsed ? 'text-xs' : 'text-sm'}`} style={{ color: isHubActive ? "#A44CFF" : "var(--bg-secondary)" }}>{runningCount}</span>
                       )}
                     </div>
                   );

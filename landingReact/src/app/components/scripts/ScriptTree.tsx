@@ -264,7 +264,7 @@ export default function ScriptTree({ filterTag, onTagsLoaded, onLoadingChange, o
                 ref={containerRef}
                 onScroll={handleScroll}
                 onMouseMove={() => { if (useTreeStore.getState().isVimMode) setIsVimMode(false); }}
-                className={`absolute inset-0 overflow-y-auto custom-scrollbar pl-4 pr-[6px] ${draggedScriptPath ? 'opacity-30 blur-[1px] transition-all duration-300' : ''}`}
+                className={`absolute inset-0 overflow-y-auto overflow-x-hidden custom-scrollbar pl-4 pr-[6px] ${draggedScriptPath ? 'opacity-30 blur-[1px] transition-all duration-300' : ''}`}
                 style={{ paddingTop: toolbarH, scrollPaddingTop: toolbarH + 16, scrollPaddingBottom: 16 }}
                 id="script-list-container"
             >

@@ -43,9 +43,15 @@
   pointer-events: none;
 }
 
-/* Wrap with room above the frame for the demo badge. */
+/* Wrap with room above the frame for the demo badge.
+   Break out of the 1200px .shell and take at least 80vw so the preview
+   doesn't feel caged on wide monitors. */
 .autlas-wrap {
   position: relative;
+  width: max(80vw, 100%);
+  max-width: 1600px;
+  left: 50%;
+  transform: translateX(-50%);
 }
 
 /* Pill sitting just above the top-right corner of the frame. */
