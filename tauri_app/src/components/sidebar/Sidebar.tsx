@@ -275,7 +275,7 @@ export default function Sidebar({
                       ? "opacity-20 blur-[1px]"
                       : `text-indigo-400 tag-pulse-target ${dragOverTag === tab.id ? "tag-drop-hover" : ""}`)
                     : (activeTab === tab.id && viewMode !== "settings"
-                      ? "bg-gradient-to-r from-indigo-500 to-purple-500 shadow-xl shadow-indigo-900/40 text-white"
+                      ? "bg-[linear-gradient(90deg,#7c3aed_0%,#1fb8e6_100%)] shadow-xl shadow-[#1fb8e6]/25 text-white"
                       : "text-tertiary hover:text-secondary tag-hover")
                   }`}
                 style={{
@@ -305,7 +305,7 @@ export default function Sidebar({
                       }`}
                     >
                       {runningCount > 0 && (
-                        <span className={`font-bold leading-none transition-[font-size] duration-300 ${collapsed ? 'text-xs' : 'text-sm'}`} style={{ color: isHubActive ? "#A44CFF" : "var(--bg-secondary)" }}>{runningCount}</span>
+                        <span className={`font-bold leading-none transition-[font-size] duration-300 ${collapsed ? 'text-xs' : 'text-sm'}`} style={{ color: isHubActive ? "#37ACE8" : "var(--bg-secondary)" }}>{runningCount}</span>
                       )}
                     </div>
                   );

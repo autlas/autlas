@@ -26,7 +26,7 @@ const DEFAULT_PARAMS: Params = {
   colorCount: 3,
   colors: ["#7c3aed", "#1fb8e6", "#4ade80", "#fbbf24", "#f472b6", "#9ca3af", "#ffffff"],
   colorBack: "#000000",
-  softness: 0.82,
+  softness: 1,
   intensity: 0.5,
   noise: 0.1,
   shape: "corners",
@@ -41,7 +41,7 @@ const DEFAULT_PARAMS: Params = {
 // applied by applyPreset("autlas") so you can keep a palette override.
 const LOCAL_PRESETS: Record<string, Partial<Params>> = {
   autlas: {
-    softness: 0.82,
+    softness: 1,
     intensity: 0.5,
     noise: 0.1,
     shape: "corners",
@@ -52,6 +52,11 @@ const LOCAL_PRESETS: Record<string, Partial<Params>> = {
     offsetY: 0,
   },
 };
+
+// Flip to `true` to bring the live tuner panel back (gear button +
+// sliders, color pickers, presets, copy-JSON). Kept around so future
+// palette/motion tuning doesn't have to redo the wiring.
+const SHOW_TUNER = false;
 
 export default function BackgroundShader() {
   const [p, setP] = useState<Params>(DEFAULT_PARAMS);
@@ -119,11 +124,13 @@ export default function BackgroundShader() {
         />
       </div>
 
+      {SHOW_TUNER && (
       <button className="shader-tuner-toggle" onClick={() => setOpen((o) => !o)} aria-label="Toggle shader controls">
         {open ? "×" : "⚙"}
       </button>
+      )}
 
-      {open && (
+      {SHOW_TUNER && open && (
         <div className="shader-tuner" onClick={(e) => e.stopPropagation()}>
           <div className="tuner-head">
             Presets

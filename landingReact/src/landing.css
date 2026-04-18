@@ -156,6 +156,7 @@ img{max-width:100%;display:block}
 .mono{font-family:var(--mono)}
 .hero{padding:156px 0 180px;position:relative}
 .hero-grid{display:grid;grid-template-columns: 1fr 1.1fr;gap:56px;align-items:center}
+.hero-copy{padding:70px 0}
 .hero-copy .eyebrow{margin-bottom:24px}
 .hero-copy .h1{margin:0 0 20px}
 .hero-copy .lead{margin:0 0 32px}
