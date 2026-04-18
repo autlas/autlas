@@ -1,0 +1,46 @@
+name: Deploy landing
+
+# Builds landingReact/ and publishes dist/ to the public
+# EazzzyMax/autlas-landing repo, where GitHub Pages serves it.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "landingReact/**"
+      - ".github/workflows/deploy-landing.yml"
+  workflow_dispatch: {}
+
+concurrency:
+  group: deploy-landing
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: landingReact
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: landingReact/package-lock.json
+
+      - run: npm ci
+      - run: npm run build
+
+      - name: Publish to autlas-landing
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          deploy_key: ${{ secrets.ACTIONS_DEPLOY_KEY }}
+          external_repository: EazzzyMax/autlas-landing
+          publish_branch: main
+          publish_dir: landingReact/dist
+          force_orphan: true
+          user_name: github-actions[bot]
+          user_email: github-actions[bot]@users.noreply.github.com
+          commit_message: "deploy: ${{ github.event.head_commit.message }}"
