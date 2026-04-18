@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useLayoutEffect } from "react";
 import { createPortal } from "react-dom";
 import "./landing.css";
 import "./landing-tokens-freeze.css";
@@ -25,6 +25,62 @@ export default function Landing() {
       handlers.push(() => btn.removeEventListener("click", onClick));
     });
     return () => { handlers.forEach((fn) => fn()); };
+  }, []);
+
+  // Hero rhythm. Keep top/bottom padding around the hero-copy block
+  // symmetric, solve for the autlas tile to peek in by APP_REVEAL px
+  // below the fold. Clamp to MIN_P; if we can't satisfy that, center
+  // the copy in the remaining viewport and push the app out of the
+  // first screen entirely. Exposed as --hero-p on .landing-root; the
+  // CSS picks it up for .hero padding and .hero-grid gap.
+  useLayoutEffect(() => {
+    const root = document.querySelector<HTMLElement>(".landing-root");
+    if (!root) return;
+
+    const APP_REVEAL = 150;
+    const MIN_P = 80;
+    // When we can't satisfy APP_REVEAL and fall back to hiding autlas
+    // below the fold, push it a little further past the fold so the
+    // tilt (up to TILT_CAP_DEG) can't poke the top edge back into view.
+    const FALLBACK_SAFETY = 50;
+
+    const update = () => {
+      const copy = document.querySelector<HTMLElement>(".hero-copy");
+      const nav  = document.querySelector<HTMLElement>(".nav-wrap-portaled");
+      if (!copy) return;
+      const H = window.innerHeight;
+      const N = nav?.offsetHeight ?? 0;
+      // Measure natural content height without whatever padding CSS
+      // currently reports (we may have set it on a previous pass).
+      const prevPT = copy.style.paddingTop;
+      const prevPB = copy.style.paddingBottom;
+      copy.style.paddingTop = "0px";
+      copy.style.paddingBottom = "0px";
+      const C = copy.offsetHeight;
+      copy.style.paddingTop = prevPT;
+      copy.style.paddingBottom = prevPB;
+
+      const idealP = (H - N - C - APP_REVEAL) / 2;
+      const inNormal = idealP >= MIN_P;
+      // Symmetric visible padding around hero-copy. Keep hero-copy
+      // centered in the viewport (nav-excluded) in the fallback.
+      const P = inNormal ? idealP : Math.max(MIN_P, (H - N - C) / 2);
+      // Gap from hero-copy to autlas = P normally. In the fallback
+      // we only inflate THIS (not P) so the tile slides down off-screen
+      // by FALLBACK_SAFETY without dragging hero-copy along with it.
+      const gap = inNormal ? P : P + FALLBACK_SAFETY;
+      root.style.setProperty("--hero-p", `${Math.round(P)}px`);
+      root.style.setProperty("--hero-gap", `${Math.round(gap)}px`);
+      root.style.setProperty("--nav-h", `${Math.round(N)}px`);
+    };
+
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(document.documentElement);
+    const copy = document.querySelector<HTMLElement>(".hero-copy");
+    if (copy) ro.observe(copy);
+    window.addEventListener("resize", update);
+    return () => { ro.disconnect(); window.removeEventListener("resize", update); };
   }, []);
 
   return (
@@ -71,9 +127,8 @@ export default function Landing() {
     <section className="hero" id="hero">
       <div className="hero-grid">
         <div className="hero-copy">
-          <div className="eyebrow"><span className="bar"></span>OPEN-SOURCE · WINDOWS · MIT</div>
           <h1 className="h1">One hub<br />for all your<br /><span className="brand-grad">AutoHotkey</span><br />scripts.</h1>
-          <p className="lead">Discover, tag, run, and monitor hundreds of .ahk scripts — without ever opening Explorer or Task Manager.</p>
+          <p className="lead">Discover, tag, run, and monitor hundreds of yours .ahk scripts —<br />without ever opening Explorer or Task Manager.</p>
           <div className="hero-cta">
             <a href="#install" className="btn btn-primary btn-lg">
               <svg className="i" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M3 3h8v8H3zM13 3h8v8h-8zM3 13h8v8H3zM13 13h8v8h-8z"/></svg>

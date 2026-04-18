@@ -27,6 +27,19 @@ body {
   display: none !important;
 }
 
+/* Hero rhythm — JS computes --hero-p (symmetric visible padding around
+   hero-copy) and --nav-h (fixed nav portal's visual height). Nav is
+   position:fixed and takes no document flow space, so the top padding
+   has to compensate for it: visible top gap = padding-top − nav-h.
+   Bottom gap and the hero-grid row-gap both stay at --hero-p. */
+.landing-root .hero {
+  padding-top: calc(var(--hero-p, 180px) + var(--nav-h, 76px)) !important;
+  padding-bottom: var(--hero-p, 180px) !important;
+}
+.landing-root .hero-grid {
+  gap: var(--hero-gap, var(--hero-p, 140px)) !important;
+}
+
 /* Nav is portaled into <body> to stack above the absolute autlas tile. */
 .nav-portal-root {
   position: fixed;
