@@ -116,6 +116,7 @@ export default function Landing() {
     <>
 <div className="landing-root" data-variant="experimental">
 <BackgroundShader />
+<div className="intro-dim" aria-hidden="true" />
 <div className="scroll-dim" aria-hidden="true" />
 <div className="page">
   <div className="shell">
