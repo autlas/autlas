@@ -1,0 +1,138 @@
+/* ---------- LiveHub overrides on top of landing styles.css ---------- */
+
+/* make the hub grid scrollable inside the fixed-size window */
+.hub-main {
+  overflow: hidden;
+}
+.hub-scroll {
+  overflow-y: auto;
+  min-height: 0;
+  flex: 1;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
+}
+.hub-scroll::-webkit-scrollbar { width: 6px; }
+.hub-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+/* side-item clickable */
+.side-item {
+  cursor: pointer;
+  user-select: none;
+}
+.side-item:hover:not(.active) {
+  background: rgba(255, 255, 255, 0.025);
+}
+
+/* toggle-group buttons */
+.toggle-group button {
+  cursor: pointer;
+}
+
+/* action buttons disabled state */
+.act[disabled] { opacity: 0.6; pointer-events: none; }
+
+/* pending glow */
+.status.pending-run    { background: var(--warning); box-shadow: 0 0 10px rgba(234, 179, 8, 0.6); animation: pulse 1s ease-in-out infinite; }
+.status.pending-kill   { background: var(--danger);  box-shadow: 0 0 10px rgba(239, 68, 68, 0.6);  animation: pulse 1s ease-in-out infinite; }
+.status.pending-restart{ background: var(--warning); box-shadow: 0 0 10px rgba(234, 179, 8, 0.6); animation: pulse 1s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: 0.5; } }
+
+/* ---------- list view ---------- */
+.list-view { display: flex; flex-direction: column; padding: 10px 14px; gap: 2px; }
+.row {
+  position: relative;
+  display: flex; align-items: center; gap: 12px;
+  height: 38px; padding: 0 12px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background 120ms var(--ease);
+}
+.row:hover { background: rgba(255, 255, 255, 0.04); }
+.row.focused { background: rgba(99, 102, 241, 0.18); }
+.row.focused::before {
+  content: "";
+  position: absolute; left: -1px; top: 8px; bottom: 8px;
+  width: 3.5px; border-radius: 2px;
+  background: var(--accent); box-shadow: 0 0 10px rgba(99, 102, 241, 0.6);
+}
+.row .status { width: 8px; height: 8px; flex-shrink: 0; }
+.row .nm { font-size: 14px; font-weight: 500; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.row .row-tags { display: flex; gap: 6px; flex: 1; overflow: hidden; padding-left: 8px; }
+.row .row-tag { font-size: 11px; padding: 2px 10px; height: 22px; border-radius: 8px; background: rgba(255, 255, 255, 0.03); color: var(--text-tertiary); border: 1px solid rgba(255, 255, 255, 0.08); display: inline-flex; align-items: center; white-space: nowrap; }
+.row .row-actions { display: flex; gap: 4px; opacity: 0; transition: opacity 120ms var(--ease); }
+.row:hover .row-actions, .row.focused .row-actions { opacity: 1; }
+.row .row-act {
+  width: 24px; height: 24px; border-radius: 7px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-color);
+  color: var(--text-tertiary);
+  cursor: pointer;
+}
+.row .row-act:hover { color: var(--text-primary); background: rgba(255, 255, 255, 0.08); }
+.row .row-act svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 2; }
+
+/* ---------- tree view ---------- */
+.tree-view { padding: 10px 14px; display: flex; flex-direction: column; gap: 2px; }
+.tree-folder {
+  display: flex; align-items: center; gap: 8px;
+  height: 32px; padding: 0 10px; border-radius: 8px;
+  font-size: 12px; font-weight: 600;
+  color: var(--text-secondary); cursor: pointer;
+  text-transform: uppercase; letter-spacing: 0.04em;
+}
+.tree-folder:hover { background: rgba(255, 255, 255, 0.03); }
+.tree-folder .caret { transition: transform 120ms var(--ease); font-family: var(--mono); color: var(--text-tertiary); font-size: 10px; }
+.tree-folder[data-open="true"] .caret { transform: rotate(90deg); }
+.tree-folder .fcount { margin-left: auto; font-family: var(--mono); font-size: 10px; color: var(--text-quaternary); }
+.tree-children { padding-left: 16px; display: flex; flex-direction: column; gap: 2px; }
+
+/* kbd inside side-items (view shortcuts) */
+.side-item .kbd-hint {
+  margin-left: auto;
+  font-family: var(--mono); font-size: 10px;
+  color: var(--text-quaternary);
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color);
+}
+.side-item.active .kbd-hint { color: var(--text-tertiary); }
+
+/* search clear */
+.search .clear {
+  width: 18px; height: 18px; border-radius: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-tertiary);
+  cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
+  font-size: 11px; border: none;
+}
+.search .clear:hover { color: var(--text-primary); }
+
+/* star in card head */
+.card-head .star {
+  background: none; border: none; padding: 0; margin-right: 6px;
+  color: var(--text-quaternary); cursor: pointer;
+  display: inline-flex; align-items: center;
+  transition: color 120ms var(--ease);
+}
+.card-head .star:hover { color: var(--warning); }
+.card-head .star.on { color: var(--warning); }
+
+/* action run/kill variants */
+.act.run-btn  { flex: 1; background: rgba(34, 197, 94, 0.12); color: var(--success); border-color: rgba(34, 197, 94, 0.3); }
+.act.kill-btn { background: rgba(239, 68, 68, 0.08); color: #fca5a5; border-color: rgba(239, 68, 68, 0.22); }
+.act.restart-btn { background: rgba(234, 179, 8, 0.08); color: #fcd34d; border-color: rgba(234, 179, 8, 0.22); }
+.act.pending {
+  animation: pulse 1s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* tag colored dot inside sidebar */
+.side-item .dot {
+  box-shadow: 0 0 6px currentColor;
+}
