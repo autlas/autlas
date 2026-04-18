@@ -157,19 +157,27 @@ export default function Landing() {
     <section className="hero" id="hero">
       <div className="hero-grid">
         <div className="hero-copy">
-          <h1 className="h1">One hub<br />for all your<br /><span className="brand-grad">AutoHotkey</span><br />scripts.</h1>
-          <p className="lead">Discover, tag, run, and monitor hundreds of yours .ahk scripts —<br />without ever opening Explorer or Task Manager.</p>
+          <h1 className="h1">
+            <span className="hero-rise" style={{ animationDelay: "100ms" }}>One hub</span>
+            <span className="hero-rise" style={{ animationDelay: "160ms" }}>for all your</span>
+            <span className="hero-rise" style={{ animationDelay: "220ms" }}><span className="brand-grad">AutoHotkey</span></span>
+            <span className="hero-rise" style={{ animationDelay: "280ms" }}>scripts.</span>
+          </h1>
+          <p className="lead">
+            <span className="hero-rise" style={{ animationDelay: "340ms" }}>Discover, tag, run, and monitor hundreds of yours .ahk scripts —</span>
+            <span className="hero-rise" style={{ animationDelay: "400ms" }}>without ever opening Explorer or Task Manager.</span>
+          </p>
           <div className="hero-cta">
-            <a href="#install" className="btn btn-primary btn-lg">
+            <a href="#install" className="btn btn-primary btn-lg hero-rise" style={{ animationDelay: "460ms" }}>
               <svg className="i" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M3 3h8v8H3zM13 3h8v8h-8zM3 13h8v8H3zM13 13h8v8h-8z"/></svg>
               Download for Windows
             </a>
-            <a href="#" className="btn btn-ghost btn-lg">
+            <a href="#" className="btn btn-ghost btn-lg hero-rise" style={{ animationDelay: "520ms" }}>
               <svg className="i" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
               Star on GitHub
             </a>
           </div>
-          <div className="winget">
+          <div className="winget hero-rise" style={{ animationDelay: "580ms" }}>
             <span className="prompt">$</span>
             <span>winget install autlas</span>
             <button className="copy" aria-label="Copy install command">

@@ -27,6 +27,42 @@ body {
   display: none !important;
 }
 
+/* Hero entrance — staggered fade + rise. Each .hero-rise element
+   starts invisible and 16px below its final position, animating up
+   700ms with its own animation-delay (set inline on the element).
+   h1/lead lines use span → block so translateY composes with flow.
+   autlas tile uses its own rule below (needs to coexist with the
+   portal's tilt transform). */
+@keyframes hero-rise {
+  from { opacity: 0; transform: translateY(48px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.landing-root .hero-rise {
+  opacity: 0;
+  animation: hero-rise 2200ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.landing-root .h1 .hero-rise,
+.landing-root .lead .hero-rise {
+  display: block;
+}
+
+/* Autlas tile — fade only on the portal (its transform is driven by
+   the tilt). translateY is applied on the clipped frame + badge,
+   which have no transform of their own. Both share the same delay. */
+@keyframes hero-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.autlas-portal {
+  animation: hero-fade 2200ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation-delay: 640ms;
+}
+.autlas-portal .autlas-portal-frame,
+.autlas-portal .autlas-badge {
+  animation: hero-rise 2200ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation-delay: 640ms;
+}
+
 /* Scroll-triggered dim overlay — sits above the shader but below
    .page content (which creates its own stacking context via
    isolation: isolate, so it paints on top in tree order even at
