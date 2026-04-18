@@ -9,6 +9,7 @@ import {
   scanBlacklist,
   scanPaths,
   scripts,
+  scriptSources,
   tagIcons,
   tagOrder,
   traySettings,
@@ -73,12 +74,14 @@ const commands: Record<string, (args: any) => unknown | Promise<unknown>> = {
   async read_script_content({ path }: { path: string }) {
     const s = findScriptByPath(path);
     if (!s) return "; script not found\n";
-    return `; ${s.filename}.ahk — demo preview
-; tags: ${s.tags.join(", ")}
+    if (scriptSources[s.filename]) return scriptSources[s.filename];
+    return `; ${s.filename}.ahk — demo stub
+; tags: ${s.tags.join(", ") || "(none)"}
 #Requires AutoHotkey v2.0
 #SingleInstance Force
 
-Hotkey "F1", => MsgBox("${s.filename} fired!")
+; This script is a placeholder in the demo — the real one on disk
+; would live here. Try the scripts pinned to the Hub for real code.
 `;
   },
   async show_script_ui({ path }: { path: string }) {

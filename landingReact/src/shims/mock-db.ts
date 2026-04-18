@@ -112,6 +112,309 @@ export const scripts: Script[] = [
   s({ filename: "NotificationMute",  folder: `${DEV}/misc`,  tags: [] }),
 ];
 
+// ── Real-ish AHK v2 source for hub scripts, so the detail panel
+//    has something meaningful to syntax-highlight via shiki.
+export const scriptSources: Record<string, string> = {
+  "CSGO-Crosshair": `#Requires AutoHotkey v2.0
+#SingleInstance Force
+
+; ─── Minimalist static crosshair overlay for CS2 ────────────────
+; Hotkeys:  F8  toggle     F9  cycle color
+CROSSHAIR := {
+    size:    12,
+    gap:     4,
+    thick:   2,
+    color:   "00FF66",
+    colors:  ["00FF66", "FF3366", "FFCC00", "FFFFFF"],
+    idx:     1,
+}
+
+gui := Gui("+AlwaysOnTop -Caption +ToolWindow +E0x20")
+gui.BackColor := "000000"
+WinSetTransColor("000000", gui)
+
+DrawCrosshair() {
+    global gui, CROSSHAIR
+    gui.Show("w" 64 " h" 64 " NA")
+    ; draw four arms around the center gap
+    arms := [[0,-1],[0,1],[-1,0],[1,0]]
+    for off in arms {
+        x := 32 + off[1] * CROSSHAIR.gap
+        y := 32 + off[2] * CROSSHAIR.gap
+        gui.Add("Progress", "x" x " y" y " w" CROSSHAIR.thick " h" CROSSHAIR.size
+                           " Background" CROSSHAIR.color, 0)
+    }
+}
+
+DrawCrosshair()
+F8::gui.Visible ? gui.Hide() : DrawCrosshair()
+F9::{
+    CROSSHAIR.idx := Mod(CROSSHAIR.idx, CROSSHAIR.colors.Length) + 1
+    CROSSHAIR.color := CROSSHAIR.colors[CROSSHAIR.idx]
+    DrawCrosshair()
+}
+`,
+  "DiscordPTT": `#Requires AutoHotkey v2.0
+#SingleInstance Force
+
+; ─── Push-to-talk override for Discord ──────────────────────────
+; While the side mouse button is held, emulate Discord's PTT key
+; regardless of which window is focused.
+PTT_KEY := "F13"
+
+*XButton2::{
+    Send "{" PTT_KEY " down}"
+    KeyWait "XButton2"
+    Send "{" PTT_KEY " up}"
+}
+
+; Quick mute toggle
+^+m::Send "^+m"
+`,
+  "ClipboardHistory": `#Requires AutoHotkey v2.0
+#SingleInstance Force
+
+; ─── Lightweight clipboard history (last N text entries) ────────
+HISTORY := []
+LIMIT   := 50
+
+OnClipboardChange HandleClip
+
+HandleClip(type) {
+    if type != 1       ; 1 = text
+        return
+    text := A_Clipboard
+    if text = ""
+        return
+    HISTORY.InsertAt(1, text)
+    if HISTORY.Length > LIMIT
+        HISTORY.Pop()
+}
+
+; Win+V opens a quick picker
+#v::ShowPicker()
+
+ShowPicker() {
+    global HISTORY
+    g := Gui("+AlwaysOnTop +ToolWindow", "Clipboard")
+    lv := g.Add("ListView", "r15 w520", ["Entry"])
+    for entry in HISTORY
+        lv.Add(, StrReplace(SubStr(entry, 1, 120), "\`n", " ⏎ "))
+    lv.OnEvent("DoubleClick", (*) => (A_Clipboard := HISTORY[lv.GetNext()], g.Destroy(), Send("^v")))
+    g.Show()
+}
+`,
+  "QuickLauncher": `#Requires AutoHotkey v2.0
+#SingleInstance Force
+
+; ─── Spotlight-style quick launcher (Ctrl+Space) ────────────────
+APPS := Map(
+    "chrome",    "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+    "code",      "C:\\Users\\max\\AppData\\Local\\Programs\\Microsoft VS Code\\Code.exe",
+    "spotify",   "C:\\Users\\max\\AppData\\Roaming\\Spotify\\Spotify.exe",
+    "terminal",  "wt.exe",
+    "notion",    "C:\\Users\\max\\AppData\\Local\\Programs\\Notion\\Notion.exe",
+)
+
+^Space::{
+    IB := InputBox("run…", "quick launcher", "w320 h90")
+    if IB.Result = "Cancel"
+        return
+    key := Trim(IB.Value)
+    if APPS.Has(key)
+        Run APPS[key]
+    else
+        Run key           ; fallback: raw shell command
+}
+`,
+  "WindowSnap": `#Requires AutoHotkey v2.0
+#SingleInstance Force
+
+; ─── Snap the active window to halves/quarters with Win+Arrow ───
+SnapTo(rect) {
+    hwnd := WinGetID("A")
+    if !hwnd
+        return
+    MonitorGetWorkArea(MonitorGetPrimary(), &l, &t, &r, &b)
+    w := r - l, h := b - t
+    WinMove(l + rect[1] * w, t + rect[2] * h,
+            rect[3] * w,     rect[4] * h, hwnd)
+}
+
+#Left::SnapTo([0,     0,     0.5, 1.0])
+#Right::SnapTo([0.5,  0,     0.5, 1.0])
+#Up::SnapTo([0,       0,     1.0, 0.5])
+#Down::SnapTo([0,     0.5,   1.0, 0.5])
+#NumpadEnd::SnapTo([0,    0.5, 0.5, 0.5])
+#NumpadPgDn::SnapTo([0.5, 0.5, 0.5, 0.5])
+#NumpadHome::SnapTo([0,   0,   0.5, 0.5])
+#NumpadPgUp::SnapTo([0.5, 0,   0.5, 0.5])
+`,
+  "CapsToEsc": `#Requires AutoHotkey v2.0
+#SingleInstance Force
+
+; ─── CapsLock → Esc on tap, Ctrl on hold ────────────────────────
+; Keeps the ergonomic mapping that vim users love without giving up
+; CapsLock entirely (hold = Ctrl, tap = Esc).
+CapsLock::{
+    Send "{Blind}{Ctrl Down}"
+    t := A_TickCount
+    KeyWait "CapsLock"
+    Send "{Blind}{Ctrl Up}"
+    if (A_TickCount - t) < 180
+        Send "{Esc}"
+}
+
+; Shift+CapsLock still toggles actual CapsLock
++CapsLock::SetCapsLockState !GetKeyState("CapsLock", "T")
+`,
+
+  "fps_overlay": `#Requires AutoHotkey v2.0
+#SingleInstance Force
+
+; ─── Tiny FPS counter in the top-right corner ───────────────────
+; Polls the foreground window's frame timing approximation.
+overlay := Gui("+AlwaysOnTop -Caption +ToolWindow +E0x20")
+overlay.BackColor := "000000"
+overlay.SetFont("s10 cLime bold", "JetBrains Mono")
+lbl := overlay.Add("Text", "w90 h22", "-- fps")
+WinSetTransColor("000000", overlay)
+overlay.Show("x" (A_ScreenWidth - 110) " y8 NA")
+
+last := A_TickCount, frames := 0
+SetTimer Tick, 16
+Tick() {
+    global last, frames
+    frames++
+    now := A_TickCount
+    if now - last >= 500 {
+        fps := Round(frames * 1000 / (now - last))
+        lbl.Value := fps " fps"
+        frames := 0, last := now
+    }
+}
+
+F10::overlay.Visible ? overlay.Hide() : overlay.Show("NA")
+`,
+
+  "altdragwin": `#Requires AutoHotkey v2.0
+#SingleInstance Force
+
+; ─── Alt+drag to move any window, Alt+right-drag to resize ──────
+; Same behaviour most linux WMs have out of the box.
+
+!LButton::DragWindow("move")
+!RButton::DragWindow("resize")
+
+DragWindow(mode) {
+    MouseGetPos(&mx, &my, &hwnd)
+    if !hwnd
+        return
+    WinGetPos(&wx, &wy, &ww, &wh, hwnd)
+    WinActivate hwnd
+    while GetKeyState(mode = "move" ? "LButton" : "RButton", "P") {
+        MouseGetPos(&cx, &cy)
+        if mode = "move"
+            WinMove(wx + (cx - mx), wy + (cy - my), , , hwnd)
+        else
+            WinMove(wx, wy, Max(200, ww + (cx - mx)), Max(120, wh + (cy - my)), hwnd)
+        Sleep 8
+    }
+}
+`,
+
+  "hotcorners": `#Requires AutoHotkey v2.0
+#SingleInstance Force
+
+; ─── Hot corners: trigger actions when the mouse hits a corner ──
+; Top-left   → Show desktop
+; Top-right  → Task view
+; Bot-right  → Lock screen
+EDGE := 2            ; how many pixels count as "in the corner"
+COOLDOWN := 900
+lastFire := 0
+
+SetTimer Poll, 60
+Poll() {
+    global lastFire, COOLDOWN, EDGE
+    if A_TickCount - lastFire < COOLDOWN
+        return
+    MouseGetPos &mx, &my
+    sw := A_ScreenWidth, sh := A_ScreenHeight
+    if mx <= EDGE && my <= EDGE
+        Fire("#d")
+    else if mx >= sw - EDGE && my <= EDGE
+        Fire("#{Tab}")
+    else if mx >= sw - EDGE && my >= sh - EDGE
+        Fire("#l")
+}
+
+Fire(keys) {
+    global lastFire
+    lastFire := A_TickCount
+    Send keys
+}
+`,
+
+  "text-expander": `#Requires AutoHotkey v2.0
+#SingleInstance Force
+
+; ─── Text expansion snippets ────────────────────────────────────
+; Type the trigger + space, and the abbreviation is replaced.
+::eml::max@example.com
+::addr::221B Baker Street, London
+::sig::
+(
+--
+Max Heavy
+max@example.com
+)
+
+; Dynamic ones
+::/date::{:}
+    SendText FormatTime(, "yyyy-MM-dd")
+    return
+}
+::/time::{:}
+    SendText FormatTime(, "HH:mm")
+    return
+}
+`,
+
+  "ProjectSwitcher": `#Requires AutoHotkey v2.0
+#SingleInstance Force
+
+; ─── Switch between current work projects in one keystroke ──────
+PROJECTS := [
+    {name: "autlas",       path: "D:\\code\\autlas",       app: "code.exe"},
+    {name: "landing",      path: "D:\\code\\autlas\\landingReact", app: "code.exe"},
+    {name: "notes",        path: "D:\\Documents\\notes",   app: "obsidian.exe"},
+    {name: "downloads",    path: "C:\\Users\\max\\Downloads", app: "explorer.exe"},
+]
+
+^!Space::OpenPicker()
+
+OpenPicker() {
+    global PROJECTS
+    g := Gui("+AlwaysOnTop +ToolWindow", "projects")
+    lv := g.Add("ListView", "r" PROJECTS.Length " w420 -Hdr", ["project"])
+    for p in PROJECTS
+        lv.Add(, p.name "  —  " p.path)
+    lv.ModifyCol(1, 400)
+    lv.OnEvent("DoubleClick", (*) => Open(lv.GetNext()))
+    g.OnEvent("Escape", (*) => g.Destroy())
+    g.Show()
+    Open(i) {
+        if !i
+            return
+        p := PROJECTS[i]
+        Run p.app ' "' p.path '"'
+        g.Destroy()
+    }
+}
+`,
+};
+
 export const tagOrder: string[] = [
   "games", "work", "win", "keys",
 ];
