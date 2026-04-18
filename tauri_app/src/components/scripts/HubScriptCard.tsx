@@ -78,7 +78,7 @@ const HubScriptCard = memo(function HubScriptCard({
             className={`h-[200px] pt-[21px] pb-6 px-6 rounded-[24px] border border-transparent flex flex-col select-none relative long-press-shrink ${isEditing ? 'z-[200]' : 'z-10'}
                 ${isFocused && isVimMode ? 'vim-focus-instant !bg-indigo-500/20 shadow-[0_0_40px_rgba(99,102,241,0.2)] ring-2 ring-indigo-500/30' : 'transition-all duration-150'}
                 ${!draggedScriptPath
-                    ? `${isVimMode ? '' : 'group hover:z-[100] hover:bg-white/[0.04]'} ${isEditing || isContextMenuOpen ? 'shadow-2xl bg-white/[0.04]' : (isVimMode ? 'bg-white/[0.015]' : 'bg-white/[0.015] hover:shadow-2xl cursor-pointer')}`
+                    ? `${isVimMode ? '' : 'group hover:z-[100] hover:bg-white/[0.04]'} ${isEditing || isContextMenuOpen ? 'shadow-2xl bg-white/[0.04]' : (isVimMode ? 'bg-[var(--bg-tertiary)]' : 'bg-[var(--bg-tertiary)] hover:shadow-2xl cursor-pointer')}`
 
                     : (s.path === draggedScriptPath ? 'opacity-0 pointer-events-none' : 'z-10')}
                 ${s.is_running && !isDragging ? '' : ''}
