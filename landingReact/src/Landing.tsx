@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import "./landing.css";
 import "./landing-tokens-freeze.css";
 import AutlasFrame from "./AutlasFrame";
+import BackgroundShader from "./BackgroundShader";
 
 export default function Landing() {
   useEffect(() => {
@@ -29,6 +30,7 @@ export default function Landing() {
   return (
     <>
 <div className="landing-root" data-variant="experimental">
+<BackgroundShader />
 <div className="page">
   <div className="shell">
 

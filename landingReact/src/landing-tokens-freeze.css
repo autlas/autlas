@@ -16,6 +16,17 @@ body {
   color: rgba(255, 255, 255, 1) !important;
 }
 
+/* Disable the original .page aura/grid overlays — BackgroundShader
+   renders a GrainGradient canvas instead. .page background goes
+   transparent so the shader (z-index:0, fixed) shows through. */
+.landing-root .page {
+  background: transparent !important;
+}
+.landing-root .page::before,
+.landing-root .page::after {
+  display: none !important;
+}
+
 /* Nav is portaled into <body> to stack above the absolute autlas tile. */
 .nav-portal-root {
   position: fixed;
