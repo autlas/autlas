@@ -166,9 +166,13 @@ function App() {
   // next paint. The (potentially heavy) ScriptTree mount/swap is driven by
   // deferred copies of the navigation state so it doesn't block the urgent
   // commit (especially when switching to hub which also flips displayMode).
-  const renderedTab = useDeferredValue(activeTab);
-  const renderedViewMode = useDeferredValue(viewMode);
-  const renderedDisplayMode = useDeferredValue(displayMode);
+  // In the landing demo there's continuous concurrent work (tilt rAF,
+  // burst polling, status debounce). useDeferredValue was starving its
+  // commit, so the tab/view switch looked frozen even though activeTab
+  // updated. Drop the deferral here — tauri_app keeps it.
+  const renderedTab = activeTab;
+  const renderedViewMode = viewMode;
+  const renderedDisplayMode = displayMode;
 
   const refreshIconRef = useRef<HTMLDivElement>(null);
   const [visitedTabs, setVisitedTabs] = useState<Set<string>>(() => new Set([activeTab]));

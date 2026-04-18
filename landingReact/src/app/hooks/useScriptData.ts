@@ -175,18 +175,16 @@ export function useScriptData({ onTagsLoaded, onRunningCountChange, refreshKey, 
                     return u ? { ...s, is_running: u.is_running, has_ui: u.has_ui } : s;
                 });
 
-                startTransition(() => {
-                    setAllScripts(prev => {
-                        let changed = false;
-                        const updated = prev.map(s => {
-                            const u = updates.get(s.path.toLowerCase());
-                            if (!u) return s;
-                            if (s.is_running === u.is_running && s.has_ui === u.has_ui) return s;
-                            changed = true;
-                            return { ...s, is_running: u.is_running, has_ui: u.has_ui };
-                        });
-                        return changed ? updated : prev;
+                setAllScripts(prev => {
+                    let changed = false;
+                    const updated = prev.map(s => {
+                        const u = updates.get(s.path.toLowerCase());
+                        if (!u) return s;
+                        if (s.is_running === u.is_running && s.has_ui === u.has_ui) return s;
+                        changed = true;
+                        return { ...s, is_running: u.is_running, has_ui: u.has_ui };
                     });
+                    return changed ? updated : prev;
                 });
 
                 const store = useTreeStore.getState();
