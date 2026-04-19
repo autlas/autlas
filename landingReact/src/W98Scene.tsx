@@ -515,15 +515,28 @@ export default function W98Scene() {
   const [chaseClickCount, setChaseClickCount] = useState(0);
   useEffect(() => {
     if (!chaseActive) return;
-    const onDocClick = () => {
+    console.log("[chase] active — click counting started");
+    const onDocDown = (e: PointerEvent) => {
+      const t = e.target as HTMLElement | null;
+      console.log("[chase] pointerdown on", t?.tagName, t?.className);
       setChaseClickCount((c) => {
         const next = c + 1;
-        if (next >= 20) queueMicrotask(() => setPhase("ultimatum"));
+        console.log(`[chase] count: ${c} → ${next}`);
+        if (next >= 16) {
+          console.log("[chase] threshold reached, switching to ultimatum");
+          queueMicrotask(() => setPhase("ultimatum"));
+        }
         return next;
       });
     };
-    document.addEventListener("click", onDocClick);
-    return () => document.removeEventListener("click", onDocClick);
+    // pointerdown fires even when the target element is about to unmount
+    // (e.g. Cancel → dismissOne removes the dialog), whereas a click
+    // event would never complete.
+    document.addEventListener("pointerdown", onDocDown);
+    return () => {
+      console.log("[chase] listener removed");
+      document.removeEventListener("pointerdown", onDocDown);
+    };
   }, [chaseActive]);
   const shuffleCancel = (id: string, btn: HTMLElement) => {
     if (!chaseActive) return;
@@ -774,7 +787,7 @@ export default function W98Scene() {
             <button
               className="w98-titlebar-btn"
               tabIndex={-1}
-              onClick={(e) => { e.stopPropagation(); dismissOne(id); }}
+              onClick={() => dismissOne(id)}
             >×</button>
           </div>
         </div>
@@ -800,8 +813,8 @@ export default function W98Scene() {
             // In chase mode fire on pointerDown — the button jumps between
             // press and release so a plain click never completes. Outside
             // chase mode stick to the normal click-on-release behaviour.
-            onPointerDown={chaseActive ? ((e) => { e.stopPropagation(); dismissOne(id); }) : undefined}
-            onClick={chaseActive ? undefined : ((e) => { e.stopPropagation(); dismissOne(id); })}
+            onPointerDown={chaseActive ? (() => dismissOne(id)) : undefined}
+            onClick={chaseActive ? undefined : (() => dismissOne(id))}
           >
             Cancel
           </button>
@@ -879,7 +892,7 @@ export default function W98Scene() {
           >
             <span className="w98-titlebar-text">autlas.exe — Final Notice</span>
             <div className="w98-titlebar-controls">
-              <button className="w98-titlebar-btn" tabIndex={-1} onClick={(e) => { e.stopPropagation(); dismissAll(); }}>×</button>
+              <button className="w98-titlebar-btn" tabIndex={-1} onClick={dismissAll}>×</button>
             </div>
           </div>
           <div className="w98-error-body">
