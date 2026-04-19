@@ -340,8 +340,8 @@ export default function Landing() {
             <span className="hero-scroll"><span className="hero-rise" style={{ animationDelay: "280ms" }}>scripts.</span></span>
           </h1>
           <p className="lead">
-            <span className="hero-scroll"><span className="hero-rise" style={{ animationDelay: "340ms" }}>Discover, tag, run, and monitor hundreds of yours .ahk scripts —</span></span>
-            <span className="hero-scroll"><span className="hero-rise" style={{ animationDelay: "400ms" }}>without ever opening Explorer or Task Manager.</span></span>
+            <span className="hero-scroll"><span className="hero-rise" style={{ animationDelay: "340ms" }}>Discover, tag, run, and monitor hundreds of your .ahk scripts —</span></span>
+            <span className="hero-scroll"><span className="hero-rise" style={{ animationDelay: "400ms" }}>without ever digging through folders.</span></span>
           </p>
           <div className="hero-cta">
             <span className="hero-scroll">
@@ -569,7 +569,7 @@ export default function Landing() {
           ref={solutionCardRef}
           className={`ps-card solution${solutionVisible ? " is-visible" : ""}`}
         >
-          <h3><span className="brand-grad">autlas</span> centralizes everything.</h3>
+          <h3><span className="brand-grad">autlas</span> handles the chaos.</h3>
           <p ref={afterPRef}>The same .ahk files, one window. Status, tags, and a keypress away — no tray-icon hunt, no double-click expedition.</p>
           <div className="rows" aria-label="autlas script rows">
             {scripts.map((s, i) => (
