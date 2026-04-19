@@ -688,6 +688,20 @@
   font-size: 16px;
   -webkit-font-smoothing: antialiased;
 }
+/* The "autlas" brand mark inside the body copy picks up the landing's
+   display face — so even this faux-Win98 dialog reads as autlas-branded. */
+.w98-scope .w98-error-msg b {
+  font-family: "Unbounded", "Inter", -apple-system, sans-serif;
+  font-weight: 600;
+  /* Lowercase "autlas" needs a size bump to visually match the caps
+     in surrounding words — bump the size and tighten line-height so
+     the larger x-height doesn't spread vertical rhythm. */
+  font-size: 1.16em;
+  line-height: 0.82;
+  letter-spacing: -0.01em;
+  display: inline-block;
+  transform: translateY(-1px);
+}
 
 .w98-error-actions {
   display: flex;
