@@ -558,9 +558,9 @@ export default function Landing() {
           <p ref={beforePRef}>You have scripts. You don't have a tool.</p>
           <W98Scene />
           <ul className="chaos">
-            <li><span className="x">✕</span> scattered across Desktop, Downloads, D:\</li>
+            <li><span className="x">✕</span> scattered across your disk</li>
             <li><span className="x">✕</span> double-click each file to start</li>
-            <li><span className="x">✕</span> a dozen identical H icons in the tray</li>
+            <li><span className="x">✕</span> tags and categories? only in your head</li>
             <li><span className="x">✕</span> no search, no overview — just folders and memory</li>
           </ul>
         </div>
@@ -608,8 +608,8 @@ export default function Landing() {
             ))}
           </div>
           <ul className="wins">
-            <li><span className="c">✓</span> one window, every folder</li>
-            <li><span className="c">✓</span> Enter to run · Enter to kill</li>
+            <li><span className="c">✓</span> one app, every script</li>
+            <li><span className="c">✓</span> batch launch. batch kill.</li>
             <li><span className="c">✓</span> status, tags, name at a glance</li>
             <li><span className="c">✓</span> search by name, tag, or path — instant</li>
           </ul>
