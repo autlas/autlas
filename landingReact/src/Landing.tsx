@@ -248,11 +248,20 @@ export default function Landing() {
     };
 
     let anchors: number[] = [];
-    const measure = () => { anchors = items.map(docTop); };
+    // Fade zone normally starts at viewport Y = 300px. On short viewports
+    // the topmost hero line ("One hub") can itself sit below 300px, which
+    // would leave it pre-faded at scroll=0. Clamp FADE_START to
+    //   min(300, topmost_anchor − 1)
+    // so the fade zone always begins at least 1px above the first line.
+    let fadeStart = 300;
+    const FADE_END = 0;
+    const measure = () => {
+      anchors = items.map(docTop);
+      const topmost = Math.min(...anchors);
+      fadeStart = Math.max(1, Math.min(300, topmost - 1));
+    };
     measure();
 
-    const FADE_START = 300;
-    const FADE_END = 0;
     let raf = 0;
     const update = () => {
       raf = 0;
@@ -261,7 +270,7 @@ export default function Landing() {
         const viewportTop = anchors[i] - y;
         const t = Math.max(
           0,
-          Math.min(1, (FADE_START - viewportTop) / (FADE_START - FADE_END))
+          Math.min(1, (fadeStart - viewportTop) / (fadeStart - FADE_END))
         );
         el.style.setProperty("--scroll-t", String(t));
         el.style.opacity = t > 0 ? String(1 - t) : "";
