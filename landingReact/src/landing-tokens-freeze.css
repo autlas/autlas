@@ -173,13 +173,44 @@ body {
 /* FAQ items were bottom-border-only — give each a proper card shape so
    the glass frosting actually looks like individual tiles. */
 .landing-root .faq details {
+  --mx: 50%;
+  --my: 50%;
+  --glow-alpha: 0;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 16px;
-  padding: 22px 28px;
+  padding: 0;
   margin-bottom: 12px;
+  transition: --glow-alpha 220ms ease, background-color 150ms ease, border-color 150ms ease;
+  background-image:
+    radial-gradient(
+      280px circle at var(--mx) var(--my),
+      rgba(255, 255, 255, var(--glow-alpha)),
+      transparent 60%
+    ),
+    linear-gradient(
+      137deg,
+      rgba(255, 255, 255, 0.05) 5%,
+      rgba(255, 255, 255, 0) 75%
+    ) !important;
+}
+.landing-root .faq details:hover {
+  --glow-alpha: 0.03;
 }
 .landing-root .faq details:last-child {
   margin-bottom: 0;
+}
+/* Let the summary fill the card so the full padded area is clickable. */
+.landing-root .faq summary {
+  padding: 22px 28px;
+  border-radius: inherit;
+}
+.landing-root .faq details[open] summary {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+.landing-root .faq .ans {
+  padding: 0 28px 22px;
+  margin-top: 0;
 }
 
 /* Strip the box around the FAQ +/× caret — the tile itself is the card now. */
@@ -199,42 +230,67 @@ body {
 /* Ghost / outline button hover — only lighten the tint, don't rewrite
    background (that nukes the glass gradient) and don't pop the border. */
 .landing-root .btn-ghost,
-.landing-root .btn-outline {
-  transition: background-color 150ms ease !important;
+.landing-root .btn-outline,
+.landing-root .winget .copy,
+.landing-root .snippet .copy {
+  --mx: 50%;
+  --my: 50%;
+  --glow-alpha: 0;
+  transition: --glow-alpha 200ms ease, background-color 150ms ease, border-color 150ms ease, color 180ms ease, fill 180ms ease, stroke 180ms ease !important;
+  background-image:
+    radial-gradient(
+      160px circle at var(--mx) var(--my),
+      rgba(255, 255, 255, var(--glow-alpha)),
+      transparent 60%
+    ),
+    linear-gradient(
+      137deg,
+      rgba(255, 255, 255, 0.05) 5%,
+      rgba(255, 255, 255, 0) 75%
+    ) !important;
 }
 .landing-root .btn-ghost:hover,
-.landing-root .btn-outline:hover {
-  background-color: rgba(255, 255, 255, 0.08) !important;
-  /* Keep the diagonal lit-glass gradient (the base rule uses the
-     `background:` shorthand on :hover, which would clear it). */
-  background-image: linear-gradient(
-    137deg,
-    rgba(255, 255, 255, 0.05) 5%,
-    rgba(255, 255, 255, 0) 75%
-  ) !important;
+.landing-root .btn-outline:hover,
+.landing-root .winget .copy:hover,
+.landing-root .snippet .copy:hover {
+  --glow-alpha: 0.12;
+  background-color: rgba(255, 255, 255, 0.04) !important;
   border-color: var(--border-light) !important;
   color: var(--text-primary) !important;
 }
 
 /* Primary (download / install) button — keep the accent fill but give it
-   the same lit-edge treatment so it feels like a sibling of the glass. */
+   the same lit-edge treatment so it feels like a sibling of the glass.
+   --glow-alpha transitions the cursor spotlight opacity; JS in Landing
+   tracks --mx/--my so the radial follows the pointer across the pill. */
+@property --glow-alpha {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 0;
+}
 .landing-root .btn-primary {
-  background-image: linear-gradient(
-    137deg,
-    rgba(255, 255, 255, 0.22) 5%,
-    rgba(255, 255, 255, 0) 60%
-  ) !important;
+  --mx: 50%;
+  --my: 50%;
+  --glow-alpha: 0;
+  transition: --glow-alpha 200ms ease, background-color 200ms ease, box-shadow 200ms ease;
+  background-image:
+    radial-gradient(
+      160px circle at var(--mx) var(--my),
+      rgba(255, 255, 255, var(--glow-alpha)),
+      transparent 60%
+    ),
+    linear-gradient(
+      137deg,
+      rgba(255, 255, 255, 0.22) 5%,
+      rgba(255, 255, 255, 0) 60%
+    ) !important;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.28),
     0 10px 30px -10px var(--accent-glow);
 }
 .landing-root .btn-primary:hover {
-  background-color: #5b52ea !important;
-  background-image: linear-gradient(
-    137deg,
-    rgba(255, 255, 255, 0.26) 5%,
-    rgba(255, 255, 255, 0) 60%
-  ) !important;
+  --glow-alpha: 0.35;
+  background-color: var(--accent) !important;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.32),
     0 14px 40px -10px var(--accent-glow) !important;

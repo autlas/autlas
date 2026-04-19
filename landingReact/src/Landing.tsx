@@ -27,6 +27,18 @@ export default function Landing() {
     return () => { handlers.forEach((fn) => fn()); };
   }, []);
 
+  useEffect(() => {
+    const onMove = (e: PointerEvent) => {
+      const t = (e.target as HTMLElement | null)?.closest<HTMLElement>(".btn-primary, .btn-ghost, .btn-outline, .copy, .autlas-badge--reset, .faq details");
+      if (!t) return;
+      const r = t.getBoundingClientRect();
+      t.style.setProperty("--mx", `${e.clientX - r.left}px`);
+      t.style.setProperty("--my", `${e.clientY - r.top}px`);
+    };
+    document.addEventListener("pointermove", onMove, { passive: true });
+    return () => document.removeEventListener("pointermove", onMove);
+  }, []);
+
   // Hero rhythm. Keep top/bottom padding around the hero-copy block
   // symmetric, solve for the autlas tile to peek in by APP_REVEAL px
   // below the fold. Clamp to MIN_P; if we can't satisfy that, center
