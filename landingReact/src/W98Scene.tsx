@@ -185,7 +185,7 @@ export default function W98Scene() {
       // are handled separately in the storm-spawn effect (30 staggered).
       const dingDelays =
         nextPhase === "storm" ? [] :
-        nextPhase === "wave" ? [0, 90, 180] :
+        nextPhase === "wave" ? [0, 180, 360] :
         [0];
       dingDelays.forEach((d) => setTimeout(playErrorDing, d));
     };
@@ -492,7 +492,7 @@ export default function W98Scene() {
         x: (Math.random() * 2 - 1) * maxX,
         y: (Math.random() * 2 - 1) * maxY,
       },
-      delay: i * 80,
+      delay: i * 120,
     }));
     setStormDialogs(dialogs);
     dialogs.forEach((d) => setTimeout(playErrorDing, d.delay));
@@ -511,28 +511,57 @@ export default function W98Scene() {
   // Per-dialog drag offset (added on top of the static placement offset).
   const [dialogDrag, setDialogDrag] = useState<Record<string, { dx: number; dy: number }>>({});
   const dialogDragRef = useRef<
-    | { id: string; pointerId: number; startX: number; startY: number; baseX: number; baseY: number }
+    | {
+        id: string;
+        pointerId: number;
+        startX: number;
+        startY: number;
+        baseX: number;
+        baseY: number;
+        minDx: number;
+        maxDx: number;
+        minDy: number;
+        maxDy: number;
+      }
     | null
   >(null);
 
   const onDialogTitlePointerDown = (id: string) => (e: React.PointerEvent) => {
     if (e.button !== 0) return;
     const target = e.currentTarget as HTMLElement;
+    const dialogEl = target.closest(".w98-error-dialog") as HTMLElement | null;
+    const stage = stageRef.current;
+    if (!dialogEl || !stage) return;
     target.setPointerCapture(e.pointerId);
     target.classList.add("dragging");
     bringDialogToFront(id);
     const cur = dialogDrag[id] ?? { dx: 0, dy: 0 };
+    // Measure where the dialog currently sits relative to the stage so we
+    // can compute how far dx/dy may travel before any edge leaves bounds.
+    const dRect = dialogEl.getBoundingClientRect();
+    const sRect = stage.getBoundingClientRect();
+    const curLeft = dRect.left - sRect.left;
+    const curTop = dRect.top - sRect.top;
     dialogDragRef.current = {
-      id, pointerId: e.pointerId,
-      startX: e.clientX, startY: e.clientY,
-      baseX: cur.dx, baseY: cur.dy,
+      id,
+      pointerId: e.pointerId,
+      startX: e.clientX,
+      startY: e.clientY,
+      baseX: cur.dx,
+      baseY: cur.dy,
+      minDx: cur.dx - curLeft,
+      maxDx: cur.dx + (sRect.width - curLeft - dRect.width),
+      minDy: cur.dy - curTop,
+      maxDy: cur.dy + (sRect.height - curTop - dRect.height),
     };
   };
   const onDialogTitlePointerMove = (e: React.PointerEvent) => {
     const d = dialogDragRef.current;
     if (!d || d.pointerId !== e.pointerId) return;
-    const dx = d.baseX + (e.clientX - d.startX);
-    const dy = d.baseY + (e.clientY - d.startY);
+    let dx = d.baseX + (e.clientX - d.startX);
+    let dy = d.baseY + (e.clientY - d.startY);
+    dx = Math.max(d.minDx, Math.min(d.maxDx, dx));
+    dy = Math.max(d.minDy, Math.min(d.maxDy, dy));
     setDialogDrag((prev) => ({ ...prev, [d.id]: { dx, dy } }));
   };
   const onDialogTitlePointerUp = (e: React.PointerEvent) => {

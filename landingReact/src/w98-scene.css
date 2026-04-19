@@ -612,11 +612,11 @@
 .w98-error-backdrop--wave {
   background: rgba(0, 0, 0, 0.55);
 }
-.w98-error-backdrop--wave .w98-error-dialog {
+.w98-scope .w98-error-backdrop--wave .w98-error-dialog {
   animation: w98-error-wave-in 220ms ease-out both;
 }
-.w98-error-backdrop--wave .w98-error-dialog--critical { animation-delay: 90ms; }
-.w98-error-backdrop--wave .w98-error-dialog--final { animation-delay: 180ms; }
+.w98-scope .w98-error-backdrop--wave .w98-error-dialog--critical { animation-delay: 180ms; }
+.w98-scope .w98-error-backdrop--wave .w98-error-dialog--final { animation-delay: 360ms; }
 @keyframes w98-error-wave-in {
   from { opacity: 0; }
   to   { opacity: 1; }
@@ -632,7 +632,7 @@
 .w98-error-backdrop--storm {
   background: rgba(0, 0, 0, 0.7);
 }
-.w98-error-backdrop--storm .w98-error-dialog {
+.w98-scope .w98-error-backdrop--storm .w98-error-dialog {
   animation: w98-error-wave-in 260ms ease-out both;
 }
 @keyframes w98-error-in {
