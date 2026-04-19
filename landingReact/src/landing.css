@@ -25,7 +25,7 @@
   --display: 'Unbounded', 'Inter', -apple-system, sans-serif;
   --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 
-  --brand-violet:#7c3aed;
+  --brand-violet:#863ffd;
   --brand-blue:#1fb8e6;
   --brand-green:#4ade80;
 
@@ -146,7 +146,7 @@ img{max-width:100%;display:block}
   text-wrap:balance;
 }
 .h1 .muted{color:var(--text-tertiary)}
-.h1 .brand-grad{
+.brand-grad{
   background:linear-gradient(100deg, var(--brand-violet) 0%, var(--brand-blue) 55%, var(--brand-green) 100%);
   -webkit-background-clip:text;background-clip:text;
   -webkit-text-fill-color:transparent;color:transparent;

@@ -549,7 +549,7 @@ export default function Landing() {
     <section id="problem">
       <div className="section-head">
         <div className="eyebrow"><span className="bar"></span>WHY AUTLAS</div>
-        <h2 className="h2">A pile of .ahk files <span style={{color: "var(--text-tertiary)"}}>is not a workflow.</span></h2>
+        <h2 className="h2">Every script. <span style={{color: "var(--text-tertiary)"}}>One place.</span></h2>
       </div>
       <div className="ps-grid">
         {/* problem */}
@@ -569,7 +569,7 @@ export default function Landing() {
           ref={solutionCardRef}
           className={`ps-card solution${solutionVisible ? " is-visible" : ""}`}
         >
-          <h3>autlas centralizes everything.</h3>
+          <h3><span className="brand-grad">autlas</span> centralizes everything.</h3>
           <p ref={afterPRef}>The same .ahk files, one window. Status, tags, and a keypress away — no tray-icon hunt, no double-click expedition.</p>
           <div className="rows" aria-label="autlas script rows">
             {scripts.map((s, i) => (
@@ -667,7 +667,7 @@ export default function Landing() {
         <div className="install-grid">
           <div>
             <div className="eyebrow" style={{marginBottom: "16px"}}><span className="bar"></span>GET AUTLAS</div>
-            <h3>Install autlas</h3>
+            <h3>Install <span className="brand-grad">autlas</span></h3>
             <p className="sub">Windows 10 or 11. ~8 MB. No account, no telemetry, no network calls.</p>
             <a href="#" className="btn btn-primary btn-lg">
               <svg className="i" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M3 3h8v8H3zM13 3h8v8h-8zM3 13h8v8H3zM13 13h8v8h-8z"/></svg>
