@@ -4,6 +4,7 @@ import "./landing.css";
 import "./landing-tokens-freeze.css";
 import AutlasFrame from "./AutlasFrame";
 import BackgroundShader from "./BackgroundShader";
+import W98Scene from "./W98Scene";
 
 export default function Landing() {
   useEffect(() => {
@@ -438,25 +439,25 @@ export default function Landing() {
     <section id="problem">
       <div className="section-head">
         <div className="eyebrow"><span className="bar"></span>WHY AUTLAS</div>
-        <h2 className="h2">Running 47 .ahk scripts <span style={{color: "var(--text-tertiary)"}}>without autlas</span> is chaos.</h2>
+        <h2 className="h2">A pile of .ahk files <span style={{color: "var(--text-tertiary)"}}>is not a workflow.</span></h2>
       </div>
       <div className="ps-grid">
         {/* problem */}
         <div className="ps-card problem">
           <h3 style={{color: "#fca5a5"}}>Before</h3>
-          <p>Double-click from Explorer. Forget what's running. Kill through Task Manager. Encode tags into filenames. Lose them on rename. Repeat.</p>
-          <div className="chaos">
-            <div className="chaos-line"><span className="x">✕</span> scripts scattered across 7 folders <span className="arr">→</span></div>
-            <div className="chaos-line"><span className="x">✕</span> no way to see what's running <span className="arr">→</span></div>
-            <div className="chaos-line"><span className="x">✕</span> kill via Task Manager <span className="arr">→</span></div>
-            <div className="chaos-line"><span className="x">✕</span> tags encoded as <span className="mono" style={{opacity: "0.75"}}>_gaming_v2_final.ahk</span></div>
-            <div className="chaos-line"><span className="x">✕</span> rename file → tags lost <span className="arr">→</span></div>
-          </div>
+          <p>You have scripts. You don't have a tool.</p>
+          <W98Scene />
+          <ul className="chaos">
+            <li><span className="x">✕</span> scattered across Desktop, Downloads, D:\</li>
+            <li><span className="x">✕</span> double-click each file to start</li>
+            <li><span className="x">✕</span> a dozen identical H icons in the tray</li>
+            <li><span className="x">✕</span> no search, no overview — just folders and memory</li>
+          </ul>
         </div>
         {/* solution */}
         <div className="ps-card">
           <h3>autlas centralizes everything.</h3>
-          <p>Everything in one window. Tags live in a local SQLite, bound to a stable ID — they survive renames and moves. A 1.5s watcher keeps status in sync without Task Manager.</p>
+          <p>Every script in one window. Status, tags, and keyboard control at a glance — no tray-icon hunt, no double-click expedition, no fragmented folders.</p>
           <div className="rows" aria-label="autlas script rows">
             <div className="row vim-focus">
               <span className="dot run"></span>

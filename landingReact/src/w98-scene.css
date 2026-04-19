@@ -1,0 +1,393 @@
+/*
+ * Windows 98 mini-scene for the "Before" card.
+ * Hand-rolled, scoped under `.w98-scope` so it doesn't leak into
+ * the rest of the landing (no :root resets, no bare button/input overrides).
+ *
+ * Bevel recipe (jdan/98.css MIT):
+ *   raised: inset -1px -1px #0a0a0a, 1px 1px #fff, -2px -2px grey, 2px 2px #dfdfdf
+ *   sunken: inset -1px -1px #fff, 1px 1px grey, -2px -2px #dfdfdf, 2px 2px #0a0a0a
+ * MS Sans Serif fonts also copied from that repo (see /assets/fonts).
+ */
+
+@font-face {
+  font-family: "Pixelated MS Sans Serif";
+  font-style: normal;
+  font-weight: 400;
+  src: url("/assets/fonts/ms_sans_serif.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Pixelated MS Sans Serif";
+  font-style: normal;
+  font-weight: 700;
+  src: url("/assets/fonts/ms_sans_serif_bold.woff2") format("woff2");
+}
+
+.w98-scope {
+  --w98-silver: #c0c0c0;
+  --w98-bevel-dk: #0a0a0a;
+  --w98-bevel-md: #808080;
+  --w98-bevel-lt: #dfdfdf;
+  --w98-bevel-lt2: #ffffff;
+  --w98-navy: #000080;
+  --w98-title-grad: linear-gradient(90deg, #000080, #1084d0);
+  --w98-title-grad-inactive: linear-gradient(90deg, #808080, #b5b5b5);
+
+  font-family: "Pixelated MS Sans Serif", Arial, sans-serif;
+  font-size: 11px;
+  -webkit-font-smoothing: none;
+  font-smooth: never;
+  color: #000;
+  line-height: 1.2;
+  letter-spacing: normal;
+}
+
+.w98-scope * {
+  box-sizing: border-box;
+}
+
+/* ── Stage ──────────────────────────────────────────── */
+
+.w98-stage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  border-radius: 6px;
+  background-color: #3a6ea5;
+  background-image: url("/assets/hill.jpg");
+  background-size: cover;
+  background-position: center;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.4);
+  user-select: none;
+  touch-action: none;
+}
+
+/* ── Window ─────────────────────────────────────────── */
+
+.w98-window {
+  position: absolute;
+  background: var(--w98-silver);
+  padding: 2px;
+  box-shadow:
+    inset -1px -1px var(--w98-bevel-dk),
+    inset 1px 1px var(--w98-bevel-lt2),
+    inset -2px -2px var(--w98-bevel-md),
+    inset 2px 2px var(--w98-bevel-lt);
+  min-width: 120px;
+}
+
+.w98-titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2px 2px 2px 3px;
+  background: var(--w98-title-grad);
+  color: #fff;
+  font-weight: 700;
+  font-size: 11px;
+  height: 18px;
+  cursor: grab;
+}
+.w98-window[data-active="false"] .w98-titlebar {
+  background: var(--w98-title-grad-inactive);
+}
+.w98-titlebar.dragging {
+  cursor: grabbing;
+}
+
+.w98-titlebar-text {
+  padding-left: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+
+.w98-titlebar-controls {
+  display: flex;
+  gap: 2px;
+}
+
+.w98-titlebar-btn {
+  width: 16px;
+  height: 14px;
+  background: var(--w98-silver);
+  box-shadow:
+    inset -1px -1px var(--w98-bevel-dk),
+    inset 1px 1px var(--w98-bevel-lt2),
+    inset -2px -2px var(--w98-bevel-md),
+    inset 2px 2px var(--w98-bevel-lt);
+  color: #000;
+  font: 700 9px/1 "Pixelated MS Sans Serif", Arial;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  cursor: default;
+}
+
+/* ── Menu bar + address bar ─────────────────────────── */
+
+.w98-menu {
+  display: flex;
+  gap: 2px;
+  padding: 1px 4px;
+  background: var(--w98-silver);
+  font-size: 11px;
+}
+.w98-menu span {
+  padding: 0 4px;
+}
+.w98-menu span u {
+  text-decoration: underline;
+}
+
+.w98-address {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 4px;
+  background: var(--w98-silver);
+  font-size: 11px;
+}
+.w98-address-label {
+  color: #000;
+}
+.w98-address-input {
+  flex: 1;
+  height: 18px;
+  padding: 2px 4px;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  box-shadow:
+    inset -1px -1px var(--w98-bevel-lt2),
+    inset 1px 1px var(--w98-bevel-md),
+    inset -2px -2px var(--w98-bevel-lt),
+    inset 2px 2px var(--w98-bevel-dk);
+}
+.w98-address-input img {
+  width: 14px;
+  height: 14px;
+  image-rendering: pixelated;
+}
+
+.w98-pixel-icon {
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+}
+
+/* ── Listview (Details view table) ──────────────────── */
+
+.w98-listview {
+  background: #fff;
+  padding: 2px;
+  box-shadow:
+    inset -1px -1px var(--w98-bevel-lt2),
+    inset 1px 1px var(--w98-bevel-md),
+    inset -2px -2px var(--w98-bevel-lt),
+    inset 2px 2px var(--w98-bevel-dk);
+  overflow: hidden;
+}
+
+.w98-listview table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+  color: #000;
+  background: #fff;
+}
+.w98-listview thead th {
+  background: var(--w98-silver);
+  box-shadow:
+    inset -1px -1px var(--w98-bevel-dk),
+    inset 1px 1px var(--w98-bevel-lt2),
+    inset -2px -2px var(--w98-bevel-md),
+    inset 2px 2px var(--w98-bevel-lt);
+  font-weight: 400;
+  height: 17px;
+  padding: 0 6px;
+  text-align: left;
+  white-space: nowrap;
+}
+.w98-listview tbody td {
+  padding: 1px 6px;
+  height: 17px;
+  white-space: nowrap;
+}
+.w98-listview tbody tr.selected td {
+  background: var(--w98-navy);
+  color: #fff;
+}
+.w98-listview .w98-file-cell {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.w98-listview .w98-file-cell img {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  object-fit: contain;
+}
+.w98-listview .w98-file-cell img.w98-pixel-icon {
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+}
+.w98-listview .w98-file-cell .w98-generic-doc {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  background:
+    linear-gradient(135deg, transparent 45%, #fff 45%, #fff 55%, transparent 55%) #e8e8e8;
+  border: 1px solid #707070;
+  box-shadow: inset -1px -1px #b5b5b5;
+}
+
+/* ── Taskbar ────────────────────────────────────────── */
+
+.w98-taskbar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 28px;
+  background: var(--w98-silver);
+  display: flex;
+  align-items: center;
+  padding: 0 2px;
+  gap: 4px;
+  box-shadow:
+    inset 0 1px 0 var(--w98-bevel-lt2),
+    inset 0 2px 0 var(--w98-bevel-lt);
+  z-index: 100;
+}
+
+.w98-start {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+  padding: 0 10px 0 4px;
+  font-size: 14px;
+  background: var(--w98-silver);
+  box-shadow:
+    inset -1px -1px var(--w98-bevel-dk),
+    inset 1px 1px var(--w98-bevel-lt2),
+    inset -2px -2px var(--w98-bevel-md),
+    inset 2px 2px var(--w98-bevel-lt);
+  font-weight: 700;
+  font-size: 11px;
+  color: #000;
+  cursor: default;
+}
+.w98-start-logo {
+  width: 40px;
+  height: 40px;
+  display: inline-block;
+  flex-shrink: 0;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+}
+
+.w98-taskbar-divider {
+  width: 2px;
+  height: 20px;
+  box-shadow:
+    inset -1px 0 var(--w98-bevel-lt2),
+    inset 1px 0 var(--w98-bevel-md);
+}
+
+.w98-taskbar-tasks {
+  display: flex;
+  gap: 3px;
+  flex: 1;
+  overflow: hidden;
+}
+.w98-task {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 6px;
+  min-width: 0;
+  max-width: 140px;
+  background: var(--w98-silver);
+  box-shadow:
+    inset -1px -1px var(--w98-bevel-dk),
+    inset 1px 1px var(--w98-bevel-lt2),
+    inset -2px -2px var(--w98-bevel-md),
+    inset 2px 2px var(--w98-bevel-lt);
+  font-size: 11px;
+  color: #000;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.w98-task img {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+.w98-task span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Tray: sunken well with AHK icons packed in. */
+.w98-tray {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 6px;
+  height: 22px;
+  background: var(--w98-silver);
+  box-shadow:
+    inset -1px -1px var(--w98-bevel-lt2),
+    inset 1px 1px var(--w98-bevel-md);
+}
+.w98-tray img {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+.w98-tray-clock {
+  padding-left: 4px;
+  font-size: 11px;
+  color: #000;
+}
+
+/* Tooltip over one of the tray H icons — the honest punchline:
+   to see what a script is, hover each icon one by one. */
+.w98-tray-tooltip {
+  position: absolute;
+  bottom: 32px;
+  background: #ffffe1;
+  border: 1px solid #000;
+  color: #000;
+  font-size: 11px;
+  padding: 1px 4px;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 1px 1px 0 rgba(0, 0, 0, 0.3);
+}
+
+/* ── Reveal animation (scroll-into-view) ────────────── */
+
+.w98-window {
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity 600ms ease, transform 600ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.w98-scope.is-visible .w98-window {
+  opacity: 1;
+  transform: translateY(0);
+}
+.w98-scope.is-visible .w98-window[data-reveal="0"] { transition-delay: 0ms; }
+.w98-scope.is-visible .w98-window[data-reveal="1"] { transition-delay: 140ms; }
+.w98-scope.is-visible .w98-window[data-reveal="2"] { transition-delay: 280ms; }

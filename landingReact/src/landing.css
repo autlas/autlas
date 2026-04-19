@@ -340,17 +340,17 @@ section{padding:180px 0;position:relative}
 .ps-card h3{font-size:26px;font-weight:900;letter-spacing:-0.025em;margin:0 0 14px;line-height:1.15}
 .ps-card p{color:var(--text-tertiary);font-size:15px;line-height:1.6;margin:0 0 24px}
 .chaos{
-  margin-top:auto;
+  margin:18px 0 0;padding:0;list-style:none;
   display:flex;flex-direction:column;gap:6px;
   font-family:var(--mono);font-size:12px;
 }
-.chaos-line{
+.chaos li, .chaos-line{
   display:flex;align-items:center;gap:10px;
   padding:8px 12px;border-radius:8px;
   background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.12);
   color:rgba(252,165,165,0.9);
 }
-.chaos-line .x{color:var(--danger);font-weight:700}
+.chaos .x, .chaos-line .x{color:var(--danger);font-weight:700}
 .chaos-line .arr{margin-left:auto;color:var(--danger);opacity:0.7}
 .rows{
   margin-top:auto;
