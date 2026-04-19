@@ -47,7 +47,7 @@ export default function Landing() {
   type ScriptState = { name: string; tags: string[]; run: boolean; pending: null | "restart" };
   const [scripts, setScripts] = useState<ScriptState[]>([
     { name: "clipboard_v2.ahk",      tags: ["clip", "productivity"], run: true,  pending: null },
-    { name: "WindowSnap_FINAL.ahk",  tags: ["window"],               run: true,  pending: null },
+    { name: "WinSnap_FIN.ahk",  tags: ["window"],               run: true,  pending: null },
     { name: "altdrag_new.ahk",       tags: ["window", "mouse"],      run: true,  pending: null },
     { name: "csgo_crosshair.ahk",    tags: ["gaming"],               run: false, pending: null },
     { name: "hotkeys.ahk",           tags: ["keyboard"],             run: true,  pending: null },

@@ -67,7 +67,7 @@ const WINDOWS: Win[] = [
     width: 0.46,
     rows: [
       { name: "clipboard_v2.ahk", size: "2 KB", type: "AutoHotkey Script", date: "14.03.2024", ahk: true },
-      { name: "WindowSnap_FINAL.ahk", size: "8 KB", type: "AutoHotkey Script", date: "02.09.2024", ahk: true },
+      { name: "WinSnap_FIN.ahk", size: "8 KB", type: "AutoHotkey Script", date: "02.09.2024", ahk: true },
       { name: "altdrag_new.ahk", size: "5 KB", type: "AutoHotkey Script", date: "21.11.2023", ahk: true },
       { name: "csgo_crosshair.ahk", size: "1 KB", type: "AutoHotkey Script", date: "07.06.2024", ahk: true },
       { name: "todo.txt", size: "1 KB", type: "Text Document", date: "19.04.2026" },
@@ -248,30 +248,59 @@ export default function W98Scene() {
     return () => ro.disconnect();
   }, []);
 
-  // Initialize positions/sizes the first time we have real stage dimensions,
-  // or when stage size changes and windows would overflow.
+  // Compute window widths whenever the stage resizes. Heights are
+  // content-driven and measured directly from the DOM in the layout
+  // effect below.
   useEffect(() => {
     if (stageSize.w === 0) return;
-    setPositions((prev) => {
-      const next = { ...prev };
-      for (const w of WINDOWS) {
-        if (!(w.id in next)) {
-          next[w.id] = {
-            x: Math.round(w.start.x * stageSize.w),
-            y: Math.round(w.start.y * stageSize.h),
-          };
-        }
-      }
-      return next;
-    });
     setWidths(() => {
       const next: Record<string, number> = {};
-      for (const w of WINDOWS) {
-        next[w.id] = Math.round(w.width * stageSize.w);
-      }
+      // Sub-linear width: narrow stages → windows take a larger share,
+      // wide stages → they occupy less. width = sqrt(stageW) * 15.
+      const w = Math.round(Math.sqrt(stageSize.w) * 15);
+      for (const win of WINDOWS) next[win.id] = w;
       return next;
     });
-  }, [stageSize.w, stageSize.h]);
+  }, [stageSize.w]);
+
+  // Rule-based placement after layout, using measured heights:
+  //   desktop   — top-left, 15/15 from the stage corner
+  //   downloads — top-right, 12/18 from the stage corner
+  //   tools     — horizontally centered, 15px above the taskbar
+  // Runs on stage resize and when widths update. Drag is free to move
+  // windows elsewhere; the next stage resize snaps them back to rules.
+  useLayoutEffect(() => {
+    const stage = stageRef.current;
+    if (!stage || stageSize.w === 0) return;
+    const taskbarH = 28;
+    setPositions((prev) => {
+      const next: Record<string, Pos> = { ...prev };
+      let changed = false;
+      for (const w of WINDOWS) {
+        const el = stage.querySelector<HTMLElement>(`[data-win-id="${w.id}"]`);
+        if (!el) continue;
+        const dw = widths[w.id] ?? el.offsetWidth;
+        const dh = el.offsetHeight;
+        let target: Pos;
+        if (w.id === "desktop") {
+          target = { x: 15, y: 12 };
+        } else if (w.id === "downloads") {
+          target = { x: stageSize.w - dw - 12, y: 21 };
+        } else {
+          target = {
+            x: Math.round((stageSize.w - dw) / 2),
+            y: stageSize.h - taskbarH - dh - 15,
+          };
+        }
+        const cur = prev[w.id];
+        if (!cur || cur.x !== target.x || cur.y !== target.y) {
+          next[w.id] = target;
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [stageSize.w, stageSize.h, widths]);
 
   // Close start menu on click outside.
   useEffect(() => {
@@ -368,7 +397,7 @@ export default function W98Scene() {
   const trayPopupIcons = useMemo(() => {
     const ahkScripts = [
       "clipboard_v2.ahk",
-      "WindowSnap_FINAL.ahk",
+      "WinSnap_FIN.ahk",
       "altdrag_new.ahk",
       "csgo_crosshair.ahk",
       "hotkeys.ahk",
@@ -699,6 +728,7 @@ export default function W98Scene() {
             <div
               key={w.id}
               className="w98-window"
+              data-win-id={w.id}
               data-reveal={WINDOWS.findIndex((x) => x.id === w.id)}
               data-active={isActive}
               style={{
