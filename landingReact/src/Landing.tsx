@@ -171,7 +171,7 @@ export default function Landing() {
     measure();
 
     const FADE_START = 300;
-    const FADE_END = 100;
+    const FADE_END = 0;
     let raf = 0;
     const update = () => {
       raf = 0;

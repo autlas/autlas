@@ -46,7 +46,11 @@ body {
    while fading. Applied via CSS `translate` so it composes with the
    intro animation's `transform: translateY(...)` without clobbering. */
 .hero-rise {
-  translate: 0 calc(var(--scroll-t, 0) * -40px);
+  /* Quadratic: was `t * -40px`, now `-(t*40)² / 30 px` so the upward
+     velocity grows linearly with t — spacing between successive rows
+     (at equal t-offset apart) expands linearly as they scroll up. */
+  translate: 0 calc(var(--scroll-t, 0) * var(--scroll-t, 0) * -53.333px);
+  transition: translate 200ms ease-out, opacity 200ms ease-out;
 }
 
 /* Debug: 100px horizontal ruler covering the whole page. Lines sit at
