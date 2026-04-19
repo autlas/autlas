@@ -90,7 +90,7 @@ body {
   background: #000000;
   pointer-events: none;
   will-change: opacity;
-  animation: intro-fade 1000ms ease-in-out 250ms forwards;
+  animation: intro-fade 1500ms ease-in-out 500ms forwards;
 }
 
 /* Hero rhythm — JS computes --hero-p (symmetric visible padding around

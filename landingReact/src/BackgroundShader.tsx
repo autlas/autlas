@@ -153,11 +153,11 @@ export default function BackgroundShader() {
   // rotation -30°→0° over 3s (added). Both compose with scroll-driven
   // values. One rAF loop, separate progress for each track.
   useEffect(() => {
-    const SCALE_FROM = 3, SCALE_TO = 1, SCALE_DUR = 5000;
-    const ROT_FROM = -30, ROT_TO = 0, ROT_DUR = 5000;
+    const SCALE_FROM = 2, SCALE_TO = 1, SCALE_DUR = 8000;
+    const ROT_FROM = -45, ROT_TO = 0, ROT_DUR = 8000;
     // cubic-bezier(0.15, 0.34, 0.00, 1.00) — same curve the hero-rise
     // animations use. Solved via Newton-Raphson + bisection fallback.
-    const ease = cubicBezier(0.15, 0.34, 0, 1);
+    const ease = cubicBezier(0.29, 0.54, 0.51, 1.01);
     let raf = 0;
     const start = performance.now();
     const tick = (now: number) => {
@@ -261,9 +261,7 @@ export default function BackgroundShader() {
           noise={p.noise}
           shape={p.shape}
           speed={p.speed}
-          /* Start the shader's time at 0.5s worth of animation so the
-             pattern never mounts in its blank "frame 0" state. */
-          frame={p.speed * 0.5}
+          frame={p.speed * 1.5}
           scale={p.scale * scrollScale * introScale}
           rotation={p.rotation + scrollRot + introRot}
           offsetX={p.offsetX + mouseOffX}
