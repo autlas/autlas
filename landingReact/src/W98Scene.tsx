@@ -31,7 +31,7 @@ const WINDOWS: Win[] = [
     id: "desktop",
     title: "Desktop",
     path: "C:\\Users\\Max\\Desktop",
-    start: { x: 0.04, y: 0.05 },
+    start: { x: 0.02, y: 0.04 },
     size: { w: 0.46, h: 0.55 },
     rows: [
       { name: "clipboard_v2.ahk", size: "2 KB", type: "AutoHotkey Script", date: "14.03.2024", ahk: true },
@@ -46,7 +46,7 @@ const WINDOWS: Win[] = [
     id: "tools",
     title: "ahk",
     path: "D:\\tools\\ahk",
-    start: { x: 0.28, y: 0.22 },
+    start: { x: 0.27, y: 0.38 },
     size: { w: 0.46, h: 0.48 },
     rows: [
       { name: "hotkeys.ahk", size: "3 KB", type: "AutoHotkey Script", date: "11.01.2025", ahk: true },
@@ -60,7 +60,7 @@ const WINDOWS: Win[] = [
     id: "downloads",
     title: "Downloads",
     path: "C:\\Users\\Max\\Downloads",
-    start: { x: 0.5, y: 0.08 },
+    start: { x: 0.52, y: 0.04 },
     size: { w: 0.46, h: 0.52 },
     rows: [
       { name: "setup.exe", size: "24 MB", type: "Application", date: "05.12.2025" },
@@ -82,8 +82,8 @@ export default function W98Scene() {
   // Per-window state.
   const [positions, setPositions] = useState<Record<string, Pos>>({});
   const [sizes, setSizes] = useState<Record<string, { w: number; h: number }>>({});
-  const [order, setOrder] = useState<string[]>(WINDOWS.map((w) => w.id));
-  const [activeId, setActiveId] = useState<string>("downloads");
+  const [order, setOrder] = useState<string[]>(["desktop", "downloads", "tools"]);
+  const [activeId, setActiveId] = useState<string>("tools");
 
   // Drag state kept out of React so pointermove doesn't spam re-renders.
   const dragRef = useRef<{
@@ -208,12 +208,7 @@ export default function W98Scene() {
     dragRef.current = null;
   };
 
-  // Tray is a dozen identical AHK icons. One of them has a sticky tooltip
-  // ("AutoHotkey") — in real Windows you'd only see it on hover; here we
-  // surface it to communicate "all icons are identical, tooltip is the
-  // only way to tell them apart."
   const trayCount = 11;
-  const trayTooltipIndex = 4;
 
   const taskbarTasks = useMemo(
     () => [
@@ -323,24 +318,14 @@ export default function W98Scene() {
               </div>
             ))}
           </div>
-          <div className="w98-tray" style={{ position: "relative" }}>
-            {Array.from({ length: trayCount }).map((_, i) => (
-              <img
-                key={i}
-                src="/assets/autohotkeyLogo.png"
-                alt=""
-                style={{ position: "relative" }}
-              />
-            ))}
-            <div
-              className="w98-tray-tooltip"
-              style={{
-                right: `${(trayCount - trayTooltipIndex - 1) * 16 + 40}px`,
-              }}
-            >
-              AutoHotkey
-            </div>
+          <div className="w98-tray">
+            <div className="w98-tray-chevron" aria-label="Show hidden icons">∧</div>
             <span className="w98-tray-clock">4:20 PM</span>
+            <div className="w98-tray-popup" role="menu">
+              {Array.from({ length: trayCount }).map((_, i) => (
+                <img key={i} src="/assets/autohotkeyLogo.png" alt="" />
+              ))}
+            </div>
           </div>
         </div>
       </div>

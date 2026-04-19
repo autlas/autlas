@@ -329,7 +329,16 @@ img{max-width:100%;display:block}
 section{padding:180px 0;position:relative}
 .section-head{max-width:720px;margin-bottom:40px}
 .section-head .eyebrow{margin-bottom:14px}
-.ps-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+.ps-grid{
+  display:grid;grid-template-columns:1fr 1fr;gap:24px;
+  /* Break out of the 1200px .shell to match the autlas preview width —
+     the Win98 scene needs the extra horizontal room. */
+  position:relative;
+  width:max(80vw, 100%);
+  max-width:1600px;
+  left:50%;
+  transform:translateX(-50%);
+}
 .ps-card{
   border:1px solid var(--border-color);border-radius:28px;
   padding:32px;
