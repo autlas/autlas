@@ -797,7 +797,11 @@ export default function W98Scene() {
               ? { transform: `translate(${cancelOffsets[id].dx}px, ${cancelOffsets[id].dy}px)` }
               : undefined}
             onPointerEnter={(e) => shuffleCancel(id, e.currentTarget)}
-            onClick={(e) => { e.stopPropagation(); dismissOne(id); }}
+            // In chase mode fire on pointerDown — the button jumps between
+            // press and release so a plain click never completes. Outside
+            // chase mode stick to the normal click-on-release behaviour.
+            onPointerDown={chaseActive ? ((e) => { e.stopPropagation(); dismissOne(id); }) : undefined}
+            onClick={chaseActive ? undefined : ((e) => { e.stopPropagation(); dismissOne(id); })}
           >
             Cancel
           </button>
