@@ -101,7 +101,7 @@ const WINDOWS: Win[] = [
     rows: [
       { name: "hotkeys.ahk", size: "3 KB", type: "AutoHotkey Script", date: "11.01.2025", ahk: true },
       { name: "old_macro.ahk", size: "12 KB", type: "AutoHotkey Script", date: "03.08.2022", ahk: true },
-      { name: "test.ahk", size: "1 KB", type: "AutoHotkey Script", date: "27.02.2024", ahk: true },
+      { name: "settings.ini", size: "812 B", type: "Configuration Settings", date: "27.02.2024" },
       { name: "CapsToEsc.ahk", size: "410 B", type: "AutoHotkey Script", date: "15.05.2023", ahk: true },
       { name: "QuickLauncher.ahk", size: "12 KB", type: "AutoHotkey Script", date: "30.10.2024", ahk: true },
     ],
@@ -503,7 +503,7 @@ export default function W98Scene() {
   };
   const dismissAll = () => setPhase((p) => advancePhase(p));
 
-  // 30 aggressive errors for the storm — full message in the body, title
+  // 20 aggressive errors for the storm — full message in the body, title
   // is a random-looking hex code so each dialog reads like a distinct
   // system crash rather than a named category.
   const STORM_MESSAGES: Array<{ title: string; msg: ReactNode; variant: "alert" | "critical" | "final" }> = useMemo(() => [
@@ -513,30 +513,20 @@ export default function W98Scene() {
     { title: "autlas.exe — 0x0000001E", msg: <>HALT! NO AUTLAS DETECTED!</>, variant: "alert" },
     { title: "autlas.exe — STOP 0x000000FF", msg: <>INSTALL AUTLAS!</>, variant: "critical" },
     { title: "autlas.exe — 0xDEAD0B01", msg: <>FATAL EXCEPTION! MISSING: AUTLAS!</>, variant: "final" },
-    { title: "autlas.exe — 0x0000003B", msg: <>ABORT! AUTLAS NOT FOUND!</>, variant: "alert" },
     { title: "autlas.exe — 0x0000008E", msg: <>KERNEL PANIC! INSTALL AUTLAS!</>, variant: "critical" },
     { title: "autlas.exe — 0xC0000221", msg: <>DATA CORRUPTION! INSTALL AUTLAS TO RECOVER!</>, variant: "final" },
-    { title: "autlas.exe — 0x00000050", msg: <>EMERGENCY! INSTALL AUTLAS!</>, variant: "alert" },
     { title: "autlas.exe — 0xC0000022", msg: <>ACCESS DENIED! AUTLAS REQUIRED!</>, variant: "critical" },
     { title: "autlas.exe — 0x7E", msg: <>DLL NOT FOUND: autlas.dll!</>, variant: "final" },
     { title: "autlas.exe — 0x0000007E", msg: <>DRIVER MISSING: autlas.sys!</>, variant: "alert" },
-    { title: "autlas.exe — 0x80070718", msg: <>QUOTA EXCEEDED! INSTALL AUTLAS!</>, variant: "critical" },
     { title: "autlas.exe — 0xC0000409", msg: <>BUFFER OVERFLOW! INSTALL AUTLAS!</>, variant: "final" },
     { title: "autlas.exe — 0xC00000FD", msg: <>STACK FULL OF .ahk! INSTALL AUTLAS!</>, variant: "alert" },
-    { title: "autlas.exe — 0xC0000185", msg: <>WRITE FAILED! AUTLAS REQUIRED!</>, variant: "critical" },
-    { title: "autlas.exe — 0x00000024", msg: <>TIMEOUT! WHY HAVEN'T YOU INSTALLED AUTLAS?!</>, variant: "final" },
-    { title: "autlas.exe — 0xC0000005", msg: <>ACCESS VIOLATION! AUTLAS MISSING!</>, variant: "alert" },
     { title: "autlas.exe — 0xBAADF00D", msg: <>FAULT! INSTALL AUTLAS IMMEDIATELY!</>, variant: "critical" },
     { title: "autlas.exe — 0x0000007F", msg: <>BSOD IMMINENT! INSTALL AUTLAS!</>, variant: "final" },
-    { title: "autlas.exe — 0xC0000142", msg: <>PROCESS CRASHED! INSTALL AUTLAS!</>, variant: "alert" },
     { title: "autlas.exe — 0xC0000218", msg: <>CORRUPTED REGISTRY! INSTALL AUTLAS!</>, variant: "critical" },
-    { title: "autlas.exe — 0xC0000225", msg: <>SYSTEM INTEGRITY COMPROMISED! INSTALL AUTLAS!</>, variant: "final" },
     { title: "autlas.exe — 0x8007000E", msg: <>MEMORY LEAK! INSTALL AUTLAS!</>, variant: "alert" },
-    { title: "autlas.exe — 0x0000009C", msg: <>HARDWARE MALFUNCTION! INSTALL AUTLAS!</>, variant: "critical" },
     { title: "autlas.exe — 0xC000014C", msg: <>BOOT FAILED! REINSTALL WITH AUTLAS!</>, variant: "final" },
-    { title: "autlas.exe — 0x80070005", msg: <>PERMISSION DENIED! AUTLAS-ONLY!</>, variant: "alert" },
-    { title: "autlas.exe — 0xC0000061", msg: <>INSUFFICIENT PRIVILEGES! AUTLAS REQUIRED!</>, variant: "critical" },
     { title: "autlas.exe — 0x0000002E", msg: <>DEADLOCK DETECTED! INSTALL AUTLAS!</>, variant: "final" },
+    { title: "autlas.exe — 0x00000024", msg: <>TIMEOUT! WHY HAVEN'T YOU INSTALLED AUTLAS?!</>, variant: "final" },
   ], []);
 
   type StormDialog = {
@@ -571,7 +561,7 @@ export default function W98Scene() {
         x: (Math.random() * 2 - 1) * maxX,
         y: (Math.random() * 2 - 1) * maxY,
       },
-      delay: i * 120,
+      delay: i * 100,
     }));
     setStormDialogs(dialogs);
     dialogs.forEach((d) => setTimeout(playErrorDing, d.delay));
@@ -848,7 +838,7 @@ export default function W98Scene() {
                           <div className="w98-file-cell">
                             {row.ahk
                               ? <img src="/assets/autohotkeyLogo.png" alt="" />
-                              : (row.name.endsWith(".txt") || row.name.endsWith(".pdf") || row.name.endsWith(".zip") || row.name.endsWith(".exe") || row.name.endsWith(".png"))
+                              : (row.name.endsWith(".txt") || row.name.endsWith(".pdf") || row.name.endsWith(".zip") || row.name.endsWith(".exe") || row.name.endsWith(".png") || row.name.endsWith(".ini"))
                                 ? <span className="w98-generic-doc" />
                                 : <img src="/assets/win98folder.png" alt="" className="w98-pixel-icon" />}
                             <span>{row.name}</span>

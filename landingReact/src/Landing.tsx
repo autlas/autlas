@@ -65,6 +65,41 @@ export default function Landing() {
     }, 700);
   };
 
+  // Transient `.bump` class fired on the dot only when `run` actually
+  // toggles — if it lived in the permanent `.dot.run` rule, the bump
+  // would replay on every hover leave of the card (the :hover pulse
+  // rule stops applying and the browser re-reads the now-different
+  // animation value as a fresh animation).
+  const [bumpingDots, setBumpingDots] = useState<Set<number>>(new Set());
+  const prevRunRef = useRef<boolean[]>([]);
+  useEffect(() => {
+    const toBump: number[] = [];
+    scripts.forEach((s, i) => {
+      // Only bump on false → true (script coming online). Turning off
+      // should just fade to grey, no pop.
+      if (prevRunRef.current[i] === false && s.run === true) {
+        toBump.push(i);
+      }
+    });
+    prevRunRef.current = scripts.map((s) => s.run);
+    if (toBump.length === 0) return;
+    setBumpingDots((prev) => {
+      const next = new Set(prev);
+      for (const i of toBump) next.add(i);
+      return next;
+    });
+    const timers = toBump.map((i) =>
+      window.setTimeout(() => {
+        setBumpingDots((prev) => {
+          const next = new Set(prev);
+          next.delete(i);
+          return next;
+        });
+      }, 1000),
+    );
+    return () => { timers.forEach(clearTimeout); };
+  }, [scripts]);
+
   // Match the two ps-card lead paragraphs to the same height so the W98
   // stage and the autlas rows line up horizontally across the grid.
   const beforePRef = useRef<HTMLParagraphElement>(null);
@@ -536,7 +571,7 @@ export default function Landing() {
                 style={{ ["--reveal-delay" as string]: `${i * 60}ms` } as React.CSSProperties}
               >
                 <span
-                  className={`dot${s.pending === "restart" ? " pending" : s.run ? " run" : ""}`}
+                  className={`dot${s.pending === "restart" ? " pending" : s.run ? " run" : ""}${bumpingDots.has(i) ? " bump" : ""}`}
                 ></span>
                 <span className="nm">{s.name}</span>
                 {s.tags.map((t) => <span key={t} className="row-tag">{t}</span>)}

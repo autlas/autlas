@@ -252,11 +252,16 @@ body {
   --my: 50%;
   --glow-alpha: 0;
   border: 1px solid transparent;
+  /* Must include the opacity/transform transitions from the base .row
+     rule (they'd otherwise be clobbered by this more-specific declaration)
+     so the stagger scroll-reveal still animates. */
   transition:
     --glow-alpha 200ms ease,
     background-color 150ms ease,
     border-color 150ms ease,
-    color 180ms ease;
+    color 180ms ease,
+    opacity 400ms ease var(--reveal-delay, 0ms),
+    transform 400ms cubic-bezier(0.2, 0.8, 0.2, 1) var(--reveal-delay, 0ms);
 }
 .landing-root .ps-card.solution .row:hover {
   --glow-alpha: 0.12;
@@ -278,29 +283,20 @@ body {
   box-shadow: inset 0 1px 1px 0 rgba(255, 255, 255, 0.15);
 }
 
-/* Solution card — the "After" side of the grid. Glass base in idle,
-   comes alive on hover: running dots pulse, tags and script names get
-   a confidence bump. */
-.landing-root .ps-card.solution {
-  transition: opacity 240ms ease, border-color 180ms ease;
-  opacity: 0.92;
-}
-.landing-root .ps-card.solution:hover {
-  opacity: 1;
-  border-color: rgba(255, 255, 255, 0.14) !important;
-}
-/* Running dot quietly breathes while hovering the card. */
-.landing-root .ps-card.solution:hover .row .dot.run {
-  animation: solution-pulse 1.6s ease-in-out infinite;
-}
+/* Running dot quietly breathes while hovering the actual row. The card
+   itself is left static — previously the whole tile opacity-dimmed and
+   brightened on hover, which read as an unintended state change. */
 @keyframes solution-pulse {
   0%, 100% { box-shadow: 0 0 10px rgba(34, 197, 94, 0.7); }
   50%      { box-shadow: 0 0 18px rgba(34, 197, 94, 1); }
 }
+.landing-root .ps-card.solution .row:hover .dot.run {
+  animation: solution-pulse 1.6s ease-in-out infinite;
+}
 .landing-root .ps-card.solution .row-tag {
   transition: color 180ms ease, border-color 180ms ease, background-color 180ms ease;
 }
-.landing-root .ps-card.solution:hover .row-tag {
+.landing-root .ps-card.solution .row:hover .row-tag {
   color: var(--text-secondary) !important;
   border-color: rgba(255, 255, 255, 0.16) !important;
   background-color: rgba(255, 255, 255, 0.05) !important;
@@ -308,7 +304,7 @@ body {
 .landing-root .ps-card.solution .row .nm {
   transition: color 180ms ease;
 }
-.landing-root .ps-card.solution:hover .row .nm {
+.landing-root .ps-card.solution .row:hover .nm {
   color: var(--text-primary) !important;
 }
 

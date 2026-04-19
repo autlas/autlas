@@ -622,10 +622,6 @@
   to   { opacity: 1; }
 }
 
-/* Accent tweak for escalating severity — icon colour shifts from red to
-   a brighter pure-red for "critical", and the red-orange scream for "final". */
-.w98-error-dialog--critical .w98-error-icon { background: #c01818; }
-.w98-error-dialog--final .w98-error-icon { background: #8b0000; }
 
 /* Storm backdrop — darker still, and each dialog pops in with its own
    inline animation-delay so the 30 arrive in a staggered cascade. */
