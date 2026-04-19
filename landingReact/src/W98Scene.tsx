@@ -1,6 +1,12 @@
 import { type ReactNode, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import "./w98-scene.css";
 
+// Prefix public-asset URLs with Vite's base (`/` in dev, `/autlas-landing/`
+// in the GitHub Pages production build). Hardcoded "/assets/..." strings
+// would otherwise break in prod since Vite only rewrites absolute paths
+// in HTML and CSS imported from JS, not inline string literals.
+const asset = (p: string) => `${import.meta.env.BASE_URL}${p.replace(/^\//, "")}`;
+
 // Sample-based error sounds. We route the real Windows XP samples
 // through a small <audio> pool so concurrent plays during the storm
 // don't step on each other.
@@ -14,10 +20,10 @@ function playSample(src: string, volume = 0.55) {
   }
 }
 function playErrorDing() {
-  playSample("/assets/sounds/windows-xp-exclamation.mp3");
+  playSample(asset("assets/sounds/windows-xp-exclamation.mp3"));
 }
 function playWindowsErrorSound() {
-  playSample("/assets/sounds/windows-xp-critical-stop.mp3", 0.75);
+  playSample(asset("assets/sounds/windows-xp-critical-stop.mp3"), 0.75);
 }
 
 // Parse "2 KB" / "24 MB" / "412 B" into a byte count so we can sort the
@@ -460,17 +466,17 @@ export default function W98Scene() {
       "macro_demo.ahk",
     ];
     return [
-      { src: "/assets/tray-icons/nvidia.svg", tip: "MVDIDIA Control Panel" },
-      { src: "/assets/tray-icons/lightshot.ico", tip: "Lightshut" },
-      ...ahkScripts.map((name) => ({ src: "/assets/autohotkeyLogo.png", tip: name })),
-      { src: "/assets/tray-icons/steam.svg", tip: "Scream" },
-      { src: "/assets/tray-icons/powertoys.ico", tip: "PovverToys" },
-      { src: "/assets/tray-icons/bluetooth.svg", tip: "Bluetooth Devices" },
+      { src: asset("assets/w98/tray/nvidia.svg"), tip: "MVDIDIA Control Panel" },
+      { src: asset("assets/w98/tray/lightshot.ico"), tip: "Lightshut" },
+      ...ahkScripts.map((name) => ({ src: asset("assets/ahk/logo.png"), tip: name })),
+      { src: asset("assets/w98/tray/steam.svg"), tip: "Scream" },
+      { src: asset("assets/w98/tray/powertoys.ico"), tip: "PovverToys" },
+      { src: asset("assets/w98/tray/bluetooth.svg"), tip: "Bluetooth Devices" },
     ];
   }, []);
 
   const taskbarTasks = useMemo(
-    () => WINDOWS.map((w) => ({ id: w.id, title: w.title, icon: "/assets/win98folder.png" })),
+    () => WINDOWS.map((w) => ({ id: w.id, title: w.title, icon: asset("assets/w98/folder.png") })),
     [],
   );
 
@@ -887,7 +893,11 @@ export default function W98Scene() {
 
   return (
     <div className={`w98-scope${visible ? " is-visible" : ""}`}>
-      <div className="w98-stage" ref={stageRef}>
+      <div
+        className="w98-stage"
+        ref={stageRef}
+        style={{ backgroundImage: `url(${asset("assets/w98/hill.jpg")})` }}
+      >
         {WINDOWS.map((w) => {
           const z = order.indexOf(w.id) + 1;
           const pos = positions[w.id] ?? { x: 0, y: 0 };
@@ -931,7 +941,7 @@ export default function W98Scene() {
               <div className="w98-address">
                 <span className="w98-address-label">Address</span>
                 <div className="w98-address-input">
-                  <img src="/assets/win98folder.png" alt="" className="w98-pixel-icon" />
+                  <img src={asset("assets/w98/folder.png")} alt="" className="w98-pixel-icon" />
                   <span>{w.path}</span>
                 </div>
               </div>
@@ -966,10 +976,10 @@ export default function W98Scene() {
                         <td>
                           <div className="w98-file-cell">
                             {row.ahk
-                              ? <img src="/assets/autohotkeyLogo.png" alt="" />
+                              ? <img src={asset("assets/ahk/logo.png")} alt="" />
                               : (row.name.endsWith(".txt") || row.name.endsWith(".pdf") || row.name.endsWith(".zip") || row.name.endsWith(".exe") || row.name.endsWith(".png") || row.name.endsWith(".ini"))
                                 ? <span className="w98-generic-doc" />
-                                : <img src="/assets/win98folder.png" alt="" className="w98-pixel-icon" />}
+                                : <img src={asset("assets/w98/folder.png")} alt="" className="w98-pixel-icon" />}
                             <span>{row.name}</span>
                           </div>
                         </td>
@@ -993,7 +1003,7 @@ export default function W98Scene() {
             data-active={startOpen}
             onClick={() => setStartOpen((v) => !v)}
           >
-            <img src="/assets/win98logo.png" alt="" className="w98-start-logo" />
+            <img src={asset("assets/w98/logo.png")} alt="" className="w98-start-logo" />
             Start
           </button>
           {startOpen && (
@@ -1039,7 +1049,7 @@ export default function W98Scene() {
                   onClick={() => setStartOpen(false)}
                 >
                   <img
-                    src="/assets/autohotkeyLogo.png"
+                    src={asset("assets/ahk/logo.png")}
                     alt=""
                     className="w98-start-menu-icon-img"
                   />

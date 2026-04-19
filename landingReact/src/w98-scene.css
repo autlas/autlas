@@ -9,18 +9,9 @@
  * MS Sans Serif fonts also copied from that repo (see /assets/fonts).
  */
 
-@font-face {
-  font-family: "Pixelated MS Sans Serif";
-  font-style: normal;
-  font-weight: 400;
-  src: url("/assets/fonts/ms_sans_serif.woff2") format("woff2");
-}
-@font-face {
-  font-family: "Pixelated MS Sans Serif";
-  font-style: normal;
-  font-weight: 700;
-  src: url("/assets/fonts/ms_sans_serif_bold.woff2") format("woff2");
-}
+/* Pixelated MS Sans Serif @font-face lives in public/assets/fonts/fonts.css
+   (relative urls), loaded via <link> in index.html — avoids absolute-path
+   issues with Vite's production `base`. */
 
 .w98-scope {
   --w98-silver: #c0c0c0;
@@ -59,7 +50,8 @@
   transition: filter 400ms ease, opacity 400ms ease;
   border-radius: 6px;
   background-color: #3a6ea5;
-  background-image: url("/assets/hill.jpg");
+  /* background-image is set inline from JS so the URL gets Vite's
+     production base prefix (/autlas-landing/). */
   background-size: cover;
   background-position: center;
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.4);
