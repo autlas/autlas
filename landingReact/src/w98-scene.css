@@ -628,6 +628,17 @@
 .w98-error-backdrop--storm {
   background: rgba(0, 0, 0, 0.7);
 }
+/* Extra veil dropped on top of the storm when the ultimatum appears,
+   so the remaining storm dialogs fade into the background while
+   "Just. Install. It." takes the stage. */
+.w98-ultimatum-veil {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  pointer-events: none;
+  z-index: 500;
+  animation: w98-error-pop 260ms ease-out both;
+}
 .w98-scope .w98-error-backdrop--storm .w98-error-dialog {
   animation: w98-error-wave-in 260ms ease-out both;
 }
@@ -740,6 +751,18 @@
   font-weight: 700;
   outline: 1px dotted #000;
   outline-offset: -4px;
+}
+
+/* After enough storm dismissals the Cancel button starts running away
+   — each pointerEnter teleports it to a new offset and the transition
+   makes the dodge read as a "catch me" rather than a snap. The button
+   jumps relative to its own document position, so it can freely leave
+   the dialog chrome. */
+.w98-error-btn--chase {
+  transition: transform 360ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  will-change: transform;
+  position: relative;
+  z-index: 10;
 }
 
 /* ── Reveal animation (scroll-into-view) ────────────── */

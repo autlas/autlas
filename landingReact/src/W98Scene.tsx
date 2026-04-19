@@ -1,27 +1,23 @@
 import { type ReactNode, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import "./w98-scene.css";
 
-// Two-tone error "ding" — synthesized on demand so we don't ship or
-// license a Microsoft WAV. Square wave, 880→440 Hz, ~0.4s, quiet.
-function playErrorDing() {
+// Sample-based error sounds. We route the real Windows XP samples
+// through a small <audio> pool so concurrent plays during the storm
+// don't step on each other.
+function playSample(src: string, volume = 0.55) {
   try {
-    const AC = (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext);
-    const ctx = new AC();
-    const o = ctx.createOscillator();
-    const g = ctx.createGain();
-    o.connect(g);
-    g.connect(ctx.destination);
-    o.type = "square";
-    o.frequency.setValueAtTime(880, ctx.currentTime);
-    o.frequency.setValueAtTime(440, ctx.currentTime + 0.12);
-    g.gain.setValueAtTime(0.06, ctx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.45);
-    o.start();
-    o.stop(ctx.currentTime + 0.5);
-    o.onended = () => ctx.close();
+    const a = new Audio(src);
+    a.volume = volume;
+    a.play().catch(() => { /* autoplay policy — degrade silently */ });
   } catch {
-    /* audio context unavailable — degrade silently */
+    /* noop */
   }
+}
+function playErrorDing() {
+  playSample("/assets/sounds/windows-xp-exclamation.mp3");
+}
+function playWindowsErrorSound() {
+  playSample("/assets/sounds/windows-xp-critical-stop.mp3", 0.75);
 }
 
 // Parse "2 KB" / "24 MB" / "412 B" into a byte count so we can sort the
@@ -179,9 +175,14 @@ export default function W98Scene() {
   //   post-first — dismissed once, tracking higher thresholds (10 / 20s)
   //   wave       — three dialogs stacked
   //   post-wave  — dismissed wave, tracking clicks only (15)
-  //   storm      — thirty dialogs scattered across the stage
+  //   storm      — twenty dialogs scattered across the stage; after
+  //                three dismissals the Cancel buttons start fleeing
+  //                from the cursor (chase sub-mode). After 20 frustrated
+  //                clicks in chase sub-mode we transition to…
+  //   ultimatum  — single final "Just. Install. It." dialog with two
+  //                Install buttons and no Cancel at all
   //   done       — quiet
-  type Phase = "idle" | "first" | "post-first" | "wave" | "post-wave" | "storm" | "done";
+  type Phase = "idle" | "first" | "post-first" | "wave" | "post-wave" | "storm" | "ultimatum" | "done";
   const [phase, setPhase] = useState<Phase>("idle");
 
   // Advance to the next "dismissed" state when user closes current nag.
@@ -189,11 +190,12 @@ export default function W98Scene() {
     if (current === "first") return "post-first";
     if (current === "wave") return "post-wave";
     if (current === "storm") return "done";
+    if (current === "ultimatum") return "done";
     return current;
   };
 
   useEffect(() => {
-    if (phase !== "first" && phase !== "wave" && phase !== "storm") return;
+    if (phase !== "first" && phase !== "wave" && phase !== "storm" && phase !== "ultimatum") return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setPhase((p) => advancePhase(p));
     };
@@ -476,21 +478,104 @@ export default function W98Scene() {
   // and Escape close the whole wave (phase advances). When all dialogs of
   // the current phase are dismissed individually we also advance.
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
+  // Count of dialogs closed in the current storm — once ≥ 3, the Cancel
+  // buttons start running away from the cursor (Farm-Frenzy-style).
+  const [stormClosedCount, setStormClosedCount] = useState(0);
+  const [cancelOffsets, setCancelOffsets] = useState<Record<string, { dx: number; dy: number }>>({});
   useEffect(() => {
+    // Ultimatum inherits dismissedIds from the storm — already-closed
+    // storm dialogs stay closed, still-open ones keep rendering under
+    // the final notice.
     if (phase === "first" || phase === "wave" || phase === "storm") {
       setDismissedIds(new Set());
     }
+    if (phase === "storm") {
+      setStormClosedCount(0);
+      setCancelOffsets({});
+    }
+    if (phase === "ultimatum") {
+      // Heavier "Windows critical stop"-style chord for the final notice
+      // instead of the lighter ding used elsewhere.
+      playWindowsErrorSound();
+    }
   }, [phase]);
+  const chaseActive = phase === "storm" && stormClosedCount >= 3;
+  // Count ANY click anywhere on the page once chase is active — 20
+  // frustrated clicks (backdrop, dialogs, buttons, stage, elsewhere)
+  // flip us into the "Just. Install. It." ultimatum.
+  useEffect(() => {
+    if (phase === "storm") setChaseClickCount(0);
+  }, [phase]);
+  const [chaseClickCount, setChaseClickCount] = useState(0);
+  useEffect(() => {
+    if (!chaseActive) return;
+    const onDocClick = () => {
+      setChaseClickCount((c) => {
+        const next = c + 1;
+        if (next >= 20) queueMicrotask(() => setPhase("ultimatum"));
+        return next;
+      });
+    };
+    document.addEventListener("click", onDocClick);
+    return () => document.removeEventListener("click", onDocClick);
+  }, [chaseActive]);
+  const shuffleCancel = (id: string, btn: HTMLElement) => {
+    if (!chaseActive) return;
+    const stage = stageRef.current;
+    if (!stage) return;
+    // Derive the button's flow rect (without current offset) and clamp
+    // the new random offset so the escaped button stays inside the
+    // stage — can't have Cancel fleeing off-screen.
+    const sRect = stage.getBoundingClientRect();
+    const bRect = btn.getBoundingClientRect();
+    const cur = cancelOffsets[id] ?? { dx: 0, dy: 0 };
+    const flowLeft = bRect.left - cur.dx;
+    const flowTop = bRect.top - cur.dy;
+    const bw = bRect.width;
+    const bh = bRect.height;
+    const stageMinDx = sRect.left - flowLeft;
+    const stageMaxDx = sRect.right - flowLeft - bw;
+    const stageMinDy = sRect.top - flowTop;
+    const stageMaxDy = sRect.bottom - flowTop - bh;
+    // Each hop is in the range [±30, ±90] on X and [±30, ±60] on Y
+    // around the current position — the [0, ±30] dead zone keeps the
+    // button from landing nearly under the cursor again, outer bound
+    // stops full-stage teleports. Intersected with stage limits.
+    const pickDelta = (
+      minAbs: number, maxAbs: number,
+      stageLo: number, stageHi: number,
+    ): number | null => {
+      const negLo = Math.max(-maxAbs, stageLo);
+      const negHi = Math.min(-minAbs, stageHi);
+      const posLo = Math.max(minAbs, stageLo);
+      const posHi = Math.min(maxAbs, stageHi);
+      const negOk = negLo <= negHi;
+      const posOk = posLo <= posHi;
+      if (!negOk && !posOk) return null;
+      const useNeg = negOk && posOk ? Math.random() < 0.5 : negOk;
+      return useNeg
+        ? Math.random() * (negHi - negLo) + negLo
+        : Math.random() * (posHi - posLo) + posLo;
+    };
+    const ddx = pickDelta(15, 90, stageMinDx - cur.dx, stageMaxDx - cur.dx);
+    const ddy = pickDelta(15, 60, stageMinDy - cur.dy, stageMaxDy - cur.dy);
+    if (ddx === null || ddy === null) return;
+    const dx = cur.dx + ddx;
+    const dy = cur.dy + ddy;
+    setCancelOffsets((prev) => ({ ...prev, [id]: { dx, dy } }));
+  };
 
   const activeDialogIds = (): string[] => {
     if (phase === "first") return ["first"];
     if (phase === "wave") return ["wave-1", "wave-2", "wave-3"];
     if (phase === "storm") return stormDialogsRef.current.map((d) => d.id);
+    if (phase === "ultimatum") return ["ultimatum"];
     return [];
   };
 
   const dismissOne = (id: string) => {
     setDismissedIds((prev) => {
+      if (prev.has(id)) return prev;
       const next = new Set(prev);
       next.add(id);
       const active = activeDialogIds();
@@ -500,6 +585,9 @@ export default function W98Scene() {
       }
       return next;
     });
+    if (phase === "storm") {
+      setStormClosedCount((c) => c + 1);
+    }
   };
   const dismissAll = () => setPhase((p) => advancePhase(p));
 
@@ -698,7 +786,11 @@ export default function W98Scene() {
           </a>
           <button
             type="button"
-            className="w98-error-btn"
+            className={`w98-error-btn${chaseActive ? " w98-error-btn--chase" : ""}`}
+            style={chaseActive && cancelOffsets[id]
+              ? { transform: `translate(${cancelOffsets[id].dx}px, ${cancelOffsets[id].dy}px)` }
+              : undefined}
+            onPointerEnter={(e) => shuffleCancel(id, e.currentTarget)}
             onClick={(e) => { e.stopPropagation(); dismissOne(id); }}
           >
             Cancel
@@ -741,8 +833,11 @@ export default function W98Scene() {
         offset: { x: -24, y: 72 },
       })}
     </div>
-  ) : phase === "storm" ? (
-    <div className="w98-error-backdrop w98-error-backdrop--storm" role="presentation">
+  ) : (phase === "storm" || phase === "ultimatum") ? (
+    <div
+      className="w98-error-backdrop w98-error-backdrop--storm"
+      role="presentation"
+    >
       {stormDialogs.filter((d) => !isHidden(d.id)).map((d) =>
         renderDialog({
           id: d.id,
@@ -752,6 +847,40 @@ export default function W98Scene() {
           offset: d.offset,
           animationDelay: d.delay,
         }),
+      )}
+      {phase === "ultimatum" && <div className="w98-ultimatum-veil" aria-hidden="true" />}
+      {phase === "ultimatum" && (
+        <div
+          className="w98-window w98-error-dialog w98-error-dialog--final"
+          role="alertdialog"
+          style={{
+            transform: `translate(calc(-50% + ${dialogDrag["ultimatum"]?.dx ?? 0}px), calc(-50% + ${dialogDrag["ultimatum"]?.dy ?? 0}px))`,
+            // Force the final notice above any remaining storm dialogs.
+            zIndex: 1000,
+          }}
+          onPointerDown={() => bringDialogToFront("ultimatum")}
+        >
+          <div
+            className="w98-titlebar"
+            onPointerDown={onDialogTitlePointerDown("ultimatum")}
+            onPointerMove={onDialogTitlePointerMove}
+            onPointerUp={onDialogTitlePointerUp}
+            onPointerCancel={onDialogTitlePointerUp}
+          >
+            <span className="w98-titlebar-text">autlas.exe — Final Notice</span>
+            <div className="w98-titlebar-controls">
+              <button className="w98-titlebar-btn" tabIndex={-1} onClick={(e) => { e.stopPropagation(); dismissAll(); }}>×</button>
+            </div>
+          </div>
+          <div className="w98-error-body">
+            <div className="w98-error-icon" aria-hidden="true">✕</div>
+            <p className="w98-scope w98-error-msg">Just. Install. It.</p>
+          </div>
+          <div className="w98-error-actions">
+            <a className="w98-error-btn w98-error-btn--primary" href="#install" onClick={dismissAll}>Install</a>
+            <a className="w98-error-btn w98-error-btn--primary" href="#install" onClick={dismissAll}>Install</a>
+          </div>
+        </div>
       )}
     </div>
   ) : null;
