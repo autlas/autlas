@@ -307,6 +307,23 @@ export default function Landing() {
           autlas
         </a>
         <ul>
+          <li>
+            <a
+              href="#hero"
+              onClick={(e) => {
+                // Default anchor scroll jumps to the top of #hero. Instead
+                // center the autlas preview vertically in the viewport.
+                const el = document.querySelector<HTMLElement>(".autlas-frame");
+                if (!el) return;
+                e.preventDefault();
+                const r = el.getBoundingClientRect();
+                const target = window.scrollY + r.top + r.height / 2 - window.innerHeight / 2;
+                window.scrollTo({ top: Math.max(0, target), behavior: "smooth" });
+              }}
+            >
+              Live demo
+            </a>
+          </li>
           <li><a href="#problem">Why</a></li>
           <li><a href="#vim">Vim</a></li>
           <li><a href="#install">Install</a></li>
@@ -569,7 +586,7 @@ export default function Landing() {
           ref={solutionCardRef}
           className={`ps-card solution${solutionVisible ? " is-visible" : ""}`}
         >
-          <h3><span className="brand-grad">autlas</span> handles the chaos.</h3>
+          <h3><span className="brand-grad">autlas</span> handles the chaos</h3>
           <p ref={afterPRef}>The same .ahk files, one window. Status, tags, and a keypress away — no tray-icon hunt, no double-click expedition.</p>
           <div className="rows" aria-label="autlas script rows">
             {scripts.map((s, i) => (
