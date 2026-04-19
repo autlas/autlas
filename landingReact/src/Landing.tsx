@@ -674,17 +674,26 @@ export default function Landing() {
             <div className="snippet">
               <span className="label">winget</span>
               <code>winget install autlas</code>
-              <button className="copy"><svg className="i" viewBox="0 0 24 24" width="12" height="12"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></button>
+              <button className="copy" aria-label="Copy install command">
+                <svg className="i" viewBox="0 0 24 24" width="12" height="12"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                copy
+              </button>
             </div>
             <div className="snippet">
               <span className="label">scoop</span>
               <code>scoop install autlas</code>
-              <button className="copy"><svg className="i" viewBox="0 0 24 24" width="12" height="12"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></button>
+              <button className="copy" aria-label="Copy install command">
+                <svg className="i" viewBox="0 0 24 24" width="12" height="12"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                copy
+              </button>
             </div>
             <div className="snippet">
               <span className="label">from&nbsp;source</span>
               <code>git clone github.com/autlas/autlas &amp;&amp; cargo tauri build</code>
-              <button className="copy"><svg className="i" viewBox="0 0 24 24" width="12" height="12"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></button>
+              <button className="copy" aria-label="Copy install command">
+                <svg className="i" viewBox="0 0 24 24" width="12" height="12"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                copy
+              </button>
             </div>
           </div>
         </div>

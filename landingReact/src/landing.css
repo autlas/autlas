@@ -175,7 +175,11 @@ img{max-width:100%;display:block}
   margin-left:8px;height:32px;padding:0 10px;border-radius:8px;
   background:rgba(255,255,255,0.04);border:1px solid var(--border-color);
   color:var(--text-tertiary);font-family:var(--mono);font-size:11px;
-  display:inline-flex;align-items:center;gap:6px;transition:all 150ms var(--ease);
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  /* Pin width so the idle "copy" → "copied" swap doesn't grow the button
+     (and the whole winget pill by extension). Wide enough for "copied". */
+  min-width:88px;
+  transition:all 150ms var(--ease);
 }
 .winget .copy:hover{color:var(--text-primary);background:rgba(255,255,255,0.06);border-color:var(--border-light)}
 .hero-art{
@@ -550,12 +554,18 @@ section{padding:180px 0;position:relative}
   padding:0 16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
 .snippet .copy{
-  height:52px;padding:0 16px;color:var(--text-quaternary);
-  font-family:var(--mono);font-size:11px;
-  border-left:1px solid var(--border-color);display:flex;align-items:center;gap:6px;
+  /* Match the hero winget copy — compact pill inside the snippet,
+     not a full-height column. */
+  margin-right:10px;height:32px;padding:0 10px;border-radius:8px;
+  background:rgba(255,255,255,0.04);border:1px solid var(--border-color);
+  color:var(--text-tertiary);font-family:var(--mono);font-size:11px;
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  /* Pin width — the copy→copied text swap would otherwise bump the
+     whole snippet's column widths. */
+  min-width:88px;
   transition:all 150ms var(--ease);
 }
-.snippet .copy:hover{color:var(--text-primary);background:rgba(255,255,255,0.03)}
+.snippet .copy:hover{color:var(--text-primary);background:rgba(255,255,255,0.06);border-color:var(--border-light)}
 .faq{max-width:800px;margin:0 auto}
 .faq details{
   border-bottom:1px solid var(--border-color);
