@@ -1,5 +1,37 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import "./w98-scene.css";
+
+// Two-tone error "ding" — synthesized on demand so we don't ship or
+// license a Microsoft WAV. Square wave, 880→440 Hz, ~0.4s, quiet.
+function playErrorDing() {
+  try {
+    const AC = (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext);
+    const ctx = new AC();
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.connect(g);
+    g.connect(ctx.destination);
+    o.type = "square";
+    o.frequency.setValueAtTime(880, ctx.currentTime);
+    o.frequency.setValueAtTime(440, ctx.currentTime + 0.12);
+    g.gain.setValueAtTime(0.06, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.45);
+    o.start();
+    o.stop(ctx.currentTime + 0.5);
+    o.onended = () => ctx.close();
+  } catch {
+    /* audio context unavailable — degrade silently */
+  }
+}
+
+// Win98 tray clock: 12h, AM/PM, minute precision.
+function formatClock(d: Date): string {
+  let h = d.getHours();
+  const suffix = h >= 12 ? "PM" : "AM";
+  h = h % 12 || 12;
+  const m = d.getMinutes().toString().padStart(2, "0");
+  return `${h}:${m} ${suffix}`;
+}
 
 /**
  * Faux Windows 98 desktop scene for the "Before" card on the landing.
@@ -21,8 +53,8 @@ type Win = {
   path: string;
   /** Starting position as fraction of stage width/height. */
   start: { x: number; y: number };
-  /** Fractional size of stage; height is column-count-ish. */
-  size: { w: number; h: number };
+  /** Window width as fraction of stage width. Height is content-driven. */
+  width: number;
   rows: FileRow[];
 };
 
@@ -32,7 +64,7 @@ const WINDOWS: Win[] = [
     title: "Desktop",
     path: "C:\\Users\\Max\\Desktop",
     start: { x: 0.02, y: 0.04 },
-    size: { w: 0.46, h: 0.55 },
+    width: 0.46,
     rows: [
       { name: "clipboard_v2.ahk", size: "2 KB", type: "AutoHotkey Script", date: "14.03.2024", ahk: true },
       { name: "WindowSnap_FINAL.ahk", size: "8 KB", type: "AutoHotkey Script", date: "02.09.2024", ahk: true },
@@ -47,7 +79,7 @@ const WINDOWS: Win[] = [
     title: "ahk",
     path: "D:\\tools\\ahk",
     start: { x: 0.27, y: 0.38 },
-    size: { w: 0.46, h: 0.48 },
+    width: 0.46,
     rows: [
       { name: "hotkeys.ahk", size: "3 KB", type: "AutoHotkey Script", date: "11.01.2025", ahk: true },
       { name: "old_macro.ahk", size: "12 KB", type: "AutoHotkey Script", date: "03.08.2022", ahk: true },
@@ -61,7 +93,7 @@ const WINDOWS: Win[] = [
     title: "Downloads",
     path: "C:\\Users\\Max\\Downloads",
     start: { x: 0.52, y: 0.04 },
-    size: { w: 0.46, h: 0.52 },
+    width: 0.46,
     rows: [
       { name: "setup.exe", size: "24 MB", type: "Application", date: "05.12.2025" },
       { name: "tray_monitor.ahk", size: "3 KB", type: "AutoHotkey Script", date: "18.03.2026", ahk: true },
@@ -81,9 +113,118 @@ export default function W98Scene() {
 
   // Per-window state.
   const [positions, setPositions] = useState<Record<string, Pos>>({});
-  const [sizes, setSizes] = useState<Record<string, { w: number; h: number }>>({});
+  const [widths, setWidths] = useState<Record<string, number>>({});
   const [order, setOrder] = useState<string[]>(["desktop", "downloads", "tools"]);
   const [activeId, setActiveId] = useState<string>("tools");
+  const [trayOpen, setTrayOpen] = useState(true);
+  const [clock, setClock] = useState(() => formatClock(new Date()));
+  useEffect(() => {
+    const id = setInterval(() => setClock(formatClock(new Date())), 30_000);
+    return () => clearInterval(id);
+  }, []);
+
+  // Nag escalation ladder.
+  //   idle       — tracking with low thresholds (5 clicks / 10s)
+  //   first      — single dialog visible
+  //   post-first — dismissed once, tracking higher thresholds (10 / 20s)
+  //   wave       — three dialogs stacked
+  //   post-wave  — dismissed wave, tracking clicks only (15)
+  //   storm      — thirty dialogs scattered across the stage
+  //   done       — quiet
+  type Phase = "idle" | "first" | "post-first" | "wave" | "post-wave" | "storm" | "done";
+  const [phase, setPhase] = useState<Phase>("idle");
+
+  // Advance to the next "dismissed" state when user closes current nag.
+  const advancePhase = (current: Phase): Phase => {
+    if (current === "first") return "post-first";
+    if (current === "wave") return "post-wave";
+    if (current === "storm") return "done";
+    return current;
+  };
+
+  useEffect(() => {
+    if (phase !== "first" && phase !== "wave" && phase !== "storm") return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setPhase((p) => advancePhase(p));
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [phase]);
+  useEffect(() => {
+    const stage = stageRef.current;
+    if (!stage) return;
+    // Only track in the "engagement" phases between dialogs.
+    if (phase !== "idle" && phase !== "post-first" && phase !== "post-wave") return;
+
+    const hoverThreshold =
+      phase === "idle" ? 10_000 :
+      phase === "post-first" ? 20_000 :
+      Number.POSITIVE_INFINITY; // post-wave: clicks only
+    const clickThreshold =
+      phase === "idle" ? 5 :
+      phase === "post-first" ? 10 :
+      15;
+    const nextPhase: Phase =
+      phase === "idle" ? "first" :
+      phase === "post-first" ? "wave" :
+      "storm";
+
+    let accumMs = 0;
+    let clicks = 0;
+    let tickId: number | null = null;
+    let lastTick = 0;
+    let triggered = false;
+
+    const fire = () => {
+      if (triggered) return;
+      triggered = true;
+      stop();
+      setPhase(nextPhase);
+      // One ding per dialog, staggered to match each dialog's
+      // animation-delay so sound and pop-in land together. Storm dings
+      // are handled separately in the storm-spawn effect (30 staggered).
+      const dingDelays =
+        nextPhase === "storm" ? [] :
+        nextPhase === "wave" ? [0, 90, 180] :
+        [0];
+      dingDelays.forEach((d) => setTimeout(playErrorDing, d));
+    };
+
+    const tick = () => {
+      const now = performance.now();
+      const dt = now - lastTick;
+      lastTick = now;
+      accumMs += dt;
+      if (accumMs >= hoverThreshold) fire();
+    };
+    const start = () => {
+      if (tickId != null || triggered) return;
+      lastTick = performance.now();
+      tickId = window.setInterval(tick, 200);
+    };
+    const stop = () => {
+      if (tickId != null) window.clearInterval(tickId);
+      tickId = null;
+    };
+    const onClick = () => {
+      if (triggered) return;
+      clicks += 1;
+      if (clicks >= clickThreshold) fire();
+    };
+
+    stage.addEventListener("pointerenter", start);
+    stage.addEventListener("pointerleave", stop);
+    stage.addEventListener("click", onClick);
+    return () => {
+      stage.removeEventListener("pointerenter", start);
+      stage.removeEventListener("pointerleave", stop);
+      stage.removeEventListener("click", onClick);
+      stop();
+    };
+  }, [phase]);
+  const [startOpen, setStartOpen] = useState(false);
+  const startMenuRef = useRef<HTMLDivElement>(null);
+  const startBtnRef = useRef<HTMLButtonElement>(null);
 
   // Drag state kept out of React so pointermove doesn't spam re-renders.
   const dragRef = useRef<{
@@ -123,17 +264,28 @@ export default function W98Scene() {
       }
       return next;
     });
-    setSizes(() => {
-      const next: Record<string, { w: number; h: number }> = {};
+    setWidths(() => {
+      const next: Record<string, number> = {};
       for (const w of WINDOWS) {
-        next[w.id] = {
-          w: Math.round(w.size.w * stageSize.w),
-          h: Math.round(w.size.h * stageSize.h),
-        };
+        next[w.id] = Math.round(w.width * stageSize.w);
       }
       return next;
     });
   }, [stageSize.w, stageSize.h]);
+
+  // Close start menu on click outside.
+  useEffect(() => {
+    if (!startOpen) return;
+    const onDown = (e: PointerEvent) => {
+      const t = e.target as Node | null;
+      if (!t) return;
+      if (startMenuRef.current?.contains(t)) return;
+      if (startBtnRef.current?.contains(t)) return;
+      setStartOpen(false);
+    };
+    document.addEventListener("pointerdown", onDown);
+    return () => document.removeEventListener("pointerdown", onDown);
+  }, [startOpen]);
 
   // Reveal on scroll into view.
   useEffect(() => {
@@ -187,12 +339,12 @@ export default function W98Scene() {
     const stage = stageRef.current;
     if (!stage) return;
     const stageRect = stage.getBoundingClientRect();
-    const sz = sizes[d.id];
-    if (!sz) return;
+    const w = widths[d.id];
+    if (w == null) return;
     let x = (e.clientX - stageRect.left) - d.offsetX;
     let y = (e.clientY - stageRect.top) - d.offsetY;
     // Clamp inside stage (leave room for the taskbar at the bottom).
-    const maxX = stageSize.w - sz.w;
+    const maxX = stageSize.w - w;
     const maxY = stageSize.h - 28 - 18; // taskbar height + at least titlebar visible
     x = Math.max(0, Math.min(maxX, x));
     y = Math.max(0, Math.min(maxY, y));
@@ -208,16 +360,303 @@ export default function W98Scene() {
     dragRef.current = null;
   };
 
-  const trayCount = 11;
+  // Popup shows our pile of AHK H-icons plus a handful of real tray regulars
+  // (Steam, NVIDIA, PowerToys, Lightshot, Bluetooth) so the "my tray is a
+  // mess of tiny icons" vibe lands. AHK icons carry the script filename as a
+  // hover tooltip — the honest UX of bare-AHK: hover each H to find your
+  // script.
+  const trayPopupIcons = useMemo(() => {
+    const ahkScripts = [
+      "clipboard_v2.ahk",
+      "WindowSnap_FINAL.ahk",
+      "altdrag_new.ahk",
+      "csgo_crosshair.ahk",
+      "hotkeys.ahk",
+      "old_macro.ahk",
+      "CapsToEsc.ahk",
+      "QuickLauncher.ahk",
+      "tray_monitor.ahk",
+      "macro_demo.ahk",
+    ];
+    return [
+      { src: "/assets/tray-icons/nvidia.svg", tip: "MVDIDIA Control Panel" },
+      { src: "/assets/tray-icons/lightshot.ico", tip: "Lightshut" },
+      ...ahkScripts.map((name) => ({ src: "/assets/autohotkeyLogo.png", tip: name })),
+      { src: "/assets/tray-icons/steam.svg", tip: "Scream" },
+      { src: "/assets/tray-icons/powertoys.ico", tip: "PovverToys" },
+      { src: "/assets/tray-icons/bluetooth.svg", tip: "Bluetooth Devices" },
+    ];
+  }, []);
 
   const taskbarTasks = useMemo(
-    () => [
-      { title: "Desktop", icon: "/assets/win98folder.png" },
-      { title: "ahk", icon: "/assets/win98folder.png" },
-      { title: "Downloads", icon: "/assets/win98folder.png" },
-    ],
+    () => WINDOWS.map((w) => ({ id: w.id, title: w.title, icon: "/assets/win98folder.png" })),
     [],
   );
+
+  // Per-dialog dismissal set — × and Cancel close only that one. Install
+  // and Escape close the whole wave (phase advances). When all dialogs of
+  // the current phase are dismissed individually we also advance.
+  const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    if (phase === "first" || phase === "wave" || phase === "storm") {
+      setDismissedIds(new Set());
+    }
+  }, [phase]);
+
+  const activeDialogIds = (): string[] => {
+    if (phase === "first") return ["first"];
+    if (phase === "wave") return ["wave-1", "wave-2", "wave-3"];
+    if (phase === "storm") return stormDialogsRef.current.map((d) => d.id);
+    return [];
+  };
+
+  const dismissOne = (id: string) => {
+    setDismissedIds((prev) => {
+      const next = new Set(prev);
+      next.add(id);
+      const active = activeDialogIds();
+      if (active.length > 0 && active.every((aid) => next.has(aid))) {
+        // Last one closed — advance phase on the next tick.
+        queueMicrotask(() => setPhase((p) => advancePhase(p)));
+      }
+      return next;
+    });
+  };
+  const dismissAll = () => setPhase((p) => advancePhase(p));
+
+  // 30 aggressive errors for the storm — full message in the body, title
+  // is a random-looking hex code so each dialog reads like a distinct
+  // system crash rather than a named category.
+  const STORM_MESSAGES: Array<{ title: string; msg: ReactNode; variant: "alert" | "critical" | "final" }> = useMemo(() => [
+    { title: "autlas.exe — 0x00000001", msg: <>ERROR! INSTALL AUTLAS!</>, variant: "alert" },
+    { title: "autlas.exe — 0xC0000005", msg: <>SYSTEM FAILURE! AUTLAS REQUIRED!</>, variant: "critical" },
+    { title: "autlas.exe — 0x0000007B", msg: <>CRITICAL! INSTALL AUTLAS IMMEDIATELY!</>, variant: "final" },
+    { title: "autlas.exe — 0x0000001E", msg: <>HALT! NO AUTLAS DETECTED!</>, variant: "alert" },
+    { title: "autlas.exe — STOP 0x000000FF", msg: <>INSTALL AUTLAS!</>, variant: "critical" },
+    { title: "autlas.exe — 0xDEAD0B01", msg: <>FATAL EXCEPTION! MISSING: AUTLAS!</>, variant: "final" },
+    { title: "autlas.exe — 0x0000003B", msg: <>ABORT! AUTLAS NOT FOUND!</>, variant: "alert" },
+    { title: "autlas.exe — 0x0000008E", msg: <>KERNEL PANIC! INSTALL AUTLAS!</>, variant: "critical" },
+    { title: "autlas.exe — 0xC0000221", msg: <>DATA CORRUPTION! INSTALL AUTLAS TO RECOVER!</>, variant: "final" },
+    { title: "autlas.exe — 0x00000050", msg: <>EMERGENCY! INSTALL AUTLAS!</>, variant: "alert" },
+    { title: "autlas.exe — 0xC0000022", msg: <>ACCESS DENIED! AUTLAS REQUIRED!</>, variant: "critical" },
+    { title: "autlas.exe — 0x7E", msg: <>DLL NOT FOUND: autlas.dll!</>, variant: "final" },
+    { title: "autlas.exe — 0x0000007E", msg: <>DRIVER MISSING: autlas.sys!</>, variant: "alert" },
+    { title: "autlas.exe — 0x80070718", msg: <>QUOTA EXCEEDED! INSTALL AUTLAS!</>, variant: "critical" },
+    { title: "autlas.exe — 0xC0000409", msg: <>BUFFER OVERFLOW! INSTALL AUTLAS!</>, variant: "final" },
+    { title: "autlas.exe — 0xC00000FD", msg: <>STACK FULL OF .ahk! INSTALL AUTLAS!</>, variant: "alert" },
+    { title: "autlas.exe — 0xC0000185", msg: <>WRITE FAILED! AUTLAS REQUIRED!</>, variant: "critical" },
+    { title: "autlas.exe — 0x00000024", msg: <>TIMEOUT! WHY HAVEN'T YOU INSTALLED AUTLAS?!</>, variant: "final" },
+    { title: "autlas.exe — 0xC0000005", msg: <>ACCESS VIOLATION! AUTLAS MISSING!</>, variant: "alert" },
+    { title: "autlas.exe — 0xBAADF00D", msg: <>FAULT! INSTALL AUTLAS IMMEDIATELY!</>, variant: "critical" },
+    { title: "autlas.exe — 0x0000007F", msg: <>BSOD IMMINENT! INSTALL AUTLAS!</>, variant: "final" },
+    { title: "autlas.exe — 0xC0000142", msg: <>PROCESS CRASHED! INSTALL AUTLAS!</>, variant: "alert" },
+    { title: "autlas.exe — 0xC0000218", msg: <>CORRUPTED REGISTRY! INSTALL AUTLAS!</>, variant: "critical" },
+    { title: "autlas.exe — 0xC0000225", msg: <>SYSTEM INTEGRITY COMPROMISED! INSTALL AUTLAS!</>, variant: "final" },
+    { title: "autlas.exe — 0x8007000E", msg: <>MEMORY LEAK! INSTALL AUTLAS!</>, variant: "alert" },
+    { title: "autlas.exe — 0x0000009C", msg: <>HARDWARE MALFUNCTION! INSTALL AUTLAS!</>, variant: "critical" },
+    { title: "autlas.exe — 0xC000014C", msg: <>BOOT FAILED! REINSTALL WITH AUTLAS!</>, variant: "final" },
+    { title: "autlas.exe — 0x80070005", msg: <>PERMISSION DENIED! AUTLAS-ONLY!</>, variant: "alert" },
+    { title: "autlas.exe — 0xC0000061", msg: <>INSUFFICIENT PRIVILEGES! AUTLAS REQUIRED!</>, variant: "critical" },
+    { title: "autlas.exe — 0x0000002E", msg: <>DEADLOCK DETECTED! INSTALL AUTLAS!</>, variant: "final" },
+  ], []);
+
+  type StormDialog = {
+    id: string;
+    title: string;
+    msg: ReactNode;
+    variant: "alert" | "critical" | "final";
+    offset: { x: number; y: number };
+    delay: number;
+  };
+  const [stormDialogs, setStormDialogs] = useState<StormDialog[]>([]);
+  const stormDialogsRef = useRef<StormDialog[]>([]);
+  stormDialogsRef.current = stormDialogs;
+
+  // When phase → 'storm', scatter 30 dialogs across the stage and fire
+  // 30 staggered dings to match.
+  useEffect(() => {
+    if (phase !== "storm") return;
+    const stage = stageRef.current;
+    if (!stage) return;
+    const rect = stage.getBoundingClientRect();
+    const dialogW = 340;
+    const dialogH = 180;
+    const maxX = Math.max(40, (rect.width - dialogW) / 2);
+    const maxY = Math.max(40, (rect.height - dialogH - 28) / 2);
+    const dialogs: StormDialog[] = STORM_MESSAGES.map((m, i) => ({
+      id: `storm-${i}`,
+      title: m.title,
+      msg: m.msg,
+      variant: m.variant,
+      offset: {
+        x: (Math.random() * 2 - 1) * maxX,
+        y: (Math.random() * 2 - 1) * maxY,
+      },
+      delay: i * 80,
+    }));
+    setStormDialogs(dialogs);
+    dialogs.forEach((d) => setTimeout(playErrorDing, d.delay));
+  }, [phase, STORM_MESSAGES]);
+
+  // z-order within the backdrop — last id = on top. Click on a dialog
+  // bumps it to the end (same pattern as Explorer windows).
+  const [dialogOrder, setDialogOrder] = useState<string[]>(["first", "wave-1", "wave-2", "wave-3"]);
+  const bringDialogToFront = (id: string) => {
+    setDialogOrder((prev) => {
+      if (prev[prev.length - 1] === id) return prev;
+      return [...prev.filter((x) => x !== id), id];
+    });
+  };
+
+  // Per-dialog drag offset (added on top of the static placement offset).
+  const [dialogDrag, setDialogDrag] = useState<Record<string, { dx: number; dy: number }>>({});
+  const dialogDragRef = useRef<
+    | { id: string; pointerId: number; startX: number; startY: number; baseX: number; baseY: number }
+    | null
+  >(null);
+
+  const onDialogTitlePointerDown = (id: string) => (e: React.PointerEvent) => {
+    if (e.button !== 0) return;
+    const target = e.currentTarget as HTMLElement;
+    target.setPointerCapture(e.pointerId);
+    target.classList.add("dragging");
+    bringDialogToFront(id);
+    const cur = dialogDrag[id] ?? { dx: 0, dy: 0 };
+    dialogDragRef.current = {
+      id, pointerId: e.pointerId,
+      startX: e.clientX, startY: e.clientY,
+      baseX: cur.dx, baseY: cur.dy,
+    };
+  };
+  const onDialogTitlePointerMove = (e: React.PointerEvent) => {
+    const d = dialogDragRef.current;
+    if (!d || d.pointerId !== e.pointerId) return;
+    const dx = d.baseX + (e.clientX - d.startX);
+    const dy = d.baseY + (e.clientY - d.startY);
+    setDialogDrag((prev) => ({ ...prev, [d.id]: { dx, dy } }));
+  };
+  const onDialogTitlePointerUp = (e: React.PointerEvent) => {
+    const d = dialogDragRef.current;
+    if (!d || d.pointerId !== e.pointerId) return;
+    (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+    (e.currentTarget as HTMLElement).classList.remove("dragging");
+    dialogDragRef.current = null;
+  };
+
+  const renderDialog = (opts: {
+    id: string;
+    title: string;
+    msg: ReactNode;
+    cta?: string;
+    variant?: "alert" | "critical" | "final";
+    offset?: { x: number; y: number };
+    animationDelay?: number;
+  }) => {
+    const { id, title, msg, cta = "Install", variant = "alert", offset, animationDelay } = opts;
+    const drag = dialogDrag[id] ?? { dx: 0, dy: 0 };
+    const baseX = offset?.x ?? 0;
+    const baseY = offset?.y ?? 0;
+    const z = dialogOrder.indexOf(id);
+    const style: React.CSSProperties = {
+      transform: `translate(calc(-50% + ${baseX + drag.dx}px), calc(-50% + ${baseY + drag.dy}px))`,
+      zIndex: 10 + (z < 0 ? 0 : z),
+    };
+    if (animationDelay !== undefined) style.animationDelay = `${animationDelay}ms`;
+    return (
+      <div
+        key={id}
+        className={`w98-window w98-error-dialog w98-error-dialog--${variant}`}
+        role="alertdialog"
+        style={style}
+        onPointerDown={() => bringDialogToFront(id)}
+      >
+        <div
+          className="w98-titlebar"
+          onPointerDown={onDialogTitlePointerDown(id)}
+          onPointerMove={onDialogTitlePointerMove}
+          onPointerUp={onDialogTitlePointerUp}
+          onPointerCancel={onDialogTitlePointerUp}
+        >
+          <span className="w98-titlebar-text">{title}</span>
+          <div className="w98-titlebar-controls">
+            <button
+              className="w98-titlebar-btn"
+              tabIndex={-1}
+              onClick={(e) => { e.stopPropagation(); dismissOne(id); }}
+            >×</button>
+          </div>
+        </div>
+        <div className="w98-error-body">
+          <div className="w98-error-icon" aria-hidden="true">✕</div>
+          <p className="w98-scope w98-error-msg">{msg}</p>
+        </div>
+        <div className="w98-error-actions">
+          <a
+            className="w98-error-btn w98-error-btn--primary"
+            href="#install"
+            onClick={dismissAll}
+          >
+            {cta}
+          </a>
+          <button
+            type="button"
+            className="w98-error-btn"
+            onClick={(e) => { e.stopPropagation(); dismissOne(id); }}
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  const isHidden = (id: string) => dismissedIds.has(id);
+
+  const errorDialog = phase === "first" ? (
+    <div className="w98-error-backdrop" role="presentation">
+      {!isHidden("first") && renderDialog({
+        id: "first",
+        title: "autlas.exe — Error",
+        msg: (<>Your scripts are a mess.<br />Install <b>autlas</b> to fix it.</>),
+      })}
+    </div>
+  ) : phase === "wave" ? (
+    <div className="w98-error-backdrop w98-error-backdrop--wave" role="presentation">
+      {!isHidden("wave-1") && renderDialog({
+        id: "wave-1",
+        title: "autlas.exe — Error",
+        msg: (<>Required component missing: <b>autlas</b>.<br />Install now.</>),
+        offset: { x: -72, y: -48 },
+      })}
+      {!isHidden("wave-2") && renderDialog({
+        id: "wave-2",
+        title: "autlas.exe — Critical",
+        msg: (<>The operation cannot be completed without <b>autlas</b>.</>),
+        variant: "critical",
+        offset: { x: 64, y: 24 },
+      })}
+      {!isHidden("wave-3") && renderDialog({
+        id: "wave-3",
+        title: "autlas.exe — STOP 0x000000E1",
+        msg: (<>Script chaos detected.<br />Recommended action: install <b>autlas</b>.</>),
+        variant: "final",
+        offset: { x: -24, y: 72 },
+      })}
+    </div>
+  ) : phase === "storm" ? (
+    <div className="w98-error-backdrop w98-error-backdrop--storm" role="presentation">
+      {stormDialogs.filter((d) => !isHidden(d.id)).map((d) =>
+        renderDialog({
+          id: d.id,
+          title: d.title,
+          msg: d.msg,
+          variant: d.variant,
+          offset: d.offset,
+          animationDelay: d.delay,
+        }),
+      )}
+    </div>
+  ) : null;
 
   return (
     <div className={`w98-scope${visible ? " is-visible" : ""}`}>
@@ -225,7 +664,7 @@ export default function W98Scene() {
         {WINDOWS.map((w) => {
           const z = order.indexOf(w.id) + 1;
           const pos = positions[w.id] ?? { x: 0, y: 0 };
-          const sz = sizes[w.id] ?? { w: 0, h: 0 };
+          const width = widths[w.id] ?? 0;
           const isActive = activeId === w.id;
           return (
             <div
@@ -236,8 +675,7 @@ export default function W98Scene() {
               style={{
                 left: pos.x,
                 top: pos.y,
-                width: sz.w,
-                height: sz.h,
+                width,
                 zIndex: z,
               }}
               onPointerDown={() => bringToFront(w.id)}
@@ -305,29 +743,111 @@ export default function W98Scene() {
         })}
 
         <div className="w98-taskbar">
-          <div className="w98-start">
+          <button
+            ref={startBtnRef}
+            type="button"
+            className="w98-start"
+            data-active={startOpen}
+            onClick={() => setStartOpen((v) => !v)}
+          >
             <img src="/assets/win98logo.png" alt="" className="w98-start-logo" />
             Start
-          </div>
+          </button>
+          {startOpen && (
+            <div ref={startMenuRef} className="w98-start-menu" role="menu">
+              <div className="w98-start-menu-side">
+                <span>
+                  <b>autlas</b>98
+                </span>
+              </div>
+              <div className="w98-start-menu-items">
+                <button type="button" className="w98-start-menu-item">
+                  <span className="w98-start-menu-icon">📂</span>
+                  <span><u>P</u>rograms</span>
+                  <span className="w98-start-menu-chev">▶</span>
+                </button>
+                <button type="button" className="w98-start-menu-item">
+                  <span className="w98-start-menu-icon">📄</span>
+                  <span><u>D</u>ocuments</span>
+                  <span className="w98-start-menu-chev">▶</span>
+                </button>
+                <button type="button" className="w98-start-menu-item">
+                  <span className="w98-start-menu-icon">⚙</span>
+                  <span><u>S</u>ettings</span>
+                  <span className="w98-start-menu-chev">▶</span>
+                </button>
+                <button type="button" className="w98-start-menu-item">
+                  <span className="w98-start-menu-icon">🔍</span>
+                  <span><u>F</u>ind</span>
+                  <span className="w98-start-menu-chev">▶</span>
+                </button>
+                <button type="button" className="w98-start-menu-item">
+                  <span className="w98-start-menu-icon">❓</span>
+                  <span><u>H</u>elp</span>
+                </button>
+                <button type="button" className="w98-start-menu-item">
+                  <span className="w98-start-menu-icon">▶</span>
+                  <span><u>R</u>un…</span>
+                </button>
+                <div className="w98-start-menu-sep" />
+                <a
+                  className="w98-start-menu-item w98-start-menu-item--featured"
+                  href="#install"
+                  onClick={() => setStartOpen(false)}
+                >
+                  <img
+                    src="/assets/autohotkeyLogo.png"
+                    alt=""
+                    className="w98-start-menu-icon-img"
+                  />
+                  <span>Download <b>autlas</b></span>
+                </a>
+                <div className="w98-start-menu-sep" />
+                <button type="button" className="w98-start-menu-item">
+                  <span className="w98-start-menu-icon">⏻</span>
+                  <span>Sh<u>u</u>t Down…</span>
+                </button>
+              </div>
+            </div>
+          )}
           <div className="w98-taskbar-divider" />
           <div className="w98-taskbar-tasks">
-            {taskbarTasks.map((t, i) => (
-              <div className="w98-task" key={i}>
+            {taskbarTasks.map((t) => (
+              <button
+                type="button"
+                className="w98-task"
+                data-active={activeId === t.id}
+                key={t.id}
+                onClick={() => bringToFront(t.id)}
+              >
                 <img src={t.icon} alt="" className="w98-pixel-icon" />
                 <span>{t.title}</span>
-              </div>
+              </button>
             ))}
           </div>
           <div className="w98-tray">
-            <div className="w98-tray-chevron" aria-label="Show hidden icons">∧</div>
-            <span className="w98-tray-clock">4:20 PM</span>
-            <div className="w98-tray-popup" role="menu">
-              {Array.from({ length: trayCount }).map((_, i) => (
-                <img key={i} src="/assets/autohotkeyLogo.png" alt="" />
-              ))}
-            </div>
+            <button
+              type="button"
+              className="w98-tray-chevron"
+              aria-label={trayOpen ? "Hide icons" : "Show hidden icons"}
+              aria-expanded={trayOpen}
+              onClick={() => setTrayOpen((v) => !v)}
+            >
+              {trayOpen ? "∨" : "∧"}
+            </button>
+            <span className="w98-tray-clock">{clock}</span>
+            {trayOpen && (
+              <div className="w98-tray-popup" role="menu">
+                {trayPopupIcons.map((it, i) => (
+                  <span key={i} className="w98-tray-popup-item" data-tip={it.tip}>
+                    <img src={it.src} alt="" />
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         </div>
+        {errorDialog}
       </div>
     </div>
   );

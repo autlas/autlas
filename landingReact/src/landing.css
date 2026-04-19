@@ -339,6 +339,11 @@ section{padding:180px 0;position:relative}
   left:50%;
   transform:translateX(-50%);
 }
+/* Stack Before + After cards earlier than the site-wide 980px breakpoint —
+   the Win98 scene needs room to breathe. */
+@media (max-width: 1200px){
+  .ps-grid{grid-template-columns:1fr}
+}
 .ps-card{
   border:1px solid var(--border-color);border-radius:28px;
   padding:32px;
@@ -547,7 +552,7 @@ footer{padding:140px 0 160px;color:var(--text-tertiary);font-size:13px}
   .hero-grid{grid-template-columns:1fr;gap:40px}
   .hub-frame{transform:none}
   .tray-pop{display:none}
-  .ps-grid, .vim-grid, .install-grid{grid-template-columns:1fr}
+  .vim-grid, .install-grid{grid-template-columns:1fr}
   .nav ul{display:none}
   .hub{grid-template-columns:1fr}
   .sidebar{display:none}
