@@ -45,56 +45,20 @@ body {
    element's own height, so every line/button rises by its own height
    while fading. Applied via CSS `translate` so it composes with the
    intro animation's `transform: translateY(...)` without clobbering. */
-.hero-rise {
-  /* Quadratic: was `t * -40px`, now `-(t*40)² / 30 px` so the upward
-     velocity grows linearly with t — spacing between successive rows
-     (at equal t-offset apart) expands linearly as they scroll up. */
+/* Scroll peel lives on the outer wrapper so it doesn't fight the
+   intro animation that runs on the inner .hero-rise. Opacity and
+   translate compose multiplicatively / additively with the inner. */
+.hero-scroll {
   translate: 0 calc(var(--scroll-t, 0) * var(--scroll-t, 0) * -53.333px);
   transition: translate 200ms ease-out, opacity 200ms ease-out;
 }
 
-/* Debug: 100px horizontal ruler covering the whole page. Lines sit at
-   document Y positions (fixed overlay + background-position offset by
-   scrollY). Major tick every 500px. */
-.landing-root { position: relative; }
-.scroll-ruler {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 100%;
-  z-index: 99998;
-  pointer-events: none;
-  background-image:
-    repeating-linear-gradient(
-      to bottom,
-      rgba(255, 80, 80, 0.45) 0,
-      rgba(255, 80, 80, 0.45) 1px,
-      transparent 1px,
-      transparent 500px
-    ),
-    repeating-linear-gradient(
-      to bottom,
-      rgba(255, 255, 255, 0.18) 0,
-      rgba(255, 255, 255, 0.18) 1px,
-      transparent 1px,
-      transparent 100px
-    );
-}
-.scroll-ruler-readout {
-  position: fixed;
-  top: 12px;
-  right: 12px;
-  z-index: 99999;
-  padding: 6px 10px;
-  border-radius: 8px;
-  background: rgba(0, 0, 0, 0.7);
-  color: #fff;
-  font: 600 12px/1 ui-monospace, monospace;
-  pointer-events: none;
-}
 .landing-root .h1 .hero-rise,
 .landing-root .lead .hero-rise {
+  display: block;
+}
+.landing-root .h1 .hero-scroll,
+.landing-root .lead .hero-scroll {
   display: block;
 }
 

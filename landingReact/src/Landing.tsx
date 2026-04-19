@@ -124,27 +124,6 @@ export default function Landing() {
     };
   }, []);
 
-  // Debug ruler — mirror scrollY into a CSS var so the fixed overlay
-  // can scroll its 100px grid with the page, and write the pixel value
-  // into the readout element.
-  useEffect(() => {
-    const readout = document.querySelector<HTMLElement>(".scroll-ruler-readout");
-    let raf = 0;
-    const update = () => {
-      raf = 0;
-      const y = Math.round(window.scrollY);
-      document.documentElement.style.setProperty("--scroll-y", `${y}px`);
-      if (readout) readout.textContent = `scrollY: ${y}px`;
-    };
-    const onScroll = () => { if (!raf) raf = requestAnimationFrame(update); };
-    update();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-      if (raf) cancelAnimationFrame(raf);
-    };
-  }, []);
-
   // Scroll-driven hero peel-away. Each element's fade progress is
   // tied to its own document Y: element is fully visible at scroll=0
   // and fully gone by the time the page has scrolled past it. We use
@@ -152,7 +131,7 @@ export default function Landing() {
   // translate doesn't feed back into the measurement.
   useEffect(() => {
     const items = Array.from(
-      document.querySelectorAll<HTMLElement>(".hero-rise")
+      document.querySelectorAll<HTMLElement>(".hero-scroll")
     );
     if (items.length === 0) return;
 
@@ -183,8 +162,7 @@ export default function Landing() {
           Math.min(1, (FADE_START - viewportTop) / (FADE_START - FADE_END))
         );
         el.style.setProperty("--scroll-t", String(t));
-        if (t > 0) el.style.setProperty("opacity", String(1 - t), "important");
-        else el.style.removeProperty("opacity");
+        el.style.opacity = t > 0 ? String(1 - t) : "";
       });
     };
     const onScroll = () => { if (!raf) raf = requestAnimationFrame(update); };
@@ -205,8 +183,6 @@ export default function Landing() {
 <BackgroundShader />
 <div className="intro-dim" aria-hidden="true" />
 <div className="scroll-dim" aria-hidden="true" />
-<div className="scroll-ruler" aria-hidden="true" />
-<div className="scroll-ruler-readout" aria-hidden="true" />
 <div className="page">
   <div className="shell">
 
@@ -247,32 +223,38 @@ export default function Landing() {
       <div className="hero-grid">
         <div className="hero-copy">
           <h1 className="h1">
-            <span className="hero-rise" style={{ animationDelay: "100ms" }}>One hub</span>
-            <span className="hero-rise" style={{ animationDelay: "160ms" }}>for all your</span>
-            <span className="hero-rise" style={{ animationDelay: "220ms" }}><span className="brand-grad">AutoHotkey</span></span>
-            <span className="hero-rise" style={{ animationDelay: "280ms" }}>scripts.</span>
+            <span className="hero-scroll"><span className="hero-rise" style={{ animationDelay: "100ms" }}>One hub</span></span>
+            <span className="hero-scroll"><span className="hero-rise" style={{ animationDelay: "160ms" }}>for all your</span></span>
+            <span className="hero-scroll"><span className="hero-rise" style={{ animationDelay: "220ms" }}><span className="brand-grad">AutoHotkey</span></span></span>
+            <span className="hero-scroll"><span className="hero-rise" style={{ animationDelay: "280ms" }}>scripts.</span></span>
           </h1>
           <p className="lead">
-            <span className="hero-rise" style={{ animationDelay: "340ms" }}>Discover, tag, run, and monitor hundreds of yours .ahk scripts —</span>
-            <span className="hero-rise" style={{ animationDelay: "400ms" }}>without ever opening Explorer or Task Manager.</span>
+            <span className="hero-scroll"><span className="hero-rise" style={{ animationDelay: "340ms" }}>Discover, tag, run, and monitor hundreds of yours .ahk scripts —</span></span>
+            <span className="hero-scroll"><span className="hero-rise" style={{ animationDelay: "400ms" }}>without ever opening Explorer or Task Manager.</span></span>
           </p>
           <div className="hero-cta">
-            <a href="#install" className="btn btn-primary btn-lg hero-rise" style={{ animationDelay: "460ms" }}>
-              <svg className="i" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M3 3h8v8H3zM13 3h8v8h-8zM3 13h8v8H3zM13 13h8v8h-8z"/></svg>
-              Download for Windows
-            </a>
-            <a href="#" className="btn btn-ghost btn-lg hero-rise" style={{ animationDelay: "460ms" }}>
-              <svg className="i" viewBox="0 0 24 24"><path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.38 7.86 10.9.58.1.79-.25.79-.56v-2.17c-3.2.7-3.87-1.37-3.87-1.37-.52-1.33-1.27-1.68-1.27-1.68-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.02 1.76 2.68 1.25 3.33.96.1-.74.4-1.25.72-1.54-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.18-3.1-.12-.3-.51-1.47.11-3.07 0 0 .96-.31 3.16 1.18a11 11 0 016.16 0c2.2-1.49 3.16-1.18 3.16-1.18.62 1.6.23 2.78.11 3.07.74.81 1.18 1.84 1.18 3.1 0 4.42-2.7 5.39-5.26 5.68.41.36.78 1.06.78 2.13v3.15c0 .31.21.67.8.56A11.5 11.5 0 0023.5 12C23.5 5.65 18.35.5 12 .5z"/></svg>
-              Star on GitHub
-            </a>
+            <span className="hero-scroll">
+              <a href="#install" className="btn btn-primary btn-lg hero-rise" style={{ animationDelay: "460ms" }}>
+                <svg className="i" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M3 3h8v8H3zM13 3h8v8h-8zM3 13h8v8H3zM13 13h8v8h-8z"/></svg>
+                Download for Windows
+              </a>
+            </span>
+            <span className="hero-scroll">
+              <a href="#" className="btn btn-ghost btn-lg hero-rise" style={{ animationDelay: "460ms" }}>
+                <svg className="i" viewBox="0 0 24 24"><path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.38 7.86 10.9.58.1.79-.25.79-.56v-2.17c-3.2.7-3.87-1.37-3.87-1.37-.52-1.33-1.27-1.68-1.27-1.68-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.02 1.76 2.68 1.25 3.33.96.1-.74.4-1.25.72-1.54-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.18-3.1-.12-.3-.51-1.47.11-3.07 0 0 .96-.31 3.16 1.18a11 11 0 016.16 0c2.2-1.49 3.16-1.18 3.16-1.18.62 1.6.23 2.78.11 3.07.74.81 1.18 1.84 1.18 3.1 0 4.42-2.7 5.39-5.26 5.68.41.36.78 1.06.78 2.13v3.15c0 .31.21.67.8.56A11.5 11.5 0 0023.5 12C23.5 5.65 18.35.5 12 .5z"/></svg>
+                Star on GitHub
+              </a>
+            </span>
           </div>
-          <div className="winget hero-rise" style={{ animationDelay: "520ms" }}>
-            <span className="prompt">$</span>
-            <span>winget install autlas</span>
-            <button className="copy" aria-label="Copy install command">
-              <svg className="i" viewBox="0 0 24 24" width="12" height="12"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
-              copy
-            </button>
+          <div className="hero-scroll">
+            <div className="winget hero-rise" style={{ animationDelay: "520ms" }}>
+              <span className="prompt">$</span>
+              <span>winget install autlas</span>
+              <button className="copy" aria-label="Copy install command">
+                <svg className="i" viewBox="0 0 24 24" width="12" height="12"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                copy
+              </button>
+            </div>
           </div>
         </div>
 
