@@ -24,6 +24,24 @@ function playErrorDing() {
   }
 }
 
+// Parse "2 KB" / "24 MB" / "412 B" into a byte count so we can sort the
+// size column numerically instead of by string.
+function parseSize(s: string): number {
+  const m = s.match(/^([\d.]+)\s*(B|KB|MB|GB)$/i);
+  if (!m) return 0;
+  const n = parseFloat(m[1]);
+  const unit = m[2].toUpperCase();
+  const mul = unit === "GB" ? 1024 ** 3 : unit === "MB" ? 1024 ** 2 : unit === "KB" ? 1024 : 1;
+  return n * mul;
+}
+
+// Parse "dd.mm.yyyy" into a timestamp so date sort works as expected.
+function parseDate(s: string): number {
+  const m = s.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+  if (!m) return 0;
+  return new Date(+m[3], +m[2] - 1, +m[1]).getTime();
+}
+
 // Win98 tray clock: 12h, AM/PM, minute precision.
 function formatClock(d: Date): string {
   let h = d.getHours();
@@ -117,6 +135,38 @@ export default function W98Scene() {
   const [order, setOrder] = useState<string[]>(["desktop", "downloads", "tools"]);
   const [activeId, setActiveId] = useState<string>("tools");
   const [trayOpen, setTrayOpen] = useState(true);
+
+  // Per-window Explorer column sort state. Click a header to sort asc,
+  // click the same header again to flip to desc, click a third time to
+  // clear the sort.
+  type SortCol = "name" | "size" | "type" | "date";
+  type SortDir = "asc" | "desc";
+  const [sorts, setSorts] = useState<Record<string, { col: SortCol; dir: SortDir } | null>>({});
+  const cycleSort = (winId: string, col: SortCol) => {
+    setSorts((prev) => {
+      const cur = prev[winId];
+      let next: { col: SortCol; dir: SortDir } | null;
+      if (!cur || cur.col !== col) next = { col, dir: "asc" };
+      else if (cur.dir === "asc") next = { col, dir: "desc" };
+      else next = null; // third click clears
+      return { ...prev, [winId]: next };
+    });
+  };
+  const sortRows = (rows: FileRow[], state: { col: SortCol; dir: SortDir } | null | undefined): FileRow[] => {
+    if (!state) return rows;
+    const key = (r: FileRow): string | number =>
+      state.col === "size" ? parseSize(r.size) :
+      state.col === "date" ? parseDate(r.date) :
+      state.col === "type" ? r.type.toLowerCase() :
+      r.name.toLowerCase();
+    const mul = state.dir === "asc" ? 1 : -1;
+    return [...rows].sort((a, b) => {
+      const ka = key(a), kb = key(b);
+      if (ka < kb) return -1 * mul;
+      if (ka > kb) return 1 * mul;
+      return 0;
+    });
+  };
   const [clock, setClock] = useState(() => formatClock(new Date()));
   useEffect(() => {
     const id = setInterval(() => setClock(formatClock(new Date())), 30_000);
@@ -770,14 +820,29 @@ export default function W98Scene() {
                 <table>
                   <thead>
                     <tr>
-                      <th style={{ width: "48%" }}>Name</th>
-                      <th style={{ width: "16%" }}>Size</th>
-                      <th style={{ width: "22%" }}>Type</th>
-                      <th style={{ width: "14%" }}>Modified</th>
+                      {([
+                        { col: "name" as SortCol, label: "Name", width: "48%" },
+                        { col: "size" as SortCol, label: "Size", width: "16%" },
+                        { col: "type" as SortCol, label: "Type", width: "22%" },
+                        { col: "date" as SortCol, label: "Modified", width: "14%" },
+                      ]).map((h) => {
+                        const s = sorts[w.id];
+                        const active = s?.col === h.col;
+                        const indicator = active ? (s.dir === "asc" ? " ▲" : " ▼") : "";
+                        return (
+                          <th
+                            key={h.col}
+                            style={{ width: h.width, cursor: "pointer" }}
+                            onClick={() => cycleSort(w.id, h.col)}
+                          >
+                            {h.label}{indicator}
+                          </th>
+                        );
+                      })}
                     </tr>
                   </thead>
                   <tbody>
-                    {w.rows.map((row) => (
+                    {sortRows(w.rows, sorts[w.id]).map((row) => (
                       <tr key={row.name}>
                         <td>
                           <div className="w98-file-cell">
