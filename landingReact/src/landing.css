@@ -352,7 +352,7 @@ section{padding:180px 0;position:relative}
 }
 .ps-card.problem{background:rgba(239,68,68,0.025);border-color:rgba(239,68,68,0.12)}
 .ps-card h3{font-size:26px;font-weight:900;letter-spacing:-0.025em;margin:0 0 14px;line-height:1.15}
-.ps-card p{color:var(--text-tertiary);font-size:15px;line-height:1.6;margin:0 0 24px}
+.ps-card p{color:var(--text-tertiary);font-size:15px;line-height:1.6;margin:0 0 8px}
 .chaos{
   margin:18px 0 0;padding:0;list-style:none;
   display:flex;flex-direction:column;gap:6px;
@@ -366,25 +366,75 @@ section{padding:180px 0;position:relative}
 }
 .chaos .x, .chaos-line .x{color:var(--danger);font-weight:700}
 .chaos-line .arr{margin-left:auto;color:var(--danger);opacity:0.7}
+/* Green ✓ mirror of .chaos for the After card. */
+.wins{
+  margin:18px 0 0;padding:0;list-style:none;
+  display:flex;flex-direction:column;gap:6px;
+  font-family:var(--mono);font-size:12px;
+}
+.wins li{
+  display:flex;align-items:center;gap:10px;
+  padding:8px 12px;border-radius:8px;
+  background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.16);
+  color:rgba(167,243,208,0.95);
+}
+.wins .c{color:var(--success);font-weight:700}
 .rows{
-  margin-top:auto;
+  margin-top:0;
   border:1px solid var(--border-color);border-radius:14px;
   padding:6px;background:rgba(0,0,0,0.2);
+  height:360px;
+  display:flex;flex-direction:column;justify-content:space-between;
 }
 .row{
   display:flex;align-items:center;gap:12px;
   height:38px;padding:0 12px;border-radius:10px;
   position:relative;
+  /* Stagger reveal: --reveal-delay is set inline per row. Only opacity
+     and transform share that delay — background and other hover-driven
+     transitions fire instantly so hover doesn't wait for the reveal
+     stagger (up to ~540ms on the last row). */
+  opacity:0;transform:translateY(8px);
+  transition:
+    opacity 400ms ease var(--reveal-delay, 0ms),
+    transform 400ms cubic-bezier(0.2,0.8,0.2,1) var(--reveal-delay, 0ms),
+    background-color 150ms ease 0ms;
 }
-.row:hover{background:rgba(255,255,255,0.04)}
+.ps-card.solution.is-visible .row{opacity:1;transform:translateY(0)}
 .row.vim-focus{background:rgba(99,102,241,0.22);box-shadow:0 0 20px rgba(99,102,241,0.15) inset}
 .row.vim-focus::before{
   content:"";position:absolute;left:0;top:4px;bottom:4px;width:3.5px;
   background:var(--accent);border-radius:2px;
   box-shadow:0 0 15px rgba(99,102,241,0.6);
 }
-.row .dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.1);flex-shrink:0}
-.row .dot.run{background:var(--success);box-shadow:0 0 10px rgba(34,197,94,0.7)}
+.row .dot{
+  width:8px;height:8px;border-radius:50%;background-color:rgba(255,255,255,0.1);
+  flex-shrink:0;
+  transition:
+    background-color 1000ms cubic-bezier(0.2,0.8,0.2,1),
+    box-shadow 1000ms cubic-bezier(0.2,0.8,0.2,1),
+    transform 1000ms cubic-bezier(0.2,0.8,0.2,1);
+}
+.row .dot.run{
+  background-color:var(--success);
+  box-shadow:0 0 10px rgba(34,197,94,0.7);
+  animation:dot-bump 1000ms cubic-bezier(0.2,0.8,0.2,1.2);
+}
+.row .dot.pending{
+  background-color:#eab308;
+  box-shadow:0 0 10px rgba(234,179,8,0.75);
+  animation:dot-pending-pulse 0.7s ease-in-out infinite;
+}
+/* Brief pop when a dot enters the running state. */
+@keyframes dot-bump{
+  0%  {transform:scale(0.6)}
+  60% {transform:scale(1.3)}
+  100%{transform:scale(1)}
+}
+@keyframes dot-pending-pulse{
+  0%,100%{box-shadow:0 0 8px rgba(234,179,8,0.5);transform:scale(1)}
+  50%    {box-shadow:0 0 16px rgba(234,179,8,1);transform:scale(1.15)}
+}
 .row .nm{color:var(--text-secondary);font-size:14px;font-weight:500;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .row .row-tag{
   height:26px;padding:0 10px;border-radius:8px;
@@ -394,6 +444,40 @@ section{padding:180px 0;position:relative}
 }
 .row .right{margin-left:auto;display:flex;align-items:center;gap:6px}
 .row .size{font-family:var(--mono);font-size:11px;color:rgba(255,255,255,0.25)}
+.row .row-actions{
+  margin-left:auto;display:flex;align-items:center;gap:6px;
+  opacity:0;pointer-events:none;transition:opacity 150ms ease;
+}
+.row:hover .row-actions{opacity:1;pointer-events:auto}
+.row-action{
+  width:26px;height:26px;
+  display:inline-flex;align-items:center;justify-content:center;
+  background:rgba(255,255,255,0.03);border:1px solid var(--border-color);
+  border-radius:8px;color:var(--text-tertiary);cursor:pointer;
+  transition:background 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+.row-action:hover{
+  background:rgba(255,255,255,0.08);
+  border-color:var(--border-light);
+  color:var(--text-primary);
+}
+/* Accent colour appears only while hovering the button itself —
+   the idle state stays neutral, matching the real app. */
+.row-action--primary.is-running:hover{
+  color:#fecaca;
+  background:rgba(239,68,68,0.14);
+  border-color:rgba(239,68,68,0.45);
+}
+.row-action--primary:not(.is-running):hover{
+  color:#bbf7d0;
+  background:rgba(34,197,94,0.14);
+  border-color:rgba(34,197,94,0.45);
+}
+.row-action--restart:hover{
+  color:#fde68a;
+  background:rgba(234,179,8,0.14);
+  border-color:rgba(234,179,8,0.45);
+}
 .vim-grid{display:grid;grid-template-columns:1fr 1.1fr;gap:32px;align-items:stretch}
 .bind-panel{
   border:1px solid var(--border-color);border-radius:28px;

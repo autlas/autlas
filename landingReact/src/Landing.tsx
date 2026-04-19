@@ -1,10 +1,11 @@
-import { useEffect, useLayoutEffect } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import "./landing.css";
 import "./landing-tokens-freeze.css";
 import AutlasFrame from "./AutlasFrame";
 import BackgroundShader from "./BackgroundShader";
 import W98Scene from "./W98Scene";
+import { PlayIcon, CloseIcon, RestartIcon } from "./app/components/ui/Icons";
 
 export default function Landing() {
   useEffect(() => {
@@ -30,7 +31,7 @@ export default function Landing() {
 
   useEffect(() => {
     const onMove = (e: PointerEvent) => {
-      const t = (e.target as HTMLElement | null)?.closest<HTMLElement>(".btn-primary, .btn-ghost, .btn-outline, .copy, .autlas-badge--reset, .faq details");
+      const t = (e.target as HTMLElement | null)?.closest<HTMLElement>(".btn-primary, .btn-ghost, .btn-outline, .copy, .autlas-badge--reset, .faq details, .ps-card.solution .row");
       if (!t) return;
       const r = t.getBoundingClientRect();
       t.style.setProperty("--mx", `${e.clientX - r.left}px`);
@@ -38,6 +39,71 @@ export default function Landing() {
     };
     document.addEventListener("pointermove", onMove, { passive: true });
     return () => document.removeEventListener("pointermove", onMove);
+  }, []);
+
+  // Mini script state for the After card — Play / Kill / Restart on each
+  // row flips the dot just like the real app (green = running, yellow
+  // pulse = restarting, grey = stopped).
+  type ScriptState = { name: string; tags: string[]; run: boolean; pending: null | "restart" };
+  const [scripts, setScripts] = useState<ScriptState[]>([
+    { name: "clipboard_v2.ahk",      tags: ["clip", "productivity"], run: true,  pending: null },
+    { name: "WindowSnap_FINAL.ahk",  tags: ["window"],               run: true,  pending: null },
+    { name: "altdrag_new.ahk",       tags: ["window", "mouse"],      run: true,  pending: null },
+    { name: "csgo_crosshair.ahk",    tags: ["gaming"],               run: false, pending: null },
+    { name: "hotkeys.ahk",           tags: ["keyboard"],             run: true,  pending: null },
+    { name: "CapsToEsc.ahk",         tags: ["keyboard"],             run: true,  pending: null },
+    { name: "QuickLauncher.ahk",     tags: ["launcher"],             run: false, pending: null },
+    { name: "tray_monitor.ahk",      tags: ["utility"],              run: true,  pending: null },
+    { name: "macro_demo.ahk",        tags: ["macro"],                run: false, pending: null },
+  ]);
+  const toggleScript = (i: number) =>
+    setScripts((prev) => prev.map((s, idx) => idx === i ? { ...s, run: !s.run, pending: null } : s));
+  const restartScript = (i: number) => {
+    setScripts((prev) => prev.map((s, idx) => idx === i ? { ...s, pending: "restart" } : s));
+    setTimeout(() => {
+      setScripts((prev) => prev.map((s, idx) => idx === i ? { ...s, pending: null, run: true } : s));
+    }, 700);
+  };
+
+  // Match the two ps-card lead paragraphs to the same height so the W98
+  // stage and the autlas rows line up horizontally across the grid.
+  const beforePRef = useRef<HTMLParagraphElement>(null);
+  const afterPRef = useRef<HTMLParagraphElement>(null);
+  useLayoutEffect(() => {
+    const sync = () => {
+      const a = beforePRef.current;
+      const b = afterPRef.current;
+      if (!a || !b) return;
+      a.style.minHeight = "";
+      b.style.minHeight = "";
+      const max = Math.max(a.offsetHeight, b.offsetHeight);
+      a.style.minHeight = `${max}px`;
+      b.style.minHeight = `${max}px`;
+    };
+    sync();
+    const ro = new ResizeObserver(sync);
+    if (beforePRef.current) ro.observe(beforePRef.current);
+    if (afterPRef.current) ro.observe(afterPRef.current);
+    window.addEventListener("resize", sync);
+    return () => { ro.disconnect(); window.removeEventListener("resize", sync); };
+  }, []);
+
+  // Scroll-reveal for the autlas rows — trigger `is-visible` on the
+  // after card when it enters the viewport; CSS handles the staggered
+  // appearance via transition-delay driven by inline style.
+  const solutionCardRef = useRef<HTMLDivElement>(null);
+  const [solutionVisible, setSolutionVisible] = useState(false);
+  useEffect(() => {
+    const el = solutionCardRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) if (e.isIntersecting) setSolutionVisible(true);
+      },
+      { rootMargin: "-10% 0px", threshold: 0.15 },
+    );
+    io.observe(el);
+    return () => io.disconnect();
   }, []);
 
   // Hero rhythm. Keep top/bottom padding around the hero-copy block
@@ -445,7 +511,7 @@ export default function Landing() {
         {/* problem */}
         <div className="ps-card problem">
           <h3 style={{color: "#fca5a5"}}>Before</h3>
-          <p>You have scripts. You don't have a tool.</p>
+          <p ref={beforePRef}>You have scripts. You don't have a tool.</p>
           <W98Scene />
           <ul className="chaos">
             <li><span className="x">✕</span> scattered across Desktop, Downloads, D:\</li>
@@ -455,50 +521,54 @@ export default function Landing() {
           </ul>
         </div>
         {/* solution */}
-        <div className="ps-card">
+        <div
+          ref={solutionCardRef}
+          className={`ps-card solution${solutionVisible ? " is-visible" : ""}`}
+        >
           <h3>autlas centralizes everything.</h3>
-          <p>Every script in one window. Status, tags, and keyboard control at a glance — no tray-icon hunt, no double-click expedition, no fragmented folders.</p>
+          <p ref={afterPRef}>The same .ahk files, one window. Status, tags, and a keypress away — no tray-icon hunt, no double-click expedition.</p>
           <div className="rows" aria-label="autlas script rows">
-            <div className="row vim-focus">
-              <span className="dot run"></span>
-              <span className="nm">ClipboardHistory</span>
-              <span className="row-tag">productivity</span>
-              <span className="row-tag">clip</span>
-              <span className="right"><span className="size">2.1 KB</span></span>
-            </div>
-            <div className="row">
-              <span className="dot run"></span>
-              <span className="nm">WindowSnap</span>
-              <span className="row-tag">window-mgmt</span>
-              <span className="right"><span className="size">8.4 KB</span></span>
-            </div>
-            <div className="row">
-              <span className="dot"></span>
-              <span className="nm">CSGO-Crosshair</span>
-              <span className="row-tag">gaming</span>
-              <span className="right"><span className="size">640 B</span></span>
-            </div>
-            <div className="row">
-              <span className="dot run"></span>
-              <span className="nm">AltDragWin</span>
-              <span className="row-tag">window-mgmt</span>
-              <span className="row-tag">mouse</span>
-              <span className="right"><span className="size">4.7 KB</span></span>
-            </div>
-            <div className="row">
-              <span className="dot"></span>
-              <span className="nm">QuickLauncher</span>
-              <span className="row-tag">launcher</span>
-              <span className="right"><span className="size">12 KB</span></span>
-            </div>
-            <div className="row">
-              <span className="dot run"></span>
-              <span className="nm">CapsToEsc</span>
-              <span className="row-tag">vim</span>
-              <span className="row-tag">keyboard</span>
-              <span className="right"><span className="size">410 B</span></span>
-            </div>
+            {scripts.map((s, i) => (
+              <div
+                key={s.name}
+                className="row"
+                data-reveal={i}
+                style={{ ["--reveal-delay" as string]: `${i * 60}ms` } as React.CSSProperties}
+              >
+                <span
+                  className={`dot${s.pending === "restart" ? " pending" : s.run ? " run" : ""}`}
+                ></span>
+                <span className="nm">{s.name}</span>
+                {s.tags.map((t) => <span key={t} className="row-tag">{t}</span>)}
+                <span className="row-actions">
+                  {s.run && (
+                    <button
+                      type="button"
+                      className="row-action row-action--restart"
+                      aria-label="Restart"
+                      onClick={() => restartScript(i)}
+                    >
+                      <RestartIcon size={13} />
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className={`row-action row-action--primary${s.run ? " is-running" : ""}`}
+                    aria-label={s.run ? "Kill" : "Run"}
+                    onClick={() => toggleScript(i)}
+                  >
+                    {s.run ? <CloseIcon size={13} /> : <PlayIcon size={13} />}
+                  </button>
+                </span>
+              </div>
+            ))}
           </div>
+          <ul className="wins">
+            <li><span className="c">✓</span> one window, every folder</li>
+            <li><span className="c">✓</span> Enter to run · Enter to kill</li>
+            <li><span className="c">✓</span> status, tags, name at a glance</li>
+            <li><span className="c">✓</span> search by name, tag, or path — instant</li>
+          </ul>
         </div>
       </div>
     </section>

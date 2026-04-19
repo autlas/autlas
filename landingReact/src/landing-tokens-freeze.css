@@ -243,6 +243,75 @@ body {
   border-color: rgba(239, 68, 68, 0.18) !important;
 }
 
+/* Solution card rows — glass + cursor spotlight on hover, matching the
+   .btn-ghost "Star on GitHub" button treatment. Idle stays flat so the
+   list reads as a list; glass lit-edge kicks in only when pointing at a
+   row. */
+.landing-root .ps-card.solution .row {
+  --mx: 50%;
+  --my: 50%;
+  --glow-alpha: 0;
+  border: 1px solid transparent;
+  transition:
+    --glow-alpha 200ms ease,
+    background-color 150ms ease,
+    border-color 150ms ease,
+    color 180ms ease;
+}
+.landing-root .ps-card.solution .row:hover {
+  --glow-alpha: 0.12;
+  backdrop-filter: blur(9px) saturate(1.1);
+  -webkit-backdrop-filter: blur(9px) saturate(1.1);
+  background-color: rgba(255, 255, 255, 0.04) !important;
+  background-image:
+    radial-gradient(
+      160px circle at var(--mx) var(--my),
+      rgba(255, 255, 255, var(--glow-alpha)),
+      transparent 60%
+    ),
+    linear-gradient(
+      137deg,
+      rgba(255, 255, 255, 0.05) 5%,
+      rgba(255, 255, 255, 0) 75%
+    ) !important;
+  border-color: var(--border-light) !important;
+  box-shadow: inset 0 1px 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+/* Solution card — the "After" side of the grid. Glass base in idle,
+   comes alive on hover: running dots pulse, tags and script names get
+   a confidence bump. */
+.landing-root .ps-card.solution {
+  transition: opacity 240ms ease, border-color 180ms ease;
+  opacity: 0.92;
+}
+.landing-root .ps-card.solution:hover {
+  opacity: 1;
+  border-color: rgba(255, 255, 255, 0.14) !important;
+}
+/* Running dot quietly breathes while hovering the card. */
+.landing-root .ps-card.solution:hover .row .dot.run {
+  animation: solution-pulse 1.6s ease-in-out infinite;
+}
+@keyframes solution-pulse {
+  0%, 100% { box-shadow: 0 0 10px rgba(34, 197, 94, 0.7); }
+  50%      { box-shadow: 0 0 18px rgba(34, 197, 94, 1); }
+}
+.landing-root .ps-card.solution .row-tag {
+  transition: color 180ms ease, border-color 180ms ease, background-color 180ms ease;
+}
+.landing-root .ps-card.solution:hover .row-tag {
+  color: var(--text-secondary) !important;
+  border-color: rgba(255, 255, 255, 0.16) !important;
+  background-color: rgba(255, 255, 255, 0.05) !important;
+}
+.landing-root .ps-card.solution .row .nm {
+  transition: color 180ms ease;
+}
+.landing-root .ps-card.solution:hover .row .nm {
+  color: var(--text-primary) !important;
+}
+
 /* Ghost / outline button hover — only lighten the tint, don't rewrite
    background (that nukes the glass gradient) and don't pop the border. */
 .landing-root .btn-ghost,
