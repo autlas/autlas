@@ -1,4 +1,5 @@
 import React from "react";
+import { createPortal } from "react-dom";
 import { TagDotIcon, TagIconSvg } from "../ui/Icons";
 import { useTreeStore } from "../../store/useTreeStore";
 
@@ -15,7 +16,9 @@ export default function DragGhost({ ghostRef, draggedScript, draggedTag, activeT
   // (wide pill for expanded mode) would render them as rectangles, which the
   // user rightly flagged as off. Detect square source and mirror it.
   const isSquareSource = draggedTag && Math.abs(dragGhostSize.w - dragGhostSize.h) < 4;
-  return (
+  // Portal to <body> so the ghost's viewport coordinates aren't warped
+  // by the transformed .autlas-portal ancestor (same reason as ContextMenu).
+  return createPortal(
     <div
       ref={ghostRef}
       data-dragging="false"
@@ -65,6 +68,7 @@ export default function DragGhost({ ghostRef, draggedScript, draggedTag, activeT
           )}
         </>
       )}
-    </div>
+    </div>,
+    document.body,
   );
 }
