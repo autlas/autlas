@@ -176,9 +176,9 @@ img{max-width:100%;display:block}
   background:rgba(255,255,255,0.04);border:1px solid var(--border-color);
   color:var(--text-tertiary);font-family:var(--mono);font-size:11px;
   display:inline-flex;align-items:center;justify-content:center;gap:6px;
-  /* Pin width so the idle "copy" → "copied" swap doesn't grow the button
-     (and the whole winget pill by extension). Wide enough for "copied". */
-  min-width:88px;
+  /* min-width is pinned at runtime (Landing.tsx) to max(copy, copied)
+     so the button never jitters when the label swaps. Works for any
+     language. */
   transition:all 150ms var(--ease);
 }
 .winget .copy:hover{color:var(--text-primary);background:rgba(255,255,255,0.06);border-color:var(--border-light)}
@@ -560,9 +560,8 @@ section{padding:180px 0;position:relative}
   background:rgba(255,255,255,0.04);border:1px solid var(--border-color);
   color:var(--text-tertiary);font-family:var(--mono);font-size:11px;
   display:inline-flex;align-items:center;justify-content:center;gap:6px;
-  /* Pin width — the copy→copied text swap would otherwise bump the
-     whole snippet's column widths. */
-  min-width:88px;
+  /* min-width is pinned at runtime (Landing.tsx) to max(copy, copied)
+     per locale — handles any language without manual tuning. */
   transition:all 150ms var(--ease);
 }
 .snippet .copy:hover{color:var(--text-primary);background:rgba(255,255,255,0.06);border-color:var(--border-light)}

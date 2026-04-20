@@ -1,41 +1,79 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useTranslation } from "react-i18next";
 import "./landing.css";
 import "./landing-tokens-freeze.css";
+import "./landing-i18n";
 import AutlasFrame from "./AutlasFrame";
 import BackgroundShader from "./BackgroundShader";
 import W98Scene from "./W98Scene";
 import { PlayIcon, CloseIcon, RestartIcon } from "./app/components/ui/Icons";
 
+function CopyButton({ text }: { text: string }) {
+  const { t } = useTranslation("landing");
+  const [copied, setCopied] = useState(false);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const idleLabel = t("install.copy");
+  const copiedLabel = t("install.copied");
+
+  // Pin min-width to max of both label states so the swap never grows
+  // the button — works for any language.
+  useLayoutEffect(() => {
+    const btn = btnRef.current;
+    if (!btn) return;
+    const labelNode = btn.querySelector<HTMLElement>(".copy-label");
+    if (!labelNode) return;
+    btn.style.minWidth = "";
+    const original = labelNode.textContent ?? "";
+    labelNode.textContent = idleLabel;
+    const wIdle = btn.offsetWidth;
+    labelNode.textContent = copiedLabel;
+    const wCopied = btn.offsetWidth;
+    labelNode.textContent = original;
+    btn.style.minWidth = `${Math.max(wIdle, wCopied)}px`;
+  }, [idleLabel, copiedLabel]);
+
+  const onClick = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    try { await navigator.clipboard.writeText(text); } catch { /* noop */ }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1200);
+  };
+
+  return (
+    <button
+      ref={btnRef}
+      type="button"
+      className="copy"
+      aria-label={idleLabel}
+      onClick={onClick}
+    >
+      {copied ? (
+        <svg className="i" viewBox="0 0 24 24" width="12" height="12"><path d="M20 6L9 17l-5-5"/></svg>
+      ) : (
+        <svg className="i" viewBox="0 0 24 24" width="12" height="12"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+      )}
+      <span className="copy-label">{copied ? copiedLabel : idleLabel}</span>
+    </button>
+  );
+}
+
 export default function Landing() {
+  const { t, i18n } = useTranslation("landing");
+  const lang = (i18n.language?.startsWith("ru") ? "ru" : "en") as "en" | "ru";
+  const toggleLang = () => i18n.changeLanguage(lang === "en" ? "ru" : "en");
+
   useEffect(() => {
     document.body.dataset.variant = "experimental";
-    const copyBtns = document.querySelectorAll<HTMLElement>(".copy, .winget .copy");
-    const handlers: Array<() => void> = [];
-    copyBtns.forEach((btn) => {
-      const onClick = async (e: Event) => {
-        e.preventDefault();
-        const row = btn.closest(".snippet, .winget");
-        const codeEl = row ? row.querySelector("code, span:nth-child(2)") : null;
-        const txt = codeEl?.textContent?.trim() ?? "";
-        try { await navigator.clipboard.writeText(txt); } catch { /* noop */ }
-        const orig = btn.innerHTML;
-        btn.innerHTML = '<svg class="i" viewBox="0 0 24 24" width="12" height="12"><path d="M20 6L9 17l-5-5"/></svg> copied';
-        setTimeout(() => { btn.innerHTML = orig; }, 1200);
-      };
-      btn.addEventListener("click", onClick);
-      handlers.push(() => btn.removeEventListener("click", onClick));
-    });
-    return () => { handlers.forEach((fn) => fn()); };
   }, []);
 
   useEffect(() => {
     const onMove = (e: PointerEvent) => {
-      const t = (e.target as HTMLElement | null)?.closest<HTMLElement>(".btn-primary, .btn-ghost, .btn-outline, .copy, .autlas-badge--reset, .faq details, .ps-card.solution .row");
-      if (!t) return;
-      const r = t.getBoundingClientRect();
-      t.style.setProperty("--mx", `${e.clientX - r.left}px`);
-      t.style.setProperty("--my", `${e.clientY - r.top}px`);
+      const tgt = (e.target as HTMLElement | null)?.closest<HTMLElement>(".btn-primary, .btn-ghost, .btn-outline, .copy, .autlas-badge--reset, .faq details, .ps-card.solution .row");
+      if (!tgt) return;
+      const r = tgt.getBoundingClientRect();
+      tgt.style.setProperty("--mx", `${e.clientX - r.left}px`);
+      tgt.style.setProperty("--my", `${e.clientY - r.top}px`);
     };
     document.addEventListener("pointermove", onMove, { passive: true });
     return () => document.removeEventListener("pointermove", onMove);
@@ -301,7 +339,7 @@ export default function Landing() {
     {createPortal(
     <div className="landing-root nav-portal-root" data-variant="experimental">
     <div className="nav-wrap nav-wrap-portaled">
-      <nav className="nav" aria-label="Primary">
+      <nav className="nav nav-pill" aria-label="Primary">
         <a href="#" className="nav-logo">
           <img src={`${import.meta.env.BASE_URL}assets/logo.png`} alt="" className="brand" />
           autlas
@@ -321,26 +359,34 @@ export default function Landing() {
                 window.scrollTo({ top: Math.max(0, target), behavior: "smooth" });
               }}
             >
-              Live demo
+              {t("nav.liveDemo")}
             </a>
           </li>
-          <li><a href="#problem">Why</a></li>
-          <li><a href="#vim">Vim</a></li>
-          <li><a href="#install">Install</a></li>
-          <li><a href="#faq">FAQ</a></li>
-          <li><a href="#">Docs</a></li>
+          <li><a href="#problem">{t("nav.why")}</a></li>
+          <li><a href="#vim">{t("nav.vim")}</a></li>
+          <li><a href="#install">{t("nav.install")}</a></li>
+          <li><a href="#faq">{t("nav.faq")}</a></li>
+          <li><a href="#">{t("nav.docs")}</a></li>
         </ul>
         <div className="nav-actions">
           <a href="#" className="btn btn-outline btn-sm">
             <svg className="i" viewBox="0 0 24 24"><path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.38 7.86 10.9.58.1.79-.25.79-.56v-2.17c-3.2.7-3.87-1.37-3.87-1.37-.52-1.33-1.27-1.68-1.27-1.68-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.02 1.76 2.68 1.25 3.33.96.1-.74.4-1.25.72-1.54-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.18-3.1-.12-.3-.51-1.47.11-3.07 0 0 .96-.31 3.16 1.18a11 11 0 016.16 0c2.2-1.49 3.16-1.18 3.16-1.18.62 1.6.23 2.78.11 3.07.74.81 1.18 1.84 1.18 3.1 0 4.42-2.7 5.39-5.26 5.68.41.36.78 1.06.78 2.13v3.15c0 .31.21.67.8.56A11.5 11.5 0 0023.5 12C23.5 5.65 18.35.5 12 .5z"/></svg>
-            Star
+            {t("nav.star")}
           </a>
           <a href="#install" className="btn btn-primary btn-sm">
             <svg className="i" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M3 3h8v8H3zM13 3h8v8h-8zM3 13h8v8H3zM13 13h8v8h-8z"/></svg>
-            Download
+            {t("nav.download")}
           </a>
         </div>
       </nav>
+      <button
+        type="button"
+        className="lang-toggle nav"
+        aria-label={t("nav.switchLangAria")}
+        onClick={toggleLang}
+      >
+        {lang === "en" ? "EN" : "RU"}
+      </button>
     </div>
     </div>,
     document.body,
@@ -351,26 +397,26 @@ export default function Landing() {
       <div className="hero-grid">
         <div className="hero-copy">
           <h1 className="h1">
-            <span className="hero-scroll"><span className="hero-rise" style={{ animationDelay: "100ms" }}>One hub</span></span>
-            <span className="hero-scroll"><span className="hero-rise" style={{ animationDelay: "160ms" }}>for all your</span></span>
-            <span className="hero-scroll"><span className="hero-rise" style={{ animationDelay: "220ms" }}><span className="brand-grad">AutoHotkey</span></span></span>
-            <span className="hero-scroll"><span className="hero-rise" style={{ animationDelay: "280ms" }}>scripts.</span></span>
+            <span className="hero-scroll"><span className="hero-rise" style={{ animationDelay: "100ms" }}>{t("hero.title1")}</span></span>
+            <span className="hero-scroll"><span className="hero-rise" style={{ animationDelay: "160ms" }}>{t("hero.title2")}</span></span>
+            <span className="hero-scroll"><span className="hero-rise" style={{ animationDelay: "220ms" }}><span className="brand-grad">{t("hero.titleBrand")}</span></span></span>
+            <span className="hero-scroll"><span className="hero-rise" style={{ animationDelay: "280ms" }}>{t("hero.title3")}</span></span>
           </h1>
           <p className="lead">
-            <span className="hero-scroll"><span className="hero-rise" style={{ animationDelay: "340ms" }}>Discover, tag, run, and monitor hundreds of your .ahk scripts —</span></span>
-            <span className="hero-scroll"><span className="hero-rise" style={{ animationDelay: "400ms" }}>without ever digging through folders.</span></span>
+            <span className="hero-scroll"><span className="hero-rise" style={{ animationDelay: "340ms" }}>{t("hero.lead1")}</span></span>
+            <span className="hero-scroll"><span className="hero-rise" style={{ animationDelay: "400ms" }}>{t("hero.lead2")}</span></span>
           </p>
           <div className="hero-cta">
             <span className="hero-scroll">
               <a href="#install" className="btn btn-primary btn-lg hero-rise" style={{ animationDelay: "460ms" }}>
                 <svg className="i" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M3 3h8v8H3zM13 3h8v8h-8zM3 13h8v8H3zM13 13h8v8h-8z"/></svg>
-                Download for Windows
+                {t("hero.downloadWindows")}
               </a>
             </span>
             <span className="hero-scroll">
               <a href="#" className="btn btn-ghost btn-lg hero-rise" style={{ animationDelay: "460ms" }}>
                 <svg className="i" viewBox="0 0 24 24"><path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.38 7.86 10.9.58.1.79-.25.79-.56v-2.17c-3.2.7-3.87-1.37-3.87-1.37-.52-1.33-1.27-1.68-1.27-1.68-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.02 1.76 2.68 1.25 3.33.96.1-.74.4-1.25.72-1.54-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.18-3.1-.12-.3-.51-1.47.11-3.07 0 0 .96-.31 3.16 1.18a11 11 0 016.16 0c2.2-1.49 3.16-1.18 3.16-1.18.62 1.6.23 2.78.11 3.07.74.81 1.18 1.84 1.18 3.1 0 4.42-2.7 5.39-5.26 5.68.41.36.78 1.06.78 2.13v3.15c0 .31.21.67.8.56A11.5 11.5 0 0023.5 12C23.5 5.65 18.35.5 12 .5z"/></svg>
-                Star on GitHub
+                {t("hero.starOnGithub")}
               </a>
             </span>
           </div>
@@ -378,10 +424,7 @@ export default function Landing() {
             <div className="winget hero-rise" style={{ animationDelay: "520ms" }}>
               <span className="prompt">$</span>
               <span>winget install autlas</span>
-              <button className="copy" aria-label="Copy install command">
-                <svg className="i" viewBox="0 0 24 24" width="12" height="12"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
-                copy
-              </button>
+              <CopyButton text="winget install autlas" />
             </div>
           </div>
         </div>
@@ -565,20 +608,23 @@ export default function Landing() {
     {/* ================= PROBLEM / SOLUTION ================= */}
     <section id="problem">
       <div className="section-head">
-        <div className="eyebrow"><span className="bar"></span>WHY AUTLAS</div>
-        <h2 className="h2">Every script. <span style={{color: "var(--text-tertiary)"}}>One place.</span></h2>
+        <div className="eyebrow"><span className="bar"></span>{t("why.eyebrow")}</div>
+        <h2 className="h2">
+          <span style={{display: "block"}}>{t("why.headingLead")}</span>
+          <span style={{display: "block", color: "var(--text-tertiary)"}}>{t("why.headingMuted")}</span>
+        </h2>
       </div>
       <div className="ps-grid">
         {/* problem */}
         <div className="ps-card problem">
-          <h3 style={{color: "#fca5a5"}}>Before</h3>
-          <p ref={beforePRef}>You have scripts. You don't have a tool.</p>
+          <h3 style={{color: "#fca5a5"}}>{t("why.before.h3")}</h3>
+          <p ref={beforePRef}>{t("why.before.lead")}</p>
           <W98Scene />
           <ul className="chaos">
-            <li><span className="x">✕</span> scattered across your disk</li>
-            <li><span className="x">✕</span> double-click each file to start</li>
-            <li><span className="x">✕</span> tags and categories? only in your head</li>
-            <li><span className="x">✕</span> no search, no overview — just folders and memory</li>
+            <li><span className="x">✕</span> {t("why.before.b1")}</li>
+            <li><span className="x">✕</span> {t("why.before.b2")}</li>
+            <li><span className="x">✕</span> {t("why.before.b3")}</li>
+            <li><span className="x">✕</span> {t("why.before.b4")}</li>
           </ul>
         </div>
         {/* solution */}
@@ -586,8 +632,8 @@ export default function Landing() {
           ref={solutionCardRef}
           className={`ps-card solution${solutionVisible ? " is-visible" : ""}`}
         >
-          <h3><span className="brand-grad">autlas</span> handles the chaos</h3>
-          <p ref={afterPRef}>The same .ahk files, one window. Status, tags, and a keypress away — no tray-icon hunt, no double-click expedition.</p>
+          <h3><span className="brand-grad">autlas</span> {t("why.after.h3")}</h3>
+          <p ref={afterPRef}>{t("why.after.lead")}</p>
           <div className="rows" aria-label="autlas script rows">
             {scripts.map((s, i) => (
               <div
@@ -625,10 +671,10 @@ export default function Landing() {
             ))}
           </div>
           <ul className="wins">
-            <li><span className="c">✓</span> one app, every script</li>
-            <li><span className="c">✓</span> batch launch. batch kill.</li>
-            <li><span className="c">✓</span> status, tags, name at a glance</li>
-            <li><span className="c">✓</span> search by name, tag, or path — instant</li>
+            <li><span className="c">✓</span> {t("why.after.b1")}</li>
+            <li><span className="c">✓</span> {t("why.after.b2")}</li>
+            <li><span className="c">✓</span> {t("why.after.b3")}</li>
+            <li><span className="c">✓</span> {t("why.after.b4")}</li>
           </ul>
         </div>
       </div>
@@ -637,25 +683,25 @@ export default function Landing() {
     {/* ================= POWER-USER / VIM ================= */}
     <section id="vim">
       <div className="section-head">
-        <div className="eyebrow"><span className="bar"></span>FOR POWER USERS</div>
-        <h2 className="h2">Built keyboard-first.</h2>
-        <p className="lead" style={{marginTop: "14px"}}>Every action has a key. <span className="mono" style={{color: "var(--text-primary)"}}>hjkl</span> to navigate, <span className="mono" style={{color: "var(--text-primary)"}}>/</span> to search, <span className="mono" style={{color: "var(--text-primary)"}}>Enter</span> to run. Arrow keys and mouse still work — but you won't need them.</p>
+        <div className="eyebrow"><span className="bar"></span>{t("vim.eyebrow")}</div>
+        <h2 className="h2">{t("vim.heading")}</h2>
+        <p className="lead" style={{marginTop: "14px"}}>{t("vim.leadPart1")} <span className="mono" style={{color: "var(--text-primary)"}}>hjkl</span> {t("vim.leadPart2")} <span className="mono" style={{color: "var(--text-primary)"}}>/</span> {t("vim.leadPart3")} <span className="mono" style={{color: "var(--text-primary)"}}>Enter</span> {t("vim.leadPart4")}</p>
       </div>
       <div className="vim-grid">
         <div className="bind-panel">
-          <h4>BINDINGS</h4>
+          <h4>{t("vim.bindings")}</h4>
           <div className="bind-list">
-            <div className="bind"><div className="keys"><span className="kbd">j</span><span className="kbd">k</span></div><div className="desc">move focus down / up</div></div>
-            <div className="bind"><div className="keys"><span className="kbd">h</span><span className="kbd">l</span></div><div className="desc">collapse / expand folder</div></div>
-            <div className="bind"><div className="keys"><span className="kbd">g</span><span className="kbd">g</span></div><div className="desc">jump to top <span className="mu">·</span> <span className="kbd">G</span> to bottom</div></div>
-            <div className="bind"><div className="keys"><span className="kbd">/</span></div><div className="desc">search scripts, tags, paths</div></div>
-            <div className="bind"><div className="keys"><span className="kbd">↵</span></div><div className="desc">run <span className="mu">·</span> if running → kill</div></div>
-            <div className="bind"><div className="keys"><span className="kbd">r</span></div><div className="desc">restart focused script</div></div>
-            <div className="bind"><div className="keys"><span className="kbd">t</span></div><div className="desc">edit tags inline</div></div>
-            <div className="bind"><div className="keys"><span className="kbd">i</span></div><div className="desc">show script UI</div></div>
-            <div className="bind"><div className="keys"><span className="kbd">:</span></div><div className="desc">command palette</div></div>
-            <div className="bind"><div className="keys"><span className="kbd">⇧</span><span className="kbd">Q</span></div><div className="desc">cycle Hub / Grid / Tree</div></div>
-            <div className="bind"><div className="keys"><span className="kbd">Esc</span></div><div className="desc">leave vim mode</div></div>
+            <div className="bind"><div className="keys"><span className="kbd">j</span><span className="kbd">k</span></div><div className="desc">{t("vim.bindMoveFocus")}</div></div>
+            <div className="bind"><div className="keys"><span className="kbd">h</span><span className="kbd">l</span></div><div className="desc">{t("vim.bindCollapse")}</div></div>
+            <div className="bind"><div className="keys"><span className="kbd">g</span><span className="kbd">g</span></div><div className="desc">{t("vim.bindJumpTopPrefix")} <span className="mu">·</span> <span className="kbd">G</span> {t("vim.bindJumpTopSuffix")}</div></div>
+            <div className="bind"><div className="keys"><span className="kbd">/</span></div><div className="desc">{t("vim.bindSearch")}</div></div>
+            <div className="bind"><div className="keys"><span className="kbd">↵</span></div><div className="desc">{t("vim.bindRun")} <span className="mu">·</span> {t("vim.bindRunKill")}</div></div>
+            <div className="bind"><div className="keys"><span className="kbd">r</span></div><div className="desc">{t("vim.bindRestart")}</div></div>
+            <div className="bind"><div className="keys"><span className="kbd">t</span></div><div className="desc">{t("vim.bindTag")}</div></div>
+            <div className="bind"><div className="keys"><span className="kbd">i</span></div><div className="desc">{t("vim.bindShowUI")}</div></div>
+            <div className="bind"><div className="keys"><span className="kbd">:</span></div><div className="desc">{t("vim.bindPalette")}</div></div>
+            <div className="bind"><div className="keys"><span className="kbd">⇧</span><span className="kbd">Q</span></div><div className="desc">{t("vim.bindCycle")}</div></div>
+            <div className="bind"><div className="keys"><span className="kbd">Esc</span></div><div className="desc">{t("vim.bindEsc")}</div></div>
           </div>
         </div>
 
@@ -683,43 +729,34 @@ export default function Landing() {
       <div className="install-card">
         <div className="install-grid">
           <div>
-            <div className="eyebrow" style={{marginBottom: "16px"}}><span className="bar"></span>GET AUTLAS</div>
-            <h3>Install <span className="brand-grad">autlas</span></h3>
-            <p className="sub">Windows 10 or 11. ~8 MB. No account, no telemetry, no network calls.</p>
+            <div className="eyebrow" style={{marginBottom: "16px"}}><span className="bar"></span>{t("install.eyebrow")}</div>
+            <h3>{t("install.headingPrefix")} <span className="brand-grad">autlas</span></h3>
+            <p className="sub">{t("install.sub")}</p>
             <a href="#" className="btn btn-primary btn-lg">
               <svg className="i" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M3 3h8v8H3zM13 3h8v8h-8zM3 13h8v8H3zM13 13h8v8h-8z"/></svg>
-              Download autlas-0.1.0.exe
+              {t("install.downloadExe")}
             </a>
             <div className="install-meta">
-              <span><strong>requires</strong> AutoHotkey v1.1+ or v2 (either works)</span>
-              <span><strong>sha256</strong> 7c3a…e4f1 <a href="#" style={{color: "var(--accent-hover)"}}>· verify</a></span>
-              <span><strong>source</strong> github.com/autlas/autlas · MIT</span>
+              <span><strong>{t("install.requiresLabel")}</strong> {t("install.requiresValue")}</span>
+              <span><strong>{t("install.sha256Label")}</strong> 7c3a…e4f1 <a href="#" style={{color: "var(--accent-hover)"}}>· {t("install.verify")}</a></span>
+              <span><strong>{t("install.sourceLabel")}</strong> github.com/autlas/autlas · MIT</span>
             </div>
           </div>
           <div className="snippets">
             <div className="snippet">
-              <span className="label">winget</span>
+              <span className="label">{t("install.labelWinget")}</span>
               <code>winget install autlas</code>
-              <button className="copy" aria-label="Copy install command">
-                <svg className="i" viewBox="0 0 24 24" width="12" height="12"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
-                copy
-              </button>
+              <CopyButton text="winget install autlas" />
             </div>
             <div className="snippet">
-              <span className="label">scoop</span>
+              <span className="label">{t("install.labelScoop")}</span>
               <code>scoop install autlas</code>
-              <button className="copy" aria-label="Copy install command">
-                <svg className="i" viewBox="0 0 24 24" width="12" height="12"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
-                copy
-              </button>
+              <CopyButton text="scoop install autlas" />
             </div>
             <div className="snippet">
-              <span className="label">from&nbsp;source</span>
+              <span className="label">{t("install.labelSource")}</span>
               <code>git clone github.com/autlas/autlas &amp;&amp; cargo tauri build</code>
-              <button className="copy" aria-label="Copy install command">
-                <svg className="i" viewBox="0 0 24 24" width="12" height="12"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
-                copy
-              </button>
+              <CopyButton text="git clone github.com/autlas/autlas && cargo tauri build" />
             </div>
           </div>
         </div>
@@ -729,37 +766,37 @@ export default function Landing() {
     {/* ================= FAQ ================= */}
     <section id="faq">
       <div className="section-head" style={{textAlign: "center", margin: "0 auto 40px"}}>
-        <div className="eyebrow" style={{marginBottom: "14px"}}><span className="bar"></span>QUESTIONS</div>
-        <h2 className="h2">Things people ask.</h2>
+        <div className="eyebrow" style={{marginBottom: "14px"}}><span className="bar"></span>{t("faq.eyebrow")}</div>
+        <h2 className="h2">{t("faq.heading")}</h2>
       </div>
       <div className="faq">
         <details open>
-          <summary>Is it safe? Does it send anything to the network? <span className="caret">+</span></summary>
-          <div className="ans">Fully open-source under MIT. Zero telemetry, zero analytics, no update pings. autlas works offline — it only talks to the filesystem, AHK processes, and (optionally) a local Everything IPC pipe.</div>
+          <summary>{t("faq.q1")} <span className="caret">+</span></summary>
+          <div className="ans">{t("faq.a1")}</div>
         </details>
         <details>
-          <summary>Do I need AutoHotkey installed separately? <span className="caret">+</span></summary>
-          <div className="ans">Yes. autlas is a hub, not a bundler — install AHK once (v1.1+, v2, or both) and autlas picks up the runtime automatically from file associations.</div>
+          <summary>{t("faq.q2")} <span className="caret">+</span></summary>
+          <div className="ans">{t("faq.a2")}</div>
         </details>
         <details>
-          <summary>Does it work with AHK v1 <em>and</em> v2? <span className="caret">+</span></summary>
-          <div className="ans">Both. autlas reads the first few lines of each script and routes to the matching interpreter. You can override per-script from the context menu.</div>
+          <summary>{t("faq.q3")} <span className="caret">+</span></summary>
+          <div className="ans">{t("faq.a3")}</div>
         </details>
         <details>
-          <summary>Where do my tags live? <span className="caret">+</span></summary>
-          <div className="ans">In a local SQLite DB under <span className="mono">%APPDATA%\autlas\db.sqlite</span>, keyed by a stable script ID — not the path. Rename or move a file and your tags stick.</div>
+          <summary>{t("faq.q4")} <span className="caret">+</span></summary>
+          <div className="ans">{t("faq.a4Lead")} <span className="mono">%APPDATA%\autlas\db.sqlite</span>{t("faq.a4Tail")}</div>
         </details>
         <details>
-          <summary>Does it scan my whole disk? <span className="caret">+</span></summary>
-          <div className="ans">Only the paths you add in Settings. If Everything is installed, scans of 10k+ files finish in under a second via its IPC pipe; otherwise an in-process walker does the job.</div>
+          <summary>{t("faq.q5")} <span className="caret">+</span></summary>
+          <div className="ans">{t("faq.a5")}</div>
         </details>
         <details>
-          <summary>Can I use it without any Vim knowledge? <span className="caret">+</span></summary>
-          <div className="ans">Yes — vim mode is opt-in. Mouse, arrow keys, and a normal context menu cover everything, same as a regular Windows app.</div>
+          <summary>{t("faq.q6")} <span className="caret">+</span></summary>
+          <div className="ans">{t("faq.a6")}</div>
         </details>
         <details>
-          <summary>macOS or Linux? <span className="caret">+</span></summary>
-          <div className="ans">Not yet. autlas is Windows-only because AutoHotkey itself is Windows-only. A cross-platform <em>script hub</em> (running plain shell/Python/Deno scripts) is on the roadmap.</div>
+          <summary>{t("faq.q7")} <span className="caret">+</span></summary>
+          <div className="ans">{t("faq.a7Lead")} <em>{t("faq.a7Em")}</em> {t("faq.a7Tail")}</div>
         </details>
       </div>
     </section>
@@ -767,17 +804,17 @@ export default function Landing() {
     {/* ================= FINAL CTA ================= */}
     <section style={{paddingTop: "40px"}}>
       <div className="final">
-        <div className="eyebrow" style={{justifyContent: "center", marginBottom: "18px"}}><span className="bar"></span>TAKE CONTROL</div>
-        <h2 className="h2">Take control of your AutoHotkey scripts.</h2>
-        <p>Free. Open-source. Windows-native. No account, no catch.</p>
+        <div className="eyebrow" style={{justifyContent: "center", marginBottom: "18px"}}><span className="bar"></span>{t("finalCta.eyebrow")}</div>
+        <h2 className="h2">{t("finalCta.heading")}</h2>
+        <p>{t("finalCta.sub")}</p>
         <div className="hero-cta">
           <a href="#" className="btn btn-primary btn-lg">
             <svg className="i" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M3 3h8v8H3zM13 3h8v8h-8zM3 13h8v8H3zM13 13h8v8h-8z"/></svg>
-            Download for Windows
+            {t("finalCta.downloadWindows")}
           </a>
           <a href="#" className="btn btn-ghost btn-lg">
             <svg className="i" viewBox="0 0 24 24"><path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.38 7.86 10.9.58.1.79-.25.79-.56v-2.17c-3.2.7-3.87-1.37-3.87-1.37-.52-1.33-1.27-1.68-1.27-1.68-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.02 1.76 2.68 1.25 3.33.96.1-.74.4-1.25.72-1.54-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.18-3.1-.12-.3-.51-1.47.11-3.07 0 0 .96-.31 3.16 1.18a11 11 0 016.16 0c2.2-1.49 3.16-1.18 3.16-1.18.62 1.6.23 2.78.11 3.07.74.81 1.18 1.84 1.18 3.1 0 4.42-2.7 5.39-5.26 5.68.41.36.78 1.06.78 2.13v3.15c0 .31.21.67.8.56A11.5 11.5 0 0023.5 12C23.5 5.65 18.35.5 12 .5z"/></svg>
-            Star on GitHub
+            {t("finalCta.starOnGithub")}
           </a>
         </div>
       </div>
@@ -788,14 +825,14 @@ export default function Landing() {
       <div className="foot">
         <div className="foot-left">
           <img src={`${import.meta.env.BASE_URL}assets/logo.png`} alt="" className="brand" />
-          autlas v0.1.0 · MIT · © 2026
+          {t("footer.version")}
         </div>
         <div className="foot-links">
-          <a href="#">GitHub</a>
-          <a href="#">Releases</a>
-          <a href="#">Issues</a>
-          <a href="#">Docs</a>
-          <a href="#">Built with Tauri + Rust</a>
+          <a href="#">{t("footer.github")}</a>
+          <a href="#">{t("footer.releases")}</a>
+          <a href="#">{t("footer.issues")}</a>
+          <a href="#">{t("footer.docs")}</a>
+          <a href="#">{t("footer.builtWith")}</a>
         </div>
       </div>
     </footer>

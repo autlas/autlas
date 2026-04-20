@@ -138,6 +138,36 @@ body {
   max-width: var(--page-max, 1200px);
   margin: 0 auto;
   padding: 16px 32px;
+  /* Nav pill + lang toggle sit side-by-side in the same header frame,
+     16px visual gap between them. align-items: stretch makes the square
+     toggle inherit the pill's rendered height automatically. */
+  display: flex;
+  gap: 16px;
+  align-items: stretch;
+}
+.nav-portal-root .nav-pill {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.nav-portal-root .lang-toggle {
+  flex: 0 0 auto;
+  aspect-ratio: 1 / 1;
+  /* Same inner padding rhythm as .nav so the square matches pill chrome. */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  /* Match the nav links: same family, size, weight. */
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--text-secondary);
+  cursor: pointer;
+  /* Glass treatment is inherited from .nav (see the shared glass rule). */
+}
+.nav-portal-root .lang-toggle:hover {
+  background-color: rgba(255, 255, 255, 0.04) !important;
+  color: var(--text-primary);
 }
 
 /* ── Glassmorphism: frost every non-accent surface so the shader

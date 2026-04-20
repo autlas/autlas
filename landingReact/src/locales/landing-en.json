@@ -1,0 +1,118 @@
+{
+  "nav": {
+    "liveDemo": "Live demo",
+    "why": "Why",
+    "vim": "Vim",
+    "install": "Install",
+    "faq": "FAQ",
+    "docs": "Docs",
+    "star": "Star",
+    "download": "Download",
+    "switchLangAria": "Switch to Russian"
+  },
+  "hero": {
+    "title1": "One hub",
+    "title2": "for all your",
+    "titleBrand": "AutoHotkey",
+    "title3": "scripts.",
+    "lead1": "Discover, tag, run, and monitor hundreds of your .ahk scripts —",
+    "lead2": "without ever digging through folders.",
+    "downloadWindows": "Download for Windows",
+    "starOnGithub": "Star on GitHub"
+  },
+  "why": {
+    "eyebrow": "WHY AUTLAS",
+    "headingLead": "Every script.",
+    "headingMuted": "One place.",
+    "before": {
+      "h3": "Before",
+      "lead": "You have scripts. You don't have a tool.",
+      "b1": "scattered across your disk",
+      "b2": "double-click each file to start",
+      "b3": "tags and categories? only in your head",
+      "b4": "no search, no overview — just folders and memory"
+    },
+    "after": {
+      "h3": "handles the chaos",
+      "lead": "The same .ahk files, one window. Run or kill in one click — no double-click expedition, no tray-icon hunt.",
+      "b1": "one app, every script",
+      "b2": "batch launch. batch kill.",
+      "b3": "status, tags, name at a glance",
+      "b4": "search by name, tag, or path — instant"
+    }
+  },
+  "vim": {
+    "eyebrow": "FOR POWER USERS",
+    "heading": "Built keyboard-first.",
+    "leadPart1": "Every action has a key.",
+    "leadPart2": "to navigate,",
+    "leadPart3": "to search,",
+    "leadPart4": "to run. Arrow keys and mouse still work — but you won't need them.",
+    "bindings": "BINDINGS",
+    "bindMoveFocus": "move focus down / up",
+    "bindCollapse": "collapse / expand folder",
+    "bindJumpTopPrefix": "jump to top",
+    "bindJumpTopSuffix": "to bottom",
+    "bindSearch": "search scripts, tags, paths",
+    "bindRun": "run",
+    "bindRunKill": "if running → kill",
+    "bindRestart": "restart focused script",
+    "bindTag": "edit tags inline",
+    "bindShowUI": "show script UI",
+    "bindPalette": "command palette",
+    "bindCycle": "cycle Hub / Grid / Tree",
+    "bindEsc": "leave vim mode"
+  },
+  "install": {
+    "eyebrow": "GET AUTLAS",
+    "headingPrefix": "Install",
+    "sub": "Windows 10 or 11. ~8 MB. No account, no telemetry, no network calls.",
+    "downloadExe": "Download autlas-0.1.0.exe",
+    "requiresLabel": "requires",
+    "requiresValue": "AutoHotkey v1.1+ or v2 (either works)",
+    "sha256Label": "sha256",
+    "verify": "verify",
+    "sourceLabel": "source",
+    "labelWinget": "winget",
+    "labelScoop": "scoop",
+    "labelSource": "from source",
+    "copy": "copy",
+    "copied": "copied"
+  },
+  "faq": {
+    "eyebrow": "QUESTIONS",
+    "heading": "Things people ask.",
+    "q1": "Is it safe? Does it send anything to the network?",
+    "a1": "Fully open-source under MIT. Zero telemetry, zero analytics, no update pings. autlas works offline — it only talks to the filesystem, AHK processes, and (optionally) a local Everything IPC pipe.",
+    "q2": "Do I need AutoHotkey installed separately?",
+    "a2": "Yes. autlas is a hub, not a bundler — install AHK once (v1.1+, v2, or both) and autlas picks up the runtime automatically from file associations.",
+    "q3": "Does it work with AHK v1 and v2?",
+    "a3": "Both. autlas reads the first few lines of each script and routes to the matching interpreter. You can override per-script from the context menu.",
+    "q4": "Where do my tags live?",
+    "a4Lead": "In a local SQLite DB under",
+    "a4Tail": ", keyed by a stable script ID — not the path. Rename or move a file and your tags stick.",
+    "q5": "Does it scan my whole disk?",
+    "a5": "Only the paths you add in Settings. If Everything is installed, scans of 10k+ files finish in under a second via its IPC pipe; otherwise an in-process walker does the job.",
+    "q6": "Can I use it without any Vim knowledge?",
+    "a6": "Yes — vim mode is opt-in. Mouse, arrow keys, and a normal context menu cover everything, same as a regular Windows app.",
+    "q7": "macOS or Linux?",
+    "a7Lead": "Not yet. autlas is Windows-only because AutoHotkey itself is Windows-only. A cross-platform",
+    "a7Em": "script hub",
+    "a7Tail": "(running plain shell/Python/Deno scripts) is on the roadmap."
+  },
+  "finalCta": {
+    "eyebrow": "TAKE CONTROL",
+    "heading": "Take control of your AutoHotkey scripts.",
+    "sub": "Free. Open-source. Windows-native. No account, no catch.",
+    "downloadWindows": "Download for Windows",
+    "starOnGithub": "Star on GitHub"
+  },
+  "footer": {
+    "version": "autlas v0.1.0 · MIT · © 2026",
+    "github": "GitHub",
+    "releases": "Releases",
+    "issues": "Issues",
+    "docs": "Docs",
+    "builtWith": "Built with Tauri + Rust"
+  }
+}
