@@ -286,17 +286,14 @@ export default function Landing() {
     };
 
     let anchors: number[] = [];
-    // Fade zone normally starts at viewport Y = 300px. On short viewports
-    // the topmost hero line ("One hub") can itself sit below 300px, which
-    // would leave it pre-faded at scroll=0. Clamp FADE_START to
-    //   min(300, topmost_anchor − 1)
-    // so the fade zone always begins at least 1px above the first line.
-    let fadeStart = 300;
+    // Fade zone begins 1px above the topmost hero line so nothing is
+    // pre-faded at scroll=0.
+    let fadeStart = 1;
     const FADE_END = 0;
     const measure = () => {
       anchors = items.map(docTop);
       const topmost = Math.min(...anchors);
-      fadeStart = Math.max(1, Math.min(300, topmost - 1));
+      fadeStart = Math.max(1, topmost - 1);
     };
     measure();
 
@@ -364,7 +361,6 @@ export default function Landing() {
           </li>
           <li><a href="#problem">{t("nav.why")}</a></li>
           <li><a href="#vim">{t("nav.vim")}</a></li>
-          <li><a href="#install">{t("nav.install")}</a></li>
           <li><a href="#faq">{t("nav.faq")}</a></li>
           <li><a href="#">{t("nav.docs")}</a></li>
         </ul>
