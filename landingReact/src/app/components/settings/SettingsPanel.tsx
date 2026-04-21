@@ -282,7 +282,7 @@ export default React.memo(function SettingsPanel({
               <span className="text-base font-bold text-secondary inline-flex items-center gap-1.5">
                 {t("settings.fuse_threshold", "Толерантность к опечаткам")}
                 <Tooltip text={t("settings.fuse_threshold_info", "Бюджет ошибок относительно длины запроса. 0.0 — только точное совпадение, 1.0 — почти любое слово засчитается. На практике 0.3 строго, 0.4 прощает одну опечатку в коротких словах, 0.5+ начинает ловить ложные совпадения.")}>
-                  <span className="text-tertiary hover:text-secondary transition-colors cursor-help inline-flex translate-y-[2px]">
+                  <span className="text-tertiary hover:text-secondary transition-colors cursor-help inline-flex translate-y-[1px]">
                     <Question size={16} weight="bold" />
                   </span>
                 </Tooltip>
@@ -309,7 +309,7 @@ export default React.memo(function SettingsPanel({
               <span className="text-base font-bold text-secondary inline-flex items-center gap-1.5">
                 {t("settings.fuse_min_match", "Минимальная длина совпадения")}
                 <Tooltip text={t("settings.fuse_min_match_info", "Минимальная длина непрерывной подпоследовательности букв запроса, которая засчитывается. Меньше — ловит больше фрагментированных совпадений, но добавляет шума. 2 — разумный баланс, 3 — почти отключает короткие случайные матчи.")}>
-                  <span className="text-tertiary hover:text-secondary transition-colors cursor-help inline-flex translate-y-[2px]">
+                  <span className="text-tertiary hover:text-secondary transition-colors cursor-help inline-flex translate-y-[1px]">
                     <Question size={16} weight="bold" />
                   </span>
                 </Tooltip>
@@ -335,7 +335,7 @@ export default React.memo(function SettingsPanel({
             <span className="text-base font-bold text-secondary inline-flex items-center gap-1.5">
               {t("settings.fuse_find_all", "Все совпадения в имени")}
               <Tooltip text={t("settings.fuse_find_all_info", "Если включено — fuse находит все вхождения запроса в имени файла, а не только первое. Лучше для подсветки и ранжирует выше файлы где запрос встречается несколько раз. Если выключить — чуть быстрее, но подсветка обрывается на первом совпадении.")}>
-                <span className="text-tertiary hover:text-secondary transition-colors cursor-help inline-flex translate-y-[2px]">
+                <span className="text-tertiary hover:text-secondary transition-colors cursor-help inline-flex translate-y-[1px]">
                   <Question size={16} weight="bold" />
                 </span>
               </Tooltip>
@@ -355,7 +355,7 @@ export default React.memo(function SettingsPanel({
             <span className="text-base font-bold text-secondary inline-flex items-center gap-1.5">
               {t("settings.fuse_search_path", "Искать по пути папок")}
               <Tooltip text={t("settings.fuse_search_path_info", "Если включено — кроме имени файла поиск также пробегает по названию папок (без fuzzy, только точное вхождение подстроки). Полезно чтобы найти все скрипты в папке `automation`. Если выключить — поиск только по именам файлов, без шума из системных путей.")}>
-                <span className="text-tertiary hover:text-secondary transition-colors cursor-help inline-flex translate-y-[2px]">
+                <span className="text-tertiary hover:text-secondary transition-colors cursor-help inline-flex translate-y-[1px]">
                   <Question size={16} weight="bold" />
                 </span>
               </Tooltip>
@@ -434,7 +434,7 @@ export default React.memo(function SettingsPanel({
                 {t("settings.blacklist", "Excluded folders")}
               </span>
               <Tooltip text={t("settings.blacklist_info", "Folders skipped during scan. Useful for nested junk inside a scanned root.")}>
-                <span className="text-tertiary hover:text-secondary transition-colors cursor-help inline-flex">
+                <span className="text-tertiary hover:text-secondary transition-colors cursor-help inline-flex translate-y-[1px]">
                   <Question size={16} weight="bold" />
                 </span>
               </Tooltip>
@@ -492,7 +492,7 @@ export default React.memo(function SettingsPanel({
                 {t("settings.hidden_folders", "Hidden folders")}
               </span>
               <Tooltip text={t("settings.hidden_folders_info", "Folders hidden from the script tree. They are still scanned, just not shown in the UI by default.")}>
-                <span className="text-tertiary hover:text-secondary transition-colors cursor-help inline-flex">
+                <span className="text-tertiary hover:text-secondary transition-colors cursor-help inline-flex translate-y-[1px]">
                   <Question size={16} weight="bold" />
                 </span>
               </Tooltip>
@@ -550,7 +550,7 @@ export default React.memo(function SettingsPanel({
             <span className="text-base font-bold text-secondary inline-flex items-center gap-1.5">
               {t("settings.everything_integration")}
               <Tooltip text={t("settings.everything_info", "Everything by voidtools indexes every file on your NTFS drives in real time. With it, script scanning is 30–100x faster than a regular disk walk.")}>
-                <span className="text-tertiary hover:text-secondary transition-colors cursor-help inline-flex translate-y-[2px]">
+                <span className="text-tertiary hover:text-secondary transition-colors cursor-help inline-flex translate-y-[1px]">
                   <Question size={18} weight="bold" />
                 </span>
               </Tooltip>

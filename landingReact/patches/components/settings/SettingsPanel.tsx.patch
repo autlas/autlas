@@ -1,5 +1,5 @@
---- tauri_app/src/components/settings/SettingsPanel.tsx	2026-04-21 15:30:02.587178100 +0300
-+++ landingReact/src/app/components/settings/SettingsPanel.tsx	2026-04-21 15:30:12.892766600 +0300
+--- tauri_app/src/components/settings/SettingsPanel.tsx	2026-04-21 15:39:46.113493600 +0300
++++ landingReact/src/app/components/settings/SettingsPanel.tsx	2026-04-21 15:39:53.210052800 +0300
 @@ -10,7 +10,7 @@
  import SettingsSection from "../ui/SettingsSection";
  import { useTreeStore } from "../../store/useTreeStore";
