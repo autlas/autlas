@@ -738,17 +738,30 @@ export default React.memo(function SettingsPanel({
       </SettingsSection>
 
       {/* ─── About / version footer ─── */}
-      <div className="flex items-center justify-center gap-2 text-[14px] text-tertiary opacity-40 pt-4 pb-2">
+      <div className="flex items-center justify-center gap-2 text-sm text-tertiary pt-4 pb-2">
         <span>autlas v{pkg.version}</span>
         <span>·</span>
-        <a
-          href="https://github.com/autlas/autlas"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="hover:text-indigo-400 hover:opacity-100 transition-colors underline-offset-2 hover:underline"
-        >
-          github.com/autlas/autlas
-        </a>
+        <Tooltip text="autlas.github.io">
+          <a
+            href="https://autlas.github.io"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-indigo-400 hover:opacity-100 transition-colors underline-offset-2 hover:underline"
+          >
+            Website
+          </a>
+        </Tooltip>
+        <span>·</span>
+        <Tooltip text="github.com/autlas/autlas">
+          <a
+            href="https://github.com/autlas/autlas"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-indigo-400 hover:opacity-100 transition-colors underline-offset-2 hover:underline"
+          >
+            Github
+          </a>
+        </Tooltip>
       </div>
     </div>
   );
