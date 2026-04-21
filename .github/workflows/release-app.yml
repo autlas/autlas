@@ -1,0 +1,74 @@
+name: Release app
+
+# Builds the Tauri app on windows-latest and publishes the .exe/.msi
+# as a GitHub Release.
+#
+# Triggers:
+#   - push of a tag matching v* (e.g. v1.0.1) — main release flow
+#   - manual via workflow_dispatch — useful for debugging CI without a tag
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch: {}
+
+concurrency:
+  group: release-app
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: tauri_app
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: tauri_app/package-lock.json
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo build
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: tauri_app/src-tauri -> target
+
+      - name: Sync package version from tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          echo "Setting version to $VERSION"
+          npm version "$VERSION" --no-git-tag-version
+
+      - run: npm ci
+      - run: npm run build
+      - run: npx tauri build
+
+      - name: Collect bundles
+        id: bundles
+        shell: bash
+        run: |
+          set -e
+          mkdir -p ../release-artifacts
+          find src-tauri/target/release/bundle/nsis -maxdepth 1 -iname "*.exe" -exec cp {} ../release-artifacts/ \;
+          find src-tauri/target/release/bundle/msi  -maxdepth 1 -iname "*.msi" -exec cp {} ../release-artifacts/ \;
+          ls -la ../release-artifacts/
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          generate_release_notes: true
+          files: |
+            release-artifacts/*.exe
+            release-artifacts/*.msi
