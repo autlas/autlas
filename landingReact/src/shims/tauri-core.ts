@@ -108,6 +108,11 @@ const commands: Record<string, (args: any) => unknown | Promise<unknown>> = {
     markMockDirty();
     const s = findScriptById(id);
     if (s) s.tags = [...tags];
+    // Register any brand-new tag in tagOrder so it becomes visible in the
+    // sidebar / hub groupings. Real backend does this via the tags table.
+    for (const t of tags) {
+      if (!tagOrder.includes(t)) tagOrder.push(t);
+    }
   },
   async add_script_tag({ id, tag }: { id: string; tag: string }) {
     markMockDirty();

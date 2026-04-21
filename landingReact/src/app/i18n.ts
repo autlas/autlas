@@ -25,9 +25,8 @@ i18n
         interpolation: {
             escapeValue: false,
         },
-        lng: 'en',
         detection: {
-            order: ['localStorage'],
+            order: ['localStorage', 'navigator'],
             caches: ['localStorage'],
         }
     });
