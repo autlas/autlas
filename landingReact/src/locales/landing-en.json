@@ -67,7 +67,7 @@
     "eyebrow": "GET AUTLAS",
     "headingPrefix": "Install",
     "sub": "Windows 10 or 11. ~8 MB. No account, no telemetry, no network calls.",
-    "downloadExe": "Download autlas-1.0.0.exe",
+    "downloadExe": "Download autlas-{{version}}.exe",
     "requiresLabel": "requires",
     "requiresValue": "AutoHotkey v1.1+ or v2 (either works)",
     "sha256Label": "sha256",
@@ -108,7 +108,7 @@
     "starOnGithub": "Star on GitHub"
   },
   "footer": {
-    "version": "autlas v1.0.0 · MIT · © 2026",
+    "version": "autlas v{{version}} · MIT · © 2026",
     "github": "GitHub",
     "releases": "Releases",
     "issues": "Issues",

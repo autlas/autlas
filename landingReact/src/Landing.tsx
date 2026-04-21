@@ -8,6 +8,13 @@ import AutlasFrame from "./AutlasFrame";
 import BackgroundShader from "./BackgroundShader";
 import W98Scene from "./W98Scene";
 import { PlayIcon, CloseIcon, RestartIcon } from "./app/components/ui/Icons";
+import tauriPkg from "../../tauri_app/package.json";
+
+const APP_VERSION = tauriPkg.version;
+const REPO_URL = "https://github.com/EazzzyMax/autlas";
+const DOWNLOAD_URL = `${REPO_URL}/releases/latest/download/autlas_${APP_VERSION}_x64-setup.exe`;
+const RELEASES_URL = `${REPO_URL}/releases`;
+const ISSUES_URL = `${REPO_URL}/issues`;
 
 function CopyButton({ text }: { text: string }) {
   const { t } = useTranslation("landing");
@@ -365,11 +372,11 @@ export default function Landing() {
           <li><a href="#">{t("nav.docs")}</a></li>
         </ul>
         <div className="nav-actions">
-          <a href="#" className="btn btn-outline btn-sm">
+          <a href={REPO_URL} target="_blank" rel="noopener noreferrer" className="btn btn-outline btn-sm">
             <svg className="i" viewBox="0 0 24 24"><path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.38 7.86 10.9.58.1.79-.25.79-.56v-2.17c-3.2.7-3.87-1.37-3.87-1.37-.52-1.33-1.27-1.68-1.27-1.68-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.02 1.76 2.68 1.25 3.33.96.1-.74.4-1.25.72-1.54-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.18-3.1-.12-.3-.51-1.47.11-3.07 0 0 .96-.31 3.16 1.18a11 11 0 016.16 0c2.2-1.49 3.16-1.18 3.16-1.18.62 1.6.23 2.78.11 3.07.74.81 1.18 1.84 1.18 3.1 0 4.42-2.7 5.39-5.26 5.68.41.36.78 1.06.78 2.13v3.15c0 .31.21.67.8.56A11.5 11.5 0 0023.5 12C23.5 5.65 18.35.5 12 .5z"/></svg>
             {t("nav.star")}
           </a>
-          <a href="#install" className="btn btn-primary btn-sm">
+          <a href={DOWNLOAD_URL} className="btn btn-primary btn-sm">
             <svg className="i" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M3 3h8v8H3zM13 3h8v8h-8zM3 13h8v8H3zM13 13h8v8h-8z"/></svg>
             {t("nav.download")}
           </a>
@@ -404,13 +411,13 @@ export default function Landing() {
           </p>
           <div className="hero-cta">
             <span className="hero-scroll">
-              <a href="#install" className="btn btn-primary btn-lg hero-rise" style={{ animationDelay: "460ms" }}>
+              <a href={DOWNLOAD_URL} className="btn btn-primary btn-lg hero-rise" style={{ animationDelay: "460ms" }}>
                 <svg className="i" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M3 3h8v8H3zM13 3h8v8h-8zM3 13h8v8H3zM13 13h8v8h-8z"/></svg>
                 {t("hero.downloadWindows")}
               </a>
             </span>
             <span className="hero-scroll">
-              <a href="#" className="btn btn-ghost btn-lg hero-rise" style={{ animationDelay: "460ms" }}>
+              <a href={REPO_URL} target="_blank" rel="noopener noreferrer" className="btn btn-ghost btn-lg hero-rise" style={{ animationDelay: "460ms" }}>
                 <svg className="i" viewBox="0 0 24 24"><path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.38 7.86 10.9.58.1.79-.25.79-.56v-2.17c-3.2.7-3.87-1.37-3.87-1.37-.52-1.33-1.27-1.68-1.27-1.68-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.02 1.76 2.68 1.25 3.33.96.1-.74.4-1.25.72-1.54-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.18-3.1-.12-.3-.51-1.47.11-3.07 0 0 .96-.31 3.16 1.18a11 11 0 016.16 0c2.2-1.49 3.16-1.18 3.16-1.18.62 1.6.23 2.78.11 3.07.74.81 1.18 1.84 1.18 3.1 0 4.42-2.7 5.39-5.26 5.68.41.36.78 1.06.78 2.13v3.15c0 .31.21.67.8.56A11.5 11.5 0 0023.5 12C23.5 5.65 18.35.5 12 .5z"/></svg>
                 {t("hero.starOnGithub")}
               </a>
@@ -707,7 +714,7 @@ export default function Landing() {
               <div className="dots"><span></span><span></span><span></span></div>
               <span className="fname">~/.config/autlas/config.ini</span>
             </div>
-<pre dangerouslySetInnerHTML={{__html: "<span class=\"cm\"># autlas config \u2014 Windows, MIT, v1.0.0</span>\n<span class=\"kw\">[scan]</span>\npaths        = <span class=\"str\">\"D:\\ahk\"</span>, <span class=\"str\">\"%USERPROFILE%\\scripts\"</span>\nuse_everything = <span class=\"num\">true</span>     <span class=\"cm\"># voidtools Everything IPC</span>\nwatcher_ms   = <span class=\"num\">1500</span>\n\n<span class=\"kw\">[runtime]</span>\nahk_v1 = <span class=\"str\">\"C:\\Program Files\\AutoHotkey\\AutoHotkey.exe\"</span>\nahk_v2 = <span class=\"str\">\"C:\\Program Files\\AutoHotkey\\v2\\AutoHotkey64.exe\"</span>\ndetect = <span class=\"str\">\"file-header\"</span>   <span class=\"cm\"># v1/v2 auto-detect</span>\n\n<span class=\"kw\">[vim]</span>\nenabled = <span class=\"num\">true</span>\nleader  = <span class=\"str\">\" \"</span>"}} />
+<pre dangerouslySetInnerHTML={{__html: "<span class=\"cm\"># autlas config \u2014 Windows, MIT, v" + APP_VERSION + "</span>\n<span class=\"kw\">[scan]</span>\npaths        = <span class=\"str\">\"D:\\ahk\"</span>, <span class=\"str\">\"%USERPROFILE%\\scripts\"</span>\nuse_everything = <span class=\"num\">true</span>     <span class=\"cm\"># voidtools Everything IPC</span>\nwatcher_ms   = <span class=\"num\">1500</span>\n\n<span class=\"kw\">[runtime]</span>\nahk_v1 = <span class=\"str\">\"C:\\Program Files\\AutoHotkey\\AutoHotkey.exe\"</span>\nahk_v2 = <span class=\"str\">\"C:\\Program Files\\AutoHotkey\\v2\\AutoHotkey64.exe\"</span>\ndetect = <span class=\"str\">\"file-header\"</span>   <span class=\"cm\"># v1/v2 auto-detect</span>\n\n<span class=\"kw\">[vim]</span>\nenabled = <span class=\"num\">true</span>\nleader  = <span class=\"str\">\" \"</span>"}} />
           </div>
           <div className="code">
             <div className="code-head">
@@ -728,9 +735,9 @@ export default function Landing() {
             <div className="eyebrow" style={{marginBottom: "16px"}}><span className="bar"></span>{t("install.eyebrow")}</div>
             <h3>{t("install.headingPrefix")} <span className="brand-grad">autlas</span></h3>
             <p className="sub">{t("install.sub")}</p>
-            <a href="#" className="btn btn-primary btn-lg">
+            <a href={DOWNLOAD_URL} className="btn btn-primary btn-lg">
               <svg className="i" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M3 3h8v8H3zM13 3h8v8h-8zM3 13h8v8H3zM13 13h8v8h-8z"/></svg>
-              {t("install.downloadExe")}
+              {t("install.downloadExe", { version: APP_VERSION })}
             </a>
             <div className="install-meta">
               <span><strong>{t("install.requiresLabel")}</strong> {t("install.requiresValue")}</span>
@@ -804,11 +811,11 @@ export default function Landing() {
         <h2 className="h2">{t("finalCta.heading")}</h2>
         <p>{t("finalCta.sub")}</p>
         <div className="hero-cta">
-          <a href="#" className="btn btn-primary btn-lg">
+          <a href={DOWNLOAD_URL} className="btn btn-primary btn-lg">
             <svg className="i" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M3 3h8v8H3zM13 3h8v8h-8zM3 13h8v8H3zM13 13h8v8h-8z"/></svg>
             {t("finalCta.downloadWindows")}
           </a>
-          <a href="#" className="btn btn-ghost btn-lg">
+          <a href={REPO_URL} target="_blank" rel="noopener noreferrer" className="btn btn-ghost btn-lg">
             <svg className="i" viewBox="0 0 24 24"><path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.38 7.86 10.9.58.1.79-.25.79-.56v-2.17c-3.2.7-3.87-1.37-3.87-1.37-.52-1.33-1.27-1.68-1.27-1.68-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.02 1.76 2.68 1.25 3.33.96.1-.74.4-1.25.72-1.54-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.18-3.1-.12-.3-.51-1.47.11-3.07 0 0 .96-.31 3.16 1.18a11 11 0 016.16 0c2.2-1.49 3.16-1.18 3.16-1.18.62 1.6.23 2.78.11 3.07.74.81 1.18 1.84 1.18 3.1 0 4.42-2.7 5.39-5.26 5.68.41.36.78 1.06.78 2.13v3.15c0 .31.21.67.8.56A11.5 11.5 0 0023.5 12C23.5 5.65 18.35.5 12 .5z"/></svg>
             {t("finalCta.starOnGithub")}
           </a>
@@ -821,12 +828,12 @@ export default function Landing() {
       <div className="foot">
         <div className="foot-left">
           <img src={`${import.meta.env.BASE_URL}assets/logo.png`} alt="" className="brand" />
-          {t("footer.version")}
+          {t("footer.version", { version: APP_VERSION })}
         </div>
         <div className="foot-links">
-          <a href="#">{t("footer.github")}</a>
-          <a href="#">{t("footer.releases")}</a>
-          <a href="#">{t("footer.issues")}</a>
+          <a href={REPO_URL} target="_blank" rel="noopener noreferrer">{t("footer.github")}</a>
+          <a href={RELEASES_URL} target="_blank" rel="noopener noreferrer">{t("footer.releases")}</a>
+          <a href={ISSUES_URL} target="_blank" rel="noopener noreferrer">{t("footer.issues")}</a>
           <a href="#">{t("footer.docs")}</a>
           <a href="#">{t("footer.builtWith")}</a>
         </div>
