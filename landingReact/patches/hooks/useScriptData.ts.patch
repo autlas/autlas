@@ -1,0 +1,57 @@
+--- tauri_app/src/hooks/useScriptData.ts	2026-04-10 15:02:34.642523400 +0300
++++ landingReact/src/app/hooks/useScriptData.ts	2026-04-19 01:28:39.636999400 +0300
+@@ -144,8 +144,18 @@
+         let unlistenStatus: (() => void) | null = null;
+         let unlistenHub: (() => void) | null = null;
+         let localHubHandler: ((e: Event) => void) | null = null;
++        let mockResetHandler: ((e: Event) => void) | null = null;
+         let mounted = true;
+ 
++        // Landing-only: mock-db reset event → clear cached scripts and
++        // reload scripts + tag icons from the freshly-restored snapshot.
++        mockResetHandler = () => {
++            _cachedScripts = [];
++            fetchData(true);
++            getTagIcons().then(storeSetTagIcons).catch(() => {});
++        };
++        window.addEventListener("ahk-mock-reset", mockResetHandler);
++
+         import('@tauri-apps/api/event').then(({ listen }) => {
+             if (!mounted) return;
+ 
+@@ -175,18 +185,16 @@
+                     return u ? { ...s, is_running: u.is_running, has_ui: u.has_ui } : s;
+                 });
+ 
+-                startTransition(() => {
+-                    setAllScripts(prev => {
+-                        let changed = false;
+-                        const updated = prev.map(s => {
+-                            const u = updates.get(s.path.toLowerCase());
+-                            if (!u) return s;
+-                            if (s.is_running === u.is_running && s.has_ui === u.has_ui) return s;
+-                            changed = true;
+-                            return { ...s, is_running: u.is_running, has_ui: u.has_ui };
+-                        });
+-                        return changed ? updated : prev;
++                setAllScripts(prev => {
++                    let changed = false;
++                    const updated = prev.map(s => {
++                        const u = updates.get(s.path.toLowerCase());
++                        if (!u) return s;
++                        if (s.is_running === u.is_running && s.has_ui === u.has_ui) return s;
++                        changed = true;
++                        return { ...s, is_running: u.is_running, has_ui: u.has_ui };
+                     });
++                    return changed ? updated : prev;
+                 });
+ 
+                 const store = useTreeStore.getState();
+@@ -237,6 +245,7 @@
+             if (unlistenStatus) unlistenStatus();
+             if (unlistenHub) unlistenHub();
+             if (localHubHandler) window.removeEventListener('ahk-hub-changed-local', localHubHandler);
++            if (mockResetHandler) window.removeEventListener('ahk-mock-reset', mockResetHandler);
+             burstIntervalsRef.current.forEach(id => clearInterval(id));
+             burstIntervalsRef.current.clear();
+         };

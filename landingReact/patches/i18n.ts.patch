@@ -1,0 +1,13 @@
+--- tauri_app/src/i18n.ts	2026-03-27 06:43:58.046337900 +0300
++++ landingReact/src/app/i18n.ts	2026-04-18 04:30:44.526821900 +0300
+@@ -25,8 +25,9 @@
+         interpolation: {
+             escapeValue: false,
+         },
++        lng: 'en',
+         detection: {
+-            order: ['localStorage', 'navigator'],
++            order: ['localStorage'],
+             caches: ['localStorage'],
+         }
+     });

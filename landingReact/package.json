@@ -4,6 +4,8 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
+    "sync-app": "node scripts/sync-app.mjs",
+    "prebuild": "node scripts/sync-app.mjs",
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
@@ -35,6 +37,7 @@
     "@types/react-dom": "^19.1.6",
     "@types/stats.js": "^0.17.4",
     "@vitejs/plugin-react": "^4.6.0",
+    "diff": "^9.0.0",
     "gh-pages": "^6.3.0",
     "tailwindcss": "^4.2.2",
     "typescript": "~5.9.3",
