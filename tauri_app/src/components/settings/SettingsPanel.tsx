@@ -10,6 +10,7 @@ import TruncatedTooltip from "../ui/TruncatedTooltip";
 import SettingsSection from "../ui/SettingsSection";
 import { useTreeStore } from "../../store/useTreeStore";
 import { safeSetItem } from "../../utils/safeStorage";
+import pkg from "../../../package.json";
 
 interface SettingsPanelProps {
   brightness: number;
@@ -735,6 +736,20 @@ export default React.memo(function SettingsPanel({
           </div>
         </div>
       </SettingsSection>
+
+      {/* ─── About / version footer ─── */}
+      <div className="flex items-center justify-center gap-2 text-[14px] text-tertiary opacity-40 pt-4 pb-2">
+        <span>autlas v{pkg.version}</span>
+        <span>·</span>
+        <a
+          href="https://github.com/eazzzymax/autlas-landing"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="hover:text-indigo-400 hover:opacity-100 transition-colors underline-offset-2 hover:underline"
+        >
+          github.com/eazzzymax/autlas-landing
+        </a>
+      </div>
     </div>
   );
 });

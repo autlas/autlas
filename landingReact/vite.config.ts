@@ -23,5 +23,6 @@ export default defineConfig(({ mode }) => ({
   server: {
     port: 1421,
     strictPort: true,
+    host: "127.0.0.1",
   },
 }));

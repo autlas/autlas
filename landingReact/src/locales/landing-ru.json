@@ -67,7 +67,7 @@
     "eyebrow": "ПОСТАВИТЬ AUTLAS",
     "headingPrefix": "Установи",
     "sub": "Windows 10 или 11. ~8 МБ. Без аккаунта, без телеметрии, без сетевых запросов.",
-    "downloadExe": "Скачать autlas-0.1.0.exe",
+    "downloadExe": "Скачать autlas-1.0.0.exe",
     "requiresLabel": "нужно",
     "requiresValue": "AutoHotkey v1.1+ или v2 (оба подойдут)",
     "sha256Label": "sha256",
@@ -108,7 +108,7 @@
     "starOnGithub": "Star на GitHub"
   },
   "footer": {
-    "version": "autlas v0.1.0 · MIT · © 2026",
+    "version": "autlas v1.0.0 · MIT · © 2026",
     "github": "GitHub",
     "releases": "Релизы",
     "issues": "Issues",
