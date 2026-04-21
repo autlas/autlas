@@ -11,7 +11,7 @@ import { PlayIcon, CloseIcon, RestartIcon } from "./app/components/ui/Icons";
 import tauriPkg from "../../tauri_app/package.json";
 
 const APP_VERSION = tauriPkg.version;
-const REPO_URL = "https://github.com/EazzzyMax/autlas";
+const REPO_URL = "https://github.com/autlas/autlas";
 const DOWNLOAD_URL = `${REPO_URL}/releases/latest/download/autlas_${APP_VERSION}_x64-setup.exe`;
 const RELEASES_URL = `${REPO_URL}/releases`;
 const ISSUES_URL = `${REPO_URL}/issues`;
@@ -737,12 +737,13 @@ export default function Landing() {
             <p className="sub">{t("install.sub")}</p>
             <a href={DOWNLOAD_URL} className="btn btn-primary btn-lg">
               <svg className="i" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M3 3h8v8H3zM13 3h8v8h-8zM3 13h8v8H3zM13 13h8v8h-8z"/></svg>
-              {t("install.downloadExe", { version: APP_VERSION })}
+              {t("install.downloadBtn")}
             </a>
             <div className="install-meta">
+              <span><strong>{t("install.versionLabel")}</strong> {t("install.versionValue", { version: APP_VERSION })}</span>
               <span><strong>{t("install.requiresLabel")}</strong> {t("install.requiresValue")}</span>
               <span><strong>{t("install.sha256Label")}</strong> 7c3a…e4f1 <a href="#" style={{color: "var(--accent-hover)"}}>· {t("install.verify")}</a></span>
-              <span><strong>{t("install.sourceLabel")}</strong> github.com/autlas/autlas · MIT</span>
+              <span><strong>{t("install.sourceLabel")}</strong> <a href={REPO_URL} target="_blank" rel="noopener noreferrer" style={{color: "var(--accent-hover)"}}>github.com/autlas/autlas</a> · MIT</span>
             </div>
           </div>
           <div className="snippets">
@@ -758,8 +759,8 @@ export default function Landing() {
             </div>
             <div className="snippet">
               <span className="label">{t("install.labelSource")}</span>
-              <code>git clone github.com/autlas/autlas &amp;&amp; cargo tauri build</code>
-              <CopyButton text="git clone github.com/autlas/autlas && cargo tauri build" />
+              <code>git clone github.com/autlas/autlas</code>
+              <CopyButton text="git clone github.com/autlas/autlas" />
             </div>
           </div>
         </div>

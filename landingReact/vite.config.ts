@@ -5,12 +5,10 @@ import path from "node:path";
 
 const r = (p: string) => path.resolve(__dirname, p);
 
-// GitHub Pages serves the site from https://eazzzymax.github.io/autlas-landing/,
-// so production builds need that as the base URL. In dev we keep '/' so the
-// Vite dev server works off the root.
-export default defineConfig(({ mode }) => ({
+// GitHub Pages serves the site from https://autlas.github.io/ (org pages = root).
+export default defineConfig(() => ({
   plugins: [react(), tailwindcss()],
-  base: mode === "production" ? "/autlas-landing/" : "/",
+  base: "/",
   resolve: {
     alias: [
       { find: "@tauri-apps/api/core", replacement: r("src/shims/tauri-core.ts") },

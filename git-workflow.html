@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<title>autlas · git workflow cheatsheet</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+  :root{color-scheme:dark}
+  body{margin:0;padding:40px 24px 80px;font:15px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;background:#0a0a0b;color:#e7e7ea;max-width:1100px;margin-inline:auto}
+  h1{font-size:28px;margin:0 0 8px;letter-spacing:-0.02em}
+  h2{font-size:16px;margin:40px 0 10px;color:#a5b4fc;text-transform:uppercase;letter-spacing:0.16em;font-weight:700}
+  .sub{color:#8b8b93;margin:0 0 28px}
+  .card{background:#111114;border:1px solid #1f1f24;border-radius:14px;padding:22px 24px;margin:12px 0}
+  code,kbd{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:13px;background:#1a1a1f;padding:2px 6px;border-radius:5px;color:#d4d4d8}
+  kbd{border:1px solid #2a2a30}
+  ol{margin:8px 0 0;padding-left:22px}
+  li{margin:6px 0}
+  .mermaid{background:transparent;text-align:center}
+  .note{font-size:13px;color:#8b8b93;margin-top:14px}
+  hr{border:none;border-top:1px solid #1f1f24;margin:36px 0}
+  .tag{display:inline-block;background:#1f1f2e;border:1px solid #4f46e5;color:#a5b4fc;padding:2px 10px;border-radius:999px;font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;margin-right:8px}
+  .repo-table{width:100%;border-collapse:collapse;margin-top:8px}
+  .repo-table td{padding:8px 10px;border-bottom:1px solid #1f1f24;vertical-align:top}
+  .repo-table td:first-child{color:#a5b4fc;font-family:"JetBrains Mono",monospace;font-size:13px;white-space:nowrap}
+</style>
+</head>
+<body>
+
+<h1>autlas · git workflow</h1>
+<p class="sub">Полный флоу: лендинг (Pages), приложение (Release), версионирование через теги.</p>
+
+<h2>Два независимых репозитория</h2>
+<div class="card">
+<table class="repo-table">
+  <tr><td>autlas/autlas</td><td><b>Исходники</b> — <code>tauri_app/</code>, <code>landingReact/</code>, Actions-воркфлоу. Ты пушишь сюда.</td></tr>
+  <tr><td>autlas/autlas.github.io</td><td><b>Публикация</b> — собранный <code>dist/</code> лендинга. GitHub Pages раздаёт на <code>autlas.github.io</code>. Ты туда вручную ничего не пушишь.</td></tr>
+</table>
+</div>
+
+<h2><span class="tag">Pipeline 1</span> Лендинг — автодеплой на push</h2>
+<div class="card">
+<pre class="mermaid">
+flowchart LR
+  A[ты работаешь<br/>в landingReact/] -->|git push main| B[autlas/autlas<br/>main]
+  B -->|triggered by<br/>paths landingReact/**| W1[Actions<br/>deploy-landing.yml<br/>ubuntu-latest]
+  W1 -->|npm ci + npm run build| D[landingReact/dist]
+  D -->|peaceiris/actions-gh-pages| P[autlas/autlas.github.io<br/>main branch]
+  P -->|GitHub Pages| L[autlas.github.io]
+</pre>
+<p class="note">Уже работает. Срабатывает только на изменения под <code>landingReact/**</code>. Без кэша — 1–2 мин.</p>
+</div>
+
+<h2><span class="tag">Pipeline 2</span> Приложение — Release по тегу</h2>
+<div class="card">
+<pre class="mermaid">
+flowchart LR
+  A[готов к релизу] -->|git tag v1.0.1<br/>git push --tags| T[tag v1.0.1]
+  T -->|triggered by<br/>tags v*| W2[Actions<br/>release-app.yml<br/>windows-latest]
+  W2 -->|npm version 1.0.1<br/>в runner| V[package.json]
+  V -->|npm run dist| E[autlas_1.0.1_x64-setup.exe<br/>+ .msi]
+  E -->|softprops/action-gh-release| R[GitHub Release v1.0.1<br/>в autlas/autlas]
+  R -->|releases/latest/download/...exe| L[лендинг · кнопка Download]
+</pre>
+<p class="note">Ещё не настроено. Обычные пуши в <code>main</code> здесь не срабатывают — ТОЛЬКО теги <code>v*</code>. Rust-сборка на Windows ~10–20 мин (с кэшем cargo — ~5).</p>
+</div>
+
+<hr/>
+
+<h2>Как всё стыкуется</h2>
+<div class="card">
+<pre class="mermaid">
+flowchart TB
+  subgraph LOCAL[Твоя машина]
+    Edit[правки кода]
+  end
+  subgraph REPO[autlas/autlas]
+    Main[(main)]
+    Tag[(tag v1.0.1)]
+  end
+  subgraph CI[GitHub Actions]
+    P1[deploy-landing.yml]
+    P2[release-app.yml]
+  end
+  subgraph OUT[Публичное]
+    Pages[Pages · autlas.github.io]
+    Rel[Release · autlas]
+  end
+
+  Edit -->|push main| Main
+  Edit -->|push --tags| Tag
+
+  Main -->|landingReact/** изменился| P1
+  Tag -->|v*| P2
+
+  P1 --> Pages
+  P2 --> Rel
+  Rel -.->|releases/latest/download| Pages
+</pre>
+<p class="note">Два пайплайна не мешают друг другу: правки лендинга не триггерят пересборку .exe, а релиз .exe не пересобирает лендинг (но лендинг уже указывает на <code>releases/latest</code>, так что новый бинарник подтянется автоматически без его передеплоя).</p>
+</div>
+
+<hr/>
+
+<h2>Чек-лист релиза приложения</h2>
+<div class="card">
+<ol>
+  <li>Закоммитил все фичи в <code>main</code> (landing правки при этом задеплоятся сами).</li>
+  <li><kbd>git tag v1.0.1</kbd> — локальный тег.</li>
+  <li><kbd>git push --tags</kbd> — отправили в GitHub.</li>
+  <li>Ждём Actions (~5–15 мин).</li>
+  <li>В <code>Releases</code> появляется <code>v1.0.1</code> с <code>autlas_1.0.1_x64-setup.exe</code>.</li>
+  <li>Лендинг автоматом подхватывает — кнопка Download ведёт на свежий бинарник.</li>
+</ol>
+<p class="note">Откатить — удалить тег: <code>git push --delete origin v1.0.1</code> + удалить Release в UI.</p>
+</div>
+
+<h2>Ручной запуск без тега</h2>
+<div class="card">
+<p>В release-workflow будет <code>workflow_dispatch</code> — кнопка <b>Run workflow</b> во вкладке <em>Actions</em>. Полезно если хочешь пересобрать без нового тега (например, подшаманил CI).</p>
+</div>
+
+<script>
+  mermaid.initialize({startOnLoad:true,theme:"dark",themeVariables:{primaryColor:"#1f1f2e",primaryTextColor:"#e7e7ea",primaryBorderColor:"#4f46e5",lineColor:"#5f5f6a",fontFamily:"system-ui"}});
+</script>
+</body>
+</html>

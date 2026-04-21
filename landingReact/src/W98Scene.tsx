@@ -1,10 +1,9 @@
 import { type ReactNode, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import "./w98-scene.css";
 
-// Prefix public-asset URLs with Vite's base (`/` in dev, `/autlas-landing/`
-// in the GitHub Pages production build). Hardcoded "/assets/..." strings
-// would otherwise break in prod since Vite only rewrites absolute paths
-// in HTML and CSS imported from JS, not inline string literals.
+// Prefix public-asset URLs with Vite's base path (always "/" — org GitHub Pages
+// serves from root). Hardcoded "/assets/..." strings would otherwise break if
+// the base ever changes, since Vite only rewrites paths in HTML/CSS, not inline strings.
 const asset = (p: string) => `${import.meta.env.BASE_URL}${p.replace(/^\//, "")}`;
 
 // Sample-based error sounds. We route the real Windows XP samples

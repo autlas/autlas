@@ -1,7 +1,7 @@
 name: Deploy landing
 
-# Builds landingReact/ and publishes dist/ to the public
-# EazzzyMax/autlas-landing repo, where GitHub Pages serves it.
+# Builds landingReact/ and publishes dist/ to the
+# autlas/autlas.github.io repo, where GitHub Pages serves it at autlas.github.io.
 
 on:
   push:
@@ -33,11 +33,11 @@ jobs:
       - run: npm ci
       - run: npm run build
 
-      - name: Publish to autlas-landing
+      - name: Publish to autlas.github.io
         uses: peaceiris/actions-gh-pages@v4
         with:
-          deploy_key: ${{ secrets.ACTIONS_DEPLOY_KEY }}
-          external_repository: EazzzyMax/autlas-landing
+          personal_token: ${{ secrets.PAGES_TOKEN }}
+          external_repository: autlas/autlas.github.io
           publish_branch: main
           publish_dir: landingReact/dist
           force_orphan: true

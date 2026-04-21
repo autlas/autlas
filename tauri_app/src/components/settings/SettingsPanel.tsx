@@ -742,12 +742,12 @@ export default React.memo(function SettingsPanel({
         <span>autlas v{pkg.version}</span>
         <span>·</span>
         <a
-          href="https://github.com/eazzzymax/autlas-landing"
+          href="https://github.com/autlas/autlas"
           target="_blank"
           rel="noopener noreferrer"
           className="hover:text-indigo-400 hover:opacity-100 transition-colors underline-offset-2 hover:underline"
         >
-          github.com/eazzzymax/autlas-landing
+          github.com/autlas/autlas
         </a>
       </div>
     </div>
