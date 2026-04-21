@@ -10,7 +10,7 @@ import TruncatedTooltip from "../ui/TruncatedTooltip";
 import SettingsSection from "../ui/SettingsSection";
 import { useTreeStore } from "../../store/useTreeStore";
 import { safeSetItem } from "../../utils/safeStorage";
-import pkg from "../../../package.json";
+import pkg from "../../../../../tauri_app/package.json";
 
 interface SettingsPanelProps {
   brightness: number;

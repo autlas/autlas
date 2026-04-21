@@ -1,0 +1,11 @@
+--- tauri_app/src/components/settings/SettingsPanel.tsx	2026-04-21 15:19:16.341125700 +0300
++++ landingReact/src/app/components/settings/SettingsPanel.tsx	2026-04-21 15:21:03.617283500 +0300
+@@ -10,7 +10,7 @@
+ import SettingsSection from "../ui/SettingsSection";
+ import { useTreeStore } from "../../store/useTreeStore";
+ import { safeSetItem } from "../../utils/safeStorage";
+-import pkg from "../../../package.json";
++import pkg from "../../../../../tauri_app/package.json";
+ 
+ interface SettingsPanelProps {
+   brightness: number;
