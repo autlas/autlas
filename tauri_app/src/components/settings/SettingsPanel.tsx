@@ -429,7 +429,7 @@ export default React.memo(function SettingsPanel({
 
           {/* Blacklist */}
           <div className="pt-6 mt-2 border-t border-white/5 space-y-2">
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-1.5 mb-3">
               <span className="text-xs font-bold tracking-widest text-tertiary uppercase">
                 {t("settings.blacklist", "Excluded folders")}
               </span>
@@ -487,7 +487,7 @@ export default React.memo(function SettingsPanel({
 
           {/* Hidden folders */}
           <div className="pt-6 mt-2 border-t border-white/5 space-y-2">
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-1.5 mb-3">
               <span className="text-xs font-bold tracking-widest text-tertiary uppercase">
                 {t("settings.hidden_folders", "Hidden folders")}
               </span>

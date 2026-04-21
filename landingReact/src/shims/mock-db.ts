@@ -427,7 +427,7 @@ export const tagIcons: Record<string, string> = {
 };
 
 export const hiddenFolders: string[] = [];
-export const scanPaths: string[] = ["D:/ahk"];
+export const scanPaths: string[] = ["C:/Users/max", "D:/"];
 export const scanBlacklist: string[] = [];
 export const iconCache: Record<string, [string, string]> = {};
 export const traySettings = { close_to_tray: true };
