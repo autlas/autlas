@@ -1,6 +1,6 @@
---- tauri_app/src/hooks/useScriptData.ts	2026-04-10 15:02:34.642523400 +0300
-+++ landingReact/src/app/hooks/useScriptData.ts	2026-04-19 01:28:39.636999400 +0300
-@@ -144,8 +144,18 @@
+--- tauri_app/src/hooks/useScriptData.ts	2026-04-21 15:09:19.017045800 +0300
++++ landingReact/src/app/hooks/useScriptData.ts	2026-04-21 15:09:30.894258200 +0300
+@@ -151,8 +151,18 @@
          let unlistenStatus: (() => void) | null = null;
          let unlistenHub: (() => void) | null = null;
          let localHubHandler: ((e: Event) => void) | null = null;
@@ -19,7 +19,7 @@
          import('@tauri-apps/api/event').then(({ listen }) => {
              if (!mounted) return;
  
-@@ -175,18 +185,16 @@
+@@ -182,18 +192,16 @@
                      return u ? { ...s, is_running: u.is_running, has_ui: u.has_ui } : s;
                  });
  
@@ -47,7 +47,7 @@
                  });
  
                  const store = useTreeStore.getState();
-@@ -237,6 +245,7 @@
+@@ -244,6 +252,7 @@
              if (unlistenStatus) unlistenStatus();
              if (unlistenHub) unlistenHub();
              if (localHubHandler) window.removeEventListener('ahk-hub-changed-local', localHubHandler);

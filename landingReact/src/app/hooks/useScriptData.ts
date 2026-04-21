@@ -39,6 +39,11 @@ export function useScriptData({ onTagsLoaded, onRunningCountChange, refreshKey, 
         try {
             let data: Script[];
             let scanDurationMs = 0;
+            // Only the fetchData call that actually *initiated* this scan
+            // fires the completion toast. Piggy-backers (multiple ScriptTree
+            // instances awaiting the same _scanPromise) would otherwise each
+            // fire it with scanDurationMs=0, producing "0.0 сек ×N".
+            let initiatedScan = false;
 
             // Mock data mode: generate fake scripts instead of fetching
             const mockCount = parseInt(localStorage.getItem("ahk_mock_scripts") || "0");
@@ -46,6 +51,7 @@ export function useScriptData({ onTagsLoaded, onRunningCountChange, refreshKey, 
                 const t0 = performance.now();
                 data = generateMockScripts(mockCount);
                 scanDurationMs = performance.now() - t0;
+                initiatedScan = true;
                 console.log(`[Mock] Generated ${data.length} scripts in ${scanDurationMs.toFixed(0)}ms`);
             } else if (forceScan && _scanPromise) {
                 data = await _scanPromise;
@@ -56,10 +62,11 @@ export function useScriptData({ onTagsLoaded, onRunningCountChange, refreshKey, 
                 data = await promise;
                 if (forceScan) _scanPromise = null;
                 scanDurationMs = performance.now() - t0;
+                initiatedScan = true;
                 console.log(`[Scan] ${forceScan ? 'Full scan' : 'Cache load'}: ${data.length} scripts in ${scanDurationMs.toFixed(0)}ms`);
             }
             _cachedScripts = data;
-            if (forceScan && onScanComplete) {
+            if (forceScan && initiatedScan && onScanComplete) {
                 onScanComplete(Date.now(), data.length, scanDurationMs);
             }
             setAllScripts(prev => {
